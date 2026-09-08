@@ -235,9 +235,7 @@ def build_rag_context_pack(
         if doctors:
             # Preserve personal Gate2 contacts as CONTEXT only — never governed SoT.
             stable_facts["doctors"] = doctors
-            stable_facts["doctors_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
             meta["sources"].append("user_doctors")
-            meta["provider_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
         upcoming = list_events(db, user_id, upcoming_only=True)[:EVENTS_CONTEXT_MAX]
         if upcoming:
             stable_facts["upcoming_events"] = [
@@ -252,6 +250,18 @@ def build_rag_context_pack(
             meta["sources"].append("user_care_plan_items")
     except Exception as e:
         logger.debug("%s Gate2 RAG assembly failed: %s", _LOG_PREFIX, e)
+
+    # Fail-closed PERSONAL plane: overwrite any upstream elevation to GOVERNED/VERIFIED.
+    stable_facts["authority_label"] = "PERSONAL"
+    stable_facts["verified_provider"] = False
+    if "doctors" in stable_facts:
+        stable_facts["doctors_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
+    meta["authority_label"] = "PERSONAL"
+    meta["verified_provider"] = False
+    meta["provider_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
+    for elev_key in ("verified_directory", "directory_status", "directory_verified"):
+        meta.pop(elev_key, None)
+        stable_facts.pop(elev_key, None)
 
     return RagContextPack(
         user_id=user_id,
@@ -279,9 +289,20 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
         lines.append(f"User preferred name: {pack.preferred_name}")
     if pack.stable_facts:
         parts = []
-        for k, v in list(pack.stable_facts.items())[:5]:
-            if v is not None:
-                parts.append(f"{k}={v}")
+        for k, v in list(pack.stable_facts.items())[:8]:
+            if v is None:
+                continue
+            # Fail-closed: never emit upstream verification-elevation keys/values.
+            if k in {
+                "verified_provider",
+                "directory_status",
+                "verified_directory",
+                "directory_verified",
+                "authority_label",
+                "doctors_authority_class",
+            }:
+                continue
+            parts.append(f"{k}={v}")
         if parts:
             lines.append("Stable facts: " + "; ".join(parts))
     if pack.goals:
@@ -308,19 +329,24 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
     if isinstance(meds, list) and meds:
         lines.append("Medications: " + "; ".join(str(m) for m in meds[:MEDICATIONS_CONTEXT_MAX]))
     personal_docs = (pack.stable_facts or {}).get("doctors") if pack.stable_facts else None
-    auth_class = (
-        (pack.stable_facts or {}).get("doctors_authority_class")
-        if pack.stable_facts
-        else None
-    )
+    # Fail-closed: never trust upstream doctors_authority_class / verified flags.
     if isinstance(personal_docs, list) and personal_docs:
-        label = "Personal care contacts"
-        if auth_class == "PERSONAL_PROVIDER_CONTEXT":
-            label += " (context only; NOT governed directory / NOT verified providers)"
+        label = (
+            "Personal care contacts "
+            "(PERSONAL context only; NOT governed directory / NOT verified providers)"
+        )
         lines.append(
             f"{label}: "
             + ", ".join(str(d) for d in personal_docs[:DOCTORS_CONTEXT_MAX])
         )
+    # Plane markers — hard overwrite; ignore pack.meta elevation attempts.
+    # Authority is typed metadata only — do NOT scrub free-text personal content.
+    plane_bits = [
+        "authority_plane=PERSONAL",
+        "authority_label=PERSONAL",
+        "verified_provider=False",
+    ]
+    lines.insert(1, "; ".join(plane_bits))
     text = "\n".join(lines)
     if len(text) > max_chars:
         text = text[: max_chars - 3] + "..."

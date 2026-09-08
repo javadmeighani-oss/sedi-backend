@@ -6,6 +6,7 @@ from backend.app.services.scis.embedding.providers import (
     OpenAIEmbeddingProvider,
     assert_global_knowledge_only,
     get_default_provider,
+    resolve_product_governed_embedding,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "OpenAIEmbeddingProvider",
     "assert_global_knowledge_only",
     "get_default_provider",
+    "resolve_product_governed_embedding",
 ]

@@ -115,15 +115,21 @@ def test_provider_router_uses_keyword_when_vector_disabled(db, test_user, monkey
 
 
 def test_provider_router_falls_back_to_keyword_when_vector_unavailable(db, test_user, monkeypatch):
-    """When RAG_VECTOR_ENABLED=true but vector fails, retrieve falls back to keyword."""
+    """Phase1: RAG_VECTOR_ENABLED cannot select Stage17 VectorRAG; always LocalRAG."""
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
     from backend.app.services.local_rag import provider_router
-    monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
+    from backend.app.services.local_rag.local_provider import LocalRAGProvider
 
+    monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
+    monkeypatch.setattr(provider_router, "RAG_VECTOR_ALLOWLIST", frozenset([test_user.id]))
+
+    provider = provider_router.get_rag_provider(db, test_user.id)
+    assert isinstance(provider, LocalRAGProvider)
     result = provider_router.retrieve(db, test_user.id, "lifestyle", "en")
     assert result is not None
     assert hasattr(result, "combined_text")
     assert hasattr(result, "sources")
+    assert provider_router.stage17_vector_reachable_from_product_chat() is False
 
 
 @pytest.mark.skipif(

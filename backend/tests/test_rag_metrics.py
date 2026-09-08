@@ -69,22 +69,20 @@ def test_latency_buckets():
 
 
 def test_provider_router_records_fallback(db, test_user, monkeypatch):
-    """provider_router records fallback when vector fails (user in allowlist).
-    When pgvector is unavailable, vector.retrieve raises; keyword fallback is used and vector_fallbacks increments.
-    If test env has no pgvector, provider may be LocalRAGProvider (vector skipped) so we only assert retrieval succeeds.
-    """
+    """Phase1: Product Chat always uses keyword LocalRAG; Stage17 vector not restored."""
     from backend.app.services.local_rag.metrics import get_metrics
     from backend.app.services.local_rag import provider_router
+    from backend.app.services.local_rag.local_provider import LocalRAGProvider
 
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ALLOWLIST", frozenset([test_user.id]))
 
+    assert isinstance(provider_router.get_rag_provider(db, test_user.id), LocalRAGProvider)
     metrics = get_metrics()
     before_total = metrics.total_requests
-
     result = provider_router.retrieve(db, test_user.id, "lifestyle", "en")
-
     assert result is not None
     assert metrics.total_requests > before_total
-    # vector_fallbacks increments only when vector tried and failed; without pgvector, provider may be keyword directly
+    snap = metrics.snapshot()
+    assert snap["provider_usage"].get("keyword", 0) >= 1

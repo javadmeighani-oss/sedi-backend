@@ -1,27 +1,25 @@
-# backend.app.services.local_rag.provider_router (Stage 17.6, 17.7, 17.8, 17.9)
+# backend.app.services.local_rag.provider_router (Stage 17.6–17.9 / Phase1 bypass closure)
 """
-Selects RAG provider based on feature flags.
-RAG_VECTOR_ENABLED + user in allowlist + circuit breaker not tripped -> vector provider.
-Else -> keyword provider.
-Stage 17.9: Latency/error guardrails via circuit breaker.
+Product Chat personal lexical router.
+
+Phase1: Stage17 VectorRAGProvider / rag_embeddings@1536 is NONCANONICAL and
+unreachable from Product Chat. RAG_VECTOR_ENABLED, allowlist, and circuit breaker
+MUST NOT restore Stage17 vector authority.
 """
 
 import os
 import time
-from typing import Union
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from backend.app.services.local_rag.contracts import RetrievalResult
 from backend.app.services.local_rag.local_provider import LocalRAGProvider
 from backend.app.services.local_rag.metrics import get_metrics
-from backend.app.services.local_rag.vector_provider import (
-    VectorRAGProvider,
-    VectorRAGUnavailableError,
-    RAG_VECTOR_ENABLED,
-)
-from backend.app.services.local_rag.circuit_breaker import is_tripped, check_after_request
+from backend.app.services.local_rag.circuit_breaker import check_after_request
 
+# Historical flag retained for observability only — cannot select VectorRAG.
+RAG_VECTOR_ENABLED = os.environ.get("RAG_VECTOR_ENABLED", "false").lower() in ("true", "1", "yes")
 RAG_VECTOR_ALLOWLIST_RAW = (os.environ.get("RAG_VECTOR_ALLOWLIST", "") or "").strip()
 RAG_VECTOR_ALLOWLIST: frozenset[int] = frozenset(
     int(x.strip())
@@ -29,16 +27,24 @@ RAG_VECTOR_ALLOWLIST: frozenset[int] = frozenset(
     if x.strip() and x.strip().isdigit()
 )
 
+# Phase1 hard closure: Product Chat never routes to Stage17 vector path.
+STAGE17_VECTOR_PRODUCT_CHAT_DISABLED = True
+PRODUCT_CHAT_PERSONAL_AUTHORITY_LABEL = "PERSONAL"
+
 
 def _user_in_allowlist(user_id: int) -> bool:
     return user_id in RAG_VECTOR_ALLOWLIST
 
 
-def get_rag_provider(db: Session, user_id: int) -> Union[LocalRAGProvider, VectorRAGProvider]:
-    """Return the active RAG provider based on flags, allowlist, and circuit breaker."""
-    if RAG_VECTOR_ENABLED and _user_in_allowlist(user_id) and not is_tripped():
-        return VectorRAGProvider(db)
+def get_rag_provider(db: Session, user_id: int) -> LocalRAGProvider:
+    """Always return LocalRAGProvider for Product Chat (Stage17 vector disabled)."""
+    _ = (user_id, RAG_VECTOR_ENABLED, _user_in_allowlist(user_id))  # flags observed, ignored
     return LocalRAGProvider(db)
+
+
+def stage17_vector_reachable_from_product_chat() -> bool:
+    """Invariant helper for tests/docs: must remain False in Phase1."""
+    return not STAGE17_VECTOR_PRODUCT_CHAT_DISABLED
 
 
 def retrieve(
@@ -47,48 +53,39 @@ def retrieve(
     query_text: str,
     language: str = "en",
 ) -> RetrievalResult:
-    """
-    Retrieve via provider. If vector enabled and fails, falls back to keyword.
-    Records metrics for observability.
-    """
+    """Personal lexical retrieve only. Never queries rag_embeddings."""
     metrics = get_metrics()
     start = time.perf_counter()
-    provider = get_rag_provider(db, user_id)
-    result = None
     provider_used = "keyword"
     fallback_used = False
     success = False
+    result: Optional[RetrievalResult] = None
 
     try:
-        if RAG_VECTOR_ENABLED and isinstance(provider, VectorRAGProvider):
-            try:
-                result = provider.retrieve(user_id, query_text, language)
-                provider_used = "vector"
-                success = True
-            except VectorRAGUnavailableError:
-                result = LocalRAGProvider(db).retrieve(user_id, query_text, language)
-                fallback_used = True
-                success = True
-        else:
-            result = provider.retrieve(user_id, query_text, language)
-            success = True
+        result = LocalRAGProvider(db).retrieve(user_id, query_text, language)
+        # Fail-closed PERSONAL boundary: overwrite any upstream authority elevation.
+        for src in result.sources or []:
+            if isinstance(src, dict):
+                src["authority_label"] = PRODUCT_CHAT_PERSONAL_AUTHORITY_LABEL
+                src["verified_provider"] = False
+                # Strip directory/verification elevation keys if present.
+                src.pop("verified_directory", None)
+                src.pop("directory_status", None)
+                if src.get("doctors_authority_class") not in (None, "PERSONAL_PROVIDER_CONTEXT"):
+                    src["doctors_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
+        success = True
     except Exception:
-        try:
-            result = LocalRAGProvider(db).retrieve(user_id, query_text, language)
-            fallback_used = True
-            success = True
-        except Exception:
-            latency_ms = (time.perf_counter() - start) * 1000
-            metrics.record(
-                success=False,
-                provider_used=provider_used,
-                latency_ms=latency_ms,
-                top_k=0,
-                sources_count=0,
-                fallback_used=fallback_used,
-            )
-            check_after_request(metrics.snapshot())
-            raise
+        latency_ms = (time.perf_counter() - start) * 1000
+        metrics.record(
+            success=False,
+            provider_used=provider_used,
+            latency_ms=latency_ms,
+            top_k=0,
+            sources_count=0,
+            fallback_used=fallback_used,
+        )
+        check_after_request(metrics.snapshot())
+        raise
 
     latency_ms = (time.perf_counter() - start) * 1000
     top_k = len(result.chunks) if result else 0
@@ -102,10 +99,10 @@ def retrieve(
         sources_count=sources_count,
         fallback_used=fallback_used,
     )
-
     check_after_request(metrics.snapshot())
-
-    # Optional safe log line (no PII)
-    print(f"[RAG] provider={provider_used} latency_ms={latency_ms:.1f} sources={sources_count} fallback={fallback_used}")
-
+    print(
+        f"[RAG] provider={provider_used} authority=PERSONAL "
+        f"latency_ms={latency_ms:.1f} sources={sources_count} "
+        f"stage17_vector=disabled"
+    )
     return result

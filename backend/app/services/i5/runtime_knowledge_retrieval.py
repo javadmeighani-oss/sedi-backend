@@ -41,6 +41,9 @@ STATUS_NO_ELIGIBLE_KNOWLEDGE = "NO_ELIGIBLE_KNOWLEDGE"
 STATUS_MULTIPLE_CURRENT_FAIL_CLOSED = "MULTIPLE_CURRENT_FAIL_CLOSED"
 STATUS_BROKEN_VERSION_CHAIN = "BROKEN_VERSION_CHAIN"
 STATUS_INSUFFICIENT_CONTEXT = "INSUFFICIENT_CONTEXT"
+STATUS_UNSUPPORTED_LANGUAGE = "UNSUPPORTED_LANGUAGE"
+AUTHORITY_LABEL_GOVERNED = "GOVERNED"
+AUTHORITY_LABEL_PERSONAL = "PERSONAL"
 
 NO_BASE_MODEL_FALLBACK = True
 
@@ -154,9 +157,17 @@ class RetrievedKnowledgeItem:
 
     def as_care_snippet(self) -> dict[str, Any]:
         """CARE_CONTEXT-compatible snippet; citation rendering owned by W4-P02."""
-        retrieval_mode = "scis_lexical" if str(self.memory_item_id).startswith("SCIS_KCE:") else "memory"
+        if str(self.memory_item_id).startswith("SCIS_KCE:"):
+            if any("SCIS_HYBRID" in r for r in self.inclusion_reasons):
+                retrieval_mode = "scis_hybrid"
+            else:
+                retrieval_mode = "scis_lexical"
+            authority_label = AUTHORITY_LABEL_GOVERNED
+        else:
+            retrieval_mode = "memory"
+            authority_label = AUTHORITY_LABEL_GOVERNED
         chunk_id = None
-        if retrieval_mode == "scis_lexical":
+        if retrieval_mode.startswith("scis_"):
             try:
                 chunk_id = int(str(self.memory_item_id).split(":", 1)[1])
             except (IndexError, ValueError, TypeError):
@@ -173,6 +184,7 @@ class RetrievedKnowledgeItem:
             "language": self.language,
             "domain": self.domain,
             "retrieval_mode": retrieval_mode,
+            "authority_label": authority_label,
             "chunk_id": chunk_id,
             "rank_score": self.rank_score,
             "citation": {
@@ -738,7 +750,9 @@ def retrieve_knowledge_context(
     """
     from backend.app import models
     from backend.app.services.scis.governed_runtime_adapter import (
-        retrieve_scis_lexical_runtime_items,
+        UnsupportedGovernedLanguageError,
+        is_supported_governed_language,
+        retrieve_scis_governed_runtime_items,
     )
 
     nq = normalize_query(query)
@@ -780,15 +794,34 @@ def retrieve_knowledge_context(
             result.gap_id = gap.id
         return result
 
-    # K04 primary path: governed SCIS lexical (works with knowledge_memory_items=0).
+    # Phase1: unsupported language fail-closed for governed semantic/hybrid plane.
+    if result.language_filter and not is_supported_governed_language(result.language_filter):
+        result.status = STATUS_UNSUPPORTED_LANGUAGE
+        result.clarification_required = True
+        result.safe_user_facing_intent = (
+            "Governed knowledge retrieval supports fa, en, and ar only; "
+            "please rephrase in a supported language."
+        )
+        return result
+
+    # K04 primary path: governed SCIS HYBRID (lexical + KCE 1024) with lexical fallback.
     try:
-        scis_items = retrieve_scis_lexical_runtime_items(
+        scis_items, _scis_meta = retrieve_scis_governed_runtime_items(
             db,
             nq.original_query,
             language=result.language_filter,
             domain=result.domain_filter,
             limit=serving_lim,
+            allow_network=True,
         )
+    except UnsupportedGovernedLanguageError:
+        result.status = STATUS_UNSUPPORTED_LANGUAGE
+        result.clarification_required = True
+        result.safe_user_facing_intent = (
+            "Governed knowledge retrieval supports fa, en, and ar only; "
+            "please rephrase in a supported language."
+        )
+        return result
     except Exception:  # noqa: BLE001 — SCIS unavailable → memory fallback
         scis_items = []
 
@@ -832,7 +865,7 @@ def retrieve_knowledge_context(
         ranked.sort(key=lambda i: (-i.rank_score, i.canonical_unit_id, i.knowledge_unit_id))
         result.items = ranked[:serving_lim]
         result.safe_user_facing_intent = (
-            "Governed SCIS lexical knowledge matched this query after eligibility filters."
+            "Governed SCIS knowledge matched this query after eligibility filters."
         )
         return result
 

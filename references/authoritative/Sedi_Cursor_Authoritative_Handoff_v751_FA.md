@@ -1,0 +1,194 @@
+# SEDI Cursor Authoritative Handoff - v751
+
+Smart-RAG Phase1 canonical runtime foundation — **LOCAL CANDIDATE**. Do not modify v750 / §457.
+
+```
+VERSION=v751
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v750
+v750_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§458
+GATE=SEDI-V1-BE-SMART-RAG-PHASE1-CANONICAL-RUNTIME-FOUNDATION-01
+SCOPE=IMPLEMENTATION_CANDIDATE_PLUS_DOCS
+GATE_RESULT=PASS_REPAIRED_LOCAL_CANDIDATE
+APPROVED_BY=JAVAD
+PHASE1_IMPLEMENTATION_AUTHORIZED=YES
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=b740285f740a4c915dda5c10efbe16fc4ce96bff
+ALEMBIC_HEAD=080_i9_device_reported_vital_status
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+FORCE_PUSH=NO
+
+PHASE1_IMPLEMENTATION_STATUS=LOCAL_CANDIDATE_ACCEPTED_PENDING_PG16_RUNTIME
+CHATGPT_INDEPENDENT_AUDIT=PASS_LOCAL_CANDIDATE_ACCEPTED
+PG16_RUNTIME_PENDING=YES
+OPENAI_LIVE_CANARY_PENDING=YES
+COMMIT_AUTHORIZED=YES
+PUSH_AUTHORIZED=YES
+CI_DISPATCH_AUTHORIZED=YES
+CI_RUNTIME_CLOSURE=PENDING
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Self-heal repair (LOCAL CANDIDATE)
+
+```
+REPAIR_STEP=SEDI-V1-BE-SMART-RAG-PHASE1-LOCAL-CANDIDATE-SELF-HEAL-01
+FINDING_PERSONAL_AUTHORITY=FIXED
+FINDING_FAKE_NETWORK_DEFAULT=FIXED
+SELF_HEAL_COUNT_TOTAL=4
+SELF_HEAL_03=PERSONAL boundary setdefault → unconditional overwrite + serialize scrub
+SELF_HEAL_04=get_default_provider(allow_network=True) without OpenAI no longer returns Fake; raises; product → LEXICAL
+FOCUSED_VERIFY_AFTER_REPAIR=42_PASS_0_FAIL
+```
+
+## Self-heal repair-02 (LOCAL CANDIDATE)
+
+```
+REPAIR_STEP=SEDI-V1-BE-SMART-RAG-PHASE1-LOCAL-CANDIDATE-SELF-HEAL-02
+SELF_HEAL_05_ROOT_CAUSE=authority enforcement incorrectly included PERSONAL free-text token scrubbing
+SELF_HEAL_05_RESULT=structured authority enforcement retained; personal content preserved
+PERSONAL_CONTENT_PRESERVED=YES
+PERSONAL_AUTHORITY_FAIL_CLOSED=YES
+PERSONAL_TEXT_SCRUBBING_PRESENT=NO
+FOCUSED_VERIFY_AFTER_REPAIR_02=45_PASS_0_FAIL
+SELF_HEAL_COUNT_TOTAL=5
+CHATGPT_INDEPENDENT_AUDIT=PENDING
+COMMIT_AUTHORIZED=NO
+PUSH_AUTHORIZED=NO
+```
+
+## Phase0 → Phase1 linkage
+
+```
+PHASE0_RESULT=PASS_ACCEPTED_WITH_DECISIONS_REQUIRED_FOR_PHASE1
+PHASE1_ARCHITECTURE_DECISION_PACKAGE_APPROVED_BY_JAVAD=YES
+```
+
+## Candidate outcomes
+
+```
+CANONICAL_NETWORK_PROVIDER=OPENAI_ONLY
+OPENAI_MODEL=text-embedding-3-large
+OPENAI_DIMENSIONS=1024
+OPENAI_LENGTH_ASSERT=YES_FAIL_CLOSED
+COHERE_CANONICAL_RUNTIME=NO
+FAKE_SCIS_MODE=OFFLINE_CI_TEST_ONLY
+
+STAGE17_PRODUCT_CHAT_REACHABLE=NO
+RAG_EMBEDDINGS_CANONICAL=NO
+RAG_VECTOR_ENABLED_CAN_RESTORE_STAGE17=NO
+
+PRODUCT_GOVERNED_I5_MODE=SCIS_HYBRID
+OPENAI_FAILURE_FALLBACK=SAFE_CANONICAL_LEXICAL
+CANONICAL_KU_REVALIDATION=YES
+
+PERSONAL_LABEL=PERSONAL
+GOVERNED_LABEL=GOVERNED
+PERSONAL_CAN_VERIFY_PROVIDER=NO
+
+SUPPORTED_LANGUAGES=fa;en;ar
+UNSUPPORTED_LANGUAGE_POLICY=FAIL_CLOSED
+```
+
+## High-priority Phase0 findings — disposition in candidate
+
+```
+H1_STAGE17_CHAT_BYPASS=CLOSED_IN_CANDIDATE (provider_router hard-disable)
+H2_PROVIDER_CONTRACT_DRIFT=CLOSED_IN_CANDIDATE (OpenAI-only defaults + selection)
+H3_PRODUCT_CHAT_I5_LEXICAL_ONLY=CLOSED_IN_CANDIDATE (hybrid adapter + lexical fallback)
+```
+
+## Changed product files
+
+- `backend/app/services/scis/__init__.py`
+- `backend/app/services/scis/embedding/providers.py`
+- `backend/app/services/scis/embedding/__init__.py`
+- `backend/app/services/scis/governed_runtime_adapter.py`
+- `backend/app/services/local_rag/provider_router.py`
+- `backend/app/services/i5/runtime_knowledge_retrieval.py`
+- `backend/app/services/rag_context/rag_context_builder.py`
+
+## Changed / new tests
+
+- `backend/tests/test_smart_rag_phase1_canonical_runtime.py` (NEW)
+- `backend/tests/test_local_rag_provider.py` (Stage17 expectation)
+- `backend/tests/test_rag_metrics.py` (Stage17 expectation)
+- `backend/scripts/smart_rag_phase1_focused_verify.py` (standalone verifier)
+
+## Focused test results
+
+```
+FOCUSED_TESTS_RUN=45
+FOCUSED_TESTS_PASS=45
+FOCUSED_TESTS_FAIL=0
+PG16_RUNTIME_PENDING=YES
+NOTE=supersedes interim 42-count after SELF-HEAL-02 text-preservation checks
+```
+
+PG16 still required for live KCE hybrid semantic, retracted/superseded KU exclusion under real FTS/pgvector, and full indexed Chat e2e.
+
+## Self-heals
+
+```
+SELF_HEAL_COUNT_TOTAL=5
+SELF_HEAL_01=Stage17 hard-disable broke prior VectorRAG selection expectations → updated focused router/metrics tests
+SELF_HEAL_02=Canonical provider selection must ignore Cohere keys → OpenAI-only get_default_provider
+SELF_HEAL_03=PERSONAL authority setdefault → unconditional overwrite (adversarial GOVERNED/True blocked)
+SELF_HEAL_04=Fake must not be network default without OpenAI → raise; product SAFE_CANONICAL_LEXICAL
+SELF_HEAL_05=PERSONAL free-text token scrubbing removed; structured authority fail-closed retained
+FINDING_PERSONAL_AUTHORITY=FIXED
+FINDING_FAKE_NETWORK_DEFAULT=FIXED
+PERSONAL_CONTENT_PRESERVED=YES
+PERSONAL_AUTHORITY_FAIL_CLOSED=YES
+```
+
+## Inventory note
+
+```
+RAG_TEST_FILES_CURRENT_REF=36
+RAG_TEST_CASES_CURRENT_REF=316
+RETEST_REQUIRED_CURRENT=NOT_PROVEN_CURRENTLY
+REUSE_TRUE_GREEN_CURRENT=NOT_PROVEN_CURRENTLY
+```
+
+Do **not** invent new retest/reuse splits. Official 104-case ledger unchanged.
+
+## Certification (unchanged)
+
+```
+OFFICIAL_CERT_TOTAL=104
+OFFICIAL_COMPLETED=22
+OFFICIAL_REMAINING=82
+OFFICIAL_PROGRESS=21.15%
+CERTIFICATION_REBASELINE_APPLIED=NO
+```
+
+## Scope guard
+
+```
+SCHEMA_CHANGED=NO
+MIGRATION_CHANGED=NO
+ALEMBIC_HEAD=080_i9_device_reported_vital_status
+NEW_VECTOR_TABLE=NO
+PERSONAL_VECTOR_SCHEMA=NO
+STAGE17_SQL_CHANGED=NO
+PRODUCTION_CHANGED=NO
+REAL_FCM_CHANGED=NO
+FRONTEND_CHANGED=NO
+CLINICAL_RULES_CHANGED=NO
+OPENAI_LIVE_CALL=NO
+VECTOR_BACKFILL=NO
+COMMIT_CREATED=NO
+PUSH_PERFORMED=NO
+CI_DISPATCHED=NO
+FORCE_PUSH_USED=NO
+```
+
+```
+DECISION_REQUIRED=NO
+BLOCKERS=PG16_RUNTIME_PENDING; CHATGPT_INDEPENDENT_AUDIT=PENDING
+NEXT_GATE_AUTHORIZED=NO
+```
