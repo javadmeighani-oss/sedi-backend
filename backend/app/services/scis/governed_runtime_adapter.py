@@ -288,6 +288,13 @@ def retrieve_scis_governed_runtime_items(
         str(k): int(v) for k, v in filtered.items() if isinstance(v, (int, float))
     }
     meta["scis_evidence_count"] = len(getattr(resp, "evidence", None) or [])
+    resp_obs = dict(getattr(resp, "observability", None) or {})
+    meta["reranker"] = resp_obs.get("reranker") or "deterministic_post_rrf"
+    meta["network_call_count"] = int(resp_obs.get("network_call_count") or getattr(prov, "network_call_count", 0) or 0)
+    # Never promote PERSONAL → GOVERNED; authority label is always GOVERNED for SCIS plane.
+    meta["authority_label"] = RESULT_LABEL_GOVERNED
+    meta["cohere_used"] = False
+    meta["stage17_rag_embeddings_used"] = False
 
     mode_tag = (
         "SCIS_HYBRID"

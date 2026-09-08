@@ -1278,6 +1278,8 @@ def _merge_scis_observability(result: RetrievalResult, scis_meta: Mapping[str, A
         "mapped_item_count",
         "alias_authority",
         "alias_hint_count",
+        "reranker",
+        "network_call_count",
     )
     obs = dict(result.observability)
     for k in safe_keys:

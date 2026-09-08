@@ -18,7 +18,12 @@ from backend.app.services.scis.contracts import (
 )
 from backend.app.services.scis.eligibility import is_kce_row_eligible
 from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider, ScisEmbeddingProvider
-from backend.app.services.scis.hybrid import RankedCandidate, reciprocal_rank_fusion
+from backend.app.services.scis.hybrid import (
+    DETERMINISTIC_POST_RRF_RERANKER,
+    RankedCandidate,
+    deterministic_post_rrf_rank,
+    reciprocal_rank_fusion,
+)
 from backend.app.services.scis.lexical import lexical_search
 from backend.app.services.scis.provenance import build_provenance, provenance_complete_for_accepted
 from backend.app.services.scis.vector import vector_search
@@ -117,8 +122,12 @@ def retrieve(
         t0 = time.perf_counter()
         try:
             qvec = prov.embed_texts([request.query_text], input_type="search_query")[0]
-        except Exception as exc:  # noqa: BLE001
-            error_class = type(exc).__name__
+        except Exception as exc:  # noqa: BLE001 — classify only; never persist raw body
+            safe_class = getattr(exc, "error_class", None) or type(exc).__name__
+            error_class = str(safe_class)
+            # Strip accidental long bodies if a provider raised a message-heavy error.
+            if len(error_class) > 80 or "\n" in error_class:
+                error_class = type(exc).__name__
             fallback = FallbackState.EMBEDDING_FAILURE
             qvec = None
         if qvec is not None:
@@ -145,11 +154,21 @@ def retrieve(
     evidence: List[ScisEvidenceItem] = []
     ranked: list = []
     if request.retrieval_mode == RetrievalMode.LEXICAL:
-        ranked = [(c.chunk_id, c.score, {**c.payload, "lexical_rank": c.rank, "branches": ["lexical"]}) for c in lexical_cands]
+        ranked = [
+            (c.chunk_id, c.score, {**c.payload, "lexical_rank": c.rank, "branches": ["lexical"]})
+            for c in lexical_cands
+        ]
+        ranked = deterministic_post_rrf_rank(ranked, top_k=None)
     elif request.retrieval_mode == RetrievalMode.VECTOR:
-        ranked = [(c.chunk_id, c.score, {**c.payload, "vector_rank": c.rank, "branches": ["vector"]}) for c in vector_cands]
+        ranked = [
+            (c.chunk_id, c.score, {**c.payload, "vector_rank": c.rank, "branches": ["vector"]})
+            for c in vector_cands
+        ]
+        ranked = deterministic_post_rrf_rank(ranked, top_k=None)
     else:
-        ranked = reciprocal_rank_fusion([lexical_cands, vector_cands])
+        fused = reciprocal_rank_fusion([lexical_cands, vector_cands])
+        # CASE15 — explicit deterministic post-RRF ranking (no neural/LLM).
+        ranked = deterministic_post_rrf_rank(fused, top_k=None)
         if lexical_cands and not vector_cands:
             fallback = FallbackState.LEXICAL_ONLY if fallback == FallbackState.NONE else fallback
         elif vector_cands and not lexical_cands:
@@ -171,14 +190,17 @@ def retrieve(
                     if "FTS" in (error_class or "") and "VECTOR" in (error_class or ""):
                         fallback = FallbackState.BOTH_BRANCHES_UNAVAILABLE
 
-    # rrf_count = post-fusion (or single-branch) candidate count before top_k truncate.
+    # rrf_count = post-fusion / post-rank candidate count before top_k truncate.
     # lexical_count = eligible lexical candidates after governance filter.
     # semantic_count = eligible vector candidates after governance filter.
     candidates["rrf_count"] = len(ranked)
     candidates["lexical_count"] = int(candidates.get("lexical_eligible") or 0)
     candidates["semantic_count"] = int(candidates.get("vector_eligible") or 0)
+    network_calls = int(getattr(prov, "network_call_count", 0) or 0)
 
-    for fusion_rank, (chunk_id, score, payload) in enumerate(ranked[: request.top_k], start=1):
+    for fusion_rank, (chunk_id, score, payload) in enumerate(
+        deterministic_post_rrf_rank(ranked, top_k=request.top_k), start=1
+    ):
         branches = payload.get("branches") or ["hybrid"]
         branch = "hybrid" if len(branches) > 1 else branches[0]
         content = payload.get("chunk_content") or payload.get("search_document") or ""
@@ -236,11 +258,12 @@ def retrieve(
             "safety_classification": request.safety_classification,
             "intent": request.intent,
             "domain": request.target_domain,
-            "reranker": "deferred_optional",
+            "reranker": DETERMINISTIC_POST_RRF_RERANKER,
             "lexical_count": int(candidates.get("lexical_count") or 0),
             "semantic_count": int(candidates.get("semantic_count") or 0),
             "rrf_count": int(candidates.get("rrf_count") or 0),
             "provider": getattr(prov, "provider_name", None),
             "provider_failure": error_class,
+            "network_call_count": network_calls,
         },
     )
