@@ -258,6 +258,37 @@ def retrieve_scis_governed_runtime_items(
             meta["effective_mode"] = RetrievalMode.LEXICAL.value
             meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))
 
+    # Phase2-B CASE28 — sanitized SCIS observability (no raw query/chunk/vector/secrets).
+    counts = dict(getattr(resp, "candidate_counts", None) or {})
+    filtered = dict(getattr(resp, "filtered_counts", None) or {})
+    timings = dict(getattr(resp, "timings_ms", None) or {})
+    meta["retrieval_mode"] = meta["effective_mode"]
+    meta["language"] = lang
+    meta["provider"] = (
+        getattr(prov, "provider_name", None)
+        if prov is not None
+        else ("none_lexical" if meta["effective_mode"] == RetrievalMode.LEXICAL.value else None)
+    )
+    if meta.get("openai_failure_lexical_fallback"):
+        meta["provider"] = meta.get("provider") or "openai"
+        meta["provider_failure"] = getattr(resp, "error_class", None) or "EMBEDDING_OR_VECTOR_FAILURE"
+    else:
+        meta["provider_failure"] = getattr(resp, "error_class", None)
+    meta["lexical_count"] = int(counts.get("lexical_count") or counts.get("lexical_eligible") or 0)
+    meta["semantic_count"] = int(counts.get("semantic_count") or counts.get("vector_eligible") or 0)
+    meta["rrf_count"] = int(counts.get("rrf_count") or 0)
+    meta["timings_ms"] = {
+        k: float(v)
+        for k, v in timings.items()
+        if isinstance(k, str) and isinstance(v, (int, float))
+    }
+    meta["latency_ms"] = float(sum(meta["timings_ms"].values())) if meta["timings_ms"] else None
+    # governance drop reasons: sanitized reason→count only (no content).
+    meta["governance_drop_counts"] = {
+        str(k): int(v) for k, v in filtered.items() if isinstance(v, (int, float))
+    }
+    meta["scis_evidence_count"] = len(getattr(resp, "evidence", None) or [])
+
     mode_tag = (
         "SCIS_HYBRID"
         if meta["effective_mode"] == RetrievalMode.HYBRID.value
@@ -271,6 +302,7 @@ def retrieve_scis_governed_runtime_items(
         top_k=top_k,
         mode_tag=mode_tag,
     )
+    meta["mapped_item_count"] = len(items)
     return items, meta
 
 

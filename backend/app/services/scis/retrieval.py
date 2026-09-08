@@ -143,6 +143,7 @@ def retrieve(
 
     t0 = time.perf_counter()
     evidence: List[ScisEvidenceItem] = []
+    ranked: list = []
     if request.retrieval_mode == RetrievalMode.LEXICAL:
         ranked = [(c.chunk_id, c.score, {**c.payload, "lexical_rank": c.rank, "branches": ["lexical"]}) for c in lexical_cands]
     elif request.retrieval_mode == RetrievalMode.VECTOR:
@@ -169,6 +170,13 @@ def retrieve(
                 if not lexical_cands and not vector_cands and error_class:
                     if "FTS" in (error_class or "") and "VECTOR" in (error_class or ""):
                         fallback = FallbackState.BOTH_BRANCHES_UNAVAILABLE
+
+    # rrf_count = post-fusion (or single-branch) candidate count before top_k truncate.
+    # lexical_count = eligible lexical candidates after governance filter.
+    # semantic_count = eligible vector candidates after governance filter.
+    candidates["rrf_count"] = len(ranked)
+    candidates["lexical_count"] = int(candidates.get("lexical_eligible") or 0)
+    candidates["semantic_count"] = int(candidates.get("vector_eligible") or 0)
 
     for fusion_rank, (chunk_id, score, payload) in enumerate(ranked[: request.top_k], start=1):
         branches = payload.get("branches") or ["hybrid"]
@@ -229,5 +237,10 @@ def retrieve(
             "intent": request.intent,
             "domain": request.target_domain,
             "reranker": "deferred_optional",
+            "lexical_count": int(candidates.get("lexical_count") or 0),
+            "semantic_count": int(candidates.get("semantic_count") or 0),
+            "rrf_count": int(candidates.get("rrf_count") or 0),
+            "provider": getattr(prov, "provider_name", None),
+            "provider_failure": error_class,
         },
     )

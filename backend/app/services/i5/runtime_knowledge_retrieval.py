@@ -236,6 +236,7 @@ class RetrievalResult:
     personalization_audit: dict[str, Any] = field(default_factory=dict)
     query_intelligence: dict[str, Any] = field(default_factory=dict)
     sufficiency_audit: dict[str, Any] = field(default_factory=dict)
+    observability: dict[str, Any] = field(default_factory=dict)
     safe_user_facing_intent: str = (
         "No safe governed knowledge is available for this query; "
         "do not invent medical content."
@@ -256,7 +257,9 @@ class RetrievalResult:
             "personalization_audit": dict(self.personalization_audit),
             "query_intelligence": dict(self.query_intelligence),
             "sufficiency_audit": dict(self.sufficiency_audit),
+            "observability": dict(self.observability),
             "retrieved_count": len(self.items),
+            "final_evidence_count": len(self.items),
             "items": [
                 {
                     "knowledge_unit_id": i.knowledge_unit_id,
@@ -747,6 +750,7 @@ def retrieve_knowledge_context(
     reference_time: Any = None,
     timezone_name: Optional[str] = None,
     alias_registry: Any = None,
+    referent_context: Optional[Sequence[Any]] = None,
 ) -> RetrievalResult:
     """Knowledge-DB-first retrieval with fail-closed eligibility filters.
 
@@ -754,9 +758,16 @@ def retrieve_knowledge_context(
     Memory plane is fallback only when SCIS returns nothing — paths are not merged.
     Personalization (CAP-OPEN-17) is post-eligibility ranking only.
     Phase2-A: phrase/temporal/alias metadata + retrieval-set sufficiency.
+    Phase2-B: authority-safe coreference + sanitized SCIS observability envelope.
     Default enqueue_gap_on_empty=False — normal serving is side-effect free.
     """
     from backend.app import models
+    from backend.app.services.scis.coreference import (
+        STATE_AMBIGUOUS,
+        STATE_RESOLVED,
+        STATE_UNRESOLVED,
+        resolve_coreference,
+    )
     from backend.app.services.scis.governed_runtime_adapter import (
         UnsupportedGovernedLanguageError,
         is_supported_governed_language,
@@ -784,14 +795,42 @@ def retrieve_knowledge_context(
         personalization_audit=pers_ctx.to_audit_dict() if pers_ctx else {},
     )
 
+    lang_for_qi = result.language_filter or language or "en"
+    coref = resolve_coreference(
+        nq.original_query,
+        language=lang_for_qi,
+        referents=referent_context,
+    )
+    result.query_intelligence["coreference"] = coref.to_audit_dict()
+    result.observability.update(coref.to_audit_dict())
+    # ORIGINAL_QUERY always preserved on result.original_query (never rewritten).
+
+    if coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED}:
+        result.status = STATUS_INSUFFICIENT_CONTEXT
+        result.clarification_required = True
+        result.safe_user_facing_intent = (
+            "Coreference is ambiguous or unresolved; clarification required. "
+            "Do not guess HealthSubject, medication, or result identity."
+        )
+        result.sufficiency_audit = {
+            "sufficient": False,
+            "reason": f"COREFERENCE_{coref.state}",
+            "clarification_required": True,
+        }
+        _refresh_observability_counts(result)
+        return result
+
     _plan, temporal, aliases = _apply_phase2a_query_intelligence(
         result,
         query=nq.original_query,
-        language=result.language_filter or language or "en",
+        language=lang_for_qi,
         reference_time=reference_time,
         timezone_name=timezone_name,
         alias_registry=alias_registry,
     )
+    # Keep coreference audit alongside Phase2-A intelligence.
+    result.query_intelligence["coreference"] = coref.to_audit_dict()
+    result.query_intelligence["original_query_preserved"] = True
 
     # Temporal ambiguity without inventing dates.
     if temporal.clarification_required and temporal.deterministic_state == "AMBIGUOUS":
@@ -806,6 +845,7 @@ def retrieve_knowledge_context(
             "reason": "TEMPORAL_RESOLUTION_AMBIGUOUS",
             "clarification_required": True,
         }
+        _refresh_observability_counts(result)
         return result
 
     if require_query_tokens and not nq.tokens:
@@ -824,6 +864,7 @@ def retrieve_knowledge_context(
                 status=result.status,
             )
             result.gap_id = gap.id
+        _refresh_observability_counts(result)
         return result
 
     # Phase1: unsupported language fail-closed for governed semantic/hybrid plane.
@@ -834,22 +875,34 @@ def retrieve_knowledge_context(
             "Governed knowledge retrieval supports fa, en, and ar only; "
             "please rephrase in a supported language."
         )
+        _refresh_observability_counts(result)
         return result
 
     # Personal-history intent never grants governed access to personal vitals.
     if temporal.personal_history_intent:
         return _finalize_phase2a_sufficiency(result, personal_history_intent=True)
 
+    # Bounded retrieval hint from RESOLVED coreference — never replaces original query.
+    # PERSONAL hints remain NONAUTHORITATIVE (do not elevate to GOVERNED).
+    alias_hints = list(aliases.expansions)
+    if coref.state == STATE_RESOLVED and coref.retrieval_hint:
+        if coref.retrieval_hint not in alias_hints:
+            alias_hints.append(coref.retrieval_hint)
+        alias_hints = alias_hints[:4]
+        result.query_intelligence["coreference_retrieval_hint_used"] = True
+        result.query_intelligence["coreference_hint_authority"] = coref.authority_label
+
     # K04 primary path: governed SCIS HYBRID (lexical + KCE 1024) with lexical fallback.
+    scis_meta: dict = {}
     try:
-        scis_items, _scis_meta = retrieve_scis_governed_runtime_items(
+        scis_items, scis_meta = retrieve_scis_governed_runtime_items(
             db,
             nq.original_query,
             language=result.language_filter,
             domain=result.domain_filter,
             limit=serving_lim,
             allow_network=True,
-            alias_hints=aliases.expansions,
+            alias_hints=alias_hints,
         )
     except UnsupportedGovernedLanguageError:
         result.status = STATUS_UNSUPPORTED_LANGUAGE
@@ -858,9 +911,13 @@ def retrieve_knowledge_context(
             "Governed knowledge retrieval supports fa, en, and ar only; "
             "please rephrase in a supported language."
         )
+        _refresh_observability_counts(result)
         return result
     except Exception:  # noqa: BLE001 — SCIS unavailable → memory fallback
         scis_items = []
+        scis_meta = {"provider_failure": "SCIS_UNAVAILABLE", "fallback_state": "memory_plane"}
+
+    _merge_scis_observability(result, scis_meta)
 
     if scis_items:
         ranked: list[RetrievedKnowledgeItem] = []
@@ -904,8 +961,7 @@ def retrieve_knowledge_context(
         result.safe_user_facing_intent = (
             "Governed SCIS knowledge matched this query after eligibility filters."
         )
-        return _finalize_phase2a_sufficiency(result, personal_history_intent=False)
-    # Fallback: CURRENT KnowledgeMemoryItem plane (historical path; not required for K04).
+        return _finalize_phase2a_sufficiency(result, personal_history_intent=False)    # Fallback: CURRENT KnowledgeMemoryItem plane (historical path; not required for K04).
     q = db.query(models.KnowledgeMemoryItem).filter(
         models.KnowledgeMemoryItem.supersession_state == SupersessionState.CURRENT.value
     )
@@ -1197,6 +1253,62 @@ def assert_no_base_model_medical_fallback(result: RetrievalResult) -> None:
         raise RuntimeKnowledgeRetrievalError("INCONSISTENT_NO_SAFE_RESULT")
 
 
+def _merge_scis_observability(result: RetrievalResult, scis_meta: Mapping[str, Any] | None) -> None:
+    """Phase2-B CASE28 — propagate sanitized SCIS meta into serving envelope."""
+    meta = dict(scis_meta or {})
+    safe_keys = (
+        "retrieval_mode",
+        "effective_mode",
+        "requested_mode",
+        "language",
+        "provider",
+        "fallback_state",
+        "provider_failure",
+        "lexical_count",
+        "semantic_count",
+        "rrf_count",
+        "latency_ms",
+        "timings_ms",
+        "governance_drop_counts",
+        "openai_failure_lexical_fallback",
+        "cohere_used",
+        "stage17_rag_embeddings_used",
+        "authority_label",
+        "scis_evidence_count",
+        "mapped_item_count",
+        "alias_authority",
+        "alias_hint_count",
+    )
+    obs = dict(result.observability)
+    for k in safe_keys:
+        if k in meta:
+            obs[k] = meta[k]
+    # Prefer explicit retrieval_mode alias.
+    if "retrieval_mode" not in obs and obs.get("effective_mode"):
+        obs["retrieval_mode"] = obs["effective_mode"]
+    result.observability = obs
+
+
+def _refresh_observability_counts(result: RetrievalResult) -> None:
+    """final_evidence_count = items returned after sufficiency/clarification gates."""
+    obs = dict(result.observability)
+    obs["final_evidence_count"] = len(result.items)
+    obs["clarification_required"] = bool(result.clarification_required)
+    obs["status"] = result.status
+    # Never attach raw query/memory/chunk/embedding/secret fields.
+    for banned in (
+        "raw_query",
+        "query_text",
+        "chunk_content",
+        "embedding",
+        "api_key",
+        "authorization",
+        "original_query",
+    ):
+        obs.pop(banned, None)
+    result.observability = obs
+
+
 def _apply_phase2a_query_intelligence(
     result: RetrievalResult,
     *,
@@ -1259,6 +1371,7 @@ def _finalize_phase2a_sufficiency(
     result.sufficiency_audit = decision.to_audit_dict()
     if decision.sufficient:
         assert_no_base_model_medical_fallback(result)
+        _refresh_observability_counts(result)
         return result
 
     # Fail closed: clear items so synthesis cannot improvise.
@@ -1298,4 +1411,5 @@ def _finalize_phase2a_sufficiency(
         )
     # Marker must remain true after fail-closed.
     result.no_base_model_fallback = NO_BASE_MODEL_FALLBACK
+    _refresh_observability_counts(result)
     return result
