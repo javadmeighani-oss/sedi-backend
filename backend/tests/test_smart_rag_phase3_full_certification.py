@@ -56,7 +56,16 @@ CERT_MATRIX = {
     "CASE01": {"name": "keyword_extraction", "owner": "scis.lexical_query.formulate_lexical_query_plan", "evidence": "scis k03 + phase3_case01", "status": "TRUE_GREEN"},
     "CASE02": {"name": "phrase_recognition", "owner": "scis.lexical_query.extract_important_phrases", "evidence": "phase2a phrase_*", "status": "TRUE_GREEN"},
     "CASE03": {"name": "semantic_intent", "owner": "scis.temporal_query.detect_personal_history_intent", "evidence": "phase2a + phase3_case03", "status": "TEST_GAP_FILLED"},
-    "CASE04": {"name": "negation", "owner": "scis.lexical_query function-word strip (no NLI invention)", "evidence": "phase3_case04", "status": "TEST_GAP_FILLED"},
+    "CASE04": {
+        "name": "negation",
+        "owner": "scis.lexical_query + lexical fail-closed explicit markers",
+        "evidence": "phase3_case04_negation_semantics + phase3_case04",
+        "status": "RUNTIME_DEFECT_REPAIRED",
+        "runtime_defect_found": True,
+        "runtime_defect_repaired": True,
+        "negation_support": "BOUNDED_EXPLICIT_MARKER_SEMANTICS",
+        "negation_policy": "FAIL_CLOSED_LEXICAL_FTS_CANNOT_PRESERVE_POLARITY",
+    },
     "CASE05": {"name": "temporal", "owner": "scis.temporal_query.parse_temporal_query_intent", "evidence": "phase2a temporal_*", "status": "TRUE_GREEN"},
     "CASE06": {"name": "persian", "owner": "scis normalize/lexical/language gate", "evidence": "phase2a/2b/scis fa", "status": "TRUE_GREEN"},
     "CASE07": {"name": "english", "owner": "canonical Smart-RAG en path", "evidence": "phase1/2a/2b/2c", "status": "TRUE_GREEN"},
@@ -89,7 +98,11 @@ def test_phase3_cert_matrix_complete_28():
     for i in range(1, 29):
         key = f"CASE{i:02d}"
         assert key in CERT_MATRIX
-        assert CERT_MATRIX[key]["status"] in {"TRUE_GREEN", "TEST_GAP_FILLED"}
+        assert CERT_MATRIX[key]["status"] in {
+            "TRUE_GREEN",
+            "TEST_GAP_FILLED",
+            "RUNTIME_DEFECT_REPAIRED",
+        }
 
 
 def _item(*, ku_id: int = 1, canon: str = "c1") -> RetrievedKnowledgeItem:
@@ -151,10 +164,20 @@ def test_phase3_case03_semantic_intent_personal_history_not_governed():
     assert decision.clarification_required is True
 
 
-def test_phase3_case04_negation_stripped_without_authority_invention():
-    plan = formulate_lexical_query_plan("symptoms that are not emergency ALS crisis", language="en")
-    assert "not" not in plan.primary_tokens
-    assert "als" in plan.primary_tokens or any("als" in p for p in plan.phrases)
+def test_phase3_case04_negation_fail_closed_no_silent_polarity_drop():
+    """CASE04 repair: explicit negation must not collapse to affirmative FTS."""
+    from backend.app.services.scis.lexical_query import NEGATION_POLICY_FAIL_CLOSED
+
+    aff = formulate_lexical_query_plan("emergency", language="en")
+    neg = formulate_lexical_query_plan("not emergency", language="en")
+    assert aff.negation_present is False
+    assert aff.primary_query == "emergency"
+    assert neg.negation_present is True
+    assert neg.negation_policy == NEGATION_POLICY_FAIL_CLOSED
+    assert neg.primary_query == ""
+    assert aff.primary_query != neg.primary_query
+    # Weak stopword strip proof must NOT certify CASE04.
+    assert not (neg.primary_query == aff.primary_query)
     out = deterministic_post_rrf_rank(
         [
             (1, 0.9, {"authority_label": RESULT_LABEL_PERSONAL, "branches": ["lexical"]}),
@@ -162,6 +185,8 @@ def test_phase3_case04_negation_stripped_without_authority_invention():
         ]
     )
     assert out[0][2]["authority_label"] == RESULT_LABEL_PERSONAL
+    assert CERT_MATRIX["CASE04"]["runtime_defect_found"] is True
+    assert CERT_MATRIX["CASE04"]["runtime_defect_repaired"] is True
 
 
 def test_phase3_case13_personalization_nonauthoritative_no_promotion():
@@ -432,5 +457,8 @@ def test_phase3_final_case_pass_map():
     passes = {f"CASE{i:02d}": "PASS" for i in range(1, 29)}
     assert len(passes) == 28
     assert all(v == "PASS" for v in passes.values())
-    for gap in ("CASE03", "CASE04", "CASE13", "CASE21", "CASE22"):
+    for gap in ("CASE03", "CASE13", "CASE21", "CASE22"):
         assert CERT_MATRIX[gap]["status"] == "TEST_GAP_FILLED"
+    assert CERT_MATRIX["CASE04"]["status"] == "RUNTIME_DEFECT_REPAIRED"
+    assert CERT_MATRIX["CASE04"]["runtime_defect_found"] is True
+    assert CERT_MATRIX["CASE04"]["runtime_defect_repaired"] is True

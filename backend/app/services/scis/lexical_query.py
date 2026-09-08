@@ -230,6 +230,16 @@ _MIN_TOKEN_LEN = 2
 MAX_PHRASE_TOKENS = 3
 MAX_PHRASES_PER_QUERY = 6
 
+# CASE04 — bounded explicit negation markers (no NLI / synonym expansion).
+# plainto_tsquery cannot faithfully preserve polarity; lexical FTS fail-closes.
+NEGATION_POLICY_NONE = "NONE"
+NEGATION_POLICY_FAIL_CLOSED = "FAIL_CLOSED_LEXICAL_FTS_CANNOT_PRESERVE_POLARITY"
+NEGATION_SUPPORT = "BOUNDED_EXPLICIT_MARKER_SEMANTICS"
+
+_EXPLICIT_NEGATION_MARKERS_EN = frozenset({"not", "no", "nor", "without"})
+_EXPLICIT_NEGATION_MARKERS_FA = frozenset({"نه", "نیست", "نیستند", "بدون"})
+_EXPLICIT_NEGATION_MARKERS_AR = frozenset({"لا", "ليس", "ليست", "بدون"})
+
 
 @dataclass(frozen=True)
 class LexicalQueryPlan:
@@ -237,6 +247,7 @@ class LexicalQueryPlan:
 
     phrases: adjacent multi-token content phrases (≤3 tokens each, ≤6 total).
     alias_hints: non-authoritative curated expansions (≤4); never clinical truth.
+    negation_*: runtime-only polarity safety metadata (never persisted).
     """
 
     original_query: str
@@ -249,6 +260,9 @@ class LexicalQueryPlan:
     fallback_tokens: Tuple[str, ...]
     phrases: Tuple[str, ...] = ()
     alias_hints: Tuple[str, ...] = ()
+    negation_present: bool = False
+    negation_markers: Tuple[str, ...] = ()
+    negation_policy: str = NEGATION_POLICY_NONE
 
     @property
     def original_token_count(self) -> int:
@@ -282,6 +296,48 @@ def _function_words(language: str | None) -> frozenset[str]:
     if _is_fa_ar(language):
         return _FA_AR_FUNCTION_WORDS | _EN_FUNCTION_WORDS
     return _EN_FUNCTION_WORDS
+
+
+def _negation_marker_set(language: str | None) -> frozenset[str]:
+    """Bounded explicit markers for the active language (plus shared بدون).
+
+    Includes language-normalized forms so Arabic yeh → Persian yeh rewrites
+    (normalize_for_language) still match deterministically.
+    """
+    lang = (language or "en").lower()
+    if lang.startswith("fa") or lang in {"persian", "farsi"}:
+        raw = _EXPLICIT_NEGATION_MARKERS_FA | _EXPLICIT_NEGATION_MARKERS_EN
+    elif lang.startswith("ar") or lang in {"arabic"}:
+        raw = _EXPLICIT_NEGATION_MARKERS_AR | _EXPLICIT_NEGATION_MARKERS_EN
+    else:
+        raw = _EXPLICIT_NEGATION_MARKERS_EN
+    out: set[str] = set()
+    for m in raw:
+        out.add(m)
+        nm = normalize_for_language(m, language)
+        if nm:
+            out.add(nm)
+            out.update(_tokenize(nm))
+    return frozenset(out)
+
+
+def detect_explicit_negation(
+    tokens: Sequence[str],
+    *,
+    language: str | None = "en",
+) -> Tuple[bool, Tuple[str, ...]]:
+    """Detect bounded explicit negation markers in already-tokenized text.
+
+    Does not perform NLI, synonym expansion, or grammar understanding.
+    """
+    markers = _negation_marker_set(language)
+    found: list[str] = []
+    seen: set[str] = set()
+    for t in tokens:
+        if t in markers and t not in seen:
+            seen.add(t)
+            found.append(t)
+    return bool(found), tuple(found)
 
 
 def _content_tokens(tokens: Sequence[str], language: str | None) -> Tuple[str, ...]:
@@ -386,10 +442,37 @@ def formulate_lexical_query_plan(
     FALLBACK: further drop soft care-scaffolding; keep acronyms/long terms.
     phrases: adjacent multi-token metadata (does not replace PRIMARY/FALLBACK).
     Never expands into unbounded OR over every token.
+
+    CASE04: explicit negation markers must not silently disappear into an
+    opposite-polarity FTS query. When markers are present, lexical FTS is
+    fail-closed (empty PRIMARY/FALLBACK); original_query is preserved for
+    semantic/embedding paths.
     """
     original = query or ""
     normalized = normalize_for_language(original, language)
     original_tokens = _tokenize(normalized)
+    negation_present, negation_markers = detect_explicit_negation(
+        original_tokens, language=language
+    )
+
+    # Fail-closed lexical path: do not emit an FTS string that drops polarity.
+    if negation_present:
+        return LexicalQueryPlan(
+            original_query=original,
+            language=(language or "en"),
+            normalized_original=normalized,
+            primary_query="",
+            fallback_query=None,
+            original_tokens=original_tokens,
+            primary_tokens=(),
+            fallback_tokens=(),
+            phrases=(),
+            alias_hints=(),
+            negation_present=True,
+            negation_markers=negation_markers,
+            negation_policy=NEGATION_POLICY_FAIL_CLOSED,
+        )
+
     primary_tokens = _content_tokens(original_tokens, language)
     primary_query = " ".join(primary_tokens)
 
@@ -428,6 +511,9 @@ def formulate_lexical_query_plan(
         fallback_tokens=fallback_tokens if fallback_query else (),
         phrases=phrases,
         alias_hints=hints,
+        negation_present=False,
+        negation_markers=(),
+        negation_policy=NEGATION_POLICY_NONE,
     )
 
 

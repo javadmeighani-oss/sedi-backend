@@ -110,7 +110,11 @@ def retrieve(
             alias_hints=alias_hints,
         )
         timings["lexical_ms"] = (time.perf_counter() - t0) * 1000
-        if lmeta.get("error"):
+        if lmeta.get("negation_lexical_blocked"):
+            # Fail-closed: never treat negation block as ordinary FTS success/failure.
+            filtered["negation_lexical_fail_closed"] = 1
+            lexical_cands = []
+        elif lmeta.get("error"):
             error_class = f"FTS_{lmeta['error']}"
             fallback = FallbackState.FTS_FAILURE
             lexical_cands = []
@@ -267,5 +271,6 @@ def retrieve(
             "provider": getattr(prov, "provider_name", None),
             "provider_failure": error_class,
             "network_call_count": network_calls,
+            "negation_lexical_fail_closed": int(filtered.get("negation_lexical_fail_closed") or 0),
         },
     )

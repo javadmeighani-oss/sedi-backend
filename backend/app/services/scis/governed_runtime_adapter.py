@@ -237,27 +237,40 @@ def retrieve_scis_governed_runtime_items(
     meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))
 
     # OpenAI / embedding failure → SAFE_CANONICAL_LEXICAL (never Cohere / Stage17).
+    # CASE04: if explicit negation blocked lexical FTS, do not re-run unsafe inversion.
     if mode == RetrievalMode.HYBRID and resp.fallback_state in {
         FallbackState.EMBEDDING_FAILURE,
         FallbackState.VECTOR_BACKEND_UNAVAILABLE,
         FallbackState.BOTH_BRANCHES_UNAVAILABLE,
     }:
-        meta["openai_failure_lexical_fallback"] = True
-        if not resp.evidence or resp.fallback_state == FallbackState.EMBEDDING_FAILURE:
-            resp = retrieve(
-                db,
-                ScisRetrievalRequest(
-                    query_text=query or "",
-                    query_language=lang,
-                    target_domain=domain,
-                    top_k=top_k,
-                    retrieval_mode=RetrievalMode.LEXICAL,
-                ),
-                alias_hints=hints or None,
-            )
-            meta["effective_mode"] = RetrievalMode.LEXICAL.value
-            meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))
-
+        neg_blocked = int(
+            (getattr(resp, "filtered_counts", None) or {}).get("negation_lexical_fail_closed") or 0
+        )
+        if neg_blocked:
+            meta["negation_lexical_fail_closed"] = True
+            meta["openai_failure_lexical_fallback"] = False
+        else:
+            meta["openai_failure_lexical_fallback"] = True
+            if not resp.evidence or resp.fallback_state == FallbackState.EMBEDDING_FAILURE:
+                resp = retrieve(
+                    db,
+                    ScisRetrievalRequest(
+                        query_text=query or "",
+                        query_language=lang,
+                        target_domain=domain,
+                        top_k=top_k,
+                        retrieval_mode=RetrievalMode.LEXICAL,
+                    ),
+                    alias_hints=hints or None,
+                )
+                meta["effective_mode"] = RetrievalMode.LEXICAL.value
+                meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))
+                if int(
+                    (getattr(resp, "filtered_counts", None) or {}).get("negation_lexical_fail_closed")
+                    or 0
+                ):
+                    meta["negation_lexical_fail_closed"] = True
+                    meta["openai_failure_lexical_fallback"] = False
     # Phase2-B CASE28 — sanitized SCIS observability (no raw query/chunk/vector/secrets).
     counts = dict(getattr(resp, "candidate_counts", None) or {})
     filtered = dict(getattr(resp, "filtered_counts", None) or {})

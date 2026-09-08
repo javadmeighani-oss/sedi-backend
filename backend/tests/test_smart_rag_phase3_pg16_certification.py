@@ -16,6 +16,7 @@ from backend.app.services.scis.embedding.providers import (
     FakeScisEmbeddingProvider,
     OpenAIEmbeddingFailure,
 )
+from backend.app.services.scis.contracts import FallbackState
 
 
 def _pg_url() -> str:
@@ -147,3 +148,65 @@ def test_phase3_pg16_timeout_fallback_lexical(db):
         "scis_lexical",
         "scis_hybrid",
     }
+
+
+def test_phase3_pg16_case04_negation_polarity_fail_closed(db):
+    """Opposite-polarity fixtures: negated query must not equal affirmative FTS path."""
+    from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+    from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider
+    from backend.app.services.scis.indexing import index_knowledge_unit
+    from backend.app.services.scis.lexical import lexical_search
+    from backend.app.services.scis.lexical_query import formulate_lexical_query_plan
+    from backend.app.services.scis.retrieval import retrieve
+
+    ts = datetime.utcnow().timestamp()
+    ku_a = _make_ku(
+        db,
+        canonical=f"p3-neg-a-{ts}",
+        statement="Emergency warning signs require urgent evaluation.",
+    )
+    ku_b = _make_ku(
+        db,
+        canonical=f"p3-neg-b-{ts}",
+        statement="Non-emergency routine monitoring guidance for wellness adults.",
+    )
+    index_knowledge_unit(db, ku_a, provider=FakeScisEmbeddingProvider())
+    index_knowledge_unit(db, ku_b, provider=FakeScisEmbeddingProvider())
+    db.commit()
+
+    aff_plan = formulate_lexical_query_plan("emergency", language="en")
+    neg_plan = formulate_lexical_query_plan("not emergency", language="en")
+    assert aff_plan.primary_query != neg_plan.primary_query
+    assert neg_plan.negation_present is True
+    assert neg_plan.primary_query == ""
+
+    aff_rows, aff_meta = lexical_search(db, "emergency", language="en", top_k=10)
+    neg_rows, neg_meta = lexical_search(db, "not emergency", language="en", top_k=10)
+    assert aff_meta.get("negation_lexical_blocked") is not True
+    assert neg_meta.get("negation_lexical_blocked") is True
+    assert neg_rows == []
+    # Affirmative FTS may hit emergency fixture; negated must not silently reuse that path.
+    assert not (neg_rows and aff_rows and {c.chunk_id for c in neg_rows} == {c.chunk_id for c in aff_rows})
+
+    failing = FakeScisEmbeddingProvider()
+    failing.provider_name = "openai"  # type: ignore[misc]
+    failing.model_identifier = "text-embedding-3-large"  # type: ignore[misc]
+
+    def boom(*_a, **_k):
+        raise OpenAIEmbeddingFailure(ERROR_OPENAI_TIMEOUT)
+
+    failing.embed_texts = boom  # type: ignore[method-assign]
+
+    resp = retrieve(
+        db,
+        ScisRetrievalRequest(
+            query_text="not emergency",
+            query_language="en",
+            top_k=5,
+            retrieval_mode=RetrievalMode.HYBRID,
+        ),
+        provider=failing,
+    )
+    assert resp.evidence == []
+    assert int((resp.filtered_counts or {}).get("negation_lexical_fail_closed") or 0) == 1
+    assert resp.fallback_state == FallbackState.EMBEDDING_FAILURE

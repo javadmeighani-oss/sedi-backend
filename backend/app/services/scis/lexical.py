@@ -146,8 +146,18 @@ def lexical_search(
             "alias_hints": list(plan.alias_hints),
             "alias_authority": "NONAUTHORITATIVE",
             "used": None,
+            # Runtime-only polarity metadata (no raw clinical body beyond plan fields).
+            "negation_present": bool(plan.negation_present),
+            "negation_marker_count": len(plan.negation_markers),
+            "negation_policy": plan.negation_policy,
         },
+        "negation_present": bool(plan.negation_present),
+        "negation_policy": plan.negation_policy,
+        "negation_lexical_blocked": bool(plan.negation_present),
     }
+    # CASE04: explicit negation → do not run opposite-polarity FTS.
+    if plan.negation_present:
+        return [], meta
     if not plan.primary_query and not plan.fallback_query and not plan.alias_hints:
         return [], meta
 
