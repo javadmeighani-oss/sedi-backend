@@ -51,16 +51,10 @@ def reciprocal_rank_fusion(
     return fused
 
 
-def _stable_tie_key(chunk_id: int, payload: dict) -> Tuple[int, int, int]:
-    """Stable secondary keys only — no clinical relevance invention."""
-    ku_raw = payload.get("knowledge_unit_id")
-    try:
-        ku_id = int(ku_raw) if ku_raw is not None else 0
-    except (TypeError, ValueError):
-        ku_id = 0
-    # Prefer more branches only as a deterministic tie signal already present in fusion.
-    branch_count = len(payload.get("branches") or [])
-    return (-branch_count, ku_id, int(chunk_id))
+def _stable_tie_key(chunk_id: int, payload: dict) -> Tuple[int]:
+    """Stable secondary key — chunk_id only (matches RRF; no clinical invention)."""
+    del payload  # payload reserved for future non-authority stable signals
+    return (int(chunk_id),)
 
 
 def deterministic_post_rrf_rank(
@@ -76,6 +70,7 @@ def deterministic_post_rrf_rank(
     - does not mutate authority / eligibility / ownership fields in payloads
     - preserves chunk_id dedup from RRF
     - optional top_k bound
+    - tie-break matches RRF: (-fusion_score, chunk_id)
     """
     # Re-sort explicitly so post-RRF is an owned, testable step (not implicit RRF order only).
     ranked = sorted(

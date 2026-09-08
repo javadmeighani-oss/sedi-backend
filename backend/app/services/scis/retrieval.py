@@ -154,17 +154,16 @@ def retrieve(
     evidence: List[ScisEvidenceItem] = []
     ranked: list = []
     if request.retrieval_mode == RetrievalMode.LEXICAL:
+        # Preserve lexical branch order (FTS rank); post-RRF owns hybrid fusion only.
         ranked = [
             (c.chunk_id, c.score, {**c.payload, "lexical_rank": c.rank, "branches": ["lexical"]})
             for c in lexical_cands
         ]
-        ranked = deterministic_post_rrf_rank(ranked, top_k=None)
     elif request.retrieval_mode == RetrievalMode.VECTOR:
         ranked = [
             (c.chunk_id, c.score, {**c.payload, "vector_rank": c.rank, "branches": ["vector"]})
             for c in vector_cands
         ]
-        ranked = deterministic_post_rrf_rank(ranked, top_k=None)
     else:
         fused = reciprocal_rank_fusion([lexical_cands, vector_cands])
         # CASE15 — explicit deterministic post-RRF ranking (no neural/LLM).
@@ -198,9 +197,12 @@ def retrieve(
     candidates["semantic_count"] = int(candidates.get("vector_eligible") or 0)
     network_calls = int(getattr(prov, "network_call_count", 0) or 0)
 
-    for fusion_rank, (chunk_id, score, payload) in enumerate(
-        deterministic_post_rrf_rank(ranked, top_k=request.top_k), start=1
-    ):
+    bounded = (
+        deterministic_post_rrf_rank(ranked, top_k=request.top_k)
+        if request.retrieval_mode == RetrievalMode.HYBRID
+        else ranked[: request.top_k]
+    )
+    for fusion_rank, (chunk_id, score, payload) in enumerate(bounded, start=1):
         branches = payload.get("branches") or ["hybrid"]
         branch = "hybrid" if len(branches) > 1 else branches[0]
         content = payload.get("chunk_content") or payload.get("search_document") or ""

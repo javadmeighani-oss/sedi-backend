@@ -66,7 +66,7 @@ def test_case15_rerank_deterministic_and_stable():
 
 
 def test_case15_tie_break_stable():
-    # Equal fusion scores → stable by branch_count, ku_id, chunk_id.
+    # Equal fusion scores → stable by chunk_id (RRF-compatible).
     tied = [
         (5, 0.5, {"knowledge_unit_id": 2, "branches": ["lexical"]}),
         (3, 0.5, {"knowledge_unit_id": 1, "branches": ["lexical", "vector"]}),
