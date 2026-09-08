@@ -108,10 +108,9 @@ jobs:
         run: |
           set -euo pipefail
           python -B -m pytest -v --tb=short --noconftest \
-            backend/tests/test_i10_b01_foundation.py -k "test_notification_table_exists or test_health_subject" \
+            backend/tests/test_i10_b01_foundation.py::test_orm_alignment_notification_i10_columns \
             | tee /tmp/g4h_evidence/b01_consumer_pytest.txt
-          # At least one passed test using shared db fixture
-          grep -E "PASSED" /tmp/g4h_evidence/b01_consumer_pytest.txt | head -n 1
+          grep -E "test_orm_alignment_notification_i10_columns PASSED" /tmp/g4h_evidence/b01_consumer_pytest.txt
       - name: Stage3 historical explicit consumer (I10 B04 mig 074)
         run: |
           set -euo pipefail
