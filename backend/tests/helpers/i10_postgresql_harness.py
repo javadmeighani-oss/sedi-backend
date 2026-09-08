@@ -57,9 +57,14 @@ class I10IsolatedPgDb:
 
     @classmethod
     def create(cls, *, suffix: str, revision: str | None = None) -> I10IsolatedPgDb:
-        base_url = i10_test_database_url()
+        # Preserve the original service URL across sequential creates. create() rewrites
+        # TEST_DATABASE_URL to the isolated DB; without a pinned base, suffixes nest and
+        # CREATE DATABASE names collide / exceed limits.
+        base_key = "SEDI_I10_HARNESS_BASE_DATABASE_URL"
+        base_url = os.environ.get(base_key) or i10_test_database_url()
         if not base_url:
             pytest.skip("TEST_DATABASE_URL required for I10 PostgreSQL validation")
+        os.environ.setdefault(base_key, base_url)
         admin_url, url, db_name = i10_admin_and_isolated_urls(base_url, suffix=suffix)
         admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
         with admin_engine.connect() as conn:
