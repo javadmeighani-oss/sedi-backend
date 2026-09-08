@@ -621,6 +621,15 @@ class HealthSubject(Base):
             postgresql_where=text("creation_idempotency_key IS NOT NULL"),
             sqlite_where=text("creation_idempotency_key IS NOT NULL"),
         ),
+        # G1 / 081: one effective active SELF per Account (partial unique).
+        Index(
+            "uq_health_subjects_active_self_linked_user",
+            "linked_user_id",
+            unique=True,
+            postgresql_where=text(
+                "subject_kind = 'self' AND status = 'active' AND linked_user_id IS NOT NULL"
+            ),
+        ),
     )
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
@@ -658,6 +667,15 @@ class AccountHealthSubjectAccess(Base):
             name="ck_ahsa_access_role",
         ),
         Index("ix_ahsa_health_subject_id", "health_subject_id"),
+        # G1 / 081: one effective active SELF AHSA per Account (partial unique).
+        Index(
+            "uq_ahsa_active_self_account",
+            "account_user_id",
+            unique=True,
+            postgresql_where=text(
+                "access_role = 'SELF' AND is_active IS TRUE AND revoked_at IS NULL"
+            ),
+        ),
     )
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
