@@ -122,13 +122,19 @@ jobs:
         run: |
           set -euo pipefail
           python -B -m pytest -v --tb=short --noconftest \
-            backend/tests/test_v1_nutrition_primary_user_e2e.py -k "test_CASE_01_" \
-            backend/tests/test_v1_exercise_primary_user_e2e.py -k "test_CASE_01_" \
-            backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py -k "test_g4_scenario_id_canonical or test_g4_family_identity_locks" \
+            backend/tests/test_v1_nutrition_primary_user_e2e.py::test_CASE_01_PRIMARY_USER_NUTRITION_INPUT \
+            | tee /tmp/g4h_evidence/g4_nutrition_case01.txt
+          grep -E "test_CASE_01_PRIMARY_USER_NUTRITION_INPUT PASSED" /tmp/g4h_evidence/g4_nutrition_case01.txt
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_v1_exercise_primary_user_e2e.py::test_CASE_01_PRIMARY_USER_EXERCISE_INPUT \
+            | tee /tmp/g4h_evidence/g4_exercise_case01.txt
+          grep -E "test_CASE_01_PRIMARY_USER_EXERCISE_INPUT PASSED" /tmp/g4h_evidence/g4_exercise_case01.txt
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py::test_g4_scenario_id_canonical \
+            backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py::test_g4_family_identity_locks \
             | tee /tmp/g4h_evidence/g4_proof_pytest.txt
-          grep -E "test_CASE_01_PRIMARY_USER_NUTRITION_INPUT PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
-          grep -E "test_CASE_01_PRIMARY_USER_EXERCISE_INPUT PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
           grep -E "test_g4_family_identity_locks PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
+          cat /tmp/g4h_evidence/g4_nutrition_case01.txt /tmp/g4h_evidence/g4_exercise_case01.txt >> /tmp/g4h_evidence/g4_proof_pytest.txt
       - name: Stage5 ALS default-consumer assert aligned to Alembic-head
         run: |
           set -euo pipefail
