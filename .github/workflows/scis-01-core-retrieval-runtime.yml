@@ -25,6 +25,7 @@ on:
       - "backend/tests/test_smart_rag_phase2c_rerank_fallback.py"
       - "backend/tests/test_smart_rag_phase2c_pg16_integration.py"
       - "backend/tests/test_smart_rag_phase3_full_certification.py"
+      - "backend/tests/test_smart_rag_phase3_case04_negation_semantics.py"
       - "backend/tests/test_smart_rag_phase3_pg16_certification.py"
       - "backend/tests/test_local_rag_provider.py"
       - "backend/tests/test_rag_metrics.py"
@@ -337,10 +338,12 @@ jobs:
         run: |
           set -euo pipefail
           python -B -m pytest \
+            backend/tests/test_smart_rag_phase3_case04_negation_semantics.py \
             backend/tests/test_smart_rag_phase3_full_certification.py \
             -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_phase3_focused.txt"
           python - <<'PY'
+          print("CASE04_NEGATION_REPAIR=PASS")
           print("PHASE3_CASE_TOTAL=28")
           print("PHASE3_PASS=28")
           print("PHASE3_FAIL=0")
