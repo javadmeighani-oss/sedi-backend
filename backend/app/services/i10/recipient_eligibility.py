@@ -22,6 +22,17 @@ SCOPE_TO_SEMANTIC: dict[I10NotificationScope, I10SemanticFamily] = {
     I10NotificationScope.SENSITIVE_HEALTH_DETAIL: I10SemanticFamily.GENERAL_STATUS,
 }
 
+# Care-network semantic families that require AHSA+HSNG at provider-send (canonical).
+CARE_NETWORK_SEMANTIC_TO_SCOPE: dict[str, I10NotificationScope] = {
+    I10SemanticFamily.CARE_STATUS_DIGEST.value: I10NotificationScope.GENERAL_STATUS,
+    I10SemanticFamily.CARE_DATA_GAP.value: I10NotificationScope.DEVICE_STATUS,
+    I10SemanticFamily.CARE_ACTION.value: I10NotificationScope.CARE_ACTION,
+    I10SemanticFamily.CARE_SAFETY_ESCALATION.value: I10NotificationScope.SAFETY_ESCALATION,
+    I10SemanticFamily.SAFETY_ESCALATION.value: I10NotificationScope.SAFETY_ESCALATION,
+    I10SemanticFamily.GENERAL_STATUS.value: I10NotificationScope.GENERAL_STATUS,
+    I10SemanticFamily.DEVICE_STATUS.value: I10NotificationScope.DEVICE_STATUS,
+}
+
 
 @dataclass
 class CareNetworkRecipientEligibility:
@@ -238,3 +249,62 @@ def _notification_pref_status(db: Session, user_id: int) -> str:
     if prefs is None:
         return "DEFAULT"
     return "CONFIGURED"
+
+
+def resolve_care_network_scope_for_notification(
+    notification: models.Notification,
+) -> Optional[I10NotificationScope]:
+    """Map Notification.semantic_family → I10 scope for care-network provider-send checks."""
+    family = getattr(notification, "semantic_family", None)
+    if not family:
+        return None
+    return CARE_NETWORK_SEMANTIC_TO_SCOPE.get(str(family))
+
+
+def evaluate_provider_send_authorization(
+    db: Session,
+    notification: models.Notification,
+) -> Optional[CareNetworkRecipientEligibility]:
+    """Provider-send caregiver revalidation (fail-closed).
+
+    Returns None when the check is not applicable (no HealthSubject, or SELF subject
+    where linked_user_id == recipient). Otherwise returns evaluate_delivery_eligibility
+    for the care-network scope — including revoked AHSA/HSNG and prefs/device readiness.
+
+    Does not invent grants; reuses canonical AHSA + HSNG evaluation.
+    """
+    hs_id = getattr(notification, "health_subject_id", None)
+    if hs_id is None:
+        return None
+    recipient_user_id = int(notification.user_id)
+    subject = db.query(models.HealthSubject).filter(models.HealthSubject.id == int(hs_id)).first()
+    if subject is None:
+        denied = CareNetworkRecipientEligibility(
+            health_subject_id=int(hs_id),
+            recipient_user_id=recipient_user_id,
+            eligible=False,
+            reason_code="HEALTH_SUBJECT_NOT_FOUND",
+            delivery_ready=False,
+            delivery_reason_code="HEALTH_SUBJECT_NOT_FOUND",
+        )
+        return denied
+    # SELF Account owning the subject — existing SELF delivery path (no caregiver grant).
+    if subject.linked_user_id is not None and int(subject.linked_user_id) == recipient_user_id:
+        return None
+    scope = resolve_care_network_scope_for_notification(notification)
+    if scope is None:
+        denied = CareNetworkRecipientEligibility(
+            health_subject_id=int(hs_id),
+            recipient_user_id=recipient_user_id,
+            eligible=False,
+            reason_code="CAREGIVER_SCOPE_UNRESOLVED",
+            delivery_ready=False,
+            delivery_reason_code="CAREGIVER_SCOPE_UNRESOLVED",
+        )
+        return denied
+    return evaluate_delivery_eligibility(
+        db,
+        health_subject_id=int(hs_id),
+        recipient_user_id=recipient_user_id,
+        notification_scope=scope,
+    )

@@ -323,6 +323,37 @@ class DeliveryService:
                 )
                 continue
 
+            # Provider-send care-network revalidation (AHSA/HSNG/prefs/device).
+            # SELF notifications (linked_user_id == recipient) skip this check.
+            from backend.app.services.i10.recipient_eligibility import (
+                evaluate_provider_send_authorization,
+            )
+
+            provider_authz = evaluate_provider_send_authorization(self.db, notification)
+            if provider_authz is not None and (
+                not provider_authz.eligible or not provider_authz.delivery_ready
+            ):
+                reason = (
+                    provider_authz.delivery_reason_code
+                    or provider_authz.reason_code
+                    or "PROVIDER_SEND_AUTHZ_DENIED"
+                )
+                notification.status = "failed"
+                notification.is_sent = False
+                notification.last_error = f"provider_send_blocked:{reason}"[:500]
+                notification.provider = getattr(self.adapter, "channel", None) or "db_only"
+                self.db.add(notification)
+                self.db.commit()
+                logger.info(
+                    "[NOTIF] provider_send_blocked notification_id=%s user_id=%s "
+                    "health_subject_id=%s reason=%s",
+                    notification.id,
+                    notification.user_id,
+                    getattr(notification, "health_subject_id", None),
+                    reason,
+                )
+                continue
+
             success = False
             last_err = None
             nid = notification.id
