@@ -1,0 +1,139 @@
+# Prefreeze release CI — wire existing G6 / G7 / G8-B1 cert suites.
+# GATE=SEDI-V1-BACKEND-PREFREEZE-CORRECTION-AND-CI-CLOSURE-01
+# PostgreSQL 16 + Alembic 081. NO Real FCM. NO production. NO suite redesign.
+name: Prefreeze G6 G7 G8-B1 PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/routers/interact.py"
+      - "backend/app/services/i10/**"
+      - "backend/app/services/notifications/**"
+      - "backend/app/services/notification_engine.py"
+      - "backend/app/core/scheduler.py"
+      - "backend/tests/test_i10_g6_smart_notifications_behavior_cert.py"
+      - "backend/tests/test_i10_g6_smart_notifications_behavior_cert_b2.py"
+      - "backend/tests/test_g7_c10_son_mother_als_backend_e2e.py"
+      - "backend/tests/test_g8_c11a_real_fcm_backend_boundary.py"
+      - "backend/tests/test_interact_onboarding_deprecated.py"
+      - "backend/tests/test_interact_onboarding_v1.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - ".github/workflows/prefreeze-g6-g7-g8b1-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prefreeze-g6-g7-g8b1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prefreeze-g6-g7-g8b1:
+    name: Prefreeze G6+G7+G8-B1 PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_prefreeze
+          POSTGRES_PASSWORD: sedi_prefreeze_pass
+          POSTGRES_DB: sedi_prefreeze
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_prefreeze -d sedi_prefreeze"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_prefreeze:sedi_prefreeze_pass@127.0.0.1:5432/sedi_prefreeze
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_prefreeze:sedi_prefreeze_pass@127.0.0.1:5432/sedi_prefreeze
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+      SEDI_LEGACY_ONBOARDING_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+              c.commit()
+          PY
+      - name: Alembic single head 081
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Legacy onboarding targeted tests (create_all absent)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prefreeze_evidence
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_interact_onboarding_deprecated.py \
+            backend/tests/test_interact_onboarding_v1.py \
+            | tee /tmp/prefreeze_evidence/onboarding_pytest.txt
+      - name: G6 Smart Notifications (existing certified suite)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/prefreeze_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i10_g6_smart_notifications_behavior_cert.py \
+            backend/tests/test_i10_g6_smart_notifications_behavior_cert_b2.py \
+            | tee /tmp/prefreeze_evidence/g6_pytest.txt
+      - name: G7 Son/Mother ALS E2E (existing certified suite)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g7_c10_son_mother_als_backend_e2e.py \
+            | tee /tmp/prefreeze_evidence/g7_pytest.txt
+      - name: G8-B1 FCM backend boundary (existing certified suite)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g8_c11a_real_fcm_backend_boundary.py \
+            | tee /tmp/prefreeze_evidence/g8b1_pytest.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prefreeze-g6-g7-g8b1-pytest
+          path: /tmp/prefreeze_evidence/

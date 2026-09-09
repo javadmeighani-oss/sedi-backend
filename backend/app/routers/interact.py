@@ -29,8 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 def _legacy_onboarding_enabled() -> bool:
-    v = os.getenv("SEDI_LEGACY_ONBOARDING_ENABLED", "true").strip().lower()
-    return v not in ("0", "false", "no", "off")
+    # Prefreeze: default DISABLED. Alembic is sole schema authority;
+    # runtime schema mutation on this path is forbidden.
+    v = os.getenv("SEDI_LEGACY_ONBOARDING_ENABLED", "false").strip().lower()
+    return v in ("1", "true", "yes", "on")
 
 
 # ---------------- Introduce User ----------------
@@ -418,35 +420,8 @@ def setup_onboarding(
             status_code=400,
             detail="Name is required and cannot be empty"
         )
-    
-    # Step 2: Ensure tables exist and remove UNIQUE constraint on name if it exists
-    try:
-        from backend.app.database import Base, engine
-        from backend.app.models import User
-        from sqlalchemy import text
-        
-        # Explicitly create User table to ensure schema matches
-        # This will only create if table doesn't exist - won't modify existing schema
-        Base.metadata.create_all(bind=engine, tables=[User.__table__])
-        print(f"[ONBOARDING] User table ensured to exist")
-        
-        # Remove UNIQUE constraint on name if it exists (safe migration)
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_name_key"))
-                conn.commit()
-                print(f"[ONBOARDING] ✅ Removed UNIQUE constraint on users.name (if it existed)")
-        except Exception as constraint_error:
-            # If constraint doesn't exist or can't be dropped, continue anyway
-            print(f"[ONBOARDING] ⚠️ Could not drop constraint (may not exist): {constraint_error}")
-            # Continue - constraint might already be removed
-    except Exception as table_error:
-        print(f"[ONBOARDING] ⚠️ Warning: Could not ensure User table exists: {table_error}")
-        import traceback
-        print(f"[ONBOARDING] Table creation error traceback: {traceback.format_exc()}")
-        # Continue anyway - table might already exist
-    
-    # Step 3: Create user - with comprehensive error handling
+
+    # Schema is Alembic-owned. No runtime schema sync or constraint repair here.
     new_user = None
     user_id = None
     
@@ -562,22 +537,9 @@ def setup_onboarding(
         print(f"[ONBOARDING]   - Error string (first 200 chars): {error_str[:200]}")
         
         if "integrityerror" in error_type_name or "integrity" in error_module:
-            # This is a constraint violation
+            # Constraint violation — fail closed; never mutate schema at runtime.
             print(f"[ONBOARDING] Detected: IntegrityError (constraint violation)")
-            # Check if it's a unique constraint on name - this should not happen after migration
             if "users_name_key" in error_str or ("unique" in error_str and "name" in error_str):
-                print(f"[ONBOARDING] ⚠️ UNIQUE constraint on name still exists - attempting to remove...")
-                # Try to remove constraint and retry user creation
-                try:
-                    from backend.app.database import engine
-                    from sqlalchemy import text
-                    with engine.connect() as conn:
-                        conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_name_key"))
-                        conn.commit()
-                        print(f"[ONBOARDING] ✅ Removed constraint, but user creation already failed")
-                except Exception as drop_error:
-                    print(f"[ONBOARDING] ⚠️ Could not remove constraint: {drop_error}")
-                # Return generic error - don't leak constraint details
                 error_detail = "Registration failed. Please try again."
             elif "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
                 error_detail = "Database foreign key constraint error. Please contact support."
