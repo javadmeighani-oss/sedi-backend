@@ -101,12 +101,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/srca_evidence
-          python -B -m pytest -v --tb=short --noconftest \
+          # -s so SRCA-NN=PASS markers appear in tee evidence (pytest capture otherwise hides prints)
+          python -B -m pytest -v -s --tb=short --noconftest \
             backend/tests/test_srca_context_authority_architecture.py \
             | tee /tmp/srca_evidence/pytest.txt
-          # Require all SRCA print markers (including static+runtime for 18)
-          grep -E 'SRCA-0(1|2|3|4|5|6|7|8|9)=PASS|SRCA-1(0|1|2|3|4|5|6|7)=PASS|SRCA-18=PASS' \
-            /tmp/srca_evidence/pytest.txt | wc -l | tee /tmp/srca_evidence/pass_markers.txt
+          grep -E 'SRCA-0[1-9]=PASS|SRCA-1[0-7]=PASS|SRCA-18=PASS' \
+            /tmp/srca_evidence/pytest.txt | tee /tmp/srca_evidence/pass_markers.txt
+          marker_count=$(grep -cE 'SRCA-0[1-9]=PASS|SRCA-1[0-7]=PASS|SRCA-18=PASS' /tmp/srca_evidence/pytest.txt || true)
+          echo "SRCA_MARKER_COUNT=${marker_count}" | tee -a /tmp/srca_evidence/pass_markers.txt
+          test "${marker_count}" -ge 18
       - name: Canary — hybrid/RRF/embedding locks (no full 28/28)
         run: |
           set -euo pipefail
