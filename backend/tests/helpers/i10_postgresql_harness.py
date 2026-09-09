@@ -15,6 +15,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 _ALEMBIC_ROOT = Path(__file__).resolve().parents[2]
+_REV_060 = "060_db03_w4_w6_scale_inspect_roles"
+_REV_061 = "061_scis01_pgvector_kce_foundation"
 _REV_073 = "073_i9_subject_native_rollup_baseline"
 _REV_074 = "074_i10_notification_domain_foundation"
 _REV_075 = "075_i10_care_network_identity_grants"
@@ -47,6 +49,97 @@ def i10_admin_and_isolated_urls(base_url: str, *, suffix: str) -> tuple[str, str
     return admin_url, isolated_url, isolated_db
 
 
+def _vector_extension_available(conn) -> bool:
+    try:
+        row = conn.execute(
+            text("SELECT 1 FROM pg_available_extensions WHERE name = 'vector'")
+        ).first()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _apply_soft_061(engine) -> None:
+    """Apply 061 semantics without pgvector (BYTEA stand-in). Engagement certs do not use RAG."""
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE knowledge_chunk_embeddings DROP CONSTRAINT IF EXISTS ck_kce_backend_kind_vocab")
+        )
+        conn.execute(
+            text(
+                """
+                ALTER TABLE knowledge_chunk_embeddings
+                  ADD CONSTRAINT ck_kce_backend_kind_vocab
+                  CHECK (backend_kind IS NULL OR backend_kind IN (
+                    'JSON_INLINE', 'EXTERNAL_VECTOR_DEFERRED', 'PGVECTOR'
+                  ))
+                """
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS embedding_vector BYTEA")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS embedding_provider VARCHAR(64)"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS embedding_model_version VARCHAR(64)"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS chunker_version VARCHAR(64)"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS chunk_version INTEGER DEFAULT 1 NOT NULL"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS section_path TEXT")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS content_language VARCHAR(16)"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS search_document TEXT")
+        )
+        conn.execute(
+            text("ALTER TABLE knowledge_chunk_embeddings ADD COLUMN IF NOT EXISTS search_tsv tsvector")
+        )
+        conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_kce_search_tsv ON knowledge_chunk_embeddings USING gin (search_tsv)"
+            )
+        )
+
+
+def _upgrade_with_optional_soft_vector(cfg: Config, engine, target: str) -> str:
+    soft = (os.environ.get("SEDI_I10_SOFT_VECTOR_STUB") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    with engine.connect() as conn:
+        vector_ok = _vector_extension_available(conn)
+    if vector_ok or not soft:
+        command.upgrade(cfg, target)
+        return "REAL_VECTOR" if vector_ok else "FULL_UPGRADE"
+
+    command.upgrade(cfg, _REV_060)
+    _apply_soft_061(engine)
+    command.stamp(cfg, _REV_061)
+    command.upgrade(cfg, target)
+    return "SOFT_BYTEA_STUB"
+
+
 @dataclass
 class I10IsolatedPgDb:
     url: str
@@ -54,6 +147,7 @@ class I10IsolatedPgDb:
     engine: object
     cfg: Config
     admin_engine: object
+    vector_mode: str = "UNKNOWN"
 
     @classmethod
     def create(cls, *, suffix: str, revision: str | None = None) -> I10IsolatedPgDb:
@@ -74,13 +168,14 @@ class I10IsolatedPgDb:
         os.environ["DATABASE_URL"] = url
         os.environ["TEST_DATABASE_URL"] = url
         target = revision or ALEMBIC_HEAD
-        command.upgrade(cfg, target)
+        vector_mode = _upgrade_with_optional_soft_vector(cfg, engine, target)
         return cls(
             url=url,
             db_name=db_name,
             engine=engine,
             cfg=cfg,
             admin_engine=admin_engine,
+            vector_mode=vector_mode,
         )
 
     def close(self) -> None:

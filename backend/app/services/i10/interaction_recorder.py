@@ -5,22 +5,33 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from backend.app.models import InteractionEvent, Notification, NotificationFeedback
+from backend.app.models import InteractionEvent, Memory, Notification, NotificationFeedback
 from backend.app.services.gate4.interaction_event_service import create_interaction_event
 from backend.app.services.i10.interaction_vocabulary import (
     VOCABULARY_VERSION,
     CanonicalInteractionVerb,
-    assert_generic_verb_cannot_complete_domain,
     event_type_for_verb,
     resolve_interaction_verb,
+    assert_generic_verb_cannot_complete_domain,
 )
 
 _log = logging.getLogger(__name__)
+
+# Notification presence evidence only — NOT I7 personal-memory authority.
+NOTIFICATION_PRESENCE_EVENT_TYPES = frozenset(
+    {
+        "notification_like",
+        "notification_dislike",
+        "notification_dislike_reason",
+        "notification_open_chat",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -212,3 +223,113 @@ def latest_interaction_event_for_notification(
         .order_by(InteractionEvent.id.desc())
         .first()
     )
+
+
+def get_last_chat_activity_at(db: Session, user_id: int) -> Optional[datetime]:
+    """CHAT_ACTIVITY — last conversational Memory turn (not notification presence)."""
+    row = (
+        db.query(Memory.created_at)
+        .filter(Memory.user_id == user_id)
+        .order_by(Memory.created_at.desc())
+        .first()
+    )
+    return row[0] if row else None
+
+
+def get_last_notification_presence_at(db: Session, user_id: int) -> Optional[datetime]:
+    """NOTIFICATION_PRESENCE_ACTIVITY from existing InteractionEvent ledger only."""
+    row = (
+        db.query(InteractionEvent.created_at)
+        .filter(
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.event_type.in_(tuple(NOTIFICATION_PRESENCE_EVENT_TYPES)),
+        )
+        .order_by(InteractionEvent.created_at.desc())
+        .first()
+    )
+    return row[0] if row else None
+
+
+def get_last_user_presence_at(db: Session, user_id: int) -> Optional[datetime]:
+    """
+    Latest trustworthy presence baseline for reengagement eligibility.
+
+    Uses only existing persisted evidence:
+    - chat Memory timestamps
+    - notification LIKE / DISLIKE / OPEN_CHAT InteractionEvent timestamps
+
+    Does not invent baselines, does not promote presence into I7 memory authority,
+    and does not treat account creation alone as meaningful presence.
+    """
+    candidates = [
+        ts
+        for ts in (
+            get_last_chat_activity_at(db, user_id),
+            get_last_notification_presence_at(db, user_id),
+        )
+        if ts is not None
+    ]
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+def is_eligible_for_presence_reengagement(
+    db: Session,
+    user_id: int,
+    *,
+    when: datetime,
+    inactive_hours: int = 4,
+) -> bool:
+    """Fail-closed eligibility: requires a real presence baseline and idle >= threshold."""
+    last = get_last_user_presence_at(db, user_id)
+    if last is None:
+        return False
+    return (when - last) >= timedelta(hours=inactive_hours)
+
+
+def has_recent_engagement_family_notification(
+    db: Session,
+    *,
+    user_id: int,
+    since: datetime,
+) -> bool:
+    """True when PRESENCE_REENGAGEMENT or ENGAGEMENT_NUDGE sibling exists after cutoff (exclusive).
+
+    Prefer scheduled_for when present so cooldown aligns with producer occurrence time
+    (not wall-clock created_at), which keeps later occurrences at +4h valid.
+    """
+    from sqlalchemy import and_, or_
+
+    from backend.app.models import Notification
+    from backend.app.services.i10.policy_types import I10SemanticFamily
+
+    family_filter = or_(
+        Notification.semantic_family.in_(
+            (
+                I10SemanticFamily.PRESENCE_REENGAGEMENT.value,
+                I10SemanticFamily.ENGAGEMENT_NUDGE.value,
+            )
+        ),
+        Notification.type == "connection_ping",
+        Notification.template_key.in_(("connection_ping", "engagement_nudge")),
+    )
+    row = (
+        db.query(Notification.id)
+        .filter(
+            Notification.user_id == user_id,
+            family_filter,
+            or_(
+                and_(
+                    Notification.scheduled_for.isnot(None),
+                    Notification.scheduled_for > since,
+                ),
+                and_(
+                    Notification.scheduled_for.is_(None),
+                    Notification.created_at > since,
+                ),
+            ),
+        )
+        .first()
+    )
+    return row is not None

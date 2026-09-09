@@ -874,7 +874,35 @@ class DecisionEngine:
     ) -> Optional[Notification]:
         """
         Create connection_ping notification (Release B2.1 / Stage 16.6.4).
+        Canonical I10 PRESENCE_REENGAGEMENT path (4h inactivity).
         """
+        # Aligned with scheduler.INACTIVE_HOURS (canonical 4h PRESENCE_REENGAGEMENT).
+        presence_inactive_hours = 4
+        from backend.app.services.i10.interaction_recorder import (
+            get_last_user_presence_at,
+            has_recent_engagement_family_notification,
+        )
+
+        when = scheduled_for or datetime.utcnow()
+        last_presence = get_last_user_presence_at(self.db, user_id)
+        if last_presence is not None and (when - last_presence) < timedelta(hours=presence_inactive_hours):
+            logger.info(
+                "[NOTIF] suppressed channel=engagement user_id=%s reason=recent_presence",
+                user_id,
+            )
+            return None
+        # Dual-path lock vs ENGAGEMENT_NUDGE (create-time sibling suppression)
+        if has_recent_engagement_family_notification(
+            self.db,
+            user_id=user_id,
+            since=when - timedelta(hours=presence_inactive_hours),
+        ):
+            logger.info(
+                "[NOTIF] suppressed channel=engagement user_id=%s reason=engagement_family_cooldown",
+                user_id,
+            )
+            return None
+
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         if memory_context is None:
@@ -971,7 +999,30 @@ class DecisionEngine:
     ) -> Optional[Notification]:
         """
         Stage 16.6: Create engagement nudge (inactive 3h+). Stage 16.6.4: quiet hours, renderer.
+        Bounded away from canonical 4h PRESENCE_REENGAGEMENT at call-site/scheduler.
         """
+        from backend.app.services.i10.interaction_recorder import get_last_user_presence_at
+
+        # Aligned with scheduler.ENGAGEMENT_NUDGE_INACTIVE_HOURS / INACTIVE_HOURS dual-path lock.
+        engagement_nudge_hours = 3
+        presence_reengagement_hours = 4
+        when = scheduled_for or datetime.utcnow()
+        last_presence = get_last_user_presence_at(self.db, user_id)
+        if last_presence is not None:
+            idle = when - last_presence
+            if idle < timedelta(hours=engagement_nudge_hours):
+                logger.info(
+                    "[NOTIF] suppressed channel=engagement user_id=%s reason=recent_presence",
+                    user_id,
+                )
+                return None
+            if idle >= timedelta(hours=presence_reengagement_hours):
+                logger.info(
+                    "[NOTIF] suppressed channel=engagement user_id=%s reason=defer_to_presence_reengagement",
+                    user_id,
+                )
+                return None
+
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         if memory_context is None:

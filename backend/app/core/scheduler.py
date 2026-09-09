@@ -42,82 +42,101 @@ scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
 # -------------------------------
 # Function: Check inactive users (UPDATED - Phase 9.4)
 # -------------------------------
+def _recent_engagement_family_count(
+    db: Session,
+    *,
+    user_id: int,
+    since: datetime,
+) -> int:
+    """Count PRESENCE_REENGAGEMENT + ENGAGEMENT_NUDGE siblings after cutoff (exclusive)."""
+    from sqlalchemy import and_, or_
+
+    from backend.app.services.i10.policy_types import I10SemanticFamily
+
+    family_filter = or_(
+        Notification.semantic_family.in_(
+            (
+                I10SemanticFamily.PRESENCE_REENGAGEMENT.value,
+                I10SemanticFamily.ENGAGEMENT_NUDGE.value,
+            )
+        ),
+        Notification.type == "connection_ping",
+        Notification.template_key.in_(("connection_ping", "engagement_nudge")),
+    )
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            family_filter,
+            or_(
+                and_(
+                    Notification.scheduled_for.isnot(None),
+                    Notification.scheduled_for > since,
+                ),
+                and_(
+                    Notification.scheduled_for.is_(None),
+                    Notification.created_at > since,
+                ),
+            ),
+        )
+        .count()
+    )
+
+
 def run_inactivity_notifications():
     """
-    Check for inactive users and send notifications.
+    Canonical 4h PRESENCE_REENGAGEMENT (connection_ping).
     Runs every 15 minutes, but only creates notifications if:
-    - User hasn't chatted for 4+ hours
-    - Not more than 2 inactive_ping notifications per day
-    - Not more than once per 4 hours (cooldown)
+    - User has trustworthy presence baseline and is inactive 4+ hours
+    - Not more than 2 connection_ping / reengagement siblings per day
+    - Not more than once per 4 hours across PRESENCE_REENGAGEMENT + ENGAGEMENT_NUDGE
 
     Capacity: same-tick keyset pages (no unbounded User.all()).
     """
     from backend.app.core.capacity_observability import track_span
     from backend.app.core.scheduler_user_batch import iter_users_bounded
+    from backend.app.services.i10.interaction_recorder import get_last_user_presence_at
 
     with track_span("scheduler_job", job_id="inactivity_notifications") as meta:
         scanned = 0
         with next(get_db()) as db:
             now = datetime.utcnow()
-            memory = ConversationMemory(db)
             decision_engine = DecisionEngine(db)
 
             for user in iter_users_bounded(db):
                 scanned += 1
                 try:
-                    # Get last interaction time
-                    last_chat_time = memory.get_last_interaction_time(user.id)
+                    # Chat Memory + notification LIKE/DISLIKE/OPEN_CHAT presence evidence
+                    last_presence = get_last_user_presence_at(db, user.id)
 
-                    if last_chat_time is None:
-                        # Skip users who have never chatted
+                    if last_presence is None:
+                        # Fail-safe: no trustworthy activity baseline (do not invent)
                         continue
 
                     # Check if 4+ hours inactive
-                    time_since = now - last_chat_time
+                    time_since = now - last_presence
                     if time_since < timedelta(hours=INACTIVE_HOURS):
                         continue
 
-                    # Dedupe: Check if we already sent inactive_ping today (max 2 per day)
+                    # Dedupe: max 2 presence/engagement siblings per day
                     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    # Release B2.1: Check for connection_ping type instead of legacy INSIGHT
-                    today_notifications = (
-                        db.query(Notification)
-                        .filter(
-                            Notification.user_id == user.id,
-                            Notification.type == "connection_ping",
-                            Notification.created_at >= today_start
-                        )
-                        .all()
-                    )
+                    # Exclusive lower bound: count siblings strictly after start-of-day-1us
+                    if _recent_engagement_family_count(
+                        db, user_id=user.id, since=today_start - timedelta(microseconds=1)
+                    ) >= 2:
+                        continue
 
-                    inactive_count = len(today_notifications)
-                    if inactive_count >= 2:
-                        continue  # Max 2 per day reached
-
-                    # Cooldown: Check if we sent one in the last 4 hours
+                    # Cooldown: shared with ENGAGEMENT_NUDGE to prevent dual-path double send
                     cooldown_threshold = now - timedelta(hours=INACTIVE_HOURS)
-                    recent_notifications = (
-                        db.query(Notification)
-                        .filter(
-                            Notification.user_id == user.id,
-                            Notification.type == "connection_ping",
-                            Notification.created_at >= cooldown_threshold
-                        )
-                        .all()
-                    )
+                    if _recent_engagement_family_count(db, user_id=user.id, since=cooldown_threshold) > 0:
+                        continue
 
-                    if len(recent_notifications) > 0:
-                        continue  # Cooldown active
-
-                    # Create inactive ping notification using new contract (Release B - Part B1)
-                    # Build memory context for personalization
                     try:
                         memory_context = build_memory_context(db, user.id)
                     except Exception as e:
                         print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
                         memory_context = None
 
-                    # Use DecisionEngine with new contract
                     notif = decision_engine.create_connection_ping(
                         user_id=user.id,
                         memory_context=memory_context,
@@ -287,28 +306,34 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
 # -------------------------------
 def run_engagement_nudge():
     """
-    Every 10 min: if user last interaction > 3 hours, enqueue one engagement nudge
-    with dedupe_key engagement:{user_id}:{date}:{bucket}. Max 3 per day per user.
+    Existing ENGAGEMENT_NUDGE@3h semantic (retained, not redesigned).
+
+    Eligibility window is bounded to [3h, 4h) so it cannot double-send with the
+    canonical 4h PRESENCE_REENGAGEMENT (connection_ping) path.
 
     Capacity: same-tick keyset pages (no unbounded User.all()).
     """
     from backend.app.core.capacity_observability import track_span
     from backend.app.core.scheduler_user_batch import iter_users_bounded
+    from backend.app.services.i10.interaction_recorder import get_last_user_presence_at
 
     with track_span("scheduler_job", job_id="engagement_nudge") as meta:
         scanned = 0
         with next(get_db()) as db:
             now = datetime.utcnow()
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            memory = ConversationMemory(db)
             decision_engine = DecisionEngine(db)
             for user in iter_users_bounded(db):
                 scanned += 1
                 try:
-                    last_chat_time = memory.get_last_interaction_time(user.id)
-                    if last_chat_time is None:
+                    last_presence = get_last_user_presence_at(db, user.id)
+                    if last_presence is None:
                         continue
-                    if now - last_chat_time < timedelta(hours=ENGAGEMENT_NUDGE_INACTIVE_HOURS):
+                    time_since = now - last_presence
+                    if time_since < timedelta(hours=ENGAGEMENT_NUDGE_INACTIVE_HOURS):
+                        continue
+                    # Dual-path lock: at >=4h the canonical PRESENCE_REENGAGEMENT owns the window
+                    if time_since >= timedelta(hours=INACTIVE_HOURS):
                         continue
                     # Stage 16.6.2: Max engagement nudges per day (channel=engagement for indexed query)
                     today_engagement = (
@@ -322,19 +347,9 @@ def run_engagement_nudge():
                     )
                     if today_engagement >= ENGAGEMENT_MAX_PER_DAY:
                         continue
-                    # Stage 16.6.2: Min hours since last engagement (anti-spam)
+                    # Shared sibling cooldown with connection_ping / PRESENCE_REENGAGEMENT
                     min_hours_ago = now - timedelta(hours=ENGAGEMENT_MIN_HOURS)
-                    last_engagement = (
-                        db.query(Notification)
-                        .filter(
-                            Notification.user_id == user.id,
-                            Notification.channel == "engagement",
-                            Notification.created_at >= min_hours_ago,
-                        )
-                        .order_by(Notification.created_at.desc())
-                        .first()
-                    )
-                    if last_engagement:
+                    if _recent_engagement_family_count(db, user_id=user.id, since=min_hours_ago) > 0:
                         continue
                     try:
                         memory_context = build_memory_context(db, user.id)
