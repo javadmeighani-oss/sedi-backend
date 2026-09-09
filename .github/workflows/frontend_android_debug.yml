@@ -16,6 +16,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Provide google-services.json for build
+        run: |
+          DIR="$GITHUB_WORKSPACE/android/app"
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > "$DIR/google-services.json"
+            echo "Using google-services.json from repository secret."
+          elif [ -f "$DIR/google-services.json.ci" ]; then
+            cp "$DIR/google-services.json.ci" "$DIR/google-services.json"
+            echo "Using CI placeholder google-services.json."
+          else
+            echo "Missing google-services.json.ci — cannot build Android."
+            exit 1
+          fi
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
