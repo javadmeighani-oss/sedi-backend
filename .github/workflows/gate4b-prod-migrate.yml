@@ -44,17 +44,11 @@ jobs:
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_migrate_070_to_081_remote.sh")"
 
       - name: Run governed 070→081 migrate
+        env:
+          DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
         run: |
           set -Eeuo pipefail
-          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
-          ssh -i ~/.ssh/sedi_deploy_key \
-            -p "${{ secrets.SEDI_PORT }}" \
-            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=070_i8_proactive_evaluation_ledger TARGET_REV=081_self_health_subject_1to1_hardening RC_SHA=cda11c932a3076d43633019d30c1eaaa6a183251 bash -s" \
-            2>&1 | tee /tmp/mig070081_admin.log <<'REMOTE'
-          set -Eeuo pipefail
-          bash "${DEPLOY_PATH}/ops/db03/db_prod_migrate_070_to_081_remote.sh"
-          REMOTE
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}"             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}"             "DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}")              EXPECTED_BEFORE=070_i8_proactive_evaluation_ledger              TARGET_REV=081_self_health_subject_1to1_hardening              RC_SHA=cda11c932a3076d43633019d30c1eaaa6a183251              bash $(printf '%q' "${DEPLOY_PATH}/ops/db03/db_prod_migrate_070_to_081_remote.sh")"             2>&1 | tee /tmp/mig070081_admin.log
           grep -Fq 'MIG070081|migration_070_to_081|PASS' /tmp/mig070081_admin.log
           grep -Fq 'MIGRATE_070_TO_081_PASS' /tmp/mig070081_admin.log
 
