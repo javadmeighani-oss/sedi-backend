@@ -73,6 +73,30 @@ class AppTheme {
   static const Color gate2TextMuted = Color(0xFF8A8A86);
   static const Color gate2BorderSubtle = Color(0xFFD8D8D4);
 
+  // ===============================
+  // Intro (A1) — Birth of Sedi
+  // ===============================
+  /// Deep night sky behind the horizon emergence.
+  static const Color introNightSky = Color(0xFF0A0E14);
+
+  /// Mid-atmosphere tone between sky and horizon.
+  static const Color introAtmosphere = Color(0xFF1A2332);
+
+  /// Soft horizon glow (calm olive-earth).
+  static const Color introHorizonGlow = Color(0xFF3D5A40);
+
+  /// Emergence accent aligned with brand olive CTA.
+  static const Color introEmergenceAccent = gate2ButtonOlive;
+
+  /// Logo / wordmark emphasis during final born state.
+  static const Color introLogoEmphasis = gate2ButtonOlive;
+
+  /// Subtle overlay while startup/session work finishes.
+  static const Color introOverlaySubtle = Color(0x660A0E14);
+
+  /// Soft status text on intro (availability / loading).
+  static const Color introStatusText = Color(0xB3FFFFFF);
+
   static const double gate2RadiusCard = 22;
   static const double gate2RadiusInput = 14;
 

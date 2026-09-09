@@ -4,15 +4,13 @@ on:
   push:
     branches:
       - main
+      - feature/**
   workflow_dispatch:
 
 jobs:
   build-debug-apk:
     name: Build Debug APK
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout code
@@ -35,7 +33,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('frontend/pubspec.lock') }}
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
           restore-keys: |
             pub-${{ runner.os }}-
 
@@ -45,7 +43,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('frontend/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
@@ -63,5 +61,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sedi-android-debug-apk
-          path: frontend/build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error

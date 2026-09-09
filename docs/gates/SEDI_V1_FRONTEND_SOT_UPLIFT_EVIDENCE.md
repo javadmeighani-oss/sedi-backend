@@ -1,11 +1,24 @@
 GATE=SEDI-V1-FRONTEND-SOT-UPLIFT-AND-A1-REDESIGN-01
-STAGE=2_CONTROLLED_UPLIFT
+AUTHORIZED_BY_JAVAD=YES
+
 FINAL_FRONTEND_HOME=javadmeighani-oss/sedi-frontend
 CODE_BASELINE=C1 (workspace/frontend)
 C4_HISTORICAL_BASELINE=cdc37c9fd42a51a49e8ccc87970fc338c106a723
 C2_EXCLUDED=YES
 C2_CONTAMINATION=NO
+WORK_BRANCH=feature/sot-uplift-a1-redesign
 MIGRATION_METHOD=controlled_tree_replace_from_C1_onto_branch_from_C4_main
+
+UPLIFT_RESULT=PASS
 TREE_VERIFIED=YES
 EXPECTED_A1_FILES_PRESENT=YES
-WORK_BRANCH=feature/sot-uplift-a1-redesign
+
+A1_VISUAL=Birth_of_Sedi_horizon_emergence_2_5s
+THEME=AppTheme_intro_*_semantic_tokens
+COLD_START=mandatory_GET_auth_me_no_local_profile_short_circuit
+HEALTH_SIGNAL=bounded_parallel_GET_healthz
+TOKEN_STORAGE=flutter_secure_storage_with_prefs_migration
+MAIN_DART=NotificationBootstrap_separated
+
+LOCAL_FLUTTER_TOOL=UNAVAILABLE_PUB_AUTH
+CI_EXPECTED_TO_VALIDATE=YES
