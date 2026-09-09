@@ -86022,3 +86022,140 @@ G8_B2_REAL_SEND_READY=NO
 
 CURSOR_HANDOFF_TIP=v771
 MASTER_LOG_TIP=§478
+
+## §479 — C12-01 CORE API AUTHORITY FREEZE
+
+GATE=SEDI-V1-BACKEND-C12-01-CORE-API-AUTHORITY-FREEZE-01
+GATE_RESULT=PASS
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+MODE=BOUNDED_FREEZE_ATTESTATION
+BACKEND_CODE_CHANGED=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+DELTA_ONLY_SCOPE_CHECK=PASS
+BASELINE_CHECK=PASS
+
+BACKEND_CORE_FREEZE_BASELINE=0393f5c4a5eaed8a29dc2e8738ed541619869558
+REMOTE_HEAD=0393f5c4a5eaed8a29dc2e8738ed541619869558
+AHEAD_BEHIND=0/0
+WORKTREE_CLEAN=YES
+ALEMBIC_HEAD=081_self_health_subject_1to1_hardening
+ALEMBIC_SINGLE_HEAD=PASS
+RELEASE_CI_EVIDENCE=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/34361524555 (success @ d7d890be; docs tip 0393f5c4 attestation-only)
+POSTGRES_VERSION=16.15
+
+### C12-01 decision
+C12_01=PASS
+API_FREEZE_SURFACE_STATUS=PASS
+BACKEND_FREEZE_CHANGE_CONTROL=LOCKED
+C12_01_BLOCKER=NONE
+
+### Freeze surfaces (authority)
+AUTH_SESSION=PASS (OTP request/verify; JWT; refresh; logout; GET/PATCH /auth/me)
+ACCOUNT_PROFILE=PASS (via /auth/me)
+HEALTH_SUBJECT_IDENTITY=PASS (SELF/MANAGED; Account!=HS; Son SELF!=Mother MANAGED; linked_user_id NULL; no fake Mother)
+ACCESS_CAREGIVER=PASS (AHSA; HSNG; revoke fail-closed)
+CHAT=PASS (POST /interact/chat; source_notification_id continuation)
+I4_SAFETY=PASS
+I5_GOVERNED_KNOWLEDGE=PASS
+I6_CONSENT_ACCESS=PASS
+I7_MEMORY_CONTEXT=PASS
+I8_ACTION_PLAN_DONE=PASS
+I9_DEVICE_STATUS=PASS
+I10_NOTIFICATION_GOVERNANCE=PASS (excl Real FCM G8-B2 / final mobile UX)
+SMART_RAG=PASS (evidence!=authority; SRCA preserved)
+DATABASE_AUTHORITY=PASS (Alembic sole; 081; no runtime create_all; no runtime ALTER)
+
+KNOWN_ALLOWED_EXTENSION=bounded corrective Gates only after Javad approval; no silent FE-driven mutation
+REQUIRES_C12_02_RUNTIME_PROOF=YES (deploy/health/smoke)
+REQUIRES_G8_B2=NO for C12-01 core freeze; YES before final market freeze/C12-03 path
+REQUIRES_FRONTEND=NO for C12-01
+
+### Invariants (evidence-attested)
+ACCOUNT_NE_HEALTH_SUBJECT=PASS
+SON_SELF_NE_MOTHER_MANAGED=PASS
+MOTHER_MANAGED_LINKED_USER_ID_NULL=PASS
+NO_FAKE_MOTHER_ACCOUNT=PASS
+DATA_SUBJECT_NE_CAREGIVER_RECIPIENT=PASS
+CROSS_FAMILY_ISOLATION=PASS
+I4_SOLE_CLINICAL_SAFETY_AUTHORITY=PASS
+I5_GOVERNED_KNOWLEDGE_AUTHORITY=PASS
+I6_CONSENT_ACCESS_AUTHORITY=PASS
+I7_MEMORY_CONTEXT_AUTHORITY=PASS
+I8_ACTION_PLAN_DONE_AUTHORITY=PASS
+I9_DEVICE_STATUS_AUTHORITY=PASS
+I10_NOTIFICATION_GOVERNANCE_AUTHORITY=PASS
+RAG_EVIDENCE_NE_AUTHORITY=PASS
+I9_CANNOT_DIAGNOSE=PASS
+I9_CANNOT_MINT_CARE_ACTION=PASS
+I9_CANNOT_MINT_CARE_SAFETY=PASS
+I10_CANNOT_INVENT_I8_ACTION=PASS
+I10_CANNOT_OVERRIDE_I4=PASS
+CARE_STATUS_NE_CARE_ACTION=PASS
+CARE_DATA_GAP_NE_CARE_ACTION=PASS
+CARE_ACTION_NE_CARE_SAFETY=PASS
+ALEMBIC_SOLE_SCHEMA_AUTHORITY=PASS
+RUNTIME_CREATE_ALL_ABSENT=PASS
+RUNTIME_SCHEMA_REPAIR_ABSENT=PASS
+
+### Frontend-facing core contracts FROZEN_NOW=YES
+POST /auth/otp/request | OTP request | Auth
+POST /auth/otp/verify | OTP verify + tokens | Auth
+POST /auth/refresh | refresh | Auth
+POST /auth/logout | logout | Auth
+GET /auth/me | profile read | Auth/Account
+PATCH /auth/me | profile update | Auth/Account
+GET|POST /health-subjects[/self|/managed|/{id}] | HS identity | I9/Identity
+POST|GET|DELETE /health-subjects/{id}/caregivers | AHSA | I6/I10 access
+POST|GET|DELETE|PATCH /health-subjects/{id}/notification-grants* | HSNG | I10
+POST /interact/chat | chat + source_notification_id | Chat/I4-I10 seams
+GET /memory/consent|period-summary|history|lifelong | I6/I7 | I6/I7
+POST /memory/consent/grant|revoke|forget | I6 | I6
+POST /i8/actions/generate | I8 generate | I8
+POST /notifications/{id}/feedback | LIKE/DISLIKE/OPEN_CHAT/DONE seam | I10/I8
+GET|PUT /notifications/prefs | prefs | I10
+POST /notifications/push/register|unregister | push device | I10
+GET /notifications[/unread] | inbox | I10
+POST /devices/* and /device/packet|/ingest | device/status | I9
+GET /health|/healthz | health | System
+
+### Explicitly not FE Gate 1-4 freeze core (not blockers)
+/notifications/admin/* = admin ops
+POST /interact/onboarding = deprecated default 410
+POST /interact/introduce = AUTH-LEGACY non-canonical
+knowledge/admin and I5 admin routes = ops/admin
+
+### PRESENCE (unchanged)
+V1_CLASSIFICATION=ACCEPTED_NON_BLOCKING_LIMITATION
+CODE_CHANGE=NO
+
+### Ledger
+LEDGER_TOTAL=121
+CERTIFIED_PASS_COUNT=119
+OPEN_COUNT=2
+OPEN_LEDGER_ITEMS=C12-02,C12-03
+C12_01=PASS
+
+### Change control
+BACKEND_FREEZE_CHANGE_CONTROL=LOCKED
+RULE=Any frozen-surface mutation requires explicit Javad approval + bounded Gate + impact analysis + regression canary + docs; frontend convenience alone insufficient
+
+### Forbidden surface this Gate
+PRODUCTION_CHANGED=NO
+DEPLOY_PERFORMED=NO
+REAL_FCM_SENT=NO
+FRONTEND_CHANGED=NO
+SCHEMA_CHANGED=NO
+MIGRATION_CREATED=NO
+FORCE_PUSH_USED=NO
+
+### Next (NOT authorized)
+NEXT_RECOMMENDED_GATE=SEDI-V1-BACKEND-CONTROLLED-RC-BUILD-DEPLOY-AND-RUNTIME-VERIFY-01
+NEXT_GATE_PURPOSE=RC build/deploy + runtime verify for C12-02
+NEXT_GATE_AUTHORIZED=NO
+
+CURSOR_HANDOFF_TIP=v772
+MASTER_LOG_TIP=§479
+CHATGPT_SUCCESSOR=v763
