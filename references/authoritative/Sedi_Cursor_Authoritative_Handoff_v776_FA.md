@@ -1,0 +1,73 @@
+# SEDI Cursor Authoritative Handoff - v776
+
+Frontend SoT uplift + A1 redesign — **PASS**. Do not modify v775 / §482.
+
+```
+VERSION=v776
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v775
+v775_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§483
+GATE=SEDI-V1-FRONTEND-SOT-UPLIFT-AND-A1-REDESIGN-01
+GATE_RESULT=PASS
+APPROVED_BY=JAVAD
+BACKEND_HEAD=8c5d012320f5d540cd274b5b6c201c7b53469c6a
+BACKEND_CODE_CHANGED=NO
+FRONTEND_CODE_CHANGED=YES
+SCHEMA_CHANGED=NO
+MIGRATION_CHANGED=NO
+DEPLOY_PERFORMED=NO
+FORCE_PUSH=NO
+REAL_FCM_USED=NO
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Frontend SoT lock
+
+```
+FINAL_FRONTEND_HOME=javadmeighani-oss/sedi-frontend
+CODE_BASELINE=C1 (workspace/frontend)
+C2_EXCLUDED=YES
+C4_ROLE=HISTORICAL_REMOTE_BASELINE_ONLY (cdc37c9)
+WORK_BRANCH=feature/sot-uplift-a1-redesign
+FRONTEND_COMMIT_SHA=cb860d92bd379cd9cda6b7345bacbeede6145746
+CI_RUN=https://github.com/javadmeighani-oss/sedi-frontend/actions/runs/34404538805
+ANALYZE=PASS_NO_ERRORS
+TESTS=PASS
+BUILD=PASS
+MIGRATION_METHOD=controlled_tree_replace_from_C1_onto_branch_from_C4_main
+FRONTEND_SOT_SELECTED=YES
+```
+
+## A1 outcomes
+
+```
+A1_VISUAL=Birth_of_Sedi (~2.5s horizon emergence)
+A1_THEME=AppTheme intro_* semantic tokens
+COLD_START=MANDATORY_GET_/auth/me (no local profile short-circuit)
+HEALTH_SIGNAL=parallel bounded GET /healthz (non-auth)
+TOKEN_STORAGE=flutter_secure_storage + SharedPreferences migration
+MAIN_DART=NotificationBootstrap isolated (A4 UI unchanged)
+A2_STATUS=UNCHANGED
+A3_STATUS=UNCHANGED
+A4_STATUS=UNCHANGED
+```
+
+## Continuity sync
+
+```
+MASTER_LOG_TIP=§483
+CURSOR_HANDOFF_TIP=v776
+CHATGPT_CONTINUITY_USER_BASELINE=v771
+CHATGPT_SUCCESSOR_REQUIRED=v772
+CHATGPT_SUCCESSOR_CREATED_BY_CURSOR=NO
+```
+
+## Next (not authorized)
+
+```
+NEXT_RECOMMENDED_GATE=SEDI-V1-FRONTEND-A2-AUTH-OTP-PROFILE-ALIGNMENT-01
+NEXT_GATE_PURPOSE=Align A2 OTP/login/profile with contract + complete secret_key retirement from A3 callers
+FRONTEND_CHANGED=YES
+```
