@@ -52,7 +52,9 @@ jobs:
 
       - name: Flutter analyze
         run: flutter analyze
-        continue-on-error: true
+
+      - name: Targeted A1 session tests
+        run: flutter test test/session_gate_resolver_test.dart
 
       - name: Build debug APK
         run: flutter build apk --debug
