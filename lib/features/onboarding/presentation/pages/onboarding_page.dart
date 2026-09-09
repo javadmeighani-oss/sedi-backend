@@ -14,7 +14,10 @@ import '../../../chat/chat_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../chat/presentation/widgets/sedi_header.dart';
 
-/// Canonical goal keys for backend and local storage.
+/// LEGACY — not part of the 3-gate main route flow (Gate 1→2/3).
+/// Superseded by `OtpLoginPage` + OTP auth. Kept for reference; do not wire into [AppGateRouter].
+///
+/// OnboardingPage – pre-OTP name/goals registration via `/interact/onboarding`.
 const List<String> _goalKeys = [
   'better_sleep',
   'less_stress',

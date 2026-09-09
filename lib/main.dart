@@ -4,11 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/navigation/app_gate_router.dart';
+import 'core/navigation/session_gate_resolver.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/notifications/fcm_setup.dart';
 import 'core/notifications/local_notifications_service.dart';
 import 'data/repositories/notification_repository.dart';
-import 'features/chat/presentation/pages/chat_page.dart';
 import 'services/notifications/inbox_refresh_bus.dart';
 import 'services/push/push_service.dart';
 
@@ -18,6 +19,7 @@ void main() async {
   // Firebase & FCM (graceful if google-services.json missing)
   try {
     await Firebase.initializeApp();
+    debugPrint('[FCM] Firebase initialized ok');
     await _setupFcm();
   } catch (e) {
     print('[main] Firebase/FCM setup skipped: $e');
@@ -135,16 +137,23 @@ void _navigateToChatFromMessage(RemoteMessage message) {
   _navigateToChat(notificationId: id);
 }
 
-void _navigateToChat({int? notificationId}) {
+Future<void> _navigateToChat({int? notificationId}) async {
   final context = navigatorKey.currentContext;
   if (context == null) return;
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => ChatPage(
-        fromNotification: true,
-        notificationId: notificationId,
-      ),
-    ),
+
+  final hasSession = await SessionGateResolver.hasValidSession();
+  if (!context.mounted) return;
+
+  if (!hasSession) {
+    AppGateRouter.goToLogin(context);
+    return;
+  }
+
+  // Gate 3 deep link: official heart route with notification context.
+  AppGateRouter.goToHeart(
+    context,
+    fromNotification: true,
+    notificationId: notificationId,
   );
 }
 
@@ -160,7 +169,7 @@ Future<void> _registerTokenOnStart() async {
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
 
-    debugPrint('[FCM] token received: ${_maskToken(token)}');
+    debugPrint('[FCM] token acquired (masked): ${_maskToken(token)}');
     debugPrint('[FCM] saving token to prefs');
     await saveTokenToPreferences(token);
     debugPrint('[FCM] saved token to prefs');

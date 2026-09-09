@@ -1,3 +1,5 @@
+// Google Services plugin requires android/app/google-services.json for FCM.
+// For real-device FCM: add your project's file from Firebase Console (package com.sedi.app). See README-google-services.md.
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -42,7 +44,7 @@ android {
 
     defaultConfig {
         applicationId "com.sedi.app"
-        minSdk 23
+        minSdk 23  // record_android requires min 23
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

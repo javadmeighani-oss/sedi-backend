@@ -6,6 +6,9 @@ class OtpVerifyResponse {
   final String? tokenType;
   final int? expiresIn;
   final String? language;
+  final String? name;
+  final String? sex;
+  final String? dateOfBirth;
 
   const OtpVerifyResponse({
     this.userId,
@@ -15,6 +18,9 @@ class OtpVerifyResponse {
     this.tokenType,
     this.expiresIn,
     this.language,
+    this.name,
+    this.sex,
+    this.dateOfBirth,
   });
 
   factory OtpVerifyResponse.fromJson(Map<String, dynamic> json) {
@@ -31,6 +37,9 @@ class OtpVerifyResponse {
           ? json['expires_in'] as int
           : int.tryParse(json['expires_in']?.toString() ?? ''),
       language: json['language']?.toString(),
+      name: json['name']?.toString(),
+      sex: json['sex']?.toString(),
+      dateOfBirth: json['date_of_birth']?.toString(),
     );
   }
 
@@ -42,6 +51,9 @@ class OtpVerifyResponse {
     String? tokenType,
     int? expiresIn,
     String? language,
+    String? name,
+    String? sex,
+    String? dateOfBirth,
   }) {
     return OtpVerifyResponse(
       userId: userId ?? this.userId,
@@ -51,6 +63,9 @@ class OtpVerifyResponse {
       tokenType: tokenType ?? this.tokenType,
       expiresIn: expiresIn ?? this.expiresIn,
       language: language ?? this.language,
+      name: name ?? this.name,
+      sex: sex ?? this.sex,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
     );
   }
 }

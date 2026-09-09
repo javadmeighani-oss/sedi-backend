@@ -1,16 +1,7 @@
 name: Build Flutter Frontend - Android
 
+# Android builds on push use .github/workflows/android_release.yml; this workflow is manual-only
 on:
-  push:
-    branches:
-      - main
-      - master
-      - develop
-  pull_request:
-    branches:
-      - main
-      - master
-      - develop
   workflow_dispatch:
 
 jobs:

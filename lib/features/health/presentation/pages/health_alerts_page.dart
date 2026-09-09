@@ -7,8 +7,8 @@ import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
 import '../../../../data/models/notification_item.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/health/health_alerts_service.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 class HealthAlertsPage extends StatefulWidget {
   const HealthAlertsPage({super.key});
@@ -44,9 +44,7 @@ class _HealthAlertsPageState extends State<HealthAlertsPage> {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
     setState(() {
@@ -89,7 +87,7 @@ class _HealthAlertsPageState extends State<HealthAlertsPage> {
     if (_loading) {
       return ListView(
         children: [
-          SizedBox(height: 120),
+          const SizedBox(height: 120),
           const AppLoadingState(label: 'Loading health alerts...'),
         ],
       );
@@ -105,7 +103,7 @@ class _HealthAlertsPageState extends State<HealthAlertsPage> {
     if (_items.isEmpty) {
       return ListView(
         children: [
-          SizedBox(height: 120),
+          const SizedBox(height: 120),
           const AppEmptyState(
             title: 'No health alerts yet',
             subtitle: 'You will see important alerts here.',

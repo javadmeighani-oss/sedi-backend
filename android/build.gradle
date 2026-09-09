@@ -1,3 +1,14 @@
+// Set flutter compileSdkVersion only for plugins (record_android) - NOT for :app which uses FlutterExtension
+gradle.beforeProject { project ->
+    if (project.name != "app") {
+        project.ext.set("flutter", [
+            compileSdkVersion: 34,
+            minSdkVersion: 21,
+            targetSdkVersion: 34,
+        ])
+    }
+}
+
 buildscript {
     ext.kotlin_version = '1.9.23'
     repositories {
@@ -19,14 +30,6 @@ buildscript {
     }
 }
 
-// Compatibility shim for plugins (e.g. record_android) that read flutter.* in Gradle.
-// Keeps CI stable when plugin evaluation happens before Flutter injects defaults.
-ext.flutter = [
-    compileSdkVersion: 34,
-    minSdkVersion    : 21,
-    targetSdkVersion : 34
-]
-
 allprojects {
     repositories {
         google()
@@ -45,7 +48,6 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

@@ -10,7 +10,9 @@ import '../widgets/lifestyle_summary_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
 import '../../../../core/preferences/notification_prefs.dart';
+import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/brand_name.dart';
 import '../../../../core/utils/user_preferences.dart';
@@ -26,11 +28,16 @@ import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notification/data/notification_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 import '../../../notification/presentation/pages/notifications_inbox_page.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
+import '../../../../data/repositories/notification_prefs_repository.dart';
 
 /// ============================================
-/// ChatPage - صفحه اصلی چت
+/// Gate 3 — Sedi Heart / Main Interaction (`ChatPage`)
 /// ============================================
+///
+/// Official permanent home after login (Gate 3).
+/// Chat is the central experience; notifications, health, lifestyle,
+/// devices, history, and settings are sections under this gate (not separate gates).
+/// Back navigation must not return to Gate 1 or Gate 2 (`PopScope` + gate router on logout).
 ///
 /// CONTRACT:
 /// - پیام‌های صدی نباید زیر چت‌باکس بروند
@@ -194,9 +201,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
     final resp = await _notificationService.fetchUnreadList(userId: userId);
@@ -736,6 +741,9 @@ class _NotificationSettingsSheet extends StatefulWidget {
 class _NotificationSettingsSheetState
     extends State<_NotificationSettingsSheet> {
   bool _loaded = false;
+  int? _userId;
+  final NotificationPrefsRepository _prefsRepository =
+      NotificationPrefsRepository();
   final Map<String, bool> _channelEnabled = {};
   String _quietStart = kDefaultQuietStart;
   String _quietEnd = kDefaultQuietEnd;
@@ -750,6 +758,10 @@ class _NotificationSettingsSheetState
 
   Future<void> _loadPrefs() async {
     try {
+      _userId = await UserIdentityService.resolveUserId();
+      if (_userId != null) {
+        await _prefsRepository.loadAndCache(userId: _userId!);
+      }
       final start = await NotificationPrefs.getQuietHoursStart();
       final end = await NotificationPrefs.getQuietHoursEnd();
       final engagement = await NotificationPrefs.getEngagementLevel();
@@ -778,6 +790,43 @@ class _NotificationSettingsSheetState
         });
       }
     }
+  }
+
+  Future<void> _syncChannel(String channel, bool enabled) async {
+    await NotificationPrefs.setChannelEnabled(channel, enabled);
+    final userId = _userId ?? await UserIdentityService.resolveUserId();
+    if (userId == null) return;
+    await _prefsRepository.updatePartial(
+      userId: userId,
+      channelUpdates: {channel: enabled},
+    );
+  }
+
+  Future<void> _syncQuietHours({String? start, String? end}) async {
+    if (start != null) await NotificationPrefs.setQuietHoursStart(start);
+    if (end != null) await NotificationPrefs.setQuietHoursEnd(end);
+    final userId = _userId ?? await UserIdentityService.resolveUserId();
+    if (userId == null) return;
+    await _prefsRepository.updatePartial(
+      userId: userId,
+      quietStart: start ?? _quietStart,
+      quietEnd: end ?? _quietEnd,
+    );
+  }
+
+  Future<void> _syncEngagement(String level) async {
+    await NotificationPrefs.setEngagementLevel(level);
+    final userId = _userId ?? await UserIdentityService.resolveUserId();
+    if (userId == null) return;
+    await _prefsRepository.updatePartial(
+      userId: userId,
+      engagementLevel: level,
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    // AppGateRouter.goToLogin inside performLogout replaces the full stack.
+    await AuthHelper.performLogout(context: context);
   }
 
   String _l(String en, String fa, String ar) {
@@ -821,10 +870,10 @@ class _NotificationSettingsSheetState
     final value =
         '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
     if (isStart) {
-      await NotificationPrefs.setQuietHoursStart(value);
+      await _syncQuietHours(start: value);
       if (mounted) setState(() => _quietStart = value);
     } else {
-      await NotificationPrefs.setQuietHoursEnd(value);
+      await _syncQuietHours(end: value);
       if (mounted) setState(() => _quietEnd = value);
     }
   }
@@ -874,7 +923,7 @@ class _NotificationSettingsSheetState
             return SwitchListTile(
               value: enabled,
               onChanged: (v) async {
-                await NotificationPrefs.setChannelEnabled(channel, v);
+                await _syncChannel(channel, v);
                 if (mounted) setState(() => _channelEnabled[channel] = v);
               },
               title: Text(
@@ -950,7 +999,7 @@ class _NotificationSettingsSheetState
                 selected: isSelected,
                 onSelected: (v) async {
                   if (!v) return;
-                  await NotificationPrefs.setEngagementLevel(level);
+                  await _syncEngagement(level);
                   if (mounted) setState(() => _engagementLevel = level);
                 },
                 selectedColor: AppTheme.pistachioGreen.withOpacity(0.3),
@@ -989,6 +1038,17 @@ class _NotificationSettingsSheetState
               title: Text(label, style: const TextStyle(fontSize: 15)),
             );
           }),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: _handleLogout,
+            icon: const Icon(Icons.logout, size: 20),
+            label: Text(_l('Log out', 'خروج', 'تسجيل الخروج')),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlack,
+              side: const BorderSide(color: AppTheme.primaryBlack),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
         ],
       ),
     );
