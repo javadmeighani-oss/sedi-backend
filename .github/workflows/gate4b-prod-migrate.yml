@@ -1,4 +1,6 @@
-# One-shot production Alembic migration for Gate 4-B (workflow_dispatch only).
+# Section 57 — Production Alembic 070→081 via sedi_migration_admin (workflow_dispatch only).
+# Reuses Gate 4-B dispatch identity (registered on default branch). Feature-ref body applies.
+# GATE=SEDI-V1-BACKEND-PROD-MIGRATE-070-TO-081-AND-RC-RUNTIME-CLOSURE-01
 name: Gate 4-B Production Migration
 
 on:
@@ -9,11 +11,14 @@ permissions:
 
 jobs:
   alembic-upgrade:
-    name: Alembic upgrade head on production
+    name: Alembic 070→081 (migration admin)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Prepare SSH key
         run: |
           mkdir -p ~/.ssh
@@ -22,32 +27,40 @@ jobs:
           chmod 600 ~/.ssh/sedi_deploy_key
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Run Alembic upgrade and schema checks
+      - name: Upload remote migrate script
+        env:
+          DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
         run: |
+          set -Eeuo pipefail
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_migrate_070_to_081_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_migrate_070_to_081_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_migrate_070_to_081_remote.sh")"
+
+      - name: Run governed 070→081 migrate
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            'set -Eeuo pipefail
-             cd "${{ secrets.SEDI_DEPLOY_PATH }}"
-             echo "=== ALEMBIC BEFORE ==="
-             docker exec sedi-backend python -m alembic -c backend/alembic.ini current || true
-             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads || true
-             echo "=== ALEMBIC UPGRADE ==="
-             docker exec sedi-backend python -m alembic -c backend/alembic.ini upgrade head
-             echo "=== ALEMBIC AFTER ==="
-             docker exec sedi-backend python -m alembic -c backend/alembic.ini current
-             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
-             echo "=== SCHEMA CHECK ==="
-             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
-             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
-             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
-               "SELECT column_name FROM information_schema.columns
-                WHERE table_name='"'"'notifications'"'"'
-                AND column_name IN ('"'"'category'"'"','"'"'source_type'"'"','"'"'source_id'"'"','"'"'context_json'"'"','"'"'risk_level'"'"','"'"'template_key'"'"')
-                ORDER BY 1;"
-             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
-               "SELECT to_regclass('"'"'public.interaction_events'"'"') AS interaction_events_table;"
-             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
-               "SELECT COUNT(*) AS notifications FROM notifications;"
-             echo "=== MIGRATION DONE ==="
-            '
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=070_i8_proactive_evaluation_ledger TARGET_REV=081_self_health_subject_1to1_hardening RC_SHA=cda11c932a3076d43633019d30c1eaaa6a183251 bash -s" \
+            2>&1 | tee /tmp/mig070081_admin.log <<'REMOTE'
+          set -Eeuo pipefail
+          bash "${DEPLOY_PATH}/ops/db03/db_prod_migrate_070_to_081_remote.sh"
+          REMOTE
+          grep -Fq 'MIG070081|migration_070_to_081|PASS' /tmp/mig070081_admin.log
+          grep -Fq 'MIGRATE_070_TO_081_PASS' /tmp/mig070081_admin.log
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mig070081-admin
+          path: /tmp/mig070081_admin.log
+          retention-days: 30
