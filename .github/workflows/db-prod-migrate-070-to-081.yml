@@ -1,0 +1,366 @@
+# GATE=SEDI-V1-BACKEND-PROD-MIGRATE-070-TO-081-AND-RC-RUNTIME-CLOSURE-01
+# Digest-pinned one-off alembic upgrade 070→081. NO backend code redesign.
+# Mirrors established w6p01 MIGRATE_TO_056 docker-run pattern. NO deploy.
+name: DB-PROD Migrate 070 to 081
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "PREFLIGHT_070_081 | MIGRATE_070_TO_081"
+        required: true
+      migration_image_sha:
+        description: "RC source SHA (40 hex). Must be cda11c932a3076d43633019d30c1eaaa6a183251"
+        required: true
+      migration_image_digest:
+        description: "RC digest sha256:<64 hex>"
+        required: true
+      expected_before_revision:
+        description: "Must be 070_i8_proactive_evaluation_ledger"
+        required: true
+        default: 070_i8_proactive_evaluation_ledger
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  IMAGE_NAME: ghcr.io/javadmeighani-oss/sedi-backend
+  AUTHORIZED_RC_SHA: cda11c932a3076d43633019d30c1eaaa6a183251
+  AUTHORIZED_RC_DIGEST: sha256:7d733a58231e0b0c11ed7663b3c9bd2a6a5406ed6f4adabfe95147ebb4cc2763
+  TARGET_REV: 081_self_health_subject_1to1_hardening
+
+jobs:
+  preflight:
+    name: Read-only 070→081 preflight
+    if: github.event.inputs.confirmation == 'PREFLIGHT_070_081'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Validate inputs
+        env:
+          CONF: ${{ github.event.inputs.confirmation }}
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          DIGEST: ${{ github.event.inputs.migration_image_digest }}
+          BEFORE: ${{ github.event.inputs.expected_before_revision }}
+        run: |
+          set -Eeuo pipefail
+          [ "${CONF}" = "PREFLIGHT_070_081" ]
+          [ "${SHA}" = "${AUTHORIZED_RC_SHA}" ]
+          [ "${DIGEST}" = "${AUTHORIZED_RC_DIGEST}" ]
+          [ "${BEFORE}" = "070_i8_proactive_evaluation_ledger" ]
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+
+      - name: SSH preflight
+        env:
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          DIGEST: ${{ github.event.inputs.migration_image_digest }}
+          BEFORE: ${{ github.event.inputs.expected_before_revision }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          BEFORE_Q="$(printf '%q' "${BEFORE}")"
+          DIGEST_Q="$(printf '%q' "${DIGEST}")"
+          SHA_Q="$(printf '%q' "${SHA}")"
+          TARGET_Q="$(printf '%q' "${TARGET_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${BEFORE_Q} MIGRATION_DIGEST=${DIGEST_Q} MIGRATION_SHA=${SHA_Q} TARGET_REV=${TARGET_Q} bash -s" \
+            2>&1 | tee /tmp/mig070081_preflight.log <<'REMOTE'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "MIG070081_SUMMARY|$1|$2"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          cd "${DEPLOY_PATH}"
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          psql_ro() { docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "$1" | tr -d '\r'; }
+
+          ALEMBIC_COUNT="$(psql_ro "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_REV="$(psql_ro "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_revision=${ALEMBIC_REV}"
+          summary "alembic_count" "${ALEMBIC_COUNT}"
+          summary "alembic_revision" "${ALEMBIC_REV}"
+          [ "${ALEMBIC_COUNT}" = "1" ] || { log "PREFLIGHT_FAIL alembic_count"; exit 4; }
+          [ "${ALEMBIC_REV}" = "${EXPECTED_BEFORE}" ] || { log "PREFLIGHT_FAIL alembic mismatch"; exit 5; }
+
+          PG_VER="$(psql_ro "SHOW server_version;")"
+          EXT_VEC="$(psql_ro "SELECT extversion FROM pg_extension WHERE extname='vector';")"
+          log "postgres_version=${PG_VER}"
+          log "pgvector_version=${EXT_VEC:-none}"
+          summary "postgres_version" "${PG_VER}"
+          summary "pgvector_version" "${EXT_VEC:-none}"
+
+          HS_REG="$(psql_ro "SELECT to_regclass('public.health_subjects');")"
+          AHSA_REG="$(psql_ro "SELECT to_regclass('public.account_health_subject_access');")"
+          summary "health_subjects_regclass" "${HS_REG:-null}"
+          summary "ahsa_regclass" "${AHSA_REG:-null}"
+
+          # At 070 these tables should not exist yet.
+          if [ -n "${HS_REG}" ] && [ "${HS_REG}" != "" ]; then
+            DUP_HS="$(psql_ro "SELECT COUNT(*) FROM (SELECT linked_user_id FROM health_subjects WHERE subject_kind='self' AND status='active' AND linked_user_id IS NOT NULL GROUP BY linked_user_id HAVING COUNT(*)>1) d;")"
+            summary "dup_active_self_hs_groups" "${DUP_HS}"
+            [ "${DUP_HS}" = "0" ] || { log "DATA_CONFLICT dup SELF HS"; exit 40; }
+          else
+            summary "dup_active_self_hs_groups" "N_A_TABLE_ABSENT"
+          fi
+          if [ -n "${AHSA_REG}" ] && [ "${AHSA_REG}" != "" ]; then
+            DUP_AHSA="$(psql_ro "SELECT COUNT(*) FROM (SELECT account_user_id FROM account_health_subject_access WHERE access_role='SELF' AND is_active IS TRUE AND revoked_at IS NULL GROUP BY account_user_id HAVING COUNT(*)>1) d;")"
+            summary "dup_active_self_ahsa_groups" "${DUP_AHSA}"
+            [ "${DUP_AHSA}" = "0" ] || { log "DATA_CONFLICT dup SELF AHSA"; exit 41; }
+          else
+            summary "dup_active_self_ahsa_groups" "N_A_TABLE_ABSENT"
+          fi
+
+          HAS_HS_COL="$(psql_ro "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='physiological_measurement_rollups' AND column_name='health_subject_id';")"
+          if [ "${HAS_HS_COL}" = "1" ]; then
+            DUP_PMR="$(psql_ro "SELECT COUNT(*) FROM (SELECT health_subject_id, measurement_type, bucket_start, bucket_kind FROM physiological_measurement_rollups WHERE health_subject_id IS NOT NULL GROUP BY 1,2,3,4 HAVING COUNT(*)>1) d;")"
+            DUP_PB="$(psql_ro "SELECT COUNT(*) FROM (SELECT health_subject_id, measurement_type, baseline_version, window_start FROM physiological_baselines WHERE health_subject_id IS NOT NULL GROUP BY 1,2,3,4 HAVING COUNT(*)>1) d;")"
+            summary "dup_pmr_subject_groups" "${DUP_PMR}"
+            summary "dup_pb_subject_groups" "${DUP_PB}"
+            [ "${DUP_PMR}" = "0" ] && [ "${DUP_PB}" = "0" ] || { log "DATA_CONFLICT subject-native dups"; exit 42; }
+          else
+            summary "dup_pmr_subject_groups" "N_A_COL_ABSENT"
+            summary "dup_pb_subject_groups" "N_A_COL_ABSENT"
+          fi
+
+          ORPHAN_DEV="$(psql_ro "SELECT COUNT(*) FROM devices d LEFT JOIN users u ON u.id=COALESCE(d.subject_user_id,d.user_id) WHERE u.id IS NULL;")"
+          DEV_COUNT="$(psql_ro "SELECT COUNT(*) FROM devices;")"
+          summary "orphan_devices_count" "${ORPHAN_DEV}"
+          summary "devices_count" "${DEV_COUNT}"
+          # Informational only — 071 skips orphans via JOIN.
+
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "running_image" "${CURRENT_IMAGE:-none}"
+          summary "target_revision" "${TARGET_REV}"
+          summary "migration_digest" "${MIGRATION_DIGEST}"
+          summary "migration_sha" "${MIGRATION_SHA}"
+          summary "data_repair_required" "NO"
+          summary "production_data_compatibility" "PASS"
+          log "PREFLIGHT_070_081_PASS"
+          REMOTE
+          grep -Fq 'MIG070081_SUMMARY|production_data_compatibility|PASS' /tmp/mig070081_preflight.log
+          grep -Fq 'PREFLIGHT_070_081_PASS' /tmp/mig070081_preflight.log
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mig070081-preflight
+          path: /tmp/mig070081_preflight.log
+          retention-days: 30
+
+  migrate:
+    name: Digest-pinned alembic upgrade to 081
+    if: github.event.inputs.confirmation == 'MIGRATE_070_TO_081'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate inputs
+        env:
+          CONF: ${{ github.event.inputs.confirmation }}
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          DIGEST: ${{ github.event.inputs.migration_image_digest }}
+          BEFORE: ${{ github.event.inputs.expected_before_revision }}
+        run: |
+          set -Eeuo pipefail
+          [ "${CONF}" = "MIGRATE_070_TO_081" ]
+          [ "${SHA}" = "${AUTHORIZED_RC_SHA}" ]
+          [ "${DIGEST}" = "${AUTHORIZED_RC_DIGEST}" ]
+          [ "${BEFORE}" = "070_i8_proactive_evaluation_ledger" ]
+
+      - name: Log in to GHCR (runner only)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull RC digest on runner and save archive
+        id: pull_save
+        env:
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          DIGEST_REF="${IMAGE_NAME}@${DIGEST}"
+          TAG_REF="${IMAGE_NAME}:${SHA}"
+          docker pull "${DIGEST_REF}"
+          PULLED="$(docker image inspect "${DIGEST_REF}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
+          echo "${PULLED}" | grep -Fq "${DIGEST}"
+          ROOTFS_JSON="$(docker image inspect "${DIGEST_REF}" --format '{{json .RootFS.Layers}}')"
+          ROOTFS_SHA="$(printf '%s' "${ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
+          docker tag "${DIGEST_REF}" "${TAG_REF}"
+          ARCHIVE="/tmp/sedi-backend-mig-${SHA}.tar"
+          docker save -o "${ARCHIVE}" "${TAG_REF}"
+          ARCHIVE_SHA="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+          echo "archive_path=${ARCHIVE}" >> "$GITHUB_OUTPUT"
+          echo "archive_sha256=${ARCHIVE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "rootfs_sha256=${ROOTFS_SHA}" >> "$GITHUB_OUTPUT"
+          echo "ARCHIVE_SHA256=${ARCHIVE_SHA}"
+          echo "ROOTFS_SHA256=${ROOTFS_SHA}"
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Transfer image archive
+        env:
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          ARCHIVE_PATH: ${{ steps.pull_save.outputs.archive_path }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/tmp_secure_transfer_mig070081"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            "${ARCHIVE_PATH}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/sedi-backend-${SHA}.tar"
+
+      - name: Backup + load archive + alembic upgrade 081
+        env:
+          SHA: ${{ github.event.inputs.migration_image_sha }}
+          DIGEST: ${{ github.event.inputs.migration_image_digest }}
+          BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          ARCHIVE_SHA: ${{ steps.pull_save.outputs.archive_sha256 }}
+          ROOTFS_SHA: ${{ steps.pull_save.outputs.rootfs_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          BEFORE_Q="$(printf '%q' "${BEFORE}")"
+          DIGEST_Q="$(printf '%q' "${DIGEST}")"
+          SHA_Q="$(printf '%q' "${SHA}")"
+          TARGET_Q="$(printf '%q' "${TARGET_REV}")"
+          IMAGE_NAME_Q="$(printf '%q' "${IMAGE_NAME}")"
+          ARCHIVE_SHA_Q="$(printf '%q' "${ARCHIVE_SHA}")"
+          ROOTFS_SHA_Q="$(printf '%q' "${ROOTFS_SHA}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${BEFORE_Q} MIGRATION_DIGEST=${DIGEST_Q} MIGRATION_SHA=${SHA_Q} TARGET_REV=${TARGET_Q} IMAGE_NAME=${IMAGE_NAME_Q} ARCHIVE_SHA256=${ARCHIVE_SHA_Q} RUNNER_ROOTFS_SHA256=${ROOTFS_SHA_Q} bash -s" \
+            2>&1 | tee /tmp/mig070081_apply.log <<'REMOTE'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "MIG070081_SUMMARY|$1|$2"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          REMOTE_DIR="${DEPLOY_PATH}/tmp_secure_transfer_mig070081"
+          ARCHIVE="${REMOTE_DIR}/sedi-backend-${MIGRATION_SHA}.tar"
+          TAG_REF="${IMAGE_NAME}:${MIGRATION_SHA}"
+          cd "${DEPLOY_PATH}"
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          [ -f "${ENV_FILE}" ] || { log "missing env"; exit 1; }
+          if grep -E "^TEST_DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "TEST_DATABASE_URL forbidden"; exit 3
+          fi
+
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "pre_migration_revision" "${ALEMBIC_BEFORE}"
+          [ "${ALEMBIC_COUNT}" = "1" ] && [ "${ALEMBIC_BEFORE}" = "${EXPECTED_BEFORE}" ] || {
+            log "alembic precheck fail count=${ALEMBIC_COUNT} rev=${ALEMBIC_BEFORE}"; exit 5; }
+
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "pre_running_image" "${CURRENT_IMAGE:-none}"
+
+          GOT_SHA="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+          [ "${GOT_SHA}" = "${ARCHIVE_SHA256}" ] || { log "ARCHIVE_SHA_MISMATCH"; rm -f "${ARCHIVE}"; exit 15; }
+          summary "archive_sha256_verified" "${GOT_SHA}"
+
+          log "=== PRE-MIGRATE BACKUP ==="
+          mkdir -p "${DEPLOY_PATH}/backups/postgres"
+          TS="$(date +%Y%m%d_%H%M%S)"
+          BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_migrate_070_081_${TS}.sql.gz"
+          docker exec sedi-postgres pg_dump -U "${PU}" -d "${PD}" | gzip > "${BACKUP_FILE}"
+          gzip -t "${BACKUP_FILE}"
+          BACKUP_SHA="$(sha256sum "${BACKUP_FILE}" | awk '{print $1}')"
+          BACKUP_SIZE="$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
+          summary "recovery_point_id" "sedi_db_pre_migrate_070_081_${TS}.sql.gz"
+          summary "backup_sha256" "${BACKUP_SHA}"
+          summary "backup_size_bytes" "${BACKUP_SIZE}"
+          log "recovery_command: gunzip -c ${BACKUP_FILE} | docker exec -i sedi-postgres psql -U ${PU} -d ${PD}"
+          summary "restore_path_known" "YES"
+          summary "pre_migration_recovery_point" "VERIFIED"
+
+          log "=== DOCKER LOAD RC IMAGE ==="
+          docker load -i "${ARCHIVE}"
+          SERVER_ROOTFS_JSON="$(docker image inspect "${TAG_REF}" --format '{{json .RootFS.Layers}}')"
+          SERVER_ROOTFS_SHA="$(printf '%s' "${SERVER_ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
+          [ "${SERVER_ROOTFS_SHA}" = "${RUNNER_ROOTFS_SHA256}" ] || { log "ROOTFS_MISMATCH"; rm -f "${ARCHIVE}"; exit 16; }
+          summary "migration_digest_verified" "${MIGRATION_DIGEST}"
+          summary "rootfs_match" "PASS"
+
+          MIGRATION_START="$(date -Is)"
+          summary "migration_start" "${MIGRATION_START}"
+          log "=== ALEMBIC UPGRADE ${TARGET_REV} (digest-equivalent local tag) ==="
+          docker run --rm \
+            --network sedi-net \
+            --env-file "${ENV_FILE}" \
+            --env TEST_DATABASE_URL= \
+            "${TAG_REF}" \
+            python -m alembic -c backend/alembic.ini upgrade "${TARGET_REV}"
+          MIGRATION_END="$(date -Is)"
+          summary "migration_end" "${MIGRATION_END}"
+
+          ALEMBIC_AFTER_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "post_migration_revision" "${ALEMBIC_AFTER}"
+          summary "alembic_after_count" "${ALEMBIC_AFTER_COUNT}"
+          [ "${ALEMBIC_AFTER_COUNT}" = "1" ] && [ "${ALEMBIC_AFTER}" = "${TARGET_REV}" ] || {
+            log "POSTCHECK alembic fail"; exit 20; }
+
+          for tbl in health_subjects account_health_subject_access device_packets i10_notification_decisions device_reported_vital_statuses; do
+            REG="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.${tbl}');")"
+            [ -n "${REG}" ] && [ "${REG}" != "" ] || { log "missing table ${tbl}"; exit 30; }
+            log "table_ok=${tbl}"
+          done
+          IDX_HS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_indexes WHERE indexname='uq_health_subjects_active_self_linked_user';")"
+          IDX_AHSA="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_indexes WHERE indexname='uq_ahsa_active_self_account';")"
+          [ "${IDX_HS}" = "1" ] && [ "${IDX_AHSA}" = "1" ] || { log "081 indexes missing"; exit 31; }
+
+          PG_VER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SHOW server_version;")"
+          EXT_VEC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT extversion FROM pg_extension WHERE extname='vector';")"
+          summary "postgres_version" "${PG_VER}"
+          summary "pgvector_version" "${EXT_VEC:-none}"
+
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null || true
+          curl -fsS https://api.sedi-ai.com/healthz >/dev/null || true
+          POST_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "post_running_image" "${POST_IMAGE:-none}"
+          summary "deployment_performed" "NO"
+          summary "migration_070_to_081" "PASS"
+          rm -f "${ARCHIVE}"
+          rmdir "${REMOTE_DIR}" 2>/dev/null || true
+          log "MIGRATE_070_TO_081_PASS"
+          REMOTE
+          grep -Fq 'MIG070081_SUMMARY|migration_070_to_081|PASS' /tmp/mig070081_apply.log
+          grep -Fq 'MIGRATE_070_TO_081_PASS' /tmp/mig070081_apply.log
+
+      - name: Cleanup runner archive
+        if: always()
+        env:
+          ARCHIVE_PATH: ${{ steps.pull_save.outputs.archive_path }}
+        run: rm -f "${ARCHIVE_PATH:-/tmp/sedi-backend-mig-*.tar}" || true
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mig070081-apply
+          path: /tmp/mig070081_apply.log
+          retention-days: 30
