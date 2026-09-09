@@ -1,0 +1,128 @@
+# GATE=SEDI-SMART-RAG-CONTEXT-AUTHORITY-ARCHITECTURE-INTEGRATION-01
+# Smart-RAG context/authority architecture integration — PG16 + pgvector.
+# NO production. NO schema/migration. NO I10. NO Real FCM. NO frontend.
+# Does NOT rerun full Smart-RAG 28/28 or DRVS 12/12.
+name: SRCA Context Authority PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/scis/sedi_retrieval_context.py"
+      - "backend/app/services/scis/context_resolver.py"
+      - "backend/app/services/scis/authority_router.py"
+      - "backend/app/services/scis/evidence_package.py"
+      - "backend/app/services/scis/context_aware_retrieval.py"
+      - "backend/app/services/scis/governed_runtime_adapter.py"
+      - "backend/app/services/scis/contracts.py"
+      - "backend/tests/test_srca_context_authority_architecture.py"
+      - ".github/workflows/srca-context-authority-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: srca-context-authority-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  srca-pg16:
+    name: SRCA 18/18 PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_srca
+          POSTGRES_PASSWORD: sedi_srca_pass
+          POSTGRES_DB: sedi_srca
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_srca -d sedi_srca"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_srca:sedi_srca_pass@127.0.0.1:5432/sedi_srca
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_srca:sedi_srca_pass@127.0.0.1:5432/sedi_srca
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+              c.commit()
+          PY
+      - name: Alembic single head 081 (no schema change)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: SRCA focused suite (18 cases)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/srca_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_srca_context_authority_architecture.py \
+            | tee /tmp/srca_evidence/pytest.txt
+          # Require all SRCA print markers (including static+runtime for 18)
+          grep -E 'SRCA-0(1|2|3|4|5|6|7|8|9)=PASS|SRCA-1(0|1|2|3|4|5|6|7)=PASS|SRCA-18=PASS' \
+            /tmp/srca_evidence/pytest.txt | wc -l | tee /tmp/srca_evidence/pass_markers.txt
+      - name: Canary — hybrid/RRF/embedding locks (no full 28/28)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from backend.app.services.scis import DEFAULT_EMBEDDING_DIM, DEFAULT_EMBEDDING_MODEL
+          from backend.app.services.scis.hybrid import RRF_K
+          assert DEFAULT_EMBEDDING_MODEL == "text-embedding-3-large"
+          assert DEFAULT_EMBEDDING_DIM == 1024
+          assert RRF_K == 60
+          print("SMART_RAG_CORE_CANARY=PASS")
+          print("COHERE_CANONICAL_CALLS=0")
+          print("STAGE17_PRODUCT_CALLS=0")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: srca-context-authority-pytest
+          path: /tmp/srca_evidence/

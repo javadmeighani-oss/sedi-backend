@@ -180,11 +180,18 @@ def retrieve_scis_governed_runtime_items(
     provider: Optional[ScisEmbeddingProvider] = None,
     force_mode: Optional[RetrievalMode] = None,
     alias_hints: Optional[Sequence[str]] = None,
+    user_authorization_context: Optional[dict] = None,
+    intent: Optional[str] = None,
+    safety_classification: Optional[str] = None,
+    request_trace_id: Optional[str] = None,
+    allowed_knowledge_classes: Optional[Sequence[str]] = None,
 ) -> Tuple[List[RetrievedKnowledgeItem], dict]:
     """Canonical governed I5 runtime: HYBRID when OpenAI available, else lexical.
 
     Unsupported language → raises UnsupportedGovernedLanguageError (fail-closed).
     alias_hints are NONAUTHORITATIVE retrieval hints only.
+    user_authorization_context is boundary-only (SediRetrievalContext serialization);
+    never elevates PERSONAL → GOVERNED and never mints I8/I9/I10.
     """
     lang = normalize_governed_language(language)
     if not is_supported_governed_language(lang):
@@ -202,6 +209,7 @@ def retrieve_scis_governed_runtime_items(
         "stage17_rag_embeddings_used": False,
         "alias_authority": "NONAUTHORITATIVE",
         "alias_hint_count": len(hints),
+        "authorization_boundary_present": user_authorization_context is not None,
     }
 
     if force_mode == RetrievalMode.LEXICAL:
@@ -228,8 +236,15 @@ def retrieve_scis_governed_runtime_items(
             query_text=query or "",
             query_language=lang,
             target_domain=domain,
+            intent=intent,
+            safety_classification=safety_classification,
             top_k=top_k,
             retrieval_mode=mode,
+            allowed_knowledge_classes=tuple(allowed_knowledge_classes)
+            if allowed_knowledge_classes is not None
+            else ("GLOBAL_GOVERNED_KNOWLEDGE",),
+            request_trace_id=request_trace_id,
+            user_authorization_context=user_authorization_context,
         ),
         provider=prov,
         alias_hints=hints or None,
