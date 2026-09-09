@@ -133,16 +133,12 @@ class _IntroPageState extends State<IntroPage>
   }
 
   Future<void> _awaitIntroThenRoute() async {
-    final results = await Future.wait<Object>([
-      Future<void>.delayed(kIntroDuration),
-      _sessionFuture,
-      _healthFuture,
-    ]);
+    // Animation duration and startup futures already kicked off in initState.
+    await Future<void>.delayed(kIntroDuration);
+    final session = await _sessionFuture;
+    final healthy = await _healthFuture;
 
     if (!mounted) return;
-
-    final session = results[1] as SessionResolveResult;
-    final healthy = results[2] as bool;
 
     setState(() {
       _backendAvailable = healthy;
