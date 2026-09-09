@@ -187,6 +187,10 @@ void main() {
       // Advance partially through the 2.5s birth animation.
       await tester.pump(const Duration(milliseconds: 800));
       expect(find.byType(IntroPage), findsOneWidget);
+      // Flush remaining intro / health timers before dispose.
+      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     });
   });
 }
