@@ -337,6 +337,18 @@ class OtpLoginLocalization {
         ar: 'رمز التحقق غير صالح أو منتهٍ. يرجى المحاولة مرة أخرى.',
       );
 
+  String get otpInvalid => _t(
+        en: 'The verification code is invalid. Please try again.',
+        fa: 'کد تأیید نامعتبر است. لطفاً دوباره تلاش کنید.',
+        ar: 'رمز التحقق غير صالح. يرجى المحاولة مرة أخرى.',
+      );
+
+  String get otpExpired => _t(
+        en: 'The verification code has expired. Please request a new one.',
+        fa: 'کد تأیید منقضی شده است. لطفاً دوباره درخواست کنید.',
+        ar: 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.',
+      );
+
   String formatDay(int day) => _formatNumber(day, minDigits: 2);
   String formatYear(int year) => _formatNumber(year, minDigits: 4);
 

@@ -77,8 +77,14 @@ jobs:
           echo "No analyzer errors (warnings/infos non-blocking for this Gate)"
           exit 0
 
-      - name: Targeted A1 session tests
-        run: flutter test test/session_gate_resolver_test.dart
+      - name: Targeted A2 functional alignment tests
+        run: |
+          flutter test \
+            test/a2_stable_enable_test.dart \
+            test/a2_phone_e164_test.dart \
+            test/a2_ui_functional_alignment_test.dart \
+            test/gate2_post_otp_safe_router_test.dart \
+            test/gate2_otp_input_helper_test.dart
 
       - name: Build debug APK
         run: flutter build apk --debug

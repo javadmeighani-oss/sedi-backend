@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import 'a2_phone_e164.dart';
 import 'birth_calendar_helper.dart';
 import 'gate2_otp_input.dart';
 import 'otp_login_localization.dart';
@@ -381,6 +382,46 @@ class Gate2Widgets {
     );
   }
 
+  /// Compact phone row: `[ +XX ▼ ] [ national number ]` inside existing field geometry.
+  static Widget phoneField({
+    required TextEditingController controller,
+    required String hint,
+    required A2CountryDialCode dialCode,
+    required ValueChanged<A2CountryDialCode> onDialCodeChanged,
+    String? Function(String?)? validator,
+    ValueChanged<String>? onChanged,
+    bool readOnly = false,
+    bool dialCodeEnabled = true,
+  }) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+      ],
+      onChanged: onChanged,
+      readOnly: readOnly,
+      enableInteractiveSelection: !readOnly,
+      style: const TextStyle(
+        color: AppTheme.gate2TextPrimary,
+        fontSize: 16,
+      ),
+      decoration: _inputDecoration(hint, Icons.phone_outlined).copyWith(
+        prefixIcon: null,
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        prefix: Padding(
+          padding: const EdgeInsets.only(left: 4, right: 6),
+          child: _DialCodePrefix(
+            dialCode: dialCode,
+            enabled: dialCodeEnabled && !readOnly,
+            onChanged: onDialCodeChanged,
+          ),
+        ),
+      ),
+    );
+  }
+
   static InputDecoration _inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
@@ -653,5 +694,79 @@ class Gate2Widgets {
         ),
       ],
     );
+  }
+}
+
+class _DialCodePrefix extends StatelessWidget {
+  final A2CountryDialCode dialCode;
+  final bool enabled;
+  final ValueChanged<A2CountryDialCode> onChanged;
+
+  const _DialCodePrefix({
+    required this.dialCode,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? () => _openPicker(context) : null,
+        borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dialCode.displayDial,
+                style: TextStyle(
+                  color: enabled
+                      ? AppTheme.gate2TextPrimary
+                      : AppTheme.gate2TextMuted,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 18,
+                color: enabled
+                    ? AppTheme.gate2TextMuted
+                    : AppTheme.gate2TextDisabled,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPicker(BuildContext context) async {
+    final selected = await showModalBottomSheet<A2CountryDialCode>(
+      context: context,
+      backgroundColor: AppTheme.gate2CardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.gate2RadiusCard),
+        ),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final code in A2PhoneE164.dialCodes)
+              ListTile(
+                title: Text('${code.label} (${code.displayDial})'),
+                selected: code == dialCode,
+                onTap: () => Navigator.pop(ctx, code),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) onChanged(selected);
   }
 }

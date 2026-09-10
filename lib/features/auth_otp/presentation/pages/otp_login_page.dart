@@ -13,6 +13,10 @@ import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../../data/dto/auth/otp_verify_response.dart';
 import '../../../../services/push/push_service.dart';
+import '../a2_language_sync.dart';
+import '../a2_otp_error_mapper.dart';
+import '../a2_phone_e164.dart';
+import '../a2_stable_enable.dart';
 import '../birth_calendar_helper.dart';
 import '../gate2_otp_input.dart';
 import '../gate2_post_otp_me_failure.dart';
@@ -58,6 +62,21 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   final AuthOtpService _authOtpService = AuthOtpService();
   final AuthProfileService _authProfileService = AuthProfileService();
 
+  final A2StableEnableController _languageCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+  final A2StableEnableController _accountCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+  final A2StableEnableController _returningPhoneCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+  final A2StableEnableController _newUserFormCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+  final A2StableEnableController _otpCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+  final A2StableEnableController _completeRegCta =
+      A2StableEnableController(delay: A2StableEnableController.targetDelay);
+
+  late final VoidCallback _stableTick;
+
   _Gate2Step _step = _Gate2Step.language;
   String? _language;
   _AccountChoice? _accountChoice;
@@ -75,6 +94,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   bool _phoneFieldLocked = false;
   bool _navigatedAfterSuccess = false;
   int? _lastOtpRequestStatusCode;
+  A2CountryDialCode _dialCode = A2PhoneE164.defaultDialCode;
 
   OtpLoginLocalization get _l10n =>
       OtpLoginLocalization(_language ?? 'en');
@@ -86,22 +106,81 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   void initState() {
     super.initState();
     BuildInfo.logDebugLabel();
-    _otpCodeController.addListener(_refresh);
-    _nameController.addListener(_refresh);
-    _phoneController.addListener(_refresh);
+    _stableTick = () {
+      if (mounted) setState(() {});
+    };
+    _otpCodeController.addListener(_onInputChanged);
+    _nameController.addListener(_onInputChanged);
+    _phoneController.addListener(_onInputChanged);
+    _languageCta.addListener(_stableTick);
+    _accountCta.addListener(_stableTick);
+    _returningPhoneCta.addListener(_stableTick);
+    _newUserFormCta.addListener(_stableTick);
+    _otpCta.addListener(_stableTick);
+    _completeRegCta.addListener(_stableTick);
   }
 
   @override
   void dispose() {
+    _otpCodeController.removeListener(_onInputChanged);
+    _nameController.removeListener(_onInputChanged);
+    _phoneController.removeListener(_onInputChanged);
+    _languageCta.removeListener(_stableTick);
+    _accountCta.removeListener(_stableTick);
+    _returningPhoneCta.removeListener(_stableTick);
+    _newUserFormCta.removeListener(_stableTick);
+    _otpCta.removeListener(_stableTick);
+    _completeRegCta.removeListener(_stableTick);
     _nameController.dispose();
     _phoneController.dispose();
     _otpCodeController.dispose();
     _otpFocusNode.dispose();
+    _languageCta.dispose();
+    _accountCta.dispose();
+    _returningPhoneCta.dispose();
+    _newUserFormCta.dispose();
+    _otpCta.dispose();
+    _completeRegCta.dispose();
     super.dispose();
   }
 
+  void _onInputChanged() {
+    if (!mounted) return;
+    setState(_syncStableCtas);
+  }
+
   void _refresh() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(_syncStableCtas);
+  }
+
+  void _syncStableCtas() {
+    _languageCta.sync(
+      isValid: _language != null,
+      signature: _language,
+    );
+    _accountCta.sync(
+      isValid: _accountChoice != null,
+      signature: _accountChoice,
+    );
+    _returningPhoneCta.sync(
+      isValid: _canSendReturningRaw,
+      signature: '${_dialCode.dial}|${_canonicalPhoneFromInput()}',
+    );
+    _newUserFormCta.sync(
+      isValid: _canSendNewUserRaw,
+      signature:
+          '${_nameController.text.trim()}|$_selectedGender|$_birthDay|$_birthMonth|$_birthYear|${_canonicalPhoneFromInput()}|${_dialCode.dial}',
+    );
+    _otpCta.sync(
+      isValid: _canConfirmRaw,
+      signature: OtpInputHelper.sanitize(_otpCodeController.text),
+    );
+    _completeRegCta.sync(
+      isValid: _canCompleteRegistration && !_isLoading,
+      signature:
+          '${_nameController.text.trim()}|$_selectedGender|$_birthDay|$_birthMonth|$_birthYear|$_requestedPhone',
+    );
   }
 
   Gate2RegistrationDraft get _registrationDraft => Gate2RegistrationDraft(
@@ -114,39 +193,40 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         phoneVerifiedInSession: _phoneVerifiedInSession,
       );
 
+  String _canonicalPhoneFromInput() {
+    return A2PhoneE164.normalize(
+      nationalInput: _phoneController.text,
+      dialCode: _dialCode,
+    );
+  }
+
   String _normalizePhone(String input) {
-    String s = input.trim().replaceAll(' ', '').replaceAll('-', '');
-    if (s.startsWith('+')) return s;
-    if (s.startsWith('0') && s.length == 11) return '+98${s.substring(1)}';
-    if (s.startsWith('9') && s.length == 10) return '+98$s';
-    if (s.startsWith('98') && s.length == 12) return '+$s';
-    return s;
+    return A2PhoneE164.normalize(
+      nationalInput: input,
+      dialCode: _dialCode,
+    );
   }
 
   String _formatPhoneForDisplay(String phone) {
-    if (phone.startsWith('+98') && phone.length == 13) {
-      return '0${phone.substring(3)}';
-    }
-    return phone;
+    return A2PhoneE164.formatForDisplay(phone);
   }
 
   bool _isValidPhone(String phone) {
-    final normalized = _normalizePhone(phone);
-    if (normalized.startsWith('+98')) {
-      return RegExp(r'^\+98\d{10}$').hasMatch(normalized);
-    }
-    return normalized.length >= 8;
+    return A2PhoneE164.isValid(
+      nationalInput: phone,
+      dialCode: _dialCode,
+    );
   }
 
   bool get _hasCompleteDob =>
       _birthDay != null && _birthMonth != null && _birthYear != null;
 
-  bool get _canSendReturning =>
+  bool get _canSendReturningRaw =>
       !_isLoading &&
       !_phoneVerifiedInSession &&
       _isValidPhone(_phoneController.text);
 
-  bool get _canSendNewUser =>
+  bool get _canSendNewUserRaw =>
       !_isLoading &&
       !_phoneVerifiedInSession &&
       _nameController.text.trim().isNotEmpty &&
@@ -154,10 +234,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       _hasCompleteDob &&
       _isValidPhone(_phoneController.text);
 
-  bool get _canConfirm =>
+  bool get _canConfirmRaw =>
       !_isLoading &&
       _step == _Gate2Step.otpVerification &&
       OtpInputHelper.isComplete(_otpCodeController.text);
+
+  bool get _canSendReturning =>
+      _canSendReturningRaw && _returningPhoneCta.enabled;
+
+  bool get _canSendNewUser => _canSendNewUserRaw && _newUserFormCta.enabled;
+
+  bool get _canConfirm => _canConfirmRaw && _otpCta.enabled;
 
   bool get _canCompleteRegistration => _registrationDraft.isComplete &&
       (_isValidPhone(_phoneController.text) || _requestedPhone.isNotEmpty);
@@ -284,8 +371,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     });
 
     if (!response.ok) {
-      _showMessage(_sanitizePreOtpError(
-        response.errorMessage,
+      _showMessage(A2OtpErrorMapper.mapRequest(
+        l10n: _l10n,
+        code: response.error?.code,
+        message: response.errorMessage,
         statusCode: response.statusCode,
       ));
       return;
@@ -323,7 +412,12 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
     if (!response.ok || response.data == null) {
       setState(() => _isLoading = false);
-      _showMessage(_sanitizePostOtpError(response.errorMessage));
+      _showMessage(A2OtpErrorMapper.mapVerify(
+        l10n: _l10n,
+        code: response.error?.code,
+        message: response.errorMessage,
+        statusCode: response.statusCode,
+      ));
       return;
     }
 
@@ -438,14 +532,29 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   void _goToRegistrationCompletionAfterOtp() {
     if (_requestedPhone.isNotEmpty) {
-      _phoneController.text = _formatPhoneForDisplay(_requestedPhone);
+      _applyVerifiedPhoneToField(_requestedPhone);
     }
     setState(() {
       _isLoading = false;
       _phoneFieldLocked = true;
       _phoneVerifiedInSession = true;
       _step = _Gate2Step.newUserRegistration;
+      _syncStableCtas();
     });
+  }
+
+  void _applyVerifiedPhoneToField(String e164) {
+    final cleaned = A2PhoneE164.stripFormatting(e164);
+    if (cleaned.startsWith('+')) {
+      final digits = cleaned.substring(1);
+      for (final code in A2PhoneE164.dialCodes) {
+        if (digits.startsWith(code.dial)) {
+          _dialCode = code;
+          break;
+        }
+      }
+    }
+    _phoneController.text = _formatPhoneForDisplay(cleaned);
   }
 
   Future<void> _completeNewUserRegistration({bool skipOtp = false}) async {
@@ -538,11 +647,13 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (!backendConfirmed) {
       return;
     }
+    me = await _syncPreferredLanguageWithBackend(me);
     await _authProfileService.cacheProfileFromBackend(me);
     await UserPreferences.savePreferredName(me.name ?? '');
-    await UserPreferences.saveUserLanguage(
-        me.preferredLanguage ?? _language ?? 'en');
-    await UserPreferences.saveLanguagePref(_language ?? 'en');
+    final confirmedLang =
+        me.preferredLanguage ?? _language ?? 'en';
+    await UserPreferences.saveUserLanguage(confirmedLang);
+    await UserPreferences.saveLanguagePref(confirmedLang);
 
     await tryRegisterStoredTokenAfterLogin();
     if (!mounted) return;
@@ -551,9 +662,30 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     AppGateRouter.goToHeart(context);
   }
 
+  /// After GET /auth/me, PATCH preferred_language when A2 selection differs.
+  Future<MeProfileDto> _syncPreferredLanguageWithBackend(MeProfileDto me) async {
+    if (!A2LanguageSync.needsPatch(
+      backendMe: me,
+      selectedLanguage: _language,
+    )) {
+      return me;
+    }
+    final selected = _language!.trim();
+    final patchRes = await _authProfileService.patchMe(
+      A2LanguageSync.patchDto(selected),
+      recoverSessionOn401: false,
+      knownPhoneE164: me.phone ?? _requestedPhone,
+    );
+    if (patchRes.ok && patchRes.data != null) {
+      return patchRes.data!;
+    }
+    // Keep backend-confirmed profile; local prefs still set from confirmed me.
+    return me;
+  }
+
   void _startCompleteRegistrationFromCorrection() {
     if (_requestedPhone.isNotEmpty) {
-      _phoneController.text = _formatPhoneForDisplay(_requestedPhone);
+      _applyVerifiedPhoneToField(_requestedPhone);
     }
     setState(() {
       _accountChoice = _AccountChoice.newUser;
@@ -563,6 +695,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       _verifiedMeProfile = null;
       _resetOtpFlow();
       _step = _Gate2Step.newUserRegistration;
+      _syncStableCtas();
     });
   }
 
@@ -600,35 +733,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         duration: const Duration(seconds: 4),
       ),
     );
-  }
-
-  String _sanitizePreOtpError(String message, {int? statusCode}) {
-    if (statusCode == 503) {
-      return _l10n.serverUnavailable;
-    }
-    if (message.toLowerCase().contains('timeout') ||
-        message.toLowerCase().contains('socket') ||
-        message.toLowerCase().contains('failed host lookup') ||
-        message.toLowerCase().contains('connection')) {
-      return _l10n.networkError;
-    }
-    if (message.contains('Too many OTP')) {
-      return _l10n.tooManyOtp;
-    }
-    if (statusCode != null && statusCode >= 500) {
-      return _l10n.serverUnavailable;
-    }
-    return _l10n.genericOtpRequestFailed;
-  }
-
-  String _sanitizePostOtpError(String message) {
-    if (message.toLowerCase().contains('timeout')) {
-      return _l10n.networkError;
-    }
-    if (message.contains('Too many OTP')) {
-      return _l10n.tooManyOtp;
-    }
-    return _l10n.genericOtpVerifyFailed;
   }
 
   String _sanitizeProfileError(
@@ -669,6 +773,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         _birthMonth ??= defaults[1];
         _birthYear ??= defaults[2];
       }
+      _syncStableCtas();
     });
   }
 
@@ -689,7 +794,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               ListTile(
                 title: Text(_l10n.genderLabel(value)),
                 onTap: () {
-                  setState(() => _selectedGender = value);
+                  setState(() {
+                    _selectedGender = value;
+                    _syncStableCtas();
+                  });
                   Navigator.pop(ctx);
                 },
               ),
@@ -701,8 +809,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final direction =
-        _step == _Gate2Step.language ? TextDirection.ltr : _l10n.textDirection;
+    // Immediate UI language + direction on selection (no wait for Confirm).
+    final direction = _language == null
+        ? TextDirection.ltr
+        : _l10n.textDirection;
 
     return PopScope(
       canPop: false,
@@ -785,22 +895,31 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
             Gate2Widgets.languageButton(
               label: 'العربية',
               selected: _language == 'ar',
-              onTap: () => setState(() => _language = 'ar'),
+              onTap: () => setState(() {
+                _language = 'ar';
+                _syncStableCtas();
+              }),
             ),
             Gate2Widgets.languageButton(
               label: 'English',
               selected: _language == 'en',
-              onTap: () => setState(() => _language = 'en'),
+              onTap: () => setState(() {
+                _language = 'en';
+                _syncStableCtas();
+              }),
             ),
             Gate2Widgets.languageButton(
               label: 'فارسی',
               selected: _language == 'fa',
-              onTap: () => setState(() => _language = 'fa'),
+              onTap: () => setState(() {
+                _language = 'fa';
+                _syncStableCtas();
+              }),
             ),
             const SizedBox(height: 24),
             Gate2Widgets.primaryButton(
               label: _l10n.confirm,
-              enabled: _language != null,
+              enabled: _languageCta.enabled,
               onPressed: _confirmLanguage,
             ),
           ],
@@ -829,21 +948,25 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               description: _l10n.haveAccountDesc,
               icon: Icons.login_rounded,
               selected: _accountChoice == _AccountChoice.returning,
-              onTap: () =>
-                  setState(() => _accountChoice = _AccountChoice.returning),
+              onTap: () => setState(() {
+                _accountChoice = _AccountChoice.returning;
+                _syncStableCtas();
+              }),
             ),
             Gate2Widgets.accountOptionCard(
               title: _l10n.noAccountTitle,
               description: _l10n.noAccountDesc,
               icon: Icons.person_add_alt_1_outlined,
               selected: _accountChoice == _AccountChoice.newUser,
-              onTap: () =>
-                  setState(() => _accountChoice = _AccountChoice.newUser),
+              onTap: () => setState(() {
+                _accountChoice = _AccountChoice.newUser;
+                _syncStableCtas();
+              }),
             ),
             const SizedBox(height: 12),
             Gate2Widgets.primaryButton(
               label: _l10n.confirm,
-              enabled: _accountChoice != null,
+              enabled: _accountCta.enabled,
               onPressed: _confirmAccountChoice,
             ),
           ],
@@ -870,17 +993,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                 subtitle: _l10n.returningSubtitle,
               ),
               const SizedBox(height: 24),
-              Gate2Widgets.textField(
+              Gate2Widgets.phoneField(
                 controller: _phoneController,
                 hint: _l10n.mobileNumber,
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                ],
+                dialCode: _dialCode,
+                onDialCodeChanged: (code) => setState(() {
+                  _dialCode = code;
+                  _syncStableCtas();
+                }),
                 validator: (v) =>
                     _isValidPhone(v ?? '') ? null : _l10n.invalidPhone,
-                onChanged: (_) => _refresh(),
+                onChanged: (_) => _onInputChanged(),
               ),
               const SizedBox(height: 16),
               Center(
@@ -966,7 +1089,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                         year: _birthYear ??
                             BirthCalendarHelper.defaultSelection(
                                 _calendarType)[2],
-                        onDay: (v) => setState(() => _birthDay = v),
+                        onDay: (v) => setState(() {
+                          _birthDay = v;
+                          _syncStableCtas();
+                        }),
                         onMonth: (v) => setState(() {
                           _birthMonth = v;
                           final maxDay = BirthCalendarHelper.daysInMonth(
@@ -975,6 +1101,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                             month: v,
                           );
                           if (_birthDay! > maxDay) _birthDay = maxDay;
+                          _syncStableCtas();
                         }),
                         onYear: (v) => setState(() {
                           _birthYear = v;
@@ -984,6 +1111,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                             month: _birthMonth!,
                           );
                           if (_birthDay! > maxDay) _birthDay = maxDay;
+                          _syncStableCtas();
                         }),
                       ),
                   ],
@@ -1002,22 +1130,23 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                     ),
                   ),
                 ),
-              Gate2Widgets.textField(
+              Gate2Widgets.phoneField(
                 controller: _phoneController,
                 hint: _l10n.mobileNumber,
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
+                dialCode: _dialCode,
+                dialCodeEnabled: !_phoneFieldLocked,
+                onDialCodeChanged: (code) => setState(() {
+                  _dialCode = code;
+                  _syncStableCtas();
+                }),
                 readOnly: _phoneFieldLocked,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                ],
                 validator: (v) {
                   if (_phoneVerifiedInSession && _requestedPhone.isNotEmpty) {
                     return null;
                   }
                   return _isValidPhone(v ?? '') ? null : _l10n.invalidPhone;
                 },
-                onChanged: (_) => _refresh(),
+                onChanged: (_) => _onInputChanged(),
               ),
               const SizedBox(height: 16),
               if (showOtpFlow)
@@ -1032,7 +1161,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               else
                 Gate2Widgets.primaryButton(
                   label: _l10n.completeRegistration,
-                  enabled: _canCompleteRegistration,
+                  enabled: _completeRegCta.enabled,
                   onPressed: _completeNewUserRegistration,
                 ),
               const SizedBox(height: 24),
