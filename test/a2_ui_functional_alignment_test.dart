@@ -74,7 +74,9 @@ void main() {
       expect(before.onPressed, isNull);
 
       await tester.tap(find.text('English'));
-      await tester.pumpAndSettle();
+      // Do not pumpAndSettle — that would drain the 300ms stable-enable timer.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
       final during = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(during.onPressed, isNull);
 
