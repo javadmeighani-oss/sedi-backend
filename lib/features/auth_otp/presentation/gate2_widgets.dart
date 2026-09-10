@@ -154,7 +154,7 @@ class Gate2Widgets {
         ),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppTheme.surfaceTransparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
@@ -711,7 +711,7 @@ class _DialCodePrefix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: AppTheme.surfaceTransparent,
       child: InkWell(
         onTap: enabled ? () => _openPicker(context) : null,
         borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),

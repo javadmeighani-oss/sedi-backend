@@ -1,16 +1,11 @@
+import '../../../core/locale/sedi_locale_registry.dart';
+
 /// Birth-date calendar helpers for Gate 2 (Jalali, Gregorian, Hijri).
 class BirthCalendarHelper {
   BirthCalendarHelper._();
 
   static String calendarTypeForLanguage(String lang) {
-    switch (lang) {
-      case 'fa':
-        return 'jalali';
-      case 'ar':
-        return 'hijri';
-      default:
-        return 'gregorian';
-    }
+    return SediLocaleRegistry.resolve(lang).defaultCalendar;
   }
 
   static int daysInMonth({

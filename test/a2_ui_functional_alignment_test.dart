@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_language_sync.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_otp_error_mapper.dart';
@@ -8,9 +9,15 @@ import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_safe_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/otp_login_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    SediLocaleController.instance.debugResetForTest();
+  });
 
   group('A2 language immediate UI + direction', () {
     testWidgets('selecting fa immediately gives Persian + RTL', (tester) async {
@@ -20,11 +27,12 @@ void main() {
         ),
       );
       await tester.tap(find.text('فارسی'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final dir = tester.widget<Directionality>(find.byType(Directionality).last);
       expect(dir.textDirection, TextDirection.rtl);
       expect(find.text('تأیید'), findsOneWidget);
       expect(find.text('Confirm'), findsNothing);
+      expect(SediLocaleController.instance.languageCode, 'fa');
     });
 
     testWidgets('selecting ar immediately gives Arabic + RTL', (tester) async {
@@ -34,10 +42,11 @@ void main() {
         ),
       );
       await tester.tap(find.text('العربية'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final dir = tester.widget<Directionality>(find.byType(Directionality).last);
       expect(dir.textDirection, TextDirection.rtl);
       expect(find.text('تأكيد'), findsOneWidget);
+      expect(SediLocaleController.instance.languageCode, 'ar');
     });
 
     testWidgets('selecting en gives English + LTR', (tester) async {
@@ -47,10 +56,11 @@ void main() {
         ),
       );
       await tester.tap(find.text('English'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final dir = tester.widget<Directionality>(find.byType(Directionality).last);
       expect(dir.textDirection, TextDirection.ltr);
       expect(find.text('Confirm'), findsOneWidget);
+      expect(SediLocaleController.instance.languageCode, 'en');
     });
 
     testWidgets('Confirm disabled before selection and during 300ms',
@@ -64,7 +74,7 @@ void main() {
       expect(before.onPressed, isNull);
 
       await tester.tap(find.text('English'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final during = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(during.onPressed, isNull);
 
@@ -84,6 +94,7 @@ void main() {
         ),
       );
       await tester.tap(find.text('فارسی'));
+      await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 320));
       expect(advanced, isFalse);
       await tester.tap(find.byType(ElevatedButton));
@@ -109,6 +120,17 @@ void main() {
         A2LanguageSync.needsPatch(backendMe: me, selectedLanguage: 'fa'),
         isFalse,
       );
+    });
+
+    test('PATCH failure blocks A3', () {
+      const me = MeProfileDto(userId: 1, preferredLanguage: 'en');
+      final r = A2LanguageSync.classifyAfterPatchAttempt(
+        backendMeBeforePatch: me,
+        selectedLanguage: 'fa',
+        patchOk: false,
+        patchedProfile: null,
+      );
+      expect(r.mayEnterA3, isFalse);
     });
   });
 
@@ -238,45 +260,54 @@ class _LanguageProbeState extends State<_LanguageProbe> {
     _cta.addListener(() {
       if (mounted) setState(() {});
     });
+    SediLocaleController.instance.addListener(_onGlobalLocale);
     _cta.sync(isValid: _language != null, signature: _language);
+  }
+
+  void _onGlobalLocale() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    SediLocaleController.instance.removeListener(_onGlobalLocale);
     _cta.dispose();
     super.dispose();
   }
 
-  OtpLoginLocalization get _l10n => OtpLoginLocalization(_language ?? 'en');
+  OtpLoginLocalization get _l10n => OtpLoginLocalization(
+        _language ?? SediLocaleController.instance.languageCode,
+      );
+
+  Future<void> _select(String code) async {
+    await SediLocaleController.instance.setRuntimeLocale(
+      code,
+      persistBootstrapCache: false,
+    );
+    setState(() {
+      _language = code;
+      _cta.sync(isValid: true, signature: _language);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final direction =
-        _language == null ? TextDirection.ltr : _l10n.textDirection;
+    final direction = SediLocaleController.instance.current.textDirection;
     return Directionality(
       textDirection: direction,
       child: Scaffold(
         body: Column(
           children: [
             TextButton(
-              onPressed: () => setState(() {
-                _language = 'ar';
-                _cta.sync(isValid: true, signature: _language);
-              }),
+              onPressed: () => _select('ar'),
               child: const Text('العربية'),
             ),
             TextButton(
-              onPressed: () => setState(() {
-                _language = 'en';
-                _cta.sync(isValid: true, signature: _language);
-              }),
+              onPressed: () => _select('en'),
               child: const Text('English'),
             ),
             TextButton(
-              onPressed: () => setState(() {
-                _language = 'fa';
-                _cta.sync(isValid: true, signature: _language);
-              }),
+              onPressed: () => _select('fa'),
               child: const Text('فارسی'),
             ),
             ElevatedButton(
@@ -288,9 +319,4 @@ class _LanguageProbeState extends State<_LanguageProbe> {
       ),
     );
   }
-}
-
-extension on OtpLoginLocalization {
-  TextDirection get textDirection =>
-      isRtl ? TextDirection.rtl : TextDirection.ltr;
 }

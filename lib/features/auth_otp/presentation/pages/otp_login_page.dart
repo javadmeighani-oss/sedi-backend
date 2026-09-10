@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../core/config/build_info.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/auth_otp_service.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../core/locale/sedi_locale_registry.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
@@ -97,10 +99,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   A2CountryDialCode _dialCode = A2PhoneE164.defaultDialCode;
 
   OtpLoginLocalization get _l10n =>
-      OtpLoginLocalization(_language ?? 'en');
+      OtpLoginLocalization(_language ?? SediLocaleController.instance.languageCode);
 
   String get _calendarType =>
-      BirthCalendarHelper.calendarTypeForLanguage(_language ?? 'en');
+      SediLocaleRegistry.resolve(_language ?? SediLocaleController.instance.languageCode)
+          .defaultCalendar;
 
   @override
   void initState() {
@@ -257,9 +260,22 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   Future<void> _confirmLanguage() async {
     final lang = _language;
     if (lang == null) return;
-    await UserPreferences.saveUserLanguage(lang);
-    await UserPreferences.saveLanguagePref(lang);
+    await SediLocaleController.instance.setRuntimeLocale(
+      lang,
+      persistBootstrapCache: true,
+    );
     setState(() => _step = _Gate2Step.accountChoice);
+  }
+
+  Future<void> _selectLanguage(String code) async {
+    await SediLocaleController.instance.setRuntimeLocale(
+      code,
+      persistBootstrapCache: true,
+    );
+    setState(() {
+      _language = code;
+      _syncStableCtas();
+    });
   }
 
   void _confirmAccountChoice() {
@@ -647,13 +663,20 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (!backendConfirmed) {
       return;
     }
-    me = await _syncPreferredLanguageWithBackend(me);
+    final sync = await _syncPreferredLanguageWithBackend(me);
+    if (!sync.mayEnterA3 || sync.confirmedProfile == null) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      // Stay in A2. Do not overwrite selected runtime locale with stale backend.
+      _showMessage(_l10n.languageSyncFailed);
+      return;
+    }
+    me = sync.confirmedProfile!;
+    await SediLocaleController.instance.reconcileFromBackendConfirmed(
+      me.preferredLanguage ?? _language,
+    );
     await _authProfileService.cacheProfileFromBackend(me);
     await UserPreferences.savePreferredName(me.name ?? '');
-    final confirmedLang =
-        me.preferredLanguage ?? _language ?? 'en';
-    await UserPreferences.saveUserLanguage(confirmedLang);
-    await UserPreferences.saveLanguagePref(confirmedLang);
 
     await tryRegisterStoredTokenAfterLogin();
     if (!mounted) return;
@@ -663,12 +686,18 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   /// After GET /auth/me, PATCH preferred_language when A2 selection differs.
-  Future<MeProfileDto> _syncPreferredLanguageWithBackend(MeProfileDto me) async {
+  /// On PATCH failure: block A3; preserve selected runtime locale.
+  Future<A2LanguageSyncResult> _syncPreferredLanguageWithBackend(
+    MeProfileDto me,
+  ) async {
     if (!A2LanguageSync.needsPatch(
       backendMe: me,
       selectedLanguage: _language,
     )) {
-      return me;
+      return A2LanguageSyncResult(
+        outcome: A2LanguageSyncOutcome.matched,
+        profile: me,
+      );
     }
     final selected = _language!.trim();
     final patchRes = await _authProfileService.patchMe(
@@ -676,11 +705,12 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       recoverSessionOn401: false,
       knownPhoneE164: me.phone ?? _requestedPhone,
     );
-    if (patchRes.ok && patchRes.data != null) {
-      return patchRes.data!;
-    }
-    // Keep backend-confirmed profile; local prefs still set from confirmed me.
-    return me;
+    return A2LanguageSync.classifyAfterPatchAttempt(
+      backendMeBeforePatch: me,
+      selectedLanguage: selected,
+      patchOk: patchRes.ok && patchRes.data != null,
+      patchedProfile: patchRes.data,
+    );
   }
 
   void _startCompleteRegistrationFromCorrection() {
@@ -809,10 +839,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Immediate UI language + direction on selection (no wait for Confirm).
-    final direction = _language == null
-        ? TextDirection.ltr
-        : _l10n.textDirection;
+    // Global locale authority drives direction; A2 selection updates it immediately.
+    final direction = SediLocaleController.instance.current.textDirection;
 
     return PopScope(
       canPop: false,
@@ -895,26 +923,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
             Gate2Widgets.languageButton(
               label: 'العربية',
               selected: _language == 'ar',
-              onTap: () => setState(() {
-                _language = 'ar';
-                _syncStableCtas();
-              }),
+              onTap: () => _selectLanguage('ar'),
             ),
             Gate2Widgets.languageButton(
               label: 'English',
               selected: _language == 'en',
-              onTap: () => setState(() {
-                _language = 'en';
-                _syncStableCtas();
-              }),
+              onTap: () => _selectLanguage('en'),
             ),
             Gate2Widgets.languageButton(
               label: 'فارسی',
               selected: _language == 'fa',
-              onTap: () => setState(() {
-                _language = 'fa';
-                _syncStableCtas();
-              }),
+              onTap: () => _selectLanguage('fa'),
             ),
             const SizedBox(height: 24),
             Gate2Widgets.primaryButton(

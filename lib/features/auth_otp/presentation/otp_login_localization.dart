@@ -227,6 +227,15 @@ class OtpLoginLocalization {
         ar: 'تعذر حفظ ملفك الشخصي على الخادم. يرجى المحاولة مرة أخرى.',
       );
 
+  String get languageSyncFailed => _t(
+        en:
+            'Could not save your language preference. Please try again before continuing.',
+        fa:
+            'ذخیره زبان انتخابی انجام نشد. لطفاً قبل از ادامه دوباره تلاش کنید.',
+        ar:
+            'تعذر حفظ تفضيل اللغة. يرجى المحاولة مرة أخرى قبل المتابعة.',
+      );
+
   String get profileFetchFailed => _t(
         en: 'Could not load your profile from the server. Please try again.',
         fa: 'بارگذاری پروفایل از سرور انجام نشد. لطفاً دوباره تلاش کنید.',

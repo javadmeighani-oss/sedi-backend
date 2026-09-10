@@ -97,6 +97,9 @@ class AppTheme {
   /// Soft status text on intro (availability / loading).
   static const Color introStatusText = Color(0xB3FFFFFF);
 
+  /// Fully transparent — InkWell/Material wrappers with no fill.
+  static const Color surfaceTransparent = Color(0x00000000);
+
   static const double gate2RadiusCard = 22;
   static const double gate2RadiusInput = 14;
 

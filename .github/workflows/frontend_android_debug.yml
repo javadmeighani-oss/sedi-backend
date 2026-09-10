@@ -80,6 +80,7 @@ jobs:
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \
+            test/sedi_locale_foundation_test.dart \
             test/a2_stable_enable_test.dart \
             test/a2_phone_e164_test.dart \
             test/a2_ui_functional_alignment_test.dart \
