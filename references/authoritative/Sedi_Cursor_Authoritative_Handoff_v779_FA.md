@@ -1,0 +1,69 @@
+# SEDI Cursor Authoritative Handoff - v779
+
+A3 foundation recovery + CI/Postgres certification — **PASS**.
+
+Do not modify v778 / §485 history. This file supersedes v778 as CURRENT tip.
+
+```
+VERSION=v779
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v778
+v778_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§486
+GATE=SEDI-V1-A3-FOUNDATION-RECOVERY-CI-CERTIFICATION-01
+GATE_RESULT=PASS
+APPROVED_BY=JAVAD
+BACKEND_APPLICATION_HEAD=36018f8948b11ded225d9857a3ce8c5866b50f63
+BACKEND_APP_CODE_CHANGED=YES (tests+workflow+gitignore only)
+FRONTEND_CODE_CHANGED=YES (legacy thin + CI test step)
+SCHEMA_CHANGED=NO
+MIGRATION_CHANGED=NO
+DEPLOY_PERFORMED=NO
+FORCE_PUSH=NO
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Certified heads
+
+```
+FE_BRANCH=feature/a3-authority-chat-stream-profile-foundation
+FE_BASE_HEAD=d5a80f94ffd3daa0e5023166dc92aec90adcafd8
+FE_FINAL_HEAD=898bc121edddeda970673a847824992e8cb300bb
+FE_WORKTREE_CLEAN=YES
+FE_CI_RUN=34578363545
+FE_TARGETED_TESTS=4_PASS
+
+BE_BRANCH=feature/a3-authority-chat-stream-profile-foundation
+BE_BASE_HEAD=e201497f444518c2ad8c93d0dab6849572af900f
+BE_FINAL_HEAD=36018f8948b11ded225d9857a3ce8c5866b50f63
+BE_WORKTREE_CLEAN=YES
+BE_CI_RUN=34578408484
+BE_POSTGRES_TESTS=13_PASS
+MIGRATION_082_REAL_DB=PASS
+```
+
+## Recovery outcomes
+
+```
+DIRTY_ITEMS_RESOLUTION=gitignore _gate_artifacts/ (B tooling nests)
+LEGACY_CHAT_DUPLICATION=THIN_WRAPPER (onboarding setupOnboarding only)
+CANONICAL_A3_CHAT=services/chat/chat_service.dart + chat_stream_client.dart
+```
+
+## Continuity
+
+```
+MASTER_LOG_TIP=§486
+CURSOR_HANDOFF_TIP=v779
+CHATGPT_SUCCESSOR_CREATED_BY_CURSOR=NO
+DROPBOX_SYNC=PASS
+CERTIFIED_FROM_PREVIOUS=§485/v778 authorities unchanged
+```
+
+## Next (not authorized)
+
+```
+NEXT_RECOMMENDED=PHONE_CHANGE_OTP_GATE or Family/I6 (deferred)
+NEXT_GATE_AUTHORIZED=NO
+```
