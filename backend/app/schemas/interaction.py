@@ -13,3 +13,7 @@ class InteractionResponse(BaseModel):
     continued_from_notification: Optional[bool] = None
     source_notification_id: Optional[int] = None
     conversation_id: Optional[str] = None
+    # A3 session/open + chat continuity
+    proactive_opener: Optional[str] = None
+    first_intro: Optional[bool] = None
+    intro_completed: Optional[bool] = None

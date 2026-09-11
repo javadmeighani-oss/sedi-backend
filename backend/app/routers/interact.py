@@ -9,9 +9,12 @@ RESPONSIBILITY:
 """
 
 from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
+import asyncio
+import json
 import logging
 import os
 import uuid
@@ -76,6 +79,27 @@ def introduce_user(
         language=lang,
         user_id=user.id,
         timestamp=datetime.utcnow()
+    )
+
+
+# ---------------- A3 session open (first contact + proactive opener) ----------------
+@router.post("/session/open", response_model=InteractionResponse)
+def open_session(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Server-authoritative A3 open: durable intro once + optional proactive opener."""
+    from backend.app.services.a3_session_open import open_a3_session
+
+    data = open_a3_session(db, user)
+    return InteractionResponse(
+        message=data["message"],
+        language=data["language"],
+        user_id=data["user_id"],
+        timestamp=datetime.utcnow(),
+        first_intro=data["first_intro"],
+        intro_completed=data["intro_completed"],
+        proactive_opener=data.get("proactive_opener"),
     )
 
 
@@ -388,6 +412,61 @@ async def chat(
                 status_code=500,
                 detail=f"Error processing message: {str(e)[:200]}. Please try again."
             )
+
+
+# ---------------- Chat stream (SSE) — same orchestration core as /chat ----------------
+@router.post("/chat/stream")
+async def chat_stream(
+    request: Request,
+    payload: ChatRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    SSE transport over the canonical /chat orchestration core.
+    Safety: never stream ungoverned raw model output — obtain governed final
+    answer first, then stream approved text chunks only.
+    """
+    result = await chat(request, payload, db, user)
+
+    from fastapi.responses import JSONResponse
+
+    if isinstance(result, JSONResponse):
+        async def err_gen():
+            body = result.body.decode("utf-8") if isinstance(result.body, (bytes, bytearray)) else str(result.body)
+            yield f"event: error\ndata: {body}\n\n"
+
+        return StreamingResponse(err_gen(), media_type="text/event-stream")
+
+    if not isinstance(result, InteractionResponse):
+        async def bad_gen():
+            yield 'event: error\ndata: {"error":"unexpected_response"}\n\n'
+
+        return StreamingResponse(bad_gen(), media_type="text/event-stream")
+
+    approved = result.message or ""
+    meta = {
+        "language": result.language,
+        "source_notification_id": result.source_notification_id,
+        "continued_from_notification": result.continued_from_notification,
+        "conversation_id": result.conversation_id,
+        "first_intro": result.first_intro,
+        "intro_completed": result.intro_completed,
+        "proactive_opener": result.proactive_opener,
+    }
+    chunk_size = 28
+
+    async def event_gen():
+        yield f"event: start\ndata: {json.dumps({'ok': True}, ensure_ascii=False)}\n\n"
+        yield f"event: metadata\ndata: {json.dumps(meta, ensure_ascii=False, default=str)}\n\n"
+        for i in range(0, len(approved), chunk_size):
+            piece = approved[i : i + chunk_size]
+            yield f"event: delta\ndata: {json.dumps({'text': piece}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0)
+        final_payload = result.model_dump(mode="json")
+        yield f"event: final\ndata: {json.dumps(final_payload, ensure_ascii=False, default=str)}\n\n"
+
+    return StreamingResponse(event_gen(), media_type="text/event-stream")
 
 
 # ---------------- Onboarding - Setup User ----------------

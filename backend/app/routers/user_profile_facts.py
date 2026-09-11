@@ -30,6 +30,19 @@ def get_profile_facts(
     return APIResponse(ok=True, data={"profile_facts": items})
 
 
+@router.get("/me/known-facts", response_model=APIResponse)
+def get_known_facts_card(
+    auth_user: models.User = Depends(get_current_user),
+    _: None = Depends(reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """A3 user-facing 'what Sedi knows' card — governed facts only, no raw memory."""
+    from backend.app.services.a3_session_open import user_facing_known_facts
+
+    facts = user_facing_known_facts(db, auth_user.id)
+    return APIResponse(ok=True, data={"facts": facts})
+
+
 @router.post("/profile-facts", response_model=APIResponse)
 def post_profile_fact(
     body: ProfileFactCreateIn,

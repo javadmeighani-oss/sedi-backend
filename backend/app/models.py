@@ -74,6 +74,8 @@ class User(Base):
     phone = Column(String(32), nullable=True, unique=True, index=True)
     # Gate 1: normal app user vs dependent managed by caregivers
     account_type = Column(String(16), nullable=False, default="normal", server_default="normal")
+    # A3: durable first-contact intro completion (server authority; survives reinstall)
+    sedi_intro_completed_at = Column(DateTime(timezone=True), nullable=True)
 
 
 def _default_memory_retain_until():
