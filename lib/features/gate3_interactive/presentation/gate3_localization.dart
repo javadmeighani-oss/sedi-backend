@@ -31,6 +31,33 @@ class Gate3Localization {
         ar: 'تعديل الملف الشخصي',
       );
 
+  String get profileTitle =>
+      _t(en: 'Profile', fa: 'پروفایل', ar: 'الملف الشخصي');
+
+  String get userInformationSection => _t(
+        en: 'User information',
+        fa: 'اطلاعات کاربر',
+        ar: 'معلومات المستخدم',
+      );
+
+  String get userSummarySection => _t(
+        en: 'User summary',
+        fa: 'خلاصه کاربر',
+        ar: 'ملخص المستخدم',
+      );
+
+  String get logoutSection =>
+      _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
+
+  String get userSummaryEmpty => _t(
+        en: 'Summary unavailable right now.',
+        fa: 'خلاصه در حال حاضر در دسترس نیست.',
+        ar: 'الملخص غير متاح الآن.',
+      );
+
+  String get profileLanguageLabel =>
+      _t(en: 'Preferred language', fa: 'زبان ترجیحی', ar: 'اللغة المفضلة');
+
   String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
 
   String get profileNameLabel =>
@@ -41,6 +68,78 @@ class Gate3Localization {
       _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
   String get profilePhoneLabel =>
       _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
+
+  /// Localized label for a backend summary row key (presentation only).
+  String summaryRowLabel(String key) {
+    switch (key) {
+      case 'memory_consent':
+        return _t(
+          en: 'Memory consent',
+          fa: 'رضایت حافظه',
+          ar: 'موافقة الذاكرة',
+        );
+      case 'memory_write':
+        return _t(
+          en: 'Memory write',
+          fa: 'نوشتن حافظه',
+          ar: 'كتابة الذاكرة',
+        );
+      case 'memory_read':
+        return _t(
+          en: 'Memory read',
+          fa: 'خواندن حافظه',
+          ar: 'قراءة الذاكرة',
+        );
+      case 'daily_plan':
+        return _t(
+          en: "Today's plan",
+          fa: 'برنامه امروز',
+          ar: 'خطة اليوم',
+        );
+      case 'plan_actions':
+        return _t(
+          en: 'Plan actions',
+          fa: 'اقدامات برنامه',
+          ar: 'إجراءات الخطة',
+        );
+      default:
+        return key;
+    }
+  }
+
+  /// Localized label for a backend summary status code (presentation only).
+  String summaryStatusLabel(String status) {
+    switch (status) {
+      case 'granted':
+        return _t(en: 'Granted', fa: 'اعطا شده', ar: 'ممنوحة');
+      case 'not_granted':
+        return _t(en: 'Not granted', fa: 'اعطا نشده', ar: 'غير ممنوحة');
+      case 'revoked':
+        return _t(en: 'Revoked', fa: 'لغو شده', ar: 'ملغاة');
+      case 'expired':
+        return _t(en: 'Expired', fa: 'منقضی', ar: 'منتهية');
+      case 'allowed':
+        return _t(en: 'Allowed', fa: 'مجاز', ar: 'مسموح');
+      case 'denied':
+        return _t(en: 'Not allowed', fa: 'غیرمجاز', ar: 'غير مسموح');
+      case 'active':
+        return _t(en: 'Active', fa: 'فعال', ar: 'نشطة');
+      case 'none':
+        return _t(en: 'None', fa: 'وجود ندارد', ar: 'لا يوجد');
+      case 'unavailable':
+        return _t(en: 'Unavailable', fa: 'در دسترس نیست', ar: 'غير متاح');
+      case 'no_actions':
+        return _t(en: 'No actions', fa: 'بدون اقدام', ar: 'لا إجراءات');
+      case 'in_progress':
+        return _t(en: 'In progress', fa: 'در حال انجام', ar: 'قيد التنفيذ');
+      case 'completed':
+        return _t(en: 'Completed', fa: 'تکمیل شده', ar: 'مكتملة');
+      case 'partial':
+        return _t(en: 'Partial', fa: 'ناقص', ar: 'جزئي');
+      default:
+        return status;
+    }
+  }
   String get changePhone =>
       _t(en: 'Change phone', fa: 'تغییر شماره', ar: 'تغيير الهاتف');
   String get newPhoneLabel =>

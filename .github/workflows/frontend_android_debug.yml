@@ -86,6 +86,9 @@ jobs:
       - name: Targeted A3 SELF/OTHER subject authority tests
         run: flutter test test/a3_self_other_subject_authority_test.dart
 
+      - name: Targeted A3 single-page profile tests
+        run: flutter test test/a3_single_page_profile_test.dart
+
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \

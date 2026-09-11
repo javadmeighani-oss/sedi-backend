@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../gate3_localization.dart';
+import '../pages/gate3_profile_page.dart';
 import 'gate3_main_icon_button.dart';
-import 'gate3_settings_menu.dart';
 
-/// Primary Gate 3 navigation row: Settings, Health Care, Lifestyle, Gadgets.
+/// Primary Gate 3 navigation row: Profile, Health Care, Lifestyle, Gadgets.
 ///
 /// Notifications (Gate 4) and History (Lifestyle sub-section) are intentionally
-/// not shown here.
+/// not shown here. Profile opens [Gate3ProfilePage] directly (no settings sheet).
 class Gate3MainIconRow extends StatelessWidget {
   final VoidCallback onHealthCare;
   final VoidCallback onLifestyle;
@@ -34,7 +34,13 @@ class Gate3MainIconRow extends StatelessWidget {
           icon: Icons.settings_outlined,
           label: l10n.settings,
           plainIcon: true,
-          onTap: () => Gate3SettingsMenu.show(context, lang),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const Gate3ProfilePage(),
+              ),
+            );
+          },
         ),
         Gate3MainIconButton(
           icon: Icons.favorite_border,

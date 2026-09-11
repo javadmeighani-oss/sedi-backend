@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/auth/auth_otp_service.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
@@ -9,7 +10,7 @@ import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../gate3_localization.dart';
 
-/// Settings → Edit Profile — backend-confirmed /auth/me + I7 known-facts + phone change.
+/// A3 Profile — exactly 3 sections: User info, I6/I8 summary, Log out.
 class Gate3ProfilePage extends StatefulWidget {
   const Gate3ProfilePage({super.key});
 
@@ -25,7 +26,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   final _otpCtrl = TextEditingController();
 
   MeProfileDto? _me;
-  List<Map<String, String>> _facts = [];
+  List<Map<String, String>> _summaryRows = [];
   bool _loading = true;
   String? _error;
   String? _phoneFlowError;
@@ -58,19 +59,21 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       _error = null;
     });
     final meRes = await _profile.fetchMe(recoverSessionOn401: true);
-    final factsRes = await _api.get<List<Map<String, String>>>(
-      '/user/me/known-facts',
+    final summaryRes = await _api.get<List<Map<String, String>>>(
+      '/auth/me/profile-summary',
       parser: (data) {
         if (data is! Map) return <Map<String, String>>[];
-        final raw = data['facts'];
+        final raw = data['rows'];
         if (raw is! List) return <Map<String, String>>[];
         return raw
             .whereType<Map>()
-            .map((e) => {
-                  'category': e['category']?.toString() ?? '',
-                  'text': e['text']?.toString() ?? '',
-                })
-            .where((e) => e['text']!.isNotEmpty)
+            .map(
+              (e) => {
+                'key': e['key']?.toString() ?? '',
+                'status': e['status']?.toString() ?? '',
+              },
+            )
+            .where((e) => e['key']!.isNotEmpty && e['status']!.isNotEmpty)
             .toList();
       },
     );
@@ -87,8 +90,10 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
           SediLocaleController.instance.reconcileFromBackendConfirmed(lang);
         }
       }
-      if (factsRes.ok && factsRes.data != null) {
-        _facts = factsRes.data!;
+      if (summaryRes.ok && summaryRes.data != null) {
+        _summaryRows = summaryRes.data!;
+      } else {
+        _summaryRows = [];
       }
     });
   }
@@ -174,7 +179,6 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       });
       return;
     }
-    // Only after backend confirmation — refresh canonical profile.
     final meRes = await _profile.fetchMe(recoverSessionOn401: true);
     if (!mounted) return;
     setState(() {
@@ -196,183 +200,216 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    return Scaffold(
-      backgroundColor: AppTheme.gate3PaleOliveBackground,
-      appBar: AppBar(
-        title: Text(l10n.editProfile),
+    final textDir =
+        l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+    return Directionality(
+      textDirection: textDir,
+      child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        foregroundColor: AppTheme.textPrimary,
-        elevation: 0,
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(_error!,
-                          style: const TextStyle(color: AppTheme.dangerRed)),
-                    ),
-                  _sectionTitle(l10n.editProfile),
-                  _field(l10n.profileNameLabel, _me?.name ?? '—'),
-                  _field(l10n.profileDobLabel, _formatDob(_me)),
-                  _field(l10n.profileSexLabel, _me?.sex ?? '—'),
-                  _field(l10n.profilePhoneLabel, _me?.phone ?? '—'),
-                  const SizedBox(height: 8),
-                  if (!_changingPhone)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: () => setState(() {
-                          _changingPhone = true;
-                          _phoneFlowError = null;
-                          _phoneFlowSuccess = null;
-                          _otpSent = false;
-                        }),
-                        child: Text(l10n.changePhone),
+        appBar: AppBar(
+          title: Text(l10n.profileTitle),
+          backgroundColor: AppTheme.gate3PaleOliveBackground,
+          foregroundColor: AppTheme.textPrimary,
+          elevation: 0,
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: AppTheme.dangerRed),
+                        ),
                       ),
+                    // --- Section 1: User information ---
+                    _sectionTitle(l10n.userInformationSection),
+                    _field(l10n.profileNameLabel, _me?.name ?? '—'),
+                    _field(l10n.profileDobLabel, _formatDob(_me)),
+                    _field(l10n.profileSexLabel, _me?.sex ?? '—'),
+                    _field(
+                      l10n.profileLanguageLabel,
+                      _me?.preferredLanguage ?? '—',
                     ),
-                  if (_changingPhone) ...[
+                    _field(l10n.profilePhoneLabel, _me?.phone ?? '—'),
                     const SizedBox(height: 8),
-                    Text(l10n.newPhoneLabel,
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        DropdownButton<A2CountryDialCode>(
-                          value: _dial,
-                          items: A2PhoneE164.dialCodes
-                              .map(
-                                (c) => DropdownMenuItem(
-                                  value: c,
-                                  child: Text(c.displayDial),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: _phoneBusy
-                              ? null
-                              : (v) {
-                                  if (v != null) setState(() => _dial = v);
-                                },
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _phoneCtrl,
-                            enabled: !_phoneBusy && !_otpSent,
-                            keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_otpSent) ...[
-                      const SizedBox(height: 12),
-                      Text(l10n.otpCodeLabel,
-                          style: const TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 12)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _otpCtrl,
-                        enabled: !_phoneBusy,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          counterText: '',
+                    if (!_changingPhone)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () => setState(() {
+                            _changingPhone = true;
+                            _phoneFlowError = null;
+                            _phoneFlowSuccess = null;
+                            _otpSent = false;
+                          }),
+                          child: Text(l10n.changePhone),
                         ),
                       ),
-                    ],
-                    if (_phoneFlowError != null)
+                    if (_changingPhone) ..._phoneChangeWidgets(l10n),
+                    if (!_changingPhone && _phoneFlowSuccess != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: Text(_phoneFlowError!,
-                            style: const TextStyle(color: AppTheme.dangerRed)),
-                      ),
-                    if (_phoneFlowSuccess != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(_phoneFlowSuccess!,
-                            style: const TextStyle(color: AppTheme.textPrimary)),
-                      ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (!_otpSent)
-                          ElevatedButton(
-                            onPressed: _phoneBusy ? null : _requestPhoneOtp,
-                            child: _phoneBusy
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : Text(l10n.sendPhoneOtp),
-                          )
-                        else
-                          ElevatedButton(
-                            onPressed: _phoneBusy ? null : _verifyPhoneOtp,
-                            child: _phoneBusy
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : Text(l10n.verifyPhoneOtp),
-                          ),
-                        const SizedBox(width: 12),
-                        TextButton(
-                          onPressed: _phoneBusy
-                              ? null
-                              : () => setState(() {
-                                    _changingPhone = false;
-                                    _otpSent = false;
-                                    _pendingNewPhone = null;
-                                    _phoneFlowError = null;
-                                  }),
-                          child: Text(l10n.cancel),
+                        child: Text(
+                          _phoneFlowSuccess!,
+                          style: const TextStyle(color: AppTheme.textPrimary),
                         ),
-                      ],
+                      ),
+                    const SizedBox(height: 28),
+                    // --- Section 2: User summary ---
+                    _sectionTitle(l10n.userSummarySection),
+                    if (_summaryRows.isEmpty)
+                      Text(
+                        l10n.userSummaryEmpty,
+                        style: const TextStyle(color: AppTheme.textSecondary),
+                      )
+                    else
+                      ..._summaryRows.map(
+                        (row) => _summaryRow(
+                          l10n.summaryRowLabel(row['key']!),
+                          l10n.summaryStatusLabel(row['status']!),
+                        ),
+                      ),
+                    const SizedBox(height: 36),
+                    // --- Section 3: Log out ---
+                    _sectionTitle(l10n.logoutSection),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            AuthHelper.performLogout(context: context),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: Text(l10n.logout),
+                      ),
                     ),
                   ],
-                  if (!_changingPhone && _phoneFlowSuccess != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(_phoneFlowSuccess!,
-                          style: const TextStyle(color: AppTheme.textPrimary)),
-                    ),
-                  const SizedBox(height: 24),
-                  _sectionTitle(l10n.whatSediKnows),
-                  if (_facts.isEmpty)
-                    Text(
-                      l10n.whatSediKnowsEmpty,
-                      style: const TextStyle(color: AppTheme.textSecondary),
-                    )
-                  else
-                    ..._facts.map(
-                      (f) => Card(
-                        color: AppTheme.gate2CardWhite,
-                        elevation: 0,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text(f['category'] ?? ''),
-                          subtitle: Text(f['text'] ?? ''),
-                        ),
-                      ),
-                    ),
-                ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  List<Widget> _phoneChangeWidgets(Gate3Localization l10n) {
+    return [
+      const SizedBox(height: 8),
+      Text(
+        l10n.newPhoneLabel,
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+      ),
+      const SizedBox(height: 6),
+      Row(
+        children: [
+          DropdownButton<A2CountryDialCode>(
+            value: _dial,
+            items: A2PhoneE164.dialCodes
+                .map(
+                  (c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(c.displayDial),
+                  ),
+                )
+                .toList(),
+            onChanged: _phoneBusy
+                ? null
+                : (v) {
+                    if (v != null) setState(() => _dial = v);
+                  },
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _phoneCtrl,
+              enabled: !_phoneBusy && !_otpSent,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
               ),
             ),
-    );
+          ),
+        ],
+      ),
+      if (_otpSent) ...[
+        const SizedBox(height: 12),
+        Text(
+          l10n.otpCodeLabel,
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _otpCtrl,
+          enabled: !_phoneBusy,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            isDense: true,
+            border: OutlineInputBorder(),
+            counterText: '',
+          ),
+        ),
+      ],
+      if (_phoneFlowError != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            _phoneFlowError!,
+            style: const TextStyle(color: AppTheme.dangerRed),
+          ),
+        ),
+      if (_phoneFlowSuccess != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            _phoneFlowSuccess!,
+            style: const TextStyle(color: AppTheme.textPrimary),
+          ),
+        ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          if (!_otpSent)
+            ElevatedButton(
+              onPressed: _phoneBusy ? null : _requestPhoneOtp,
+              child: _phoneBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.sendPhoneOtp),
+            )
+          else
+            ElevatedButton(
+              onPressed: _phoneBusy ? null : _verifyPhoneOtp,
+              child: _phoneBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.verifyPhoneOtp),
+            ),
+          const SizedBox(width: 12),
+          TextButton(
+            onPressed: _phoneBusy
+                ? null
+                : () => setState(() {
+                      _changingPhone = false;
+                      _otpSent = false;
+                      _pendingNewPhone = null;
+                      _phoneFlowError = null;
+                    }),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    ];
   }
 
   String _formatDob(MeProfileDto? me) {
@@ -403,13 +440,52 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(value,
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _summaryRow(String label, String value) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: Text(
+                label,
                 style: const TextStyle(
-                    fontSize: 16, color: AppTheme.textPrimary)),
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ),
           ],
         ),
       );
