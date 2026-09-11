@@ -86668,3 +86668,9 @@ MASTER_LOG_TIP=§485
 CHATGPT_CONTINUITY=NOT_MODIFIED
 NEXT_GATE_AUTHORIZED=NO
 MUTATION_OUTSIDE_SCOPE=NO
+
+### §485 tip sync - Dropbox Cursor handoff + final BE SHA
+BE_FINAL_HEAD=b0a4aba720c972ae324622e7a2e92b5cff48b67b
+DROPBOX_SYNC=PASS
+DROPBOX_CURSOR_HANDOFF=C:/Users/Javad Meighandi/Dropbox/Sedi/References/Cursor/Sedi_Cursor_Authoritative_Handoff_v778_FA.md
+FE_FINAL_HEAD=d5a80f94ffd3daa0e5023166dc92aec90adcafd8
