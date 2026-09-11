@@ -86936,3 +86936,40 @@ MASTER_LOG_TIP=§491
 BE_FINAL_HEAD=a247aa4981fc8547f5bf5c8a7848e722f81ef031
 DROPBOX_SYNC=PASS
 DROPBOX_CURSOR_HANDOFF=C:/Users/Javad Meighandi/Dropbox/Sedi/References/Cursor/Sedi_Cursor_Authoritative_Handoff_v784_FA.md
+
+## §492 - A3 LIFESTYLE CHAT-TO-SCHEDULE MINIMAL BRIDGE
+
+GATE=SEDI-V1-A3-LIFESTYLE-CHAT-TO-SCHEDULE-MINIMAL-BRIDGE-01
+GATE_RESULT=PARTIAL
+MODE=AUDIT_THEN_IMPLEMENT_IF_EXISTING_SEAM_SUPPORTS_IT
+POLICY=STRICT_LOW_TOKEN,DELTA_ONLY,TARGETED_ONLY
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+FE_BASE_HEAD=c9ce4f1e37699ac78d392e73c8f70474b198fb0c
+FE_FINAL_HEAD=c9ce4f1e37699ac78d392e73c8f70474b198fb0c
+FE_MUTATION=NO
+FE_WORKTREE_CLEAN=YES
+
+BE_BASE_HEAD=5b495df9e65b51df03117bf61d72f0b434e337e4
+BE_CODE_MUTATION=NO
+
+EXISTING_STRUCTURED_CHAT_SEAM=NO
+CHAT_TO_USEREVENT=DEFERRED_REQUIRES_SEPARATE_INTELLIGENCE_GATE
+NEW_LLM_EXTRACTION_SYSTEM=NO
+REGEX_INTENT_PARSER=NO (not extended; existing regex seam not reused as governed structured)
+
+AUDIT_EVIDENCE=
+- backend/app/routers/interact.py → create_user_chat_reminder
+- backend/app/services/gate4/user_chat_reminder.py (regex patterns)
+- backend/app/services/knowledge/conversation_extractor_v1.py (_extract_persian_event_candidates regex)
+- backend/app/services/candidate_promotion_service.py (create_event on accept only)
+- generic I10 REMINDER path exists but not wired from a structured Chat tool seam
+
+SCHEMA_OR_MIGRATION_CHANGED=NO
+PROD_DEPLOY_PERFORMED=NO
+NEXT_GATE_AUTHORIZED=NO
+
+CURSOR_HANDOFF_TIP=v785
+MASTER_LOG_TIP=§492
