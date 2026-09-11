@@ -1,0 +1,91 @@
+# A3 authority foundation — targeted Postgres/conftest certification.
+# GATE=SEDI-V1-A3-FOUNDATION-RECOVERY-CI-CERTIFICATION-01
+name: A3 Authority Foundation PG16
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/a3-authority-chat-stream-profile-foundation
+    paths:
+      - "backend/app/services/a3_session_open.py"
+      - "backend/app/routers/interact.py"
+      - "backend/app/routers/user_profile_facts.py"
+      - "backend/app/schemas/interaction.py"
+      - "backend/app/models.py"
+      - "backend/alembic/versions/082_sedi_intro_completed_at.py"
+      - "backend/tests/test_a3_authority_foundation.py"
+      - ".github/workflows/a3-authority-foundation-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a3-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a3-foundation-pg16:
+    name: A3 foundation Postgres
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_a3
+          POSTGRES_PASSWORD: sedi_a3_pass
+          POSTGRES_DB: sedi_a3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_a3 -d sedi_a3"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_a3:sedi_a3_pass@127.0.0.1:5432/sedi_a3
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_a3:sedi_a3_pass@127.0.0.1:5432/sedi_a3
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest pytest-asyncio alembic
+      - name: Prove PostgreSQL + apply alembic to head (incl. 082)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text, inspect
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          insp = inspect(eng)
+          cols = {c["name"] for c in insp.get_columns("users")}
+          assert "sedi_intro_completed_at" in cols, sorted(cols)
+          print("MIGRATION_082_COLUMN=PASS")
+          PY
+      - name: Targeted A3 foundation tests (with conftest)
+        run: |
+          set -euo pipefail
+          python -m pytest -q backend/tests/test_a3_authority_foundation.py --tb=short

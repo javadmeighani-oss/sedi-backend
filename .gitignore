@@ -65,6 +65,9 @@ frontend/ios/Flutter/Flutter.podspec
 *.temp
 *.bak
 
+# Local gate worktrees / tool SDKs (never product source)
+_gate_artifacts/
+
 # GitHub Actions SSH keys (never commit!)
 .github_actions_key
 .github_actions_key.pub
