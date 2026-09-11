@@ -77,6 +77,50 @@ class I8OperationalRepository:
             .all()
         )
 
+    def list_plans_for_date_range(
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        start_date: date,
+        end_date: date,
+        statuses: tuple[str, ...] = ("ACTIVE", "COMPLETED"),
+    ) -> list[models.I8OperationalPlan]:
+        """Read-only plans in [start_date, end_date] inclusive (no writes)."""
+        return (
+            db.query(models.I8OperationalPlan)
+            .filter(
+                models.I8OperationalPlan.user_id == user_id,
+                models.I8OperationalPlan.user_local_date >= start_date,
+                models.I8OperationalPlan.user_local_date <= end_date,
+                models.I8OperationalPlan.status.in_(statuses),
+            )
+            .order_by(
+                models.I8OperationalPlan.user_local_date.asc(),
+                models.I8OperationalPlan.id.asc(),
+            )
+            .all()
+        )
+
+    def list_actions_for_plans(
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        plan_ids: list[int],
+    ) -> list[models.I8OperationalPlanAction]:
+        if not plan_ids:
+            return []
+        return (
+            db.query(models.I8OperationalPlanAction)
+            .filter(
+                models.I8OperationalPlanAction.user_id == user_id,
+                models.I8OperationalPlanAction.plan_id.in_(plan_ids),
+            )
+            .order_by(models.I8OperationalPlanAction.id.asc())
+            .all()
+        )
+
     def create_plan(
         self,
         db: Session,

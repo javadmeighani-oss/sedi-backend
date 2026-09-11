@@ -50,6 +50,21 @@ def lifestyle_schedule_actions(
     )
 
 
+@router.get("/weekly-plan", response_model=APIResponse)
+def lifestyle_weekly_plan(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Read-only 7-day I8 nutrition/exercise projection. No generation side effects."""
+    from backend.app.services.lifestyle.a3_weekly_plan_projection import (
+        build_lifestyle_weekly_plan_projection,
+    )
+
+    return APIResponse(
+        ok=True, data=build_lifestyle_weekly_plan_projection(db, auth_user.id)
+    )
+
+
 def _require_admin(request: Request) -> None:
     """Fail-closed admin guard: ADMIN_TOKEN must be set; X-Admin-Token must match."""
     expected = os.environ.get("ADMIN_TOKEN", "").strip()

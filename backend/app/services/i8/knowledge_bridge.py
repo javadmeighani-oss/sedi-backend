@@ -233,11 +233,12 @@ def build_persisted_operational_snapshot(
     used_items: list[RetrievedKnowledgeItem],
     request_fingerprint: str,
     safety_state: str = "SAFE",
+    display_meta: dict | None = None,
 ) -> tuple[str, dict]:
     """Sanitized durable I8 state: metadata and ID-only refs, no I5 statement text."""
     refs = json.loads(knowledge_refs_payload(used_items))
     summary_text = operational_summary_label(domain)
-    presentation = {
+    presentation: dict = {
         "domain": domain,
         "action_type": action_type,
         "grounding": "governed_i5_reference",
@@ -245,4 +246,22 @@ def build_persisted_operational_snapshot(
         "request_fingerprint": request_fingerprint,
         "safety_state": safety_state,
     }
+    # Bounded presentation-only keys; omit when not authoritatively supplied.
+    if display_meta:
+        allowed = (
+            "local_date",
+            "local_time",
+            "day_index",
+            "meal_slot",
+            "activity_type",
+            "activity_title",
+            "duration_minutes",
+            "title",
+            "cycle_start_local_date",
+        )
+        for key in allowed:
+            val = display_meta.get(key)
+            if val is None or val == "":
+                continue
+            presentation[key] = val
     return summary_text, presentation

@@ -29,11 +29,15 @@ from backend.app.services.i8.knowledge_bridge import (
 )
 from backend.app.services.i8.lifecycle import I8OperationalLifecycle
 from backend.app.services.i8.local_day import (
+    CYCLE_START_META_KEY,
     I8InvalidTimezoneError,
+    I8TargetDateOutOfCycleError,
     I8TimezoneRequiredError,
     local_day_utc_span_seconds,
     resolve_local_day_window,
+    resolve_local_day_window_for_date,
 )
+from backend.app.services.i8.rolling_cycle import resolve_persist_cycle_bounds
 from backend.app.services.i8.repository import I8OperationalRepository
 from backend.app.services.i8.safety import evaluate_composed_safety, evaluate_safety
 
@@ -45,6 +49,10 @@ _DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
     "lifestyle": ("sleep", "hydration", "water", "lifestyle"),
     "wellbeing": ("stress", "mood", "wellbeing", "relax"),
 }
+
+# Plan identity is shared per user+local_date+generation_mode (not per domain).
+# Domain remains on actions only so nutrition/exercise coexist under one ACTIVE header.
+SHARED_DAILY_PLAN_SCOPE = "shared_daily"
 
 
 def infer_domain(request: str, explicit: Optional[str] = None) -> str:
@@ -223,6 +231,54 @@ def _try_idempotent_replay(
     return _build_replay_result(plan=plan, action=action, generation_mode=generation_mode)
 
 
+def _shared_daily_plan_key(
+    *,
+    user_id: int,
+    user_local_date_iso: str,
+    generation_mode: str,
+) -> str:
+    return _idempotency_key(
+        str(user_id), user_local_date_iso, generation_mode, SHARED_DAILY_PLAN_SCOPE
+    )
+
+
+def _action_key_for(
+    *,
+    plan_key: str,
+    domain: str,
+    request: str,
+) -> str:
+    return _idempotency_key(plan_key, domain, request.strip().casefold())
+
+
+def _build_display_meta(
+    *,
+    window,
+    day_index: int | None,
+    cycle_start,
+    display_meta: dict | None,
+) -> dict:
+    meta: dict = {
+        "local_date": window.user_local_date.isoformat(),
+        CYCLE_START_META_KEY: cycle_start.isoformat(),
+    }
+    if day_index is not None:
+        meta["day_index"] = int(day_index)
+    if display_meta:
+        for key in (
+            "local_time",
+            "meal_slot",
+            "activity_type",
+            "activity_title",
+            "duration_minutes",
+            "title",
+        ):
+            val = display_meta.get(key)
+            if val is not None and val != "":
+                meta[key] = val
+    return meta
+
+
 def generate_operational_action(
     db: Session,
     *,
@@ -236,6 +292,8 @@ def generate_operational_action(
     generation_mode: str = "reactive",
     proactive_evaluation_key: Optional[str] = None,
     health_subject_id: Optional[int] = None,
+    target_local_date=None,
+    display_meta: Optional[dict] = None,
 ) -> I8OperationalActionResult:
     if actor_user_id != user_id:
         return I8OperationalActionResult(
@@ -257,9 +315,21 @@ def generate_operational_action(
             summary="Memory consent is required before personalized actions.",
         )
 
+    day_index: int | None = None
+    cycle_start = None
     if persist:
         try:
-            window = resolve_local_day_window(db, user_id)
+            bounds = resolve_persist_cycle_bounds(
+                db, user_id, target_local_date=target_local_date
+            )
+            cycle_start = bounds.cycle_start
+            day_index = bounds.day_index
+            local_date = (
+                target_local_date
+                if target_local_date is not None
+                else bounds.today_local
+            )
+            window = resolve_local_day_window_for_date(db, user_id, local_date)
         except I8TimezoneRequiredError:
             return I8OperationalActionResult(
                 status="TIMEZONE_REQUIRED",
@@ -276,12 +346,22 @@ def generate_operational_action(
                 clarification_required=True,
                 summary="UserProfileCore.timezone must be a valid IANA timezone.",
             )
+        except I8TargetDateOutOfCycleError:
+            return I8OperationalActionResult(
+                status="TARGET_DATE_OUT_OF_CYCLE",
+                domain=resolved_domain,
+                safety_state="CLARIFY",
+                clarification_required=True,
+                summary="Target local date is outside the bounded current 7-day cycle.",
+            )
 
-        plan_key = plan_idempotency_key or _idempotency_key(
-            str(user_id), window.user_local_date.isoformat(), generation_mode, resolved_domain
+        plan_key = plan_idempotency_key or _shared_daily_plan_key(
+            user_id=user_id,
+            user_local_date_iso=window.user_local_date.isoformat(),
+            generation_mode=generation_mode,
         )
-        action_key = action_idempotency_key or _idempotency_key(
-            plan_key, request.strip().casefold()
+        action_key = action_idempotency_key or _action_key_for(
+            plan_key=plan_key, domain=resolved_domain, request=request
         )
         replay = _try_idempotent_replay(
             db,
@@ -396,6 +476,14 @@ def generate_operational_action(
         used_items=composition.used_items,
         request_fingerprint=request_fingerprint,
         safety_state="SAFE",
+        display_meta=_build_display_meta(
+            window=window,
+            day_index=day_index,
+            cycle_start=cycle_start,
+            display_meta=display_meta,
+        )
+        if window is not None and cycle_start is not None
+        else None,
     )
     try:
         _validate_presentation(persisted_presentation)
@@ -409,6 +497,7 @@ def generate_operational_action(
 
     try:
         if window is None:
+            # Ephemeral path: local day only (no cycle stamp / no persist).
             window = resolve_local_day_window(db, user_id)
     except I8TimezoneRequiredError:
         return I8OperationalActionResult(
@@ -448,11 +537,15 @@ def generate_operational_action(
 
     lifecycle = I8OperationalLifecycle()
     if plan_key is None:
-        plan_key = plan_idempotency_key or _idempotency_key(
-            str(user_id), window.user_local_date.isoformat(), generation_mode, resolved_domain
+        plan_key = plan_idempotency_key or _shared_daily_plan_key(
+            user_id=user_id,
+            user_local_date_iso=window.user_local_date.isoformat(),
+            generation_mode=generation_mode,
         )
     if action_key is None:
-        action_key = action_idempotency_key or _idempotency_key(plan_key, request.strip().casefold())
+        action_key = action_idempotency_key or _action_key_for(
+            plan_key=plan_key, domain=resolved_domain, request=request
+        )
 
     try:
         plan, _ = lifecycle.ensure_active_plan(

@@ -103,6 +103,8 @@ def execute_primary_exercise_action(
     plan_idempotency_key: Optional[str] = None,
     action_idempotency_key: Optional[str] = None,
     health_subject_id: Optional[int] = None,
+    target_local_date=None,
+    display_meta: Optional[dict] = None,
 ) -> ExercisePrimaryResult:
     """Canonical V1 exercise action — I8 owns semantics; I5 grounds knowledge."""
     core = generate_operational_action(
@@ -116,6 +118,8 @@ def execute_primary_exercise_action(
         plan_idempotency_key=plan_idempotency_key,
         action_idempotency_key=action_idempotency_key,
         health_subject_id=health_subject_id,
+        target_local_date=target_local_date,
+        display_meta=display_meta,
     )
     mapped = core.status
     grounded = mapped in {"ACTION_PERSISTED", "ACTION_READY", "GROUNDED_EPHEMERAL"}
