@@ -1,0 +1,54 @@
+# SEDI Cursor Authoritative Handoff - v780
+
+Minimal OTP purpose context + A3 authenticated phone-change — **PASS**.
+
+Do not modify v779 / §486 history. This file supersedes v779 as CURRENT tip.
+
+```
+VERSION=v780
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v779
+v779_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§487
+GATE=SEDI-V1-MINIMAL-OTP-CONTEXT-AND-A3-PHONE-CHANGE-01
+GATE_RESULT=PASS
+PRIOR_BLOCKED_GATE=SEDI-V1-A3-SECURE-PHONE-CHANGE-OTP-01 (BLOCKED_SCHEMA_REQUIRED → resolved by 083)
+NEW_AUTH_ARCHITECTURE_CREATED=NO
+MIGRATION=083_otp_purpose_phone_change
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Heads
+
+```
+FE_BRANCH=feature/a3-authority-chat-stream-profile-foundation
+FE_BASE_HEAD=898bc121edddeda970673a847824992e8cb300bb
+FE_FINAL_HEAD=bd3608ceedeed6bc3a8b0a21b3c28f784d9a65b6
+FE_CI=34580548939
+
+BE_BRANCH=feature/a3-authority-chat-stream-profile-foundation
+BE_BASE_HEAD=0d71a941f966d56c38a12b1d74ea23a5d52d55df
+BE_CODE_HEAD=85062af499b880311c4d7239e7dbb946d801655f
+BE_CI=34580559820
+```
+
+## Contract
+
+```
+OTP_PURPOSE=LOGIN|PHONE_CHANGE
+PHONE_CHANGE_BINDING=otp_codes.user_id + purpose + new phone
+ENDPOINTS=/auth/phone-change/request|/auth/phone-change/verify
+LOGIN_VERIFY=LOGIN purpose only (no get-or-create for PHONE_CHANGE)
+SAME_ACCOUNT_PRESERVED=YES
+SESSION_AFTER_CHANGE=PRESERVED_SAFE
+```
+
+## Continuity
+
+```
+MASTER_LOG_TIP=§487
+CURSOR_HANDOFF_TIP=v780
+CHATGPT_SUCCESSOR_CREATED_BY_CURSOR=NO
+DROPBOX_SYNC=PASS
+```
