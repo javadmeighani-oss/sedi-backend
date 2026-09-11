@@ -473,15 +473,17 @@ def test_23_unstable_never_emergency_danger_diagnosis(db, patches):
     assert intent.notification_scope == I10NotificationScope.DEVICE_STATUS.value
     assert "SAFETY" not in (intent.semantic_family or "")
     facts = assemble_care_subject_status_facts(db, health_subject_id=family.mother_hs.id, when=family.when)
-    assert facts.monitoring_status == "UNSTABLE"
+    # Canonical HR monitoring uses MAD evidence; without baseline → INSUFFICIENT_DATA (not gadget DRVS label).
+    assert facts.monitoring_status == "INSUFFICIENT_DATA"
     assert facts.monitoring_status not in ("emergency", "danger", "diagnosis")
+    assert get_effective_device_reported_vital_status(db, health_subject_id=family.mother_hs.id) is not None
 
 
 def test_24_silence_never_becomes_stable_or_unstable(db, patches):
     family = seed_stage_b_family(db, commit=False)
     facts = assemble_care_subject_status_facts(db, health_subject_id=family.mother_hs.id, when=family.when)
-    assert facts.monitoring_status is None
-    assert facts.monitoring_status not in ("STABLE", "UNSTABLE")
+    assert facts.monitoring_status == "INSUFFICIENT_DATA"
+    assert facts.monitoring_status not in ("STABLE", "UNSTABLE", "UNSTABLE_OR_CHANGED")
     # CARE_DATA_GAP remains a separate path; silence must not invent gadget verdict.
     assert get_effective_device_reported_vital_status(db, health_subject_id=family.mother_hs.id) is None
 
@@ -542,14 +544,14 @@ def test_26_family_stage_b_identity_regression(db, patches):
 def test_27_care_data_gap_isolation_and_mad_not_authority(db, patches):
     family = seed_stage_b_family(db, commit=False)
     facts = assemble_care_subject_status_facts(db, health_subject_id=family.mother_hs.id, when=family.when)
-    # Without DEVICE_REPORTED + without rollup → no invented STABLE/UNSTABLE.
+    # Without sufficient MAD evidence → INSUFFICIENT_DATA (never invent STABLE/UNSTABLE gadget labels).
     assert facts.monitoring_status not in ("STABLE", "UNSTABLE", "NONCLINICAL_STABLE", "NONCLINICAL_CHANGED")
-    # MAD path module must still exist for analytics, but not be imported as status authority here.
+    assert facts.monitoring_status == "INSUFFICIENT_DATA"
     import backend.app.services.i9.nonclinical_vital_stability as mad
 
     assert callable(mad.evaluate_nonclinical_heart_rate_stability)
     facts2 = assemble_care_subject_status_facts(db, health_subject_id=family.mother_hs.id, when=family.when)
-    assert facts2.monitoring_reason in (None, "care_data_gap_path", "awaiting_device_reported_vital_status", "partial_data")
+    assert facts2.monitoring_status == "INSUFFICIENT_DATA"
     # data-gap helper remains importable / separate
     assert callable(is_care_data_gap_candidate)
     # stranger still blocked after later status

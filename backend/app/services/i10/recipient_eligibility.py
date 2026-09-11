@@ -31,6 +31,8 @@ CARE_NETWORK_SEMANTIC_TO_SCOPE: dict[str, I10NotificationScope] = {
     I10SemanticFamily.SAFETY_ESCALATION.value: I10NotificationScope.SAFETY_ESCALATION,
     I10SemanticFamily.GENERAL_STATUS.value: I10NotificationScope.GENERAL_STATUS,
     I10SemanticFamily.DEVICE_STATUS.value: I10NotificationScope.DEVICE_STATUS,
+    I10SemanticFamily.HR_DAILY_STABILITY.value: I10NotificationScope.GENERAL_STATUS,
+    I10SemanticFamily.HR_INSTABILITY.value: I10NotificationScope.DEVICE_STATUS,
 }
 
 

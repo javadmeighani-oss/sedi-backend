@@ -30,6 +30,9 @@ class I10SemanticFamily(str, Enum):
     CARE_STATUS_DIGEST = "CARE_STATUS_DIGEST"
     CARE_DATA_GAP = "CARE_DATA_GAP"
     CARE_SAFETY_ESCALATION = "CARE_SAFETY_ESCALATION"
+    # I9 canonical HR stability → I10 (MAD evidence; not DRVS dual authority)
+    HR_DAILY_STABILITY = "HR_DAILY_STABILITY"
+    HR_INSTABILITY = "HR_INSTABILITY"
 
 
 class I10NotificationScope(str, Enum):

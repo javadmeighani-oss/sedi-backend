@@ -34,6 +34,8 @@ def render_care_status_digest_body(facts: CareSubjectStatusFacts) -> str:
         parts.append(facts.baseline_comparison)
     if facts.monitoring_status == "DATA_INSUFFICIENT" and not facts.baseline_comparison:
         parts.append("Available heart-rate data is not sufficient to determine the monitoring status.")
+    if facts.monitoring_status == "INSUFFICIENT_DATA" and not facts.baseline_comparison:
+        parts.append("Available heart-rate data is not sufficient to determine the monitoring status.")
     if facts.data_status in (CareSubjectDataStatus.PARTIAL_DATA, CareSubjectDataStatus.NO_DATA):
         parts.append("Available information is insufficient for a fuller summary.")
     if facts.data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):

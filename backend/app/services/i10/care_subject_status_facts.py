@@ -14,12 +14,6 @@ from backend.app.services.i9.i8_projection_service import (
     get_bounded_context_projection_for_subject,
     projection_context_refs,
 )
-from backend.app.services.i9.device_reported_vital_status import (
-    get_effective_device_reported_vital_status,
-)
-from backend.app.services.i9.nonclinical_vital_stability import (
-    NonclinicalVitalMonitoringStatus,
-)
 
 STALE_DATA_HOURS = 48
 PARTIAL_COVERAGE_THRESHOLD = 0.5
@@ -149,35 +143,33 @@ def assemble_care_subject_status_facts(
     monitoring_reason: Optional[str] = None
     baseline_comparison: Optional[str] = None
 
-    # Mother gadget status authority = DEVICE_REPORTED only (not MAD/HR recompute).
-    # Silence / no DEVICE_REPORTED row → never infer STABLE/UNSTABLE (CARE_DATA_GAP separate).
-    device_reported = get_effective_device_reported_vital_status(
-        db, health_subject_id=health_subject_id
+    # Canonical I9 HR stability (MAD evidence). DRVS is storage evidence only — not I10 authority.
+    from backend.app.services.i9.hr_stability import (
+        CanonicalHrStabilityStatus,
+        evaluate_canonical_hr_stability,
     )
-    if device_reported is not None:
-        monitoring_status = device_reported.status
-        monitoring_reason = "device_reported_vital_status"
-        baseline_quality = None
-        if device_reported.status == "STABLE":
-            baseline_comparison = "Gadget reports vital-sign status as stable."
-        else:
-            baseline_comparison = (
-                "Gadget reports vital-sign status as unstable/changed."
-            )
+
+    canonical = evaluate_canonical_hr_stability(
+        db, health_subject_id=health_subject_id, when=when
+    )
+    monitoring_status = canonical.status.value
+    monitoring_reason = canonical.reason
+    baseline_quality = canonical.evidence.baseline_quality
+    if canonical.status == CanonicalHrStabilityStatus.STABLE:
+        baseline_comparison = (
+            "Heart-rate pattern is within the subject's personal observed band."
+        )
+    elif canonical.status == CanonicalHrStabilityStatus.UNSTABLE_OR_CHANGED:
+        baseline_comparison = (
+            "Heart-rate pattern differs from the subject's personal observed band."
+        )
     elif data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
-        monitoring_status = None
         monitoring_reason = "care_data_gap_path"
-    elif data_status == CareSubjectDataStatus.PARTIAL_DATA:
-        monitoring_status = NonclinicalVitalMonitoringStatus.DATA_INSUFFICIENT.value
-        monitoring_reason = "partial_data"
+        baseline_comparison = None
+    else:
         baseline_comparison = (
             "Available heart-rate data is not sufficient to determine the monitoring status."
         )
-    elif data_status == CareSubjectDataStatus.SUFFICIENT_OBSERVED_DATA:
-        # Rollups may exist for analytics; MAD must not mint Mother gadget status.
-        monitoring_status = None
-        monitoring_reason = "awaiting_device_reported_vital_status"
-        baseline_comparison = "No gadget-reported vital-sign status is available yet."
 
     return CareSubjectStatusFacts(
         health_subject_id=health_subject_id,
@@ -192,7 +184,7 @@ def assemble_care_subject_status_facts(
         baseline_comparison=baseline_comparison,
         latest_bucket_end=latest_bucket_end,
         has_expected_data_source=expected_source,
-        signal_scope="device_reported_vital_status" if device_reported is not None else "heart_rate",
+        signal_scope="heart_rate",
         monitoring_status=monitoring_status,
         baseline_quality=baseline_quality,
         monitoring_reason=monitoring_reason,

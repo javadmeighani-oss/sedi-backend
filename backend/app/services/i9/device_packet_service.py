@@ -243,6 +243,18 @@ def ingest_device_packet(
         if pm_id is not None:
             pm_ids.append(pm_id)
 
+    if pm_ids:
+        # Canonical MAD HR stability → I10 (after HR measurements land).
+        from backend.app.services.i10.hr_stability_producer import emit_hr_stability_i10_for_subject
+
+        emit_hr_stability_i10_for_subject(
+            db,
+            health_subject_id=health_subject_id,
+            when=_ensure_utc(packet_in.measured_at),
+            deliver=False,
+            commit=False,
+        )
+
     if commit:
         db.commit()
         db.refresh(packet)
