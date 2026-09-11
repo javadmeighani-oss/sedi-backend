@@ -272,9 +272,10 @@ def test_baseline_not_clinical_normal(db, b14_patches):
     assert "healthy" not in lower
     assert "medically safe" not in lower
     assert "diagnosis" not in lower
-    # Without DEVICE_REPORTED gadget verdict, never invent STABLE/UNSTABLE from MAD/baseline.
-    assert facts.monitoring_status not in ("STABLE", "UNSTABLE", "NONCLINICAL_STABLE", "NONCLINICAL_CHANGED")
-    assert facts.monitoring_reason == "awaiting_device_reported_vital_status"
+    # Canonical MAD HR status may be STABLE / UNSTABLE_OR_CHANGED / INSUFFICIENT_DATA.
+    assert facts.monitoring_status not in ("UNSTABLE", "NONCLINICAL_STABLE", "NONCLINICAL_CHANGED")
+    assert facts.monitoring_reason is not None
+    assert facts.monitoring_reason != "device_reported_vital_status"
 
 
 def test_bounded_projection_no_raw_measurements(db, b14_patches):

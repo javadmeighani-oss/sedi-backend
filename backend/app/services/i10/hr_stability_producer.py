@@ -184,7 +184,7 @@ def emit_hr_stability_i10_for_subject(
                 title="Heart-rate daily stability",
                 body=(
                     "Heart-rate pattern for the subject is within their personal observed band today. "
-                    "This is not a medical assessment."
+                    "This is observational pattern information only."
                 ),
                 status_value=evaluated.status.value,
                 reason=evaluated.reason,
@@ -209,7 +209,7 @@ def emit_hr_stability_i10_for_subject(
             title="Heart-rate pattern change",
                 body=(
                     "Heart-rate pattern for the subject differs from their personal observed band. "
-                    "Please check on them. This is not a medical assessment or diagnosis."
+                    "Please check on them. This is observational pattern information only."
                 ),
             status_value=evaluated.status.value,
             reason=evaluated.reason,
