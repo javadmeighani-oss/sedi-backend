@@ -49,7 +49,45 @@ def build_event_occurrence_key(*, user_id: int, event_id: int, offset_min: int) 
     return f"i10:event:{user_id}:{event_id}:{offset_min}"
 
 
-def resolve_event_semantic_family(event_type: str) -> I10SemanticFamily:
+GENERIC_EVENT_TYPES = frozenset({
+    "exam",
+    "deadline",
+    "work_meeting",
+    "birthday",
+    "important_day",
+    "other",
+})
+
+GENERIC_EVENT_DOMAINS = frozenset({
+    "personal",
+    "work",
+    "education",
+    "lifestyle",
+    "family",
+    "other",
+})
+
+
+def is_medical_remindable_event(event: models.UserEvent) -> bool:
+    return event.event_type in MEDICAL_EVENT_TYPES or event.event_domain in {"medical", "care"}
+
+
+def is_generic_remindable_event(event: models.UserEvent) -> bool:
+    """Non-medical UserEvent reminder eligibility (schema-free adapter)."""
+    if is_medical_remindable_event(event):
+        return False
+    if event.event_type in GENERIC_EVENT_TYPES:
+        return True
+    return event.event_domain in GENERIC_EVENT_DOMAINS
+
+
+def is_remindable_event(event: models.UserEvent) -> bool:
+    return is_medical_remindable_event(event) or is_generic_remindable_event(event)
+
+
+def resolve_event_semantic_family(event_type: str, *, medical: bool = True) -> I10SemanticFamily:
+    if not medical:
+        return I10SemanticFamily.REMINDER
     if event_type == DOCTOR_EVENT_TYPE:
         return I10SemanticFamily.DOCTOR_APPOINTMENT_REMINDER
     if event_type == LAB_EVENT_TYPE:
@@ -57,9 +95,11 @@ def resolve_event_semantic_family(event_type: str) -> I10SemanticFamily:
     return I10SemanticFamily.MEDICAL_EVENT_REMINDER
 
 
-def _reminder_copy(event: models.UserEvent) -> Tuple[str, str, str]:
+def _reminder_copy(event: models.UserEvent, *, medical: bool) -> Tuple[str, str, str]:
     """Type-aware factual reminder copy — no diagnosis, prep instructions, or attendance claims."""
-    title = (event.title or "Medical event")[:256]
+    title = (event.title or ("Medical event" if medical else "Scheduled event"))[:256]
+    if not medical:
+        return title, "Your scheduled event is approaching.", "generic_event_reminder"
     if event.event_type == DOCTOR_EVENT_TYPE:
         body = "Your scheduled doctor visit is approaching."
         template_key = "doctor_appointment_reminder"
@@ -79,7 +119,8 @@ def build_event_reminder_payload(
     occurrence_key: str,
     offset_min: int,
 ) -> NotificationPayload:
-    title, body, template_key = _reminder_copy(event)
+    medical = is_medical_remindable_event(event)
+    title, body, template_key = _reminder_copy(event, medical=medical)
     context = sanitize_notification_context(
         {
             "template_key": template_key,
@@ -89,7 +130,7 @@ def build_event_reminder_payload(
     )
     return NotificationPayload(
         user_id=user_id,
-        type="health_alert",
+        type="health_alert" if medical else "reminder",
         title=title,
         body=body,
         priority="normal",
@@ -108,7 +149,11 @@ def build_event_reminder_payload(
         risk_level=NotificationRiskLevel.NORMAL.value,
         template_key=template_key,
         context=context,
-        privacy_class=I10PrivacyClass.HEALTH_SENSITIVE.value,
+        privacy_class=(
+            I10PrivacyClass.HEALTH_SENSITIVE.value
+            if medical
+            else I10PrivacyClass.PRIVATE.value
+        ),
     )
 
 
@@ -134,21 +179,28 @@ def enqueue_event_reminder_notification(
     occurrence_key: str,
     offset_min: int,
 ) -> Optional[models.Notification]:
+    medical = is_medical_remindable_event(event)
     health_subject_id = resolve_or_ensure_self_health_subject_id(db, user_id)
     payload = build_event_reminder_payload(
         event, user_id=user_id, occurrence_key=occurrence_key, offset_min=offset_min
     )
-    semantic = resolve_event_semantic_family(event.event_type)
+    semantic = resolve_event_semantic_family(event.event_type, medical=medical)
     candidate = I10NotificationCandidate(
         candidate_key=occurrence_key,
         health_subject_id=health_subject_id,
         recipient_user_id=user_id,
-        notification_scope=I10NotificationScope.SENSITIVE_HEALTH_DETAIL,
+        notification_scope=(
+            I10NotificationScope.SENSITIVE_HEALTH_DETAIL
+            if medical
+            else I10NotificationScope.GENERAL_STATUS
+        ),
         source_owner=EVENT_PRODUCER_OWNER,
         source_type="event_reminder_scheduler",
         source_id=f"{event.id}:{offset_min}",
         semantic_family=semantic,
-        privacy_hint=I10PrivacyClass.HEALTH_SENSITIVE,
+        privacy_hint=(
+            I10PrivacyClass.HEALTH_SENSITIVE if medical else I10PrivacyClass.PRIVATE
+        ),
         provenance_refs=(f"user_event:{event.id}", f"offset_min:{offset_min}"),
     )
     result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
@@ -166,7 +218,3 @@ def enqueue_event_reminder_notification(
         .filter(models.Notification.id == result.notification_id)
         .one()
     )
-
-
-def is_medical_remindable_event(event: models.UserEvent) -> bool:
-    return event.event_type in MEDICAL_EVENT_TYPES or event.event_domain in {"medical", "care"}

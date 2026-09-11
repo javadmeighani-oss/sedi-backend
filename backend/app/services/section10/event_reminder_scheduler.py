@@ -44,7 +44,7 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
     from backend.app.services.i10.event_reminder_i10_adapter import (
         build_event_occurrence_key,
         enqueue_event_reminder_notification,
-        is_medical_remindable_event,
+        is_remindable_event,
     )
 
     now = now or datetime.utcnow()
@@ -58,7 +58,7 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
         .all()
     )
     for event in rows:
-        if not is_medical_remindable_event(event):
+        if not is_remindable_event(event):
             continue
         starts_utc = _event_local_starts_at(event)
         if starts_utc is None or starts_utc <= now:

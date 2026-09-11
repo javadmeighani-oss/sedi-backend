@@ -18,6 +18,38 @@ from backend.app.routers.auth_otp import get_current_user
 router = APIRouter()
 
 
+@router.get("/health-hr", response_model=APIResponse)
+def lifestyle_health_hr(
+    range_key: str = Query("7d", description="7d|30d|3m|1y"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """SELF-only I9 HR status + latest value + bounded rollup history (presentation)."""
+    from backend.app.services.lifestyle.a3_health_hr_projection import (
+        build_lifestyle_hr_projection,
+    )
+
+    return APIResponse(
+        ok=True,
+        data=build_lifestyle_hr_projection(db, auth_user.id, range_key=range_key),
+    )
+
+
+@router.get("/schedule-actions", response_model=APIResponse)
+def lifestyle_schedule_actions(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Compact I8 active actions for My Schedule (distinct from UserEvent)."""
+    from backend.app.services.lifestyle.a3_schedule_i8_projection import (
+        build_lifestyle_i8_schedule_projection,
+    )
+
+    return APIResponse(
+        ok=True, data=build_lifestyle_i8_schedule_projection(db, auth_user.id)
+    )
+
+
 def _require_admin(request: Request) -> None:
     """Fail-closed admin guard: ADMIN_TOKEN must be set; X-Admin-Token must match."""
     expected = os.environ.get("ADMIN_TOKEN", "").strip()

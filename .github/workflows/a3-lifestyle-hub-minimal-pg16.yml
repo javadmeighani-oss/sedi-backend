@@ -1,0 +1,71 @@
+name: A3 Lifestyle Hub Minimal PG16
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/a3-authority-chat-stream-profile-foundation
+    paths:
+      - "backend/app/services/lifestyle/**"
+      - "backend/app/routers/lifestyle.py"
+      - "backend/app/services/i10/event_reminder_i10_adapter.py"
+      - "backend/app/services/section10/event_reminder_scheduler.py"
+      - "backend/tests/test_a3_lifestyle_hub_minimal.py"
+      - ".github/workflows/a3-lifestyle-hub-minimal-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a3-lifestyle-hub-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a3-lifestyle-hub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_lh
+          POSTGRES_PASSWORD: sedi_lh_pass
+          POSTGRES_DB: sedi_lh
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_lh -d sedi_lh"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_lh:sedi_lh_pass@127.0.0.1:5432/sedi_lh
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_lh:sedi_lh_pass@127.0.0.1:5432/sedi_lh
+      SMS_DISABLED: "true"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Alembic + vector
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Targeted A3 lifestyle hub tests
+        run: python -m pytest -q backend/tests/test_a3_lifestyle_hub_minimal.py --tb=short
