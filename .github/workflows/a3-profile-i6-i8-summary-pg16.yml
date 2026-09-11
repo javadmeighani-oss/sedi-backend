@@ -1,0 +1,72 @@
+name: A3 Profile I6 I8 Summary PG16
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/a3-authority-chat-stream-profile-foundation
+    paths:
+      - "backend/app/services/profile/**"
+      - "backend/app/routers/auth_otp.py"
+      - "backend/app/services/i6/consent_service.py"
+      - "backend/app/services/i8/repository.py"
+      - "backend/app/services/i8/action_completion.py"
+      - "backend/tests/test_a3_profile_i6_i8_summary.py"
+      - ".github/workflows/a3-profile-i6-i8-summary-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a3-profile-summary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a3-profile-summary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_ps
+          POSTGRES_PASSWORD: sedi_ps_pass
+          POSTGRES_DB: sedi_ps
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_ps -d sedi_ps"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_ps:sedi_ps_pass@127.0.0.1:5432/sedi_ps
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_ps:sedi_ps_pass@127.0.0.1:5432/sedi_ps
+      SMS_DISABLED: "true"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Alembic + vector
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Targeted A3 profile I6+I8 summary tests
+        run: python -m pytest -q backend/tests/test_a3_profile_i6_i8_summary.py --tb=short

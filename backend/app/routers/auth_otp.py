@@ -142,6 +142,17 @@ def auth_me(
     return APIResponse(ok=True, data=_me_out(user, db))
 
 
+@router.get("/me/profile-summary", response_model=ApiResponseV1)
+def auth_me_profile_summary(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Read-only I6+I8 compact summary for A3 Profile (no IDs / no mutation)."""
+    from backend.app.services.profile.a3_profile_summary import build_a3_profile_summary
+
+    return APIResponse(ok=True, data=build_a3_profile_summary(db, user.id))
+
+
 @router.patch("/me", response_model=ApiResponseV1)
 def patch_auth_me(
     body: MeUpdateIn,
