@@ -31,6 +31,14 @@ void main() {
     expect(SediLocaleRegistry.resolve('fa').defaultCalendar, 'jalali');
   });
 
+  test('A3 language follows SediLocaleController not independent authority', () async {
+    await SediLocaleController.instance.setRuntimeLocale('ar', persistBootstrapCache: false);
+    expect(SediLocaleController.instance.languageCode, 'ar');
+    expect(Gate3Localization('ar').isRtl, isTrue);
+    await SediLocaleController.instance.setRuntimeLocale('en', persistBootstrapCache: false);
+    expect(Gate3Localization('en').isRtl, isFalse);
+  });
+
   test('ChatSendResponse parses stream final payload fields', () {
     final r = ChatSendResponse.fromJson({
       'message': 'Hello',

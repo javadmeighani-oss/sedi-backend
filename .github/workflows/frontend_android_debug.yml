@@ -77,6 +77,9 @@ jobs:
           echo "No analyzer errors (warnings/infos non-blocking for this Gate)"
           exit 0
 
+      - name: Targeted A3 authority foundation tests
+        run: flutter test test/a3_authority_foundation_test.dart
+
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \
