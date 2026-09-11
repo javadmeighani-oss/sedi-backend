@@ -6,7 +6,14 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
-from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeUpdateIn
+from backend.app.schemas.auth_otp import (
+    OtpRequestIn,
+    OtpVerifyIn,
+    TokenOut,
+    MeUpdateIn,
+    PhoneChangeRequestIn,
+    PhoneChangeVerifyIn,
+)
 from backend.app.core.security import verify_token
 from backend.app.services import auth_otp_service as svc
 from backend.app.services.user_profile_service import apply_profile_update, build_me_response
@@ -144,6 +151,64 @@ def patch_auth_me(
     """Update authenticated user profile (JWT-only; never accepts user_id in body)."""
     user = apply_profile_update(db, user, body)
     return APIResponse(ok=True, data=_me_out(user, db))
+
+
+def _phone_change_error_code(err: str) -> str:
+    low = (err or "").lower()
+    if "already your current" in low or "same" in low:
+        return "PHONE_SAME"
+    if "already in use" in low:
+        return "PHONE_DUPLICATE"
+    if "invalid phone" in low:
+        return "PHONE_INVALID"
+    if "expired" in low:
+        return "OTP_EXPIRED"
+    if "attempts" in low:
+        return "TOO_MANY_ATTEMPTS"
+    if "too many otp" in low:
+        return "OTP_RATE_LIMITED"
+    if "incorrect" in low or "invalid code" in low:
+        return "OTP_INVALID"
+    return "PHONE_CHANGE_FAILED"
+
+
+@router.post("/phone-change/request", response_model=ApiResponseV1)
+def phone_change_request(
+    body: PhoneChangeRequestIn,
+    request: Request,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """JWT Account → OTP to NEW phone (purpose=PHONE_CHANGE). No phone mutation yet."""
+    accept_language = request.headers.get("Accept-Language")
+    ok, err, dev_code = svc.request_phone_change_otp(
+        db, user, body.new_phone, accept_language=accept_language
+    )
+    if not ok:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code=_phone_change_error_code(err), message=err),
+        )
+    data: dict = {"ok": True, "next": "verify_phone_change", "purpose": "PHONE_CHANGE"}
+    if dev_code:
+        data["dev_code"] = dev_code
+    return APIResponse(ok=True, data=data)
+
+
+@router.post("/phone-change/verify", response_model=ApiResponseV1)
+def phone_change_verify(
+    body: PhoneChangeVerifyIn,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify PHONE_CHANGE OTP; atomically update same Account.phone; return /auth/me profile."""
+    updated, err = svc.verify_phone_change_otp(db, user, body.new_phone, body.code)
+    if err or updated is None:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code=_phone_change_error_code(err or "failed"), message=err or "failed"),
+        )
+    return APIResponse(ok=True, data=_me_out(updated, db))
 
 
 @router.post("/refresh", response_model=ApiResponseV1)

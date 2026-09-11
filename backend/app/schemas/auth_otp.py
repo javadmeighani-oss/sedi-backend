@@ -28,6 +28,45 @@ class OtpVerifyIn(BaseModel):
     code: str
 
 
+class PhoneChangeRequestIn(BaseModel):
+    """Authenticated phone-change OTP request — new E.164 only; JWT is account authority."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    new_phone: str
+
+    @field_validator("new_phone")
+    @classmethod
+    def validate_new_phone(cls, value: str) -> str:
+        trimmed = (value or "").strip()
+        if not trimmed:
+            raise ValueError("new_phone is required")
+        return trimmed
+
+
+class PhoneChangeVerifyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    new_phone: str
+    code: str
+
+    @field_validator("new_phone")
+    @classmethod
+    def validate_new_phone(cls, value: str) -> str:
+        trimmed = (value or "").strip()
+        if not trimmed:
+            raise ValueError("new_phone is required")
+        return trimmed
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, value: str) -> str:
+        trimmed = (value or "").strip()
+        if len(trimmed) != 6 or not trimmed.isdigit():
+            raise ValueError("code must be 6 digits")
+        return trimmed
+
+
 class TokenOut(BaseModel):
     access_token: str
     refresh_token: str

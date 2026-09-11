@@ -1087,7 +1087,7 @@ class UserFact(Base):
 
 # -------------------- OtpCode (Stage 25 – Phone OTP) --------------------
 class OtpCode(Base):
-    """Single active OTP per phone; hashed code, expiry, attempt limit."""
+    """OTP challenge row; purpose distinguishes LOGIN vs PHONE_CHANGE."""
     __tablename__ = "otp_codes"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -1097,6 +1097,15 @@ class OtpCode(Base):
     attempts = Column(Integer, default=0, nullable=False)
     sent_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # LOGIN (default) | PHONE_CHANGE — application-validated string
+    purpose = Column(String(32), nullable=False, default="LOGIN", server_default="LOGIN", index=True)
+    # Required for PHONE_CHANGE binding; null for LOGIN
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
 
 # -------------------- UserProfileCore (Knowledge Capture V1) --------------------

@@ -1,0 +1,85 @@
+# A3 secure phone-change OTP — targeted Postgres certification
+name: A3 Phone Change OTP PG16
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/a3-authority-chat-stream-profile-foundation
+    paths:
+      - "backend/app/models.py"
+      - "backend/app/services/auth_otp_service.py"
+      - "backend/app/routers/auth_otp.py"
+      - "backend/app/schemas/auth_otp.py"
+      - "backend/alembic/versions/083_otp_purpose_phone_change.py"
+      - "backend/tests/test_a3_phone_change_otp.py"
+      - ".github/workflows/a3-phone-change-otp-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a3-phone-change-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a3-phone-change-pg16:
+    name: A3 phone-change Postgres
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_a3pc
+          POSTGRES_PASSWORD: sedi_a3pc_pass
+          POSTGRES_DB: sedi_a3pc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_a3pc -d sedi_a3pc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_a3pc:sedi_a3pc_pass@127.0.0.1:5432/sedi_a3pc
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_a3pc:sedi_a3pc_pass@127.0.0.1:5432/sedi_a3pc
+      SMS_DISABLED: "true"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Alembic upgrade head (incl. 083)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text, inspect
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, inspect
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          cols = {c["name"] for c in inspect(eng).get_columns("otp_codes")}
+          assert "purpose" in cols and "user_id" in cols, sorted(cols)
+          print("MIGRATION_083_OTP_PURPOSE=PASS")
+          PY
+      - name: Targeted phone-change OTP tests
+        run: python -m pytest -q backend/tests/test_a3_phone_change_otp.py --tb=short
