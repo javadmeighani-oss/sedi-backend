@@ -4,21 +4,19 @@ import '../gate3_localization.dart';
 import '../pages/gate3_profile_page.dart';
 import 'gate3_main_icon_button.dart';
 
-/// Primary Gate 3 navigation row: Profile, Health Care, Lifestyle, Gadgets.
-///
-/// Notifications (Gate 4) and History (Lifestyle sub-section) are intentionally
-/// not shown here. Profile opens [Gate3ProfilePage] directly (no settings sheet).
+/// A3 top row: Profile | Lifestyle | Gadgets | Smart Notifications.
+/// Health lives inside Lifestyle (no separate top Health icon).
 class Gate3MainIconRow extends StatelessWidget {
-  final VoidCallback onHealthCare;
   final VoidCallback onLifestyle;
   final VoidCallback onGadgets;
+  final VoidCallback onNotifications;
   final String lang;
 
   const Gate3MainIconRow({
     super.key,
-    required this.onHealthCare,
     required this.onLifestyle,
     required this.onGadgets,
+    required this.onNotifications,
     required this.lang,
   });
 
@@ -31,8 +29,8 @@ class Gate3MainIconRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Gate3MainIconButton(
-          icon: Icons.settings_outlined,
-          label: l10n.settings,
+          icon: Icons.person_outline,
+          label: l10n.profileTitle,
           plainIcon: true,
           onTap: () {
             Navigator.of(context).push(
@@ -43,11 +41,6 @@ class Gate3MainIconRow extends StatelessWidget {
           },
         ),
         Gate3MainIconButton(
-          icon: Icons.favorite_border,
-          label: l10n.healthCare,
-          onTap: onHealthCare,
-        ),
-        Gate3MainIconButton(
           icon: Icons.self_improvement_outlined,
           label: l10n.lifestyle,
           onTap: onLifestyle,
@@ -56,6 +49,12 @@ class Gate3MainIconRow extends StatelessWidget {
           icon: Icons.devices_other_outlined,
           label: l10n.gadgets,
           onTap: onGadgets,
+        ),
+        Gate3MainIconButton(
+          icon: Icons.notifications_none_outlined,
+          label: l10n.notifications,
+          plainIcon: true,
+          onTap: onNotifications,
         ),
       ],
     );

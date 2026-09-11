@@ -13,8 +13,8 @@ import '../../../../data/models/chat_message.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
-import '../../../health/presentation/pages/vitals_page.dart';
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
+import '../../../notifications/presentation/pages/notification_inbox_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
@@ -205,12 +205,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
                     lang: _controller.currentLanguage,
-                    onHealthCare: () => _goTo(
-                      VitalsPage(
-                        healthSubjectId: _subjects.activeSubject?.id,
-                        subjectLabel: _subjects.activeSubject?.visibleName,
-                      ),
-                    ),
                     onLifestyle: () {
                       if (!_subjects.isActiveSelf) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,6 +215,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       _goTo(const LifestylePage());
                     },
                     onGadgets: () => _goTo(const DevicesPage()),
+                    onNotifications: () =>
+                        _goTo(const NotificationInboxPage()),
                   ),
                 ),
                 Gate3SubjectSelector(l10n: l10n),

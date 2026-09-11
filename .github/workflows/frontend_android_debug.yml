@@ -89,6 +89,9 @@ jobs:
       - name: Targeted A3 single-page profile tests
         run: flutter test test/a3_single_page_profile_test.dart
 
+      - name: Targeted A3 lifestyle hub tests
+        run: flutter test test/a3_lifestyle_hub_minimal_test.dart
+
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \

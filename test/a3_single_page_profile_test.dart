@@ -83,16 +83,16 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: Gate3MainIconRow(
-            onHealthCare: () {},
             onLifestyle: () {},
             onGadgets: () {},
+            onNotifications: () {},
             lang: 'en',
           ),
         ),
       ),
     );
-    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.person_outline));
     // Do not pumpAndSettle — Profile _load hits network and would hang.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));

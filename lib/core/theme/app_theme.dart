@@ -109,6 +109,15 @@ class AppTheme {
   /// Gate 3 — soft pale olive-green background (premium, calm; avoid pure white).
   static const Color gate3PaleOliveBackground = Color(0xFFF3F5EE);
 
+  /// I9 STABLE / calm positive status (olive; not clinical “safe”).
+  static const Color statusStableOlive = Color(0xFF6F7F3A);
+
+  /// I9 UNSTABLE_OR_CHANGED — warning amber (never danger red).
+  static const Color statusChangeAmber = Color(0xFFC49A3C);
+
+  /// I9 INSUFFICIENT_DATA — neutral muted.
+  static const Color statusNeutralMuted = Color(0xFF8A8A86);
+
   static const List<BoxShadow> gate2CardShadow = [
     BoxShadow(
       color: Color(0x0F000000),
