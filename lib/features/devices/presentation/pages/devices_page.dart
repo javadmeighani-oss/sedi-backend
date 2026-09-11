@@ -1,6 +1,8 @@
 /// Devices screen: MVP ECG-only. Shows Sedi-connected ECG device or "Not connected" + Coming soon.
 import 'package:flutter/material.dart';
 
+import '../../../../core/health_subject/sedi_health_subject.dart';
+import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
@@ -70,34 +72,50 @@ class _DevicesPageState extends State<DevicesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final subjects = SediHealthSubjectController.instance.accessibleSubjects;
+    final groups = _deviceGroups(subjects);
+
     Widget body = RefreshIndicator(
       onRefresh: _load,
       color: AppTheme.pistachioGreen,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Section: Connected devices
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text(
-              'Connected devices',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: AppTheme.pistachioGreen)),
+              child: Center(
+                  child:
+                      CircularProgressIndicator(color: AppTheme.pistachioGreen)),
             )
-          else
+          else ...[
+            for (final g in groups) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(
+                  g.title,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (g.devices.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('No devices',
+                      style: TextStyle(color: AppTheme.textSecondary)),
+                )
+              else
+                for (final d in g.devices) _deviceRow(d),
+            ],
+            const SizedBox(height: 8),
             _buildEcgCard(),
+          ],
           const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'When connected, ECG readings will appear in Vitals.',
               style: TextStyle(
@@ -127,6 +145,61 @@ class _DevicesPageState extends State<DevicesPage> {
       );
     }
     return page;
+  }
+
+  List<_DeviceGroup> _deviceGroups(List<SediHealthSubject> subjects) {
+    final byId = <int?, List<DevicePublicInfo>>{};
+    for (final d in _controller.devices) {
+      byId.putIfAbsent(d.healthSubjectId, () => []).add(d);
+    }
+    final groups = <_DeviceGroup>[];
+    // SELF first
+    for (final s in subjects.where((s) => s.isSelf)) {
+      groups.add(_DeviceGroup(
+        title: 'My devices',
+        healthSubjectId: s.id,
+        devices: byId[s.id] ?? const [],
+      ));
+    }
+    // OTHER by display_name
+    for (final s in subjects.where((s) => !s.isSelf)) {
+      groups.add(_DeviceGroup(
+        title: s.visibleName,
+        healthSubjectId: s.id,
+        devices: byId[s.id] ?? const [],
+      ));
+    }
+    // Unbound devices (no subject)
+    final unbound = byId[null] ?? const [];
+    if (unbound.isNotEmpty && groups.isEmpty) {
+      groups.add(_DeviceGroup(
+        title: 'My devices',
+        healthSubjectId: null,
+        devices: unbound,
+      ));
+    } else if (unbound.isNotEmpty) {
+      groups.add(_DeviceGroup(
+        title: 'Unassigned',
+        healthSubjectId: null,
+        devices: unbound,
+      ));
+    }
+    if (groups.isEmpty) {
+      groups.add(const _DeviceGroup(
+        title: 'My devices',
+        healthSubjectId: null,
+        devices: [],
+      ));
+    }
+    return groups;
+  }
+
+  Widget _deviceRow(DevicePublicInfo d) {
+    return ListTile(
+      title: Text(d.deviceType),
+      subtitle: Text(deviceStatusLabel(d.status)),
+      dense: true,
+    );
   }
 
   Widget _buildEcgCard() {
@@ -233,4 +306,16 @@ class _DevicesPageState extends State<DevicesPage> {
       ),
     );
   }
+}
+
+class _DeviceGroup {
+  final String title;
+  final int? healthSubjectId;
+  final List<DevicePublicInfo> devices;
+
+  const _DeviceGroup({
+    required this.title,
+    required this.healthSubjectId,
+    required this.devices,
+  });
 }

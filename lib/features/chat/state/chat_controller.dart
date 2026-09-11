@@ -63,6 +63,7 @@ class ChatController extends ChangeNotifier {
   final AudioRecorderService _audioRecorder = AudioRecorderService();
   bool _initialized = false;
   int? sourceNotificationId;
+  int? activeHealthSubjectId;
 
   /// Stage 17.2: Cached lifestyle summary (in-memory, session only)
   LifestyleSummaryResponse? _cachedLifestyleSummary;
@@ -195,6 +196,7 @@ class ChatController extends ChangeNotifier {
         message: trimmed,
         language: currentLanguage,
         sourceNotificationId: sourceNotificationId,
+        healthSubjectId: activeHealthSubjectId,
         onDelta: (delta) {
           if (!streamStarted) {
             streamStarted = true;
@@ -243,6 +245,7 @@ class ChatController extends ChangeNotifier {
       message: trimmed,
       language: currentLanguage,
       sourceNotificationId: sourceNotificationId,
+      healthSubjectId: activeHealthSubjectId,
     );
 
     if (!response.ok || response.data == null) {
@@ -270,6 +273,7 @@ class ChatController extends ChangeNotifier {
       message: failed.text,
       language: currentLanguage,
       sourceNotificationId: sourceNotificationId,
+      healthSubjectId: activeHealthSubjectId,
     );
     if (!response.ok || response.data == null) {
       _setMessageStatus(localId, ChatMessageStatus.failed);

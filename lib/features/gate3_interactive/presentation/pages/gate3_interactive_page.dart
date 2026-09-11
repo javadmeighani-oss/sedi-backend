@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -20,6 +21,7 @@ import '../gate3_localization.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
+import '../widgets/gate3_subject_selector.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -42,6 +44,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     with WidgetsBindingObserver {
   late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
+  final SediHealthSubjectController _subjects =
+      SediHealthSubjectController.instance;
+  int _subjectGenSeen = -1;
 
   bool _composerListening = false;
 
@@ -55,10 +60,31 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller = ChatController();
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
-    _controller.initialize(
-      initialMessage: widget.initialMessage,
-      notificationId: widget.notificationId,
-    );
+    _subjects.addListener(_onSubjectChanged);
+    _subjects.loadAccessibleSubjects().then((_) {
+      _syncChatSubject();
+      _controller.initialize(
+        initialMessage: widget.initialMessage,
+        notificationId: widget.notificationId,
+      );
+    });
+  }
+
+  void _syncChatSubject() {
+    _controller.activeHealthSubjectId = _subjects.activeSubject?.id;
+  }
+
+  void _onSubjectChanged() {
+    if (!mounted) return;
+    if (_subjectGenSeen == _subjects.generation) {
+      setState(() {});
+      return;
+    }
+    _subjectGenSeen = _subjects.generation;
+    // Invalidate chat transcript when subject switches — no stale leakage.
+    _controller.messages.clear();
+    _syncChatSubject();
+    setState(() {});
   }
 
   @override
@@ -67,6 +93,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _backPressTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);
+    _subjects.removeListener(_onSubjectChanged);
     _scrollController.dispose();
     _controller.dispose();
     super.dispose();
@@ -178,11 +205,25 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
                     lang: _controller.currentLanguage,
-                    onHealthCare: () => _goTo(const VitalsPage()),
-                    onLifestyle: () => _goTo(const LifestylePage()),
+                    onHealthCare: () => _goTo(
+                      VitalsPage(
+                        healthSubjectId: _subjects.activeSubject?.id,
+                        subjectLabel: _subjects.activeSubject?.visibleName,
+                      ),
+                    ),
+                    onLifestyle: () {
+                      if (!_subjects.isActiveSelf) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.lifestyleOtherUnavailable)),
+                        );
+                        return;
+                      }
+                      _goTo(const LifestylePage());
+                    },
                     onGadgets: () => _goTo(const DevicesPage()),
                   ),
                 ),
+                Gate3SubjectSelector(l10n: l10n),
                 const SizedBox(height: 4),
                 SediBrainOrb(
                   state: _orbState(),

@@ -18,6 +18,7 @@ class ChatService {
     String? language,
     int? sourceNotificationId,
     String? conversationId,
+    int? healthSubjectId,
   }) async {
     final text = message.trim();
     if (text.isEmpty) {
@@ -43,6 +44,7 @@ class ChatService {
       message: text,
       sourceNotificationId: sourceNotificationId,
       conversationId: conversationId,
+      healthSubjectId: healthSubjectId,
     );
 
     final headers = <String, String>{};

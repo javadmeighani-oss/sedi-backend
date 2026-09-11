@@ -86,6 +86,21 @@ class Gate3Localization {
         ar: 'خطأ في الشبكة. حاول مرة أخرى.',
       );
   String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
+  String get activeSubjectSelf =>
+      _t(en: 'Viewing: Me', fa: 'نمایش: خودم', ar: 'العرض: أنا');
+  String get activeSubjectFor =>
+      _t(en: 'Viewing:', fa: 'نمایش:', ar: 'العرض:');
+  String get activeSubjectUnknown =>
+      _t(en: 'Viewing: —', fa: 'نمایش: —', ar: 'العرض: —');
+  String get selectSubject =>
+      _t(en: 'Select person', fa: 'انتخاب فرد', ar: 'اختر شخصًا');
+  String get lifestyleOtherUnavailable => _t(
+        en: 'Lifestyle is available for your own profile only.',
+        fa: 'سبک زندگی فقط برای پروفایل خودتان در دسترس است.',
+        ar: 'نمط الحياة متاح لملفك الشخصي فقط.',
+      );
+  String get gadgetsGroupMine =>
+      _t(en: 'My devices', fa: 'دستگاه‌های من', ar: 'أجهزتي');
   String get whatSediKnows => _t(
         en: 'What Sedi knows about me',
         fa: 'آنچه صدی درباره من می‌داند',

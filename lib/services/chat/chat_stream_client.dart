@@ -20,6 +20,7 @@ class ChatStreamClient {
     String? language,
     int? sourceNotificationId,
     String? conversationId,
+    int? healthSubjectId,
     required void Function(String delta) onDelta,
     void Function(Map<String, dynamic> meta)? onMetadata,
   }) async {
@@ -41,6 +42,7 @@ class ChatStreamClient {
       message: message,
       sourceNotificationId: sourceNotificationId,
       conversationId: conversationId,
+      healthSubjectId: healthSubjectId,
     ).toJson());
 
     _client = http.Client();

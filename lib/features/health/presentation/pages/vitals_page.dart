@@ -10,7 +10,14 @@ import 'heart_rate_page.dart';
 import '../widgets/vital_value_tile.dart';
 
 class VitalsPage extends StatefulWidget {
-  const VitalsPage({super.key});
+  final int? healthSubjectId;
+  final String? subjectLabel;
+
+  const VitalsPage({
+    super.key,
+    this.healthSubjectId,
+    this.subjectLabel,
+  });
 
   @override
   State<VitalsPage> createState() => _VitalsPageState();
@@ -47,6 +54,17 @@ class _VitalsPageState extends State<VitalsPage> {
     Widget body = ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        if (widget.subjectLabel != null && widget.subjectLabel!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Text(
+              widget.subjectLabel!,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
           child: Row(
