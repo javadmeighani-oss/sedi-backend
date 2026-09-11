@@ -107,7 +107,8 @@ def test_f_chat_self_ok_other_blocked(client, db):
         json={"message": "hello timezone check", "health_subject_id": self_hs.id},
         headers=_auth(u.id),
     )
-    assert r_self.status_code in (200, 500)  # orchestration may 500 in CI; not 403
+    # Orchestration/upstream may 500/502 in CI (no real OpenAI key); not auth deny.
+    assert r_self.status_code in (200, 500, 502)
     assert r_self.status_code != 403
     r_other = client.post(
         "/interact/chat",
