@@ -86978,3 +86978,61 @@ MASTER_LOG_TIP=§492
 BE_FINAL_HEAD=f2085f8958e0d213e5d9951d090b5e0b9412fc04
 DROPBOX_SYNC=PASS
 DROPBOX_CURSOR_HANDOFF=C:/Users/Javad Meighandi/Dropbox/Sedi/References/Cursor/Sedi_Cursor_Authoritative_Handoff_v785_FA.md
+
+## §493 - I1/I3 MY-SCHEDULE CHAT→USEREVENT CANONICAL SEAM
+
+GATE=SEDI-V1-I1-I3-MY-SCHEDULE-CHAT-TO-USEREVENT-CANONICAL-SEAM-01
+GATE_RESULT=PASS
+MODE=EXECUTE_APPROVED_GATE
+POLICY=STRICT_LOW_TOKEN_DELTA_ONLY
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+FE_BASE_HEAD=c9ce4f1e37699ac78d392e73c8f70474b198fb0c
+FE_FINAL_HEAD=c9ce4f1e37699ac78d392e73c8f70474b198fb0c
+FE_MUTATION=NO
+
+BE_BASE_HEAD=ba02d8ad2cd921d146e5e50636ff05beea2d826d
+BE_FINAL_WORKTREE_HEAD=ba02d8ad2cd921d146e5e50636ff05beea2d826d
+BE_BRANCH=feature/a3-authority-chat-stream-profile-foundation
+COMMIT=NO
+PUSH=NO
+
+FLOW=A3 Chat → I1 → I4 → I3 REMINDER readiness → (clarify | I1 dispatch create_event) → My Schedule / I10 reminder fields
+
+AUTHORITY=
+  REMINDER_INTENT=I3
+  REMINDER_READINESS=I3
+  REMINDER_CLARIFICATION=I3
+  ORCHESTRATION=I1
+  USER_EVENT=EXISTING_gate2_create_event
+  I8_ORDINARY_REMINDER=NO
+  I10_REMINDER=REUSED (no direct Notification from Chat)
+  LEGACY_REGEX_PARALLEL=NO (interact demoted)
+  NEW_INTELLIGENCE_AUTHORITY=NO
+
+FILES_CHANGED=
+  backend/app/routers/interact.py
+  backend/app/services/intelligence/intent_registry.py
+  backend/app/services/intelligence/missing_information.py
+  backend/app/services/intelligence/orchestrator.py
+  backend/app/services/intelligence/reminder_event_readiness.py (NEW)
+  backend/app/services/intelligence/reminder_event_dispatch.py (NEW)
+  backend/tests/test_i1_i3_my_schedule_chat_to_userevent.py (NEW)
+  backend/tests/test_section15_i1_intelligence_orchestrator.py
+
+TARGETED_TESTS=14_PASS (test_i1_i3_my_schedule_chat_to_userevent.py)
+ADJACENT=incomplete_reminder_i3_not_legacy + compatibility_skips_i3 + gate4e_user_chat_reminder PASS
+TODAY_TOMORROW_REGRESSION=PASS (امروز ساعت ۵ → 17:00 same day)
+SCHEMA_OR_MIGRATION_CHANGED=NO
+PROD_DEPLOY_PERFORMED=NO
+NEXT_GATE_AUTHORIZED=NO
+
+CURSOR_HANDOFF_TIP=v786
+MASTER_LOG_TIP=§493
+
+### §493 tip sync
+BE_FINAL_HEAD=ba02d8ad2cd921d146e5e50636ff05beea2d826d (uncommitted delta)
+DROPBOX_SYNC=PASS
+DROPBOX_CURSOR_HANDOFF=C:/Users/Javad Meighandi/Dropbox/Sedi/References/Cursor/Sedi_Cursor_Authoritative_Handoff_v786_FA.md
