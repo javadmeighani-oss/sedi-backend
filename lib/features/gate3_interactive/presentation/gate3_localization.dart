@@ -41,14 +41,51 @@ class Gate3Localization {
       _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
   String get profilePhoneLabel =>
       _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
-  String get phoneChangeDeferred => _t(
-        en:
-            'Phone change requires a secure OTP flow and will be available in a dedicated Gate.',
-        fa:
-            'تغییر شماره همراه نیازمند تأیید امن OTP است و در گیت جداگانه ارائه می‌شود.',
-        ar:
-            'يتطلب تغيير رقم الهاتف تدفق OTP آمنًا وسيتاح في بوابة مخصصة.',
+  String get changePhone =>
+      _t(en: 'Change phone', fa: 'تغییر شماره', ar: 'تغيير الهاتف');
+  String get newPhoneLabel =>
+      _t(en: 'New phone number', fa: 'شماره جدید', ar: 'رقم جديد');
+  String get sendPhoneOtp =>
+      _t(en: 'Send code', fa: 'ارسال کد', ar: 'إرسال الرمز');
+  String get verifyPhoneOtp =>
+      _t(en: 'Verify', fa: 'تأیید', ar: 'تحقق');
+  String get otpCodeLabel =>
+      _t(en: 'OTP code', fa: 'کد تأیید', ar: 'رمز التحقق');
+  String get phoneChangeSuccess => _t(
+        en: 'Phone updated.',
+        fa: 'شماره به‌روز شد.',
+        ar: 'تم تحديث الهاتف.',
       );
+  String get phoneInvalid => _t(
+        en: 'Enter a valid phone number.',
+        fa: 'شماره معتبر وارد کنید.',
+        ar: 'أدخل رقم هاتف صالحًا.',
+      );
+  String get phoneSame => _t(
+        en: 'That is already your current number.',
+        fa: 'این همان شماره فعلی شماست.',
+        ar: 'هذا هو رقمك الحالي بالفعل.',
+      );
+  String get phoneDuplicate => _t(
+        en: 'This number is already in use.',
+        fa: 'این شماره قبلاً استفاده شده است.',
+        ar: 'هذا الرقم مستخدم بالفعل.',
+      );
+  String get phoneOtpInvalid =>
+      _t(en: 'Incorrect code.', fa: 'کد نادرست است.', ar: 'رمز غير صحيح.');
+  String get phoneOtpExpired =>
+      _t(en: 'Code expired.', fa: 'کد منقضی شده است.', ar: 'انتهت صلاحية الرمز.');
+  String get phoneOtpRateLimited => _t(
+        en: 'Too many requests. Try again later.',
+        fa: 'درخواست‌های زیاد. بعداً تلاش کنید.',
+        ar: 'طلبات كثيرة. حاول لاحقًا.',
+      );
+  String get phoneChangeNetworkError => _t(
+        en: 'Network error. Try again.',
+        fa: 'خطای شبکه. دوباره تلاش کنید.',
+        ar: 'خطأ في الشبكة. حاول مرة أخرى.',
+      );
+  String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
   String get whatSediKnows => _t(
         en: 'What Sedi knows about me',
         fa: 'آنچه صدی درباره من می‌داند',

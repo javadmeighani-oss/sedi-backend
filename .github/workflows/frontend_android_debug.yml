@@ -80,6 +80,9 @@ jobs:
       - name: Targeted A3 authority foundation tests
         run: flutter test test/a3_authority_foundation_test.dart
 
+      - name: Targeted A3 phone-change tests
+        run: flutter test test/a3_phone_change_otp_test.dart
+
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/auth/auth_otp_service.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_response.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/auth/me_profile.dart';
+import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../gate3_localization.dart';
 
-/// Settings → Edit Profile — backend-confirmed /auth/me + I7 known-facts card.
+/// Settings → Edit Profile — backend-confirmed /auth/me + I7 known-facts + phone change.
 class Gate3ProfilePage extends StatefulWidget {
   const Gate3ProfilePage({super.key});
 
@@ -18,11 +19,22 @@ class Gate3ProfilePage extends StatefulWidget {
 
 class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   final _profile = AuthProfileService();
+  final _otp = AuthOtpService();
   final _api = ApiClient();
+  final _phoneCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
+
   MeProfileDto? _me;
   List<Map<String, String>> _facts = [];
   bool _loading = true;
   String? _error;
+  String? _phoneFlowError;
+  String? _phoneFlowSuccess;
+  bool _changingPhone = false;
+  bool _otpSent = false;
+  bool _phoneBusy = false;
+  String? _pendingNewPhone;
+  A2CountryDialCode _dial = A2PhoneE164.defaultDialCode;
 
   Gate3Localization get _l10n =>
       Gate3Localization(SediLocaleController.instance.languageCode);
@@ -31,6 +43,13 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _otpCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -74,6 +93,106 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     });
   }
 
+  String _mapPhoneError(String? code, String? message) {
+    final l10n = _l10n;
+    switch ((code ?? '').toUpperCase()) {
+      case 'PHONE_INVALID':
+        return l10n.phoneInvalid;
+      case 'PHONE_SAME':
+        return l10n.phoneSame;
+      case 'PHONE_DUPLICATE':
+        return l10n.phoneDuplicate;
+      case 'OTP_INVALID':
+        return l10n.phoneOtpInvalid;
+      case 'OTP_EXPIRED':
+        return l10n.phoneOtpExpired;
+      case 'OTP_RATE_LIMITED':
+      case 'TOO_MANY_ATTEMPTS':
+        return l10n.phoneOtpRateLimited;
+      default:
+        if (message != null && message.trim().isNotEmpty) return message;
+        return l10n.phoneChangeNetworkError;
+    }
+  }
+
+  Future<void> _requestPhoneOtp() async {
+    final l10n = _l10n;
+    final e164 = A2PhoneE164.normalize(
+      nationalInput: _phoneCtrl.text,
+      dialCode: _dial,
+    );
+    if (!A2PhoneE164.isValid(
+      nationalInput: _phoneCtrl.text,
+      dialCode: _dial,
+    )) {
+      setState(() => _phoneFlowError = l10n.phoneInvalid);
+      return;
+    }
+    final current = (_me?.phone ?? '').trim();
+    if (current.isNotEmpty && current == e164) {
+      setState(() => _phoneFlowError = l10n.phoneSame);
+      return;
+    }
+
+    setState(() {
+      _phoneBusy = true;
+      _phoneFlowError = null;
+      _phoneFlowSuccess = null;
+    });
+    final lang = SediLocaleController.instance.languageCode;
+    final res = await _otp.requestPhoneChangeOtp(newPhone: e164, language: lang);
+    if (!mounted) return;
+    setState(() {
+      _phoneBusy = false;
+      if (!res.ok) {
+        _phoneFlowError = _mapPhoneError(res.error?.code, res.errorMessage);
+        _otpSent = false;
+        _pendingNewPhone = null;
+      } else {
+        _otpSent = true;
+        _pendingNewPhone = e164;
+        _otpCtrl.clear();
+      }
+    });
+  }
+
+  Future<void> _verifyPhoneOtp() async {
+    final pending = _pendingNewPhone;
+    if (pending == null || pending.isEmpty) return;
+    final code = _otpCtrl.text.trim();
+    setState(() {
+      _phoneBusy = true;
+      _phoneFlowError = null;
+      _phoneFlowSuccess = null;
+    });
+    final res = await _otp.verifyPhoneChangeOtp(newPhone: pending, code: code);
+    if (!mounted) return;
+    if (!res.ok || res.data == null) {
+      setState(() {
+        _phoneBusy = false;
+        _phoneFlowError = _mapPhoneError(res.error?.code, res.errorMessage);
+      });
+      return;
+    }
+    // Only after backend confirmation — refresh canonical profile.
+    final meRes = await _profile.fetchMe(recoverSessionOn401: true);
+    if (!mounted) return;
+    setState(() {
+      _phoneBusy = false;
+      if (meRes.ok && meRes.data != null) {
+        _me = meRes.data;
+      } else {
+        _me = res.data;
+      }
+      _changingPhone = false;
+      _otpSent = false;
+      _pendingNewPhone = null;
+      _phoneCtrl.clear();
+      _otpCtrl.clear();
+      _phoneFlowSuccess = _l10n.phoneChangeSuccess;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -95,7 +214,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(_error!, style: const TextStyle(color: AppTheme.dangerRed)),
+                      child: Text(_error!,
+                          style: const TextStyle(color: AppTheme.dangerRed)),
                     ),
                   _sectionTitle(l10n.editProfile),
                   _field(l10n.profileNameLabel, _me?.name ?? '—'),
@@ -103,14 +223,133 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                   _field(l10n.profileSexLabel, _me?.sex ?? '—'),
                   _field(l10n.profilePhoneLabel, _me?.phone ?? '—'),
                   const SizedBox(height: 8),
-                  Text(
-                    l10n.phoneChangeDeferred,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
+                  if (!_changingPhone)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => setState(() {
+                          _changingPhone = true;
+                          _phoneFlowError = null;
+                          _phoneFlowSuccess = null;
+                          _otpSent = false;
+                        }),
+                        child: Text(l10n.changePhone),
+                      ),
                     ),
-                  ),
+                  if (_changingPhone) ...[
+                    const SizedBox(height: 8),
+                    Text(l10n.newPhoneLabel,
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        DropdownButton<A2CountryDialCode>(
+                          value: _dial,
+                          items: A2PhoneE164.dialCodes
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c,
+                                  child: Text(c.displayDial),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _phoneBusy
+                              ? null
+                              : (v) {
+                                  if (v != null) setState(() => _dial = v);
+                                },
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _phoneCtrl,
+                            enabled: !_phoneBusy && !_otpSent,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_otpSent) ...[
+                      const SizedBox(height: 12),
+                      Text(l10n.otpCodeLabel,
+                          style: const TextStyle(
+                              color: AppTheme.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _otpCtrl,
+                        enabled: !_phoneBusy,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          counterText: '',
+                        ),
+                      ),
+                    ],
+                    if (_phoneFlowError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(_phoneFlowError!,
+                            style: const TextStyle(color: AppTheme.dangerRed)),
+                      ),
+                    if (_phoneFlowSuccess != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(_phoneFlowSuccess!,
+                            style: const TextStyle(color: AppTheme.textPrimary)),
+                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (!_otpSent)
+                          ElevatedButton(
+                            onPressed: _phoneBusy ? null : _requestPhoneOtp,
+                            child: _phoneBusy
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(l10n.sendPhoneOtp),
+                          )
+                        else
+                          ElevatedButton(
+                            onPressed: _phoneBusy ? null : _verifyPhoneOtp,
+                            child: _phoneBusy
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(l10n.verifyPhoneOtp),
+                          ),
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: _phoneBusy
+                              ? null
+                              : () => setState(() {
+                                    _changingPhone = false;
+                                    _otpSent = false;
+                                    _pendingNewPhone = null;
+                                    _phoneFlowError = null;
+                                  }),
+                          child: Text(l10n.cancel),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (!_changingPhone && _phoneFlowSuccess != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(_phoneFlowSuccess!,
+                          style: const TextStyle(color: AppTheme.textPrimary)),
+                    ),
                   const SizedBox(height: 24),
                   _sectionTitle(l10n.whatSediKnows),
                   if (_facts.isEmpty)
@@ -164,9 +403,13 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+            Text(label,
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 12)),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(fontSize: 16, color: AppTheme.textPrimary)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 16, color: AppTheme.textPrimary)),
           ],
         ),
       );
