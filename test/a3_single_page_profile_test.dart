@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:sedi_frontend/core/locale/sedi_locale_controller.dart';
-import 'package:sedi_frontend/data/dto/auth/me_profile.dart';
-import 'package:sedi_frontend/features/gate3_interactive/presentation/gate3_localization.dart';
-import 'package:sedi_frontend/features/gate3_interactive/presentation/pages/gate3_profile_page.dart';
-import 'package:sedi_frontend/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart';
+import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
+import 'package:sedi_app/data/dto/auth/me_profile.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/pages/gate3_profile_page.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart';
 
 void main() {
   test('1 profile has exactly 3 section titles', () {
