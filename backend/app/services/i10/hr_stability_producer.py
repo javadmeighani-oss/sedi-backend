@@ -207,10 +207,10 @@ def emit_hr_stability_i10_for_subject(
                 reason=evaluated.reason,
             ),
             title="Heart-rate pattern change",
-            body=(
-                "Heart-rate pattern for the subject differs from their personal observed band. "
-                "Please check on them. This is not an emergency alert or diagnosis."
-            ),
+                body=(
+                    "Heart-rate pattern for the subject differs from their personal observed band. "
+                    "Please check on them. This is not a medical assessment or diagnosis."
+                ),
             status_value=evaluated.status.value,
             reason=evaluated.reason,
             deliver=deliver,

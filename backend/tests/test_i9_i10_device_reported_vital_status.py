@@ -40,6 +40,7 @@ from backend.app.services.i9.health_subject_service import create_managed_subjec
 from backend.app.services.intelligence.device_safety_registry import active_clinical_device_rule_count
 from backend.app.services.vitals.vital_registry import VitalValidationError
 from backend.tests.helpers.i10_postgresql_harness import (
+    ALEMBIC_HEAD,
     I10IsolatedPgDb,
     _REV_079,
     _REV_080,
@@ -73,8 +74,8 @@ def patches():
 
 @pytest.fixture(scope="module")
 def drvs_pg():
-    isolated = I10IsolatedPgDb.create(suffix="drvs", revision=_REV_080)
-    assert isolated.head() == _REV_080
+    isolated = I10IsolatedPgDb.create(suffix="drvs", revision=ALEMBIC_HEAD)
+    assert isolated.head() == ALEMBIC_HEAD
     with isolated.engine.connect() as conn:
         ver = conn.execute(text("SHOW server_version")).scalar()
         assert str(ver).startswith("16."), ver
@@ -489,7 +490,7 @@ def test_24_silence_never_becomes_stable_or_unstable(db, patches):
 
 
 def test_25_transaction_failure_rollback(patches):
-    isolated = I10IsolatedPgDb.create(suffix="drvs_tx", revision=_REV_080)
+    isolated = I10IsolatedPgDb.create(suffix="drvs_tx", revision=ALEMBIC_HEAD)
     SessionLocal = isolated.session_factory()
     db = SessionLocal()
     try:
@@ -603,10 +604,14 @@ def test_should_notify_helper_dedupe_and_ooo():
     assert should_notify_device_reported_transition(previous=prev, new_effective=prev, ingested_row_id=1) is False
 
 
-def test_alembic_single_head_is_080():
+def test_alembic_head_retains_080_ancestry():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
     cfg = Config("backend/alembic.ini")
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == [_REV_080]
+    heads = script.get_heads()
+    assert len(heads) == 1
+    assert heads[0] == ALEMBIC_HEAD
+    assert script.get_revision(_REV_080) is not None
+    assert script.get_revision(_REV_080).down_revision == "079_i10_cni_owner_provenance_nullable"

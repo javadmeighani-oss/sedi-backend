@@ -26,7 +26,9 @@ _REV_078 = "078_health_subject_condition_foundation"
 _REV_079 = "079_i10_cni_owner_provenance_nullable"
 _REV_080 = "080_i9_device_reported_vital_status"
 _REV_081 = "081_self_health_subject_1to1_hardening"
-ALEMBIC_HEAD = _REV_081
+_REV_082 = "082_sedi_intro_completed_at"
+_REV_083 = "083_otp_purpose_phone_change"
+ALEMBIC_HEAD = _REV_083
 
 
 def i10_test_database_url() -> str | None:
