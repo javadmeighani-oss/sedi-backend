@@ -252,30 +252,8 @@ async def chat(
             conversation_id=payload.conversation_id,
         )
 
-    chat_reminder_result = None
-    try:
-        from backend.app.services.gate4.user_chat_reminder import create_user_chat_reminder
-
-        chat_reminder_result = create_user_chat_reminder(
-            db,
-            user_id=user_id,
-            message=message,
-            conversation_id=payload.conversation_id,
-        )
-        if chat_reminder_result.get("reason") == "needs_clarification":
-            clarification = chat_reminder_result.get("clarification_message")
-            if clarification:
-                # Canonical InteractionResponse field is `message` (not `reply`).
-                return InteractionResponse(
-                    message=clarification,
-                    language=response_language,
-                    user_id=user_id,
-                    timestamp=datetime.utcnow(),
-                    requires_security_check=False,
-                    conversation_id=payload.conversation_id,
-                )
-    except Exception:
-        pass
+    # Legacy gate4.user_chat_reminder demoted: canonical I3/I1 REMINDER→UserEvent
+    # path lives inside IntelligenceOrchestrator (one event-creation path).
 
     notification_context = None
     continued_from_notification = False

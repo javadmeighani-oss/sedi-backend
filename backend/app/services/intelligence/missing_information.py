@@ -7,6 +7,7 @@ Compares intent requirements only against the I2 ContextSnapshot.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, Sequence
 
 from backend.app.services.intelligence.context_types import (
@@ -464,14 +465,30 @@ def evaluate_readiness(
     intent: IntentResult,
     authenticated_user_id: int,
     language: LanguageCode,
+    message: str = "",
+    timezone_name: Optional[str] = None,
+    now_utc: Optional[datetime] = None,
 ) -> ReadinessResult:
-    """Evaluate readiness against the authorized snapshot only."""
+    """Evaluate readiness against the authorized snapshot and request-local slots."""
     if snapshot is None:
         raise MissingInformationError("missing_snapshot")
     if not isinstance(authenticated_user_id, int) or authenticated_user_id <= 0:
         raise MissingInformationError("invalid_owner")
     if snapshot.owner_user_id != authenticated_user_id:
         raise MissingInformationError("cross_user_snapshot")
+
+    if intent.intent_id is IntentId.REMINDER:
+        from backend.app.services.intelligence.reminder_event_readiness import (
+            evaluate_reminder_event_readiness,
+        )
+
+        return evaluate_reminder_event_readiness(
+            message=message or "",
+            language=language,
+            intent=intent,
+            timezone_name=timezone_name,
+            now_utc=now_utc,
+        )
 
     reqs = requirements_for(intent)
     if not reqs:

@@ -21,6 +21,7 @@ from backend.app.services.intelligence.contracts import (
     STAGE_ORDER,
     STRUCTURED_READINESS_REASON_CODES,
     ConversationOrigin,
+    IntentId,
     IntentResult,
     LanguageCode,
     NotificationOrigin,
@@ -533,27 +534,88 @@ class IntelligenceOrchestrator:
 
             # 7–9) I3 stages
             if rollout_mode != "structured":
+                # Compatibility: full I3 skipped EXCEPT REMINDER/event request-local seam.
+                # Probe intent without exposing non-REMINDER I3 identity in compatibility.
                 t0 = time.perf_counter()
-                ctx.append_stage(
-                    StageName.RESOLVE_INTENT,
-                    "skipped",
-                    ReasonCode.INTENT_RESOLUTION_SKIPPED_COMPATIBILITY,
-                    duration_ms=(time.perf_counter() - t0) * 1000.0,
-                )
-                t0 = time.perf_counter()
-                ctx.append_stage(
-                    StageName.EVALUATE_INFORMATION_READINESS,
-                    "skipped",
-                    ReasonCode.READINESS_EVALUATION_SKIPPED_COMPATIBILITY,
-                    duration_ms=(time.perf_counter() - t0) * 1000.0,
-                )
-                t0 = time.perf_counter()
-                ctx.append_stage(
-                    StageName.BUILD_CLARIFICATION_RESPONSE,
-                    "skipped",
-                    ReasonCode.CLARIFICATION_SKIPPED_COMPATIBILITY,
-                    duration_ms=(time.perf_counter() - t0) * 1000.0,
-                )
+                try:
+                    _compat_intent = self._intent_resolver(
+                        message=message,
+                        language=lang,
+                        has_verified_notification_origin=ctx.notification is not None,
+                    )
+                except Exception:
+                    _compat_intent = None
+
+                if (
+                    _compat_intent is not None
+                    and _compat_intent.intent_id is IntentId.REMINDER
+                ):
+                    intent_meta = _compat_intent
+                    ctx.append_stage(
+                        StageName.RESOLVE_INTENT,
+                        "ok",
+                        ReasonCode.INTENT_RESOLVED,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                    t0 = time.perf_counter()
+                    from backend.app.services.intelligence.reminder_event_readiness import (
+                        evaluate_reminder_event_readiness,
+                    )
+
+                    readiness_meta = evaluate_reminder_event_readiness(
+                        message=message,
+                        language=lang,
+                        intent=intent_meta,
+                        timezone_name=ctx.locale.timezone,
+                    )
+                    ctx.append_stage(
+                        StageName.EVALUATE_INFORMATION_READINESS,
+                        "ok",
+                        _READINESS_REASON[readiness_meta.status],
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                    t0 = time.perf_counter()
+                    if readiness_meta.status is ReadinessStatus.READY:
+                        ctx.append_stage(
+                            StageName.BUILD_CLARIFICATION_RESPONSE,
+                            "skipped",
+                            ReasonCode.CLARIFICATION_NOT_REQUIRED,
+                            duration_ms=(time.perf_counter() - t0) * 1000.0,
+                        )
+                    else:
+                        clarification_message = (
+                            readiness_meta.clarification.localized_message
+                            if readiness_meta.clarification
+                            else None
+                        )
+                        skip_generator = True
+                        ctx.append_stage(
+                            StageName.BUILD_CLARIFICATION_RESPONSE,
+                            "ok",
+                            ReasonCode.CLARIFICATION_PREPARED,
+                            duration_ms=(time.perf_counter() - t0) * 1000.0,
+                        )
+                else:
+                    ctx.append_stage(
+                        StageName.RESOLVE_INTENT,
+                        "skipped",
+                        ReasonCode.INTENT_RESOLUTION_SKIPPED_COMPATIBILITY,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                    t0 = time.perf_counter()
+                    ctx.append_stage(
+                        StageName.EVALUATE_INFORMATION_READINESS,
+                        "skipped",
+                        ReasonCode.READINESS_EVALUATION_SKIPPED_COMPATIBILITY,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                    t0 = time.perf_counter()
+                    ctx.append_stage(
+                        StageName.BUILD_CLARIFICATION_RESPONSE,
+                        "skipped",
+                        ReasonCode.CLARIFICATION_SKIPPED_COMPATIBILITY,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
             else:
                 t0 = time.perf_counter()
                 try:
@@ -589,6 +651,8 @@ class IntelligenceOrchestrator:
                         intent=intent_meta,
                         authenticated_user_id=authenticated_user_id,
                         language=lang,
+                        message=message,
+                        timezone_name=ctx.locale.timezone,
                     )
                     ctx.append_stage(
                         StageName.EVALUATE_INFORMATION_READINESS,
@@ -671,9 +735,14 @@ class IntelligenceOrchestrator:
         # I5 care-navigation — ONE canonical path via care_navigation_directory facade.
         # DIRECTORY_HIT → structured response; DIRECTORY_MISS → fail-safe.
         # Never fall through to LLM provider generation.
+        # REMINDER/event (I3) owns schedule phrasing — do not let care-nav steal it.
         directory_message: Optional[str] = None
         care_nav_handled = False
-        if not terminal_safety:
+        _reminder_owned = (
+            intent_meta is not None
+            and intent_meta.intent_id is IntentId.REMINDER
+        )
+        if not terminal_safety and not _reminder_owned:
             from backend.app.services.i5.care_navigation_directory import (
                 CareNavEntity,
                 STATUS_NO_VERIFIED,
@@ -821,6 +890,52 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
+        # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
+        # No direct Notification write; I10 scheduler consumes reminder fields.
+        reminder_message: Optional[str] = None
+        if (
+            not terminal_safety
+            and not care_nav_handled
+            and intent_meta is not None
+            and readiness_meta is not None
+            and readiness_meta.status is ReadinessStatus.READY
+            and intent_meta.intent_id.value == "reminder"
+            and (not skip_generator or clarification_message is None)
+        ):
+            from backend.app.services.intelligence.reminder_event_dispatch import (
+                dispatch_reminder_user_event,
+            )
+
+            try:
+                if self._db is None:
+                    raise RuntimeError("reminder_dispatch_requires_db")
+                dispatched = dispatch_reminder_user_event(
+                    self._db,
+                    user_id=authenticated_user_id,
+                    message=message,
+                    timezone_name=ctx.locale.timezone,
+                )
+                extra_reason_codes.append("I3_REMINDER_USEREVENT_DISPATCH")
+                if dispatched.get("duplicate"):
+                    extra_reason_codes.append("I3_REMINDER_USEREVENT_DEDUPED")
+                elif dispatched.get("created"):
+                    extra_reason_codes.append("I3_REMINDER_USEREVENT_CREATED")
+                if lang == "fa":
+                    reminder_message = "رویداد در «برنامه من» ثبت شد."
+                elif lang == "ar":
+                    reminder_message = "تم حفظ الموعد في «جدولي»."
+                else:
+                    reminder_message = "I’ve added this to My Schedule."
+            except Exception:
+                extra_reason_codes.append("I3_REMINDER_USEREVENT_FAIL_CLOSED")
+                reminder_message = (
+                    "I couldn’t save that schedule item right now."
+                    if lang == "en"
+                    else "الان نتوانستم این مورد را در برنامه ثبت کنم."
+                )
+            skip_generator = True
+            clarification_message = None
+
         # prepare
         t0 = time.perf_counter()
         if skip_generator and terminal_safety:
@@ -896,6 +1011,7 @@ class IntelligenceOrchestrator:
                 directory_message
                 or nutrition_message
                 or exercise_message
+                or reminder_message
                 or clarification_message
                 or ""
             )
@@ -916,6 +1032,7 @@ class IntelligenceOrchestrator:
                 directory_message is not None
                 or nutrition_message is not None
                 or exercise_message is not None
+                or reminder_message is not None
             ):
                 ctx.append_stage(
                     StageName.VALIDATE_GENERATION_RESULT,

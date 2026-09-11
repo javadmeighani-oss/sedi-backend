@@ -568,26 +568,30 @@ def test_caller_user_id_cannot_replace_jwt_identity(
 @patch(
     "backend.app.services.gate4.user_chat_reminder.create_user_chat_reminder",
     return_value={
-        "created": False,
-        "reason": "needs_clarification",
-        "clarification_message": "Please include a date and time for your reminder.",
+        "created": True,
+        "reason": "should_not_run",
+        "clarification_message": "legacy-must-not-surface",
     },
 )
 @patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
-def test_reminder_short_circuit_still_bypasses_orchestrator_generation(
+def test_incomplete_reminder_uses_i3_orchestrator_not_legacy(
     mock_cmd, mock_reminder, mock_process, db, user, mock_request, monkeypatch
 ):
+    """Legacy short-circuit demoted: incomplete REMINDER → I3 clarification via I1."""
     monkeypatch.delenv("SEDI_INTELLIGENCE_ORCHESTRATOR_V1", raising=False)
+    from backend.app.models import UserProfileCore
     from backend.app.routers.interact import chat
 
-    with patch(
-        "backend.app.services.intelligence.orchestrator.IntelligenceOrchestrator.process"
-    ) as mock_orch:
-        payload = ChatRequest(message="remind me to call the doctor")
-        resp = asyncio.run(chat(mock_request, payload, db, user))
-        assert resp.message == "Please include a date and time for your reminder."
-        mock_process.assert_not_called()
-        mock_orch.assert_not_called()
+    if db.query(UserProfileCore).filter(UserProfileCore.user_id == user.id).first() is None:
+        db.add(UserProfileCore(user_id=user.id, timezone="UTC"))
+        db.commit()
+
+    payload = ChatRequest(message="remind me to call the doctor")
+    resp = asyncio.run(chat(mock_request, payload, db, user))
+    assert "date" in resp.message.lower() or "time" in resp.message.lower()
+    assert "legacy-must-not-surface" not in resp.message
+    mock_process.assert_not_called()
+    mock_reminder.assert_not_called()
 
 
 @patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
