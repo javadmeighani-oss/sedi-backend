@@ -86804,3 +86804,7 @@ MUTATION_OUTSIDE_SCOPE=NO
 BE_FINAL_HEAD=291cd686f8a8316839d541f4c0339274ed56db59
 DROPBOX_SYNC=PASS
 NOTE=prior tip line had literal @$sha escape; corrected below after push of this note commit.
+
+### §488 tip sync - absolute tip
+BE_FINAL_HEAD=710b67dc89e938430ee2da3dd54bcf4d00c4d8c3
+DROPBOX_SYNC=PASS
