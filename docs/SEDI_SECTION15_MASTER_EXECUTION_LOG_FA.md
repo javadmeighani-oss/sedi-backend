@@ -86801,5 +86801,6 @@ NEXT_GATE_AUTHORIZED=NO
 MUTATION_OUTSIDE_SCOPE=NO
 
 ### §488 tip sync - final BE SHA after governance commit
-BE_FINAL_HEAD='"@$sha"'
+BE_FINAL_HEAD=291cd686f8a8316839d541f4c0339274ed56db59
 DROPBOX_SYNC=PASS
+NOTE=prior tip line had literal @$sha escape; corrected below after push of this note commit.
