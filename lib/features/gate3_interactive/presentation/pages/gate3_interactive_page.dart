@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
@@ -54,7 +55,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller = ChatController();
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
-    _controller.initialize(initialMessage: widget.initialMessage);
+    _controller.initialize(
+      initialMessage: widget.initialMessage,
+      notificationId: widget.notificationId,
+    );
   }
 
   @override
@@ -72,7 +76,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     if (mounted) setState(() {});
   }
 
-  Gate3Localization get _l10n => Gate3Localization(_controller.currentLanguage);
+  Gate3Localization get _l10n =>
+      Gate3Localization(SediLocaleController.instance.languageCode);
 
   void _scrollToBottomOnNewMessage() {
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -1,12 +1,14 @@
+import '../../../core/locale/sedi_locale_registry.dart';
 import '../../../core/utils/brand_name.dart';
 
-/// Gate 3 localized strings (fa / ar / en).
+/// Gate 3 localized strings — presentation adaptor only.
+/// Language authority is [SediLocaleController] / Account.preferred_language.
 class Gate3Localization {
   final String lang;
 
   const Gate3Localization(this.lang);
 
-  bool get isRtl => lang == 'fa' || lang == 'ar';
+  bool get isRtl => SediLocaleRegistry.resolve(lang).isRtl;
 
   String get notifications =>
       _t(en: 'Notifications', fa: 'اعلان‌ها', ar: 'الإشعارات');
@@ -30,6 +32,33 @@ class Gate3Localization {
       );
 
   String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
+
+  String get profileNameLabel =>
+      _t(en: 'Name', fa: 'نام', ar: 'الاسم');
+  String get profileDobLabel =>
+      _t(en: 'Date of birth', fa: 'تاریخ تولد', ar: 'تاريخ الميلاد');
+  String get profileSexLabel =>
+      _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
+  String get profilePhoneLabel =>
+      _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
+  String get phoneChangeDeferred => _t(
+        en:
+            'Phone change requires a secure OTP flow and will be available in a dedicated Gate.',
+        fa:
+            'تغییر شماره همراه نیازمند تأیید امن OTP است و در گیت جداگانه ارائه می‌شود.',
+        ar:
+            'يتطلب تغيير رقم الهاتف تدفق OTP آمنًا وسيتاح في بوابة مخصصة.',
+      );
+  String get whatSediKnows => _t(
+        en: 'What Sedi knows about me',
+        fa: 'آنچه صدی درباره من می‌داند',
+        ar: 'ما تعرفه صدي عني',
+      );
+  String get whatSediKnowsEmpty => _t(
+        en: 'No saved facts yet.',
+        fa: 'هنوز حقیقت ذخیره‌شده‌ای نیست.',
+        ar: 'لا توجد حقائق محفوظة بعد.',
+      );
 
   String get profileSettingsPlaceholder => _t(
         en: 'Profile settings will be available here soon.',

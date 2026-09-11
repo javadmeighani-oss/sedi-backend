@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/auth/auth_helper.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../gate3_localization.dart';
+import '../pages/gate3_profile_page.dart';
 
-/// Gate 3 settings sheet (profile placeholder + logout).
+/// Gate 3 settings sheet (profile + logout).
 class Gate3SettingsMenu {
   Gate3SettingsMenu._();
 
   static void show(BuildContext context, String lang) {
-    final l10n = Gate3Localization(lang);
+    final l10n = Gate3Localization(
+      lang.isNotEmpty ? lang : SediLocaleController.instance.languageCode,
+    );
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -40,7 +44,11 @@ class Gate3SettingsMenu {
                   title: Text(l10n.editProfile),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    _showProfilePlaceholder(context, l10n);
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const Gate3ProfilePage(),
+                      ),
+                    );
                   },
                 ),
                 const Divider(height: 1),
@@ -58,25 +66,6 @@ class Gate3SettingsMenu {
           ),
         );
       },
-    );
-  }
-
-  static void _showProfilePlaceholder(
-    BuildContext context,
-    Gate3Localization l10n,
-  ) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.editProfile),
-        content: Text(l10n.profileSettingsPlaceholder),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.close),
-          ),
-        ],
-      ),
     );
   }
 }
