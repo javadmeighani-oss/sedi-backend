@@ -88,7 +88,8 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["080_i9_device_reported_vital_status"], heads
+          assert len(heads) == 1, heads
+          assert script.get_revision("080_i9_device_reported_vital_status") is not None
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head

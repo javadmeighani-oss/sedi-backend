@@ -149,27 +149,30 @@ def assemble_care_subject_status_facts(
         evaluate_canonical_hr_stability,
     )
 
-    canonical = evaluate_canonical_hr_stability(
-        db, health_subject_id=health_subject_id, when=when
-    )
-    monitoring_status = canonical.status.value
-    monitoring_reason = canonical.reason
-    baseline_quality = canonical.evidence.baseline_quality
-    if canonical.status == CanonicalHrStabilityStatus.STABLE:
-        baseline_comparison = (
-            "Heart-rate pattern is within the subject's personal observed band."
-        )
-    elif canonical.status == CanonicalHrStabilityStatus.UNSTABLE_OR_CHANGED:
-        baseline_comparison = (
-            "Heart-rate pattern differs from the subject's personal observed band."
-        )
-    elif data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
+    if data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
+        monitoring_status = "INSUFFICIENT_DATA"
         monitoring_reason = "care_data_gap_path"
+        baseline_quality = None
         baseline_comparison = None
     else:
-        baseline_comparison = (
-            "Available heart-rate data is not sufficient to determine the monitoring status."
+        canonical = evaluate_canonical_hr_stability(
+            db, health_subject_id=health_subject_id, when=when
         )
+        monitoring_status = canonical.status.value
+        monitoring_reason = canonical.reason
+        baseline_quality = canonical.evidence.baseline_quality
+        if canonical.status == CanonicalHrStabilityStatus.STABLE:
+            baseline_comparison = (
+                "Heart-rate pattern is within the subject's personal observed band."
+            )
+        elif canonical.status == CanonicalHrStabilityStatus.UNSTABLE_OR_CHANGED:
+            baseline_comparison = (
+                "Heart-rate pattern differs from the subject's personal observed band."
+            )
+        else:
+            baseline_comparison = (
+                "Available heart-rate data is not sufficient to determine the monitoring status."
+            )
 
     return CareSubjectStatusFacts(
         health_subject_id=health_subject_id,
