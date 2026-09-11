@@ -86931,3 +86931,8 @@ NEXT_GATE_AUTHORIZED=NO
 
 CURSOR_HANDOFF_TIP=v784
 MASTER_LOG_TIP=§491
+
+### §491 tip sync
+BE_FINAL_HEAD=a247aa4981fc8547f5bf5c8a7848e722f81ef031
+DROPBOX_SYNC=PASS
+DROPBOX_CURSOR_HANDOFF=C:/Users/Javad Meighandi/Dropbox/Sedi/References/Cursor/Sedi_Cursor_Authoritative_Handoff_v784_FA.md
