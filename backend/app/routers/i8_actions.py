@@ -32,5 +32,6 @@ def generate_i8_action(
         persist=body.persist,
         plan_idempotency_key=body.plan_idempotency_key,
         action_idempotency_key=body.action_idempotency_key,
+        health_subject_id=body.health_subject_id,
     )
     return I8GenerateActionResponse(result=result.to_dict())

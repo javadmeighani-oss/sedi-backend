@@ -1,0 +1,74 @@
+name: A3 Self Other Subject Authority PG16
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/a3-authority-chat-stream-profile-foundation
+    paths:
+      - "backend/app/schemas/chat.py"
+      - "backend/app/schemas/interaction.py"
+      - "backend/app/schemas/i8_action.py"
+      - "backend/app/routers/interact.py"
+      - "backend/app/routers/i8_actions.py"
+      - "backend/app/routers/lifestyle.py"
+      - "backend/app/services/i10/device_reported_vital_status_producer.py"
+      - "backend/tests/test_a3_self_other_subject_authority.py"
+      - ".github/workflows/a3-self-other-subject-authority-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a3-self-other-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a3-self-other:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_so
+          POSTGRES_PASSWORD: sedi_so_pass
+          POSTGRES_DB: sedi_so
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_so -d sedi_so"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_so:sedi_so_pass@127.0.0.1:5432/sedi_so
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_so:sedi_so_pass@127.0.0.1:5432/sedi_so
+      SMS_DISABLED: "true"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Alembic + vector
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Targeted SELF/OTHER tests
+        run: python -m pytest -q backend/tests/test_a3_self_other_subject_authority.py --tb=short

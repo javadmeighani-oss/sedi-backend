@@ -14,4 +14,8 @@ class ChatRequest(BaseModel):
     interaction_source: Optional[str] = Field(
         None, description="Optional hint: chat, notification, device, or system"
     )
+    health_subject_id: Optional[int] = Field(
+        None,
+        description="Active HealthSubject; JWT Account must hold AHSA; OTHER chat fail-closed until governed context",
+    )
 

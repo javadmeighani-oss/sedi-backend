@@ -43,16 +43,16 @@ def render_device_reported_vital_status_body(
     previous_status: Optional[str],
     new_status: str,
 ) -> str:
+    # Generic subject wording — never hard-code a person label (e.g. Mother).
     if previous_status is None and new_status == STATUS_STABLE:
-        return "Gadget reports Mother's vital-sign status as stable."
+        return "Gadget reports the subject's vital-sign status as stable."
     if previous_status is None and new_status == STATUS_UNSTABLE:
-        return "Gadget reports Mother's vital-sign status as unstable/changed. Please check on her."
+        return "Gadget reports the subject's vital-sign status as unstable/changed. Please check on them."
     if previous_status == STATUS_STABLE and new_status == STATUS_UNSTABLE:
-        return "Gadget reports Mother's vital-sign status as unstable/changed. Please check on her."
+        return "Gadget reports the subject's vital-sign status as unstable/changed. Please check on them."
     if previous_status == STATUS_UNSTABLE and new_status == STATUS_STABLE:
-        return "Gadget reports Mother's status has returned to stable."
-    # Should not notify on same→same; fail-closed generic device wording.
-    return f"Gadget reports Mother's vital-sign status as {new_status.lower()}."
+        return "Gadget reports the subject's status has returned to stable."
+    return f"Gadget reports the subject's vital-sign status as {new_status.lower()}."
 
 
 def build_device_reported_vital_occurrence_key(

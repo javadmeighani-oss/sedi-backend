@@ -138,8 +138,63 @@ async def chat(
         )
     user_id = user.id
 
-    # Locale exactly once immediately after JWT ownership (I4 bypass closure).
+    # Locale helper available before subject gate (OTHER fail-closed needs lang).
     from backend.app.services.i18n.request_lang import resolve_request_lang
+
+    # Subject authority: JWT Account + AHSA; OTHER chat fail-closed (no SELF mix).
+    resolved_health_subject_id = None
+    if payload.health_subject_id is not None:
+        from backend.app.services.i9.health_subject_service import (
+            HealthSubjectAccessDenied,
+            require_account_subject_access,
+            resolve_canonical_active_self_subject,
+        )
+
+        try:
+            subject = require_account_subject_access(
+                db, user.id, int(payload.health_subject_id)
+            )
+        except HealthSubjectAccessDenied:
+            raise HTTPException(
+                status_code=403,
+                detail="health_subject_id not authorized for authenticated account",
+            )
+        resolved_health_subject_id = subject.id
+        self_subject = resolve_canonical_active_self_subject(db, user.id)
+        is_self = (
+            self_subject is not None
+            and int(self_subject.id) == int(subject.id)
+        ) or (
+            subject.subject_kind == "self"
+            and subject.linked_user_id == user.id
+        )
+        if not is_self:
+            # OTHER_CHAT=BLOCKED_CONTEXT — do not silently fall back to SELF memory/chat.
+            lang = resolve_request_lang(request, db=db, user_id=user.id)
+            blocked = {
+                "en": (
+                    "I can only chat about your own health context for now. "
+                    "Switch back to yourself, or use Health/Gadgets for this person."
+                ),
+                "fa": (
+                    "فعلاً فقط می‌توانم دربارهٔ خودتان گفتگو کنم. "
+                    "به خودتان برگردید یا از بخش سلامت/گجت برای این فرد استفاده کنید."
+                ),
+                "ar": (
+                    "يمكنني حالياً الدردشة حول سياقك الصحي فقط. "
+                    "ارجع إلى نفسك أو استخدم الصحة/الأجهزة لهذا الشخص."
+                ),
+            }
+            msg = blocked.get(lang, blocked["en"])
+            return InteractionResponse(
+                message=msg,
+                language=lang,
+                user_id=user.id,
+                timestamp=datetime.utcnow(),
+                health_subject_id=resolved_health_subject_id,
+                other_chat_blocked=True,
+                conversation_id=payload.conversation_id,
+            )
 
     response_language = resolve_request_lang(request, db=db, user_id=user.id)
 

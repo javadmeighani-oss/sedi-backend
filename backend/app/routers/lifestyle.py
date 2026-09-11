@@ -45,6 +45,39 @@ class LifestyleUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     entries: List[LifestyleEntry] = Field(..., description="List of lifestyle facts to update")
+    health_subject_id: Optional[int] = Field(
+        None,
+        description="If set and not SELF, rejected — Lifestyle OTHER not supported without schema",
+    )
+
+
+def _reject_other_lifestyle_subject(db: Session, account_user_id: int, health_subject_id: Optional[int]) -> None:
+    """SELF-only lifestyle: OTHER health_subject_id fail-closed (no SELF data under OTHER)."""
+    if health_subject_id is None:
+        return
+    from backend.app.services.i9.health_subject_service import (
+        HealthSubjectAccessDenied,
+        require_account_subject_access,
+        resolve_canonical_active_self_subject,
+    )
+
+    try:
+        subject = require_account_subject_access(db, account_user_id, int(health_subject_id))
+    except HealthSubjectAccessDenied as exc:
+        raise HTTPException(status_code=403, detail="health_subject_id not authorized") from exc
+    self_subject = resolve_canonical_active_self_subject(db, account_user_id)
+    is_self = self_subject is not None and int(self_subject.id) == int(subject.id)
+    if not is_self:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "ok": False,
+                "error": {
+                    "code": "LIFESTYLE_OTHER_UNSUPPORTED",
+                    "message": "Lifestyle is available for SELF HealthSubject only",
+                },
+            },
+        )
 
 
 # -------------------- Endpoints --------------------
@@ -61,6 +94,7 @@ def update_lifestyle(
     Upserts facts into UserMemoryFact (domain+key unique per user).
     Requires Bearer JWT. user_id is derived from the token only.
     """
+    _reject_other_lifestyle_subject(db, auth_user.id, request.health_subject_id)
     user_id = auth_user.id
     updated_facts = []
     errors = []
@@ -110,15 +144,12 @@ def update_lifestyle(
 
 @router.get("/context", response_model=APIResponse)
 def get_lifestyle_context(
+    health_subject_id: Optional[int] = Query(default=None),
     auth_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Get compact memory context for the authenticated user.
-
-    Returns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).
-    Requires Bearer JWT.
-    """
+    """Get compact memory context for the authenticated user (SELF only if subject set)."""
+    _reject_other_lifestyle_subject(db, auth_user.id, health_subject_id)
     context = build_memory_context(db, auth_user.id)
     return APIResponse(ok=True, data=context.to_dict())
 
@@ -128,13 +159,15 @@ def get_lifestyle_context(
 def get_lifestyle_summary(
     auth_user: models.User = Depends(get_current_user),
     lang: str = Query("en", description="Response language: en, fa, ar"),
+    health_subject_id: Optional[int] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     """
     Get lifestyle summary for frontend display.
     Composes: What I know, Recent patterns, Next suggested check-in.
-    Requires Bearer JWT.
+    Requires Bearer JWT. OTHER subject fail-closed.
     """
+    _reject_other_lifestyle_subject(db, auth_user.id, health_subject_id)
     data = generate_summary(db, auth_user.id, language=lang)
     return APIResponse(ok=True, data=data)
 

@@ -13,6 +13,9 @@ class I8GenerateActionRequest(BaseModel):
     plan_idempotency_key: Optional[str] = Field(None, max_length=128)
     action_idempotency_key: Optional[str] = Field(None, max_length=128)
     persist: bool = True
+    health_subject_id: Optional[int] = Field(
+        None, description="Target HealthSubject; JWT Account must hold AHSA"
+    )
 
 
 class I8GenerateActionResponse(BaseModel):

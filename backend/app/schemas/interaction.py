@@ -17,3 +17,5 @@ class InteractionResponse(BaseModel):
     proactive_opener: Optional[str] = None
     first_intro: Optional[bool] = None
     intro_completed: Optional[bool] = None
+    health_subject_id: Optional[int] = None
+    other_chat_blocked: Optional[bool] = None
