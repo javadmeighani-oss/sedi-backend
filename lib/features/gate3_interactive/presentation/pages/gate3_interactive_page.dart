@@ -26,12 +26,15 @@ import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
+  /// Composer-only seed text. Never auto-sends; never inserts into transcript.
+  final String? initialDraft;
   final bool fromNotification;
   final int? notificationId;
 
   const Gate3InteractivePage({
     super.key,
     this.initialMessage,
+    this.initialDraft,
     this.fromNotification = false,
     this.notificationId,
   });
@@ -279,6 +282,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                               placeholder: l10n.composerPlaceholder,
                               lang: _controller.currentLanguage,
                               isRtl: isRtl,
+                              initialText: widget.initialDraft,
                               onListeningChanged: (listening) {
                                 if (_composerListening != listening) {
                                   setState(

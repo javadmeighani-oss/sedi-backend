@@ -120,6 +120,110 @@ class LifestyleL10n {
   String get dinner => _t(en: 'Dinner', fa: 'شام', ar: 'عشاء');
   String get snack => _t(en: 'Snack', fa: 'میان‌وعده', ar: 'وجبة خفيفة');
 
+  String get nutritionActive => _t(
+        en: 'Your nutrition plan',
+        fa: 'برنامه تغذیه شما',
+        ar: 'خطة التغذية الخاصة بك',
+      );
+  String get exerciseActive => _t(
+        en: 'Your exercise plan',
+        fa: 'برنامه ورزش شما',
+        ar: 'خطة التمرين الخاصة بك',
+      );
+  String get reviewDueTitle => _t(
+        en: 'Plan review due',
+        fa: 'زمان بازبینی برنامه',
+        ar: 'حان وقت مراجعة الخطة',
+      );
+  String get reviewDueBody => _t(
+        en: 'Your current cycle has ended. Review with Sedi when ready.',
+        fa: 'چرخه فعلی به پایان رسیده است. وقتی آماده بودید با صدی بازبینی کنید.',
+        ar: 'انتهت دورتك الحالية. راجع مع سدي عندما تكون جاهزاً.',
+      );
+  String get planUnavailable => _t(
+        en: 'Plan unavailable',
+        fa: 'برنامه در دسترس نیست',
+        ar: 'الخطة غير متاحة',
+      );
+  String get planUnavailableBody => _t(
+        en: 'Could not load your weekly plan right now.',
+        fa: 'فعلاً نمی‌توان برنامه هفتگی را بارگذاری کرد.',
+        ar: 'تعذر تحميل خطتك الأسبوعية الآن.',
+      );
+  String get noActionsThisDay => _t(
+        en: 'No items for this day.',
+        fa: 'موردی برای این روز نیست.',
+        ar: 'لا عناصر لهذا اليوم.',
+      );
+  String get reviewNutritionDraft => _t(
+        en: 'Review my nutrition plan with Sedi',
+        fa: 'بازبینی برنامه تغذیه من با صدی',
+        ar: 'مراجعة خطة التغذية مع سدي',
+      );
+  String get reviewExerciseDraft => _t(
+        en: 'Review my exercise plan with Sedi',
+        fa: 'بازبینی برنامه ورزش من با صدی',
+        ar: 'مراجعة خطة التمرين مع سدي',
+      );
+
+  String cycleRangeLabel(String start, String end) {
+    if (end.isEmpty) {
+      return _t(
+        en: 'Cycle from $start',
+        fa: 'چرخه از $start',
+        ar: 'الدورة من $start',
+      );
+    }
+    return _t(
+      en: 'Cycle $start – $end',
+      fa: 'چرخه $start – $end',
+      ar: 'الدورة $start – $end',
+    );
+  }
+
+  /// ISO weekday: 1=Monday … 7=Sunday (from backend local_date).
+  String weekdayShort(int isoWeekday) {
+    switch (isoWeekday) {
+      case 1:
+        return _t(en: 'Mon', fa: 'دوشنبه', ar: 'الإثنين');
+      case 2:
+        return _t(en: 'Tue', fa: 'سه‌شنبه', ar: 'الثلاثاء');
+      case 3:
+        return _t(en: 'Wed', fa: 'چهارشنبه', ar: 'الأربعاء');
+      case 4:
+        return _t(en: 'Thu', fa: 'پنجشنبه', ar: 'الخميس');
+      case 5:
+        return _t(en: 'Fri', fa: 'جمعه', ar: 'الجمعة');
+      case 6:
+        return _t(en: 'Sat', fa: 'شنبه', ar: 'السبت');
+      case 7:
+        return _t(en: 'Sun', fa: 'یکشنبه', ar: 'الأحد');
+      default:
+        return '';
+    }
+  }
+
+  String mealSlotLabel(String slot) {
+    switch (slot.toLowerCase()) {
+      case 'breakfast':
+        return breakfast;
+      case 'lunch':
+        return lunch;
+      case 'dinner':
+        return dinner;
+      case 'snack':
+        return snack;
+      default:
+        return slot;
+    }
+  }
+
+  String durationMinutes(int minutes) => _t(
+        en: '$minutes min',
+        fa: '$minutes دقیقه',
+        ar: '$minutes دقيقة',
+      );
+
   String hrStatusLabel(String code) {
     switch (code) {
       case 'STABLE':

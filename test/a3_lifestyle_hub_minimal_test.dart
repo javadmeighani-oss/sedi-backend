@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/locale/calendar_date_math.dart';
 import 'package:sedi_app/core/theme/app_theme.dart';
+import 'package:sedi_app/data/dto/lifestyle/lifestyle_weekly_plan_dto.dart';
+import 'package:sedi_app/features/auth_otp/presentation/birth_calendar_helper.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart';
 import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
@@ -97,17 +100,40 @@ void main() {
     expect(src.contains('1440'), isTrue);
   });
 
-  test('15/16 nutrition + exercise safe empty states', () {
+  test('15/16 nutrition + exercise weekly plan projection (no fake content)', () {
     final n = File(
       'lib/features/lifestyle/presentation/pages/lifestyle_nutrition_page.dart',
     ).readAsStringSync();
     final e = File(
       'lib/features/lifestyle/presentation/pages/lifestyle_exercise_page.dart',
     ).readAsStringSync();
-    expect(n.contains('noNutrition'), isTrue);
-    expect(n.contains('openLifestyleChat'), isTrue);
-    expect(e.contains('noExercise'), isTrue);
-    expect(e.contains('openLifestyleChat'), isTrue);
+    final view = File(
+      'lib/features/lifestyle/presentation/widgets/lifestyle_weekly_plan_view.dart',
+    ).readAsStringSync();
+    final svc = File(
+      'lib/services/lifestyle/lifestyle_weekly_plan_service.dart',
+    ).readAsStringSync();
+    expect(n.contains('LifestyleWeeklyPlanView'), isTrue);
+    expect(n.contains('LifestyleWeeklyDomain.nutrition'), isTrue);
+    expect(e.contains('LifestyleWeeklyPlanView'), isTrue);
+    expect(e.contains('LifestyleWeeklyDomain.exercise'), isTrue);
+    expect(view.contains('LifestyleWeeklyPlanService'), isTrue);
+    expect(view.contains('openLifestyleChat'), isTrue);
+    expect(view.contains('noNutrition'), isTrue);
+    expect(view.contains('noExercise'), isTrue);
+    expect(view.contains("'Mon'"), isFalse);
+    expect(view.contains("'Tue'"), isFalse);
+    expect(svc.contains('/lifestyle/weekly-plan'), isTrue);
+    // One shared service path — no domain-specific weekly services.
+    expect(
+      Directory('lib/services/lifestyle')
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.path.replaceAll(r'\', '/'))
+          .where((p) => p.contains('weekly'))
+          .length,
+      1,
+    );
   });
 
   test('17 no frontend clinical/plan inference markers', () {
@@ -120,6 +146,87 @@ void main() {
       'lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart',
     ).readAsStringSync();
     expect(health.contains('hrStatusLabel'), isTrue);
+  });
+
+  test('18 weekly DTO parse + domain split + states (CI coverage)', () {
+    final dto = LifestyleWeeklyPlanDto.fromJson({
+      'cycle_start': '2026-03-10',
+      'cycle_end': '2026-03-16',
+      'timezone': 'Asia/Tehran',
+      'state': 'active',
+      'review_due': false,
+      'days': [
+        {
+          'local_date': '2026-03-10',
+          'day_index': 1,
+          'nutrition': [
+            {
+              'title': 'Oats',
+              'status': 'ACTIVE',
+              'meal_slot': 'breakfast',
+              'local_time': '08:00',
+            }
+          ],
+          'exercise': [
+            {
+              'title': 'Walk',
+              'status': 'ACTIVE',
+              'duration_minutes': 30,
+              'local_time': '18:00',
+            }
+          ],
+        },
+      ],
+    });
+    expect(dto.state, 'active');
+    expect(dto.days.single.nutrition.single.title, 'Oats');
+    expect(dto.days.single.exercise.single.durationMinutes, 30);
+    for (final state in ['empty', 'review_due', 'unavailable']) {
+      expect(
+        LifestyleWeeklyPlanDto.fromJson({'state': state, 'days': []}).state,
+        state,
+      );
+    }
+    final view = File(
+      'lib/features/lifestyle/presentation/widgets/lifestyle_weekly_plan_view.dart',
+    ).readAsStringSync();
+    expect(view.contains("'active'"), isTrue);
+    expect(view.contains("'empty'"), isTrue);
+    expect(view.contains("'review_due'"), isTrue);
+    expect(view.contains("'unavailable'"), isTrue);
+  });
+
+  test('19 locale calendars + weekday + composer draft (CI coverage)', () {
+    expect(LifestyleL10n('en').isRtl, isFalse);
+    expect(LifestyleL10n('fa').isRtl, isTrue);
+    expect(LifestyleL10n('ar').isRtl, isTrue);
+    expect(LifestyleL10n('en').weekdayShort(1), 'Mon');
+    expect(LifestyleL10n('fa').weekdayShort(1), isNot(equals('Mon')));
+    expect(CalendarDateMath.formatIsoForLanguage('2026-03-10', 'en'),
+        '2026-03-10');
+    expect(CalendarDateMath.formatIsoForLanguage('2026-03-10', 'fa'),
+        isNot(equals('2026-03-10')));
+    expect(CalendarDateMath.formatIsoForLanguage('2026-03-10', 'ar'),
+        isNot(equals('2026-03-10')));
+    expect(
+      BirthCalendarHelper.gregorianToJalali(2026, 3, 10),
+      CalendarDateMath.gregorianToJalali(2026, 3, 10),
+    );
+    final page = File(
+      'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
+    ).readAsStringSync();
+    final composer = File(
+      'lib/features/gate3_interactive/presentation/widgets/gate3_composer.dart',
+    ).readAsStringSync();
+    expect(page.contains('initialDraft'), isTrue);
+    expect(page.contains('initialText: widget.initialDraft'), isTrue);
+    expect(page.contains('initialMessage: widget.initialMessage'), isTrue);
+    final init = RegExp(r'void initState\(\)[\s\S]*?_onTextChanged\(\);')
+        .firstMatch(composer)
+        ?.group(0);
+    expect(init, isNotNull);
+    expect(init!.contains('onSendText'), isFalse);
+    expect(init.contains('_send'), isFalse);
   });
 
   testWidgets('top row structure smoke', (tester) async {

@@ -89,8 +89,11 @@ class _HubCard {
 }
 
 /// Opens canonical A3 chat (presentation CTA only).
-void openLifestyleChat(BuildContext context) {
+/// [initialDraft] populates the composer only — never auto-sends.
+void openLifestyleChat(BuildContext context, {String? initialDraft}) {
   Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => const Gate3InteractivePage()),
+    MaterialPageRoute<void>(
+      builder: (_) => Gate3InteractivePage(initialDraft: initialDraft),
+    ),
   );
 }

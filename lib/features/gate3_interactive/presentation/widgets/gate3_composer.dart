@@ -14,6 +14,8 @@ class Gate3Composer extends StatefulWidget {
   final String lang;
   final bool isRtl;
   final ValueChanged<bool>? onListeningChanged;
+  /// Populates the text field only. Does not send or insert transcript.
+  final String? initialText;
 
   const Gate3Composer({
     super.key,
@@ -26,6 +28,7 @@ class Gate3Composer extends StatefulWidget {
     required this.lang,
     required this.isRtl,
     this.onListeningChanged,
+    this.initialText,
   });
 
   @override
@@ -41,6 +44,11 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   @override
   void initState() {
     super.initState();
+    final seed = widget.initialText?.trim();
+    if (seed != null && seed.isNotEmpty) {
+      _controller.text = seed;
+      _controller.selection = TextSelection.collapsed(offset: seed.length);
+    }
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_notifyListening);
     _onTextChanged();
