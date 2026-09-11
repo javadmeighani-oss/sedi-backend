@@ -52,8 +52,14 @@ void main() {
       'lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart',
     ).readAsStringSync();
     expect(healthSrc.contains('statusChangeAmber'), isTrue);
-    expect(healthSrc.contains('dangerRed'), isFalse);
-    expect(healthSrc.contains('UNSTABLE_OR_CHANGED'), isTrue);
+    expect(healthSrc.contains('statusStableOlive'), isTrue);
+    // I9 changed state must not use dangerRed in status mapping.
+    final statusFn = RegExp(
+      r'Color _statusColor[\s\S]*?default:\s*return AppTheme\.statusNeutralMuted;',
+    ).firstMatch(healthSrc)?.group(0);
+    expect(statusFn, isNotNull);
+    expect(statusFn!.contains('dangerRed'), isFalse);
+    expect(statusFn.contains('UNSTABLE_OR_CHANGED'), isTrue);
   });
 
   test('9/10 health page uses backend projection + ranges', () {
