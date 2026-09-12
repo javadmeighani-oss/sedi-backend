@@ -93,9 +93,25 @@ class DeviceClaimRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     device_id: str
-    health_subject_id: int
+    health_subject_id: Optional[int] = Field(
+        None,
+        description="Optional; omitted => server resolves Account SELF HealthSubject",
+    )
     possession_proof: str = Field(..., description="COMMISSIONING_READY / per-device credential proof")
     gateway_install_id: Optional[str] = Field(None, description="Optional stable mobile gateway install id")
+    setup_code: Optional[str] = Field(None, description="Required when Device has setup_code_verifier")
+    device_category: Optional[Literal["SELF", "OTHER"]] = Field(
+        None,
+        description="Device classification (not HealthSubject/person semantics)",
+    )
+    user_label: Optional[str] = Field(None, max_length=80, description="Required when device_category=OTHER")
+
+
+class DevicePresentationUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    device_category: Literal["SELF", "OTHER"]
+    user_label: Optional[str] = Field(None, max_length=80)
 
 
 class DeviceTransferRequest(BaseModel):

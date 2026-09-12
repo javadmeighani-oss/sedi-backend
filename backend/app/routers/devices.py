@@ -14,6 +14,7 @@ from backend.app.schemas.devices import (
     DevicesListResponse,
     HubStatusResponse,
     DeviceClaimRequest,
+    DevicePresentationUpdateRequest,
     DeviceTransferRequest,
     DeviceGatewayPairRequest,
     DeviceGatewayDisconnectRequest,
@@ -30,8 +31,9 @@ from backend.app.services.gate5.gadget_hub_status import (
 from backend.app.services.i9.device_binding_service import bind_device_to_subject, rebind_device
 from backend.app.services.i9.device_claim_service import (
     DeviceClaimError,
+    assert_v1_trusted_device_id,
     claim_device_to_health_subject,
-    provision_unclaimed_device_platform,
+    provision_unclaimed_device_v1,
 )
 from backend.app.services.i9.device_gateway_service import (
     DeviceGatewayError,
@@ -43,6 +45,7 @@ from backend.app.services.i9.device_lifecycle_service import (
     release_device,
     revoke_device_lifecycle,
     transfer_device,
+    update_device_presentation,
 )
 from backend.app.services.i9.health_subject_service import (
     account_can_access_subject,
@@ -245,6 +248,8 @@ def list_devices(
                 "status": d.status,
                 "health_subject_id": d.health_subject_id,
                 "subject_user_id": d.subject_user_id or d.user_id,
+                "device_category": d.device_category,
+                "user_label": d.user_label,
                 "last_seen_at": d.last_seen_at,
                 "created_at": d.created_at,
                 "revoked_at": d.revoked_at,
@@ -274,7 +279,8 @@ def provision_device_platform(
     """Trusted fleet provisioning only. Requires ADMIN_TOKEN + X-Admin-Token; not available to ordinary users."""
     require_admin_token_fail_closed(request)
     try:
-        device, token = provision_unclaimed_device_platform(
+        assert_v1_trusted_device_id(body.device_id)
+        device, token, setup_code = provision_unclaimed_device_v1(
             db,
             device_id=body.device_id,
             device_type=body.device_type or "heart_rate",
@@ -284,6 +290,7 @@ def provision_device_platform(
             data={
                 "device_id": device.device_id,
                 "token": token,
+                "setup_code": setup_code,
                 "claim_lifecycle_status": device.claim_lifecycle_status,
             },
         )
@@ -306,13 +313,20 @@ def claim_device_route(
             error={"code": "DEVICE_NOT_REGISTERED", "message": "Device is not registered in the trusted fleet"},
         )
     try:
+        if body.health_subject_id is None:
+            health_subject_id = ensure_self_subject_for_account(db, auth_user.id, commit=False).id
+        else:
+            health_subject_id = body.health_subject_id
         binding = claim_device_to_health_subject(
             db,
             device=device,
             account_user_id=auth_user.id,
-            health_subject_id=body.health_subject_id,
+            health_subject_id=health_subject_id,
             possession_proof=body.possession_proof,
             gateway_install_id=body.gateway_install_id,
+            setup_code=body.setup_code,
+            device_category=body.device_category,
+            user_label=body.user_label,
         )
         return DeviceRegisterResponse(
             ok=True,
@@ -321,9 +335,43 @@ def claim_device_route(
                 "health_subject_id": device.health_subject_id,
                 "binding_id": binding.id,
                 "claim_lifecycle_status": device.claim_lifecycle_status,
+                "device_category": device.device_category,
+                "user_label": device.user_label,
             },
         )
     except DeviceClaimError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.patch("/{device_id}", response_model=DeviceRegisterResponse)
+def patch_device_presentation_route(
+    device_id: str,
+    body: DevicePresentationUpdateRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Owner-authorized presentation update: device_category + user_label only."""
+    device = _device_for_account(db, device_id, auth_user.id)
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    try:
+        update_device_presentation(
+            db,
+            device=device,
+            account_user_id=auth_user.id,
+            device_category=body.device_category,
+            user_label=body.user_label,
+        )
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "device_category": device.device_category,
+                "user_label": device.user_label,
+            },
+        )
+    except DeviceLifecycleError as exc:
         return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
 
 

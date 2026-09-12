@@ -100,15 +100,19 @@ def test_f3_ordinary_user_cannot_obtain_factory_credential(client, db, monkeypat
 
 
 def test_f3b_trusted_admin_can_provision_and_receive_credential(client, db, monkeypatch):
+    monkeypatch.setenv("SEDI_DEVICE_SETUP_CODE_PEPPER", "test-setup-pepper-fleet")
     response = client.post(
         "/devices/provision",
-        json={"device_id": "FleetDev001"},
+        json={"device_id": "SEDI-ECG-000000000001"},
         headers=_admin_headers(monkeypatch),
     )
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["token"]
+    assert body["data"]["setup_code"]
+    assert len(body["data"]["setup_code"]) == 4
+    assert body["data"]["setup_code"].isdigit()
     assert body["data"]["claim_lifecycle_status"] == "unclaimed"
 
 
@@ -145,22 +149,26 @@ def test_f5_claim_never_auto_provisions_unknown_device(client, db, monkeypatch, 
 
 
 def test_f6_preprovisioned_unclaimed_device_can_be_claimed(client, db, monkeypatch, account_user):
+    monkeypatch.setenv("SEDI_DEVICE_SETUP_CODE_PEPPER", "test-setup-pepper-fleet")
     account_user.phone = "+989190030006"
     db.commit()
     admin = client.post(
         "/devices/provision",
-        json={"device_id": "FleetClaim001"},
+        json={"device_id": "SEDI-BP-000000000006"},
         headers=_admin_headers(monkeypatch),
     )
     factory_token = admin.json()["data"]["token"]
+    setup_code = admin.json()["data"]["setup_code"]
     user_token = _user_token(client, db, monkeypatch, account_user.phone)
     subject = ensure_self_subject_for_account(db, account_user.id)
     claim = client.post(
         "/devices/claim",
         json={
-            "device_id": "FleetClaim001",
+            "device_id": "SEDI-BP-000000000006",
             "health_subject_id": subject.id,
             "possession_proof": factory_token,
+            "setup_code": setup_code,
+            "device_category": "SELF",
         },
         headers={"Authorization": f"Bearer {user_token}"},
     )
@@ -362,4 +370,4 @@ def test_f17_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["080_i9_device_reported_vital_status"]
+    assert heads == ["084_device_category_setup_code_authority"]

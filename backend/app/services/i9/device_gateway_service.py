@@ -128,3 +128,34 @@ def list_active_gateways(db: Session, device_row_id: int) -> List[models.DeviceM
         .order_by(models.DeviceMobileGatewayAuthorization.authorized_at.desc())
         .all()
     )
+
+
+def revoke_all_mobile_gateways_for_device(
+    db: Session,
+    *,
+    device: models.Device,
+    account_user_id: Optional[int] = None,
+    commit: bool = False,
+) -> int:
+    """Revoke every active mobile gateway authorization for a Device."""
+    rows = list_active_gateways(db, device.id)
+    if not rows:
+        return 0
+    now = utc_now()
+    for row in rows:
+        row.is_active = False
+        row.revoked_at = now
+        db.add(row)
+    record_lifecycle_audit(
+        db,
+        device_row_id=device.id,
+        operation="gateway_revoke_all",
+        actor_account_user_id=account_user_id,
+        detail={"revoked_count": len(rows)},
+        commit=False,
+    )
+    if commit:
+        db.commit()
+    else:
+        db.flush()
+    return len(rows)

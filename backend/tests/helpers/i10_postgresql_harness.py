@@ -28,7 +28,8 @@ _REV_080 = "080_i9_device_reported_vital_status"
 _REV_081 = "081_self_health_subject_1to1_hardening"
 _REV_082 = "082_sedi_intro_completed_at"
 _REV_083 = "083_otp_purpose_phone_change"
-ALEMBIC_HEAD = _REV_083
+_REV_084 = "084_device_category_setup_code_authority"
+ALEMBIC_HEAD = _REV_084
 
 
 def i10_test_database_url() -> str | None:

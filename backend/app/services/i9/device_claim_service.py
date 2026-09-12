@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+import re
 from typing import Optional, Tuple
 
 from sqlalchemy.orm import Session
@@ -16,7 +15,19 @@ from backend.app.services.i9.device_credential_verifier import (
     get_device_credential_verifier,
 )
 from backend.app.services.i9.device_lifecycle_service import record_lifecycle_audit
+from backend.app.services.i9.device_setup_code_service import (
+    DeviceSetupCodeError,
+    assert_setup_code_not_locked,
+    assign_unique_setup_code,
+    record_setup_code_failure,
+    reset_setup_code_failure_state,
+    utc_now,
+    validate_category_and_label,
+    verify_setup_code_constant_time,
+)
 from backend.app.services.i9.health_subject_service import account_can_access_subject
+
+_V1_DEVICE_ID_RE = re.compile(r"^SEDI-[A-Z0-9]{2,12}-\d{12}$")
 
 
 class DeviceClaimError(Exception):
@@ -26,8 +37,16 @@ class DeviceClaimError(Exception):
         self.message = message
 
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+def is_v1_trusted_device_id(device_id: str) -> bool:
+    return bool(_V1_DEVICE_ID_RE.match(device_id or ""))
+
+
+def assert_v1_trusted_device_id(device_id: str) -> None:
+    if not is_v1_trusted_device_id(device_id):
+        raise DeviceClaimError(
+            "DEVICE_ID_V1_FORMAT_REQUIRED",
+            "device_id must match SEDI-<TYPE>-<12_DIGIT_SERIAL>",
+        )
 
 
 def provision_unclaimed_device_platform(
@@ -37,7 +56,10 @@ def provision_unclaimed_device_platform(
     device_type: str = "heart_rate",
     commit: bool = True,
 ) -> Tuple[models.Device, str]:
-    """Create platform identity eligible for governed initial claim."""
+    """Create platform identity eligible for governed initial claim.
+
+    Canonical return contract: (device, plaintext_token).
+    """
     existing = db.query(models.Device).filter(models.Device.device_id == device_id).first()
     if existing is not None:
         raise DeviceClaimError("DEVICE_ID_TAKEN", "device_id already exists")
@@ -54,7 +76,8 @@ def provision_unclaimed_device_platform(
         credential_kind="per_device_symmetric",
         credential_fingerprint=credential_fingerprint_from_hash(token_hash),
         token_hash=token_hash,
-        created_at=utc_now(),
+        created_at=utc_now().replace(tzinfo=None),
+        setup_code_failed_attempts=0,
     )
     db.add(device)
     db.flush()
@@ -70,6 +93,42 @@ def provision_unclaimed_device_platform(
         db.commit()
         db.refresh(device)
     return device, token
+
+
+def provision_unclaimed_device_v1(
+    db: Session,
+    *,
+    device_id: str,
+    device_type: str = "heart_rate",
+    commit: bool = True,
+) -> Tuple[models.Device, str, str]:
+    """Trusted V1 provision: reuse platform identity + attach setup-code authority once.
+
+    Returns (device, plaintext_token, plaintext_setup_code).
+    Does not create a parallel Device registry or claim lifecycle.
+    """
+    device, token = provision_unclaimed_device_platform(
+        db,
+        device_id=device_id,
+        device_type=device_type,
+        commit=False,
+    )
+    try:
+        setup_code = assign_unique_setup_code(db, device, commit=False)
+    except DeviceSetupCodeError as exc:
+        raise DeviceClaimError(exc.code, exc.message) from exc
+    record_lifecycle_audit(
+        db,
+        device_row_id=device.id,
+        operation="provision_setup_code_attached",
+        actor_account_user_id=None,
+        detail={"setup_code_attached": True, "setup_code_version": device.setup_code_version},
+        commit=False,
+    )
+    if commit:
+        db.commit()
+        db.refresh(device)
+    return device, token, setup_code
 
 
 def assert_device_claim_eligible(db: Session, device: models.Device) -> None:
@@ -97,26 +156,70 @@ def claim_device_to_health_subject(
     health_subject_id: int,
     possession_proof: str,
     gateway_install_id: Optional[str] = None,
+    setup_code: Optional[str] = None,
+    device_category: Optional[str] = None,
+    user_label: Optional[str] = None,
     commit: bool = True,
 ) -> models.DeviceSubjectBinding:
-    """Governed claim: verify possession proof, authorize subject, create binding."""
+    """Governed claim: verify possession proof, authorize subject, create binding.
+
+    Canonical order for setup-code devices:
+    claim eligible → lock → setup code → possession → subject access →
+    category/label → binding → ownership → gateway → reset failures → COMMIT.
+    """
+    # Claim lifecycle eligibility
     if device.claim_lifecycle_status == "claimed":
         active = get_active_binding(db, device.id)
         if active is not None:
-            raise DeviceClaimError("CLAIMED_DEVICE_RECLAIM_FORBIDDEN", "Already claimed device cannot be silently re-claimed")
+            raise DeviceClaimError(
+                "CLAIMED_DEVICE_RECLAIM_FORBIDDEN",
+                "Already claimed device cannot be silently re-claimed",
+            )
         raise DeviceClaimError("DEVICE_ALREADY_CLAIMED", "Device is already claimed")
 
     if device.claim_lifecycle_status not in ("unclaimed", "released"):
-        raise DeviceClaimError("DEVICE_NOT_CLAIMABLE", f"Device status '{device.claim_lifecycle_status}' blocks claim")
+        raise DeviceClaimError(
+            "DEVICE_NOT_CLAIMABLE",
+            f"Device status '{device.claim_lifecycle_status}' blocks claim",
+        )
 
-    if not account_can_access_subject(db, account_user_id, health_subject_id):
-        raise DeviceClaimError("HEALTH_SUBJECT_ACCESS_DENIED", "Account cannot manage this health subject")
+    requires_setup = bool(device.setup_code_verifier)
+    if requires_setup:
+        try:
+            assert_setup_code_not_locked(device)
+        except DeviceSetupCodeError as exc:
+            raise DeviceClaimError(exc.code, exc.message) from exc
+        if setup_code is None or not str(setup_code).strip():
+            raise DeviceClaimError("SETUP_CODE_REQUIRED", "Setup code is required for this device")
+        try:
+            ok = verify_setup_code_constant_time(device, setup_code)
+        except DeviceSetupCodeError as exc:
+            record_setup_code_failure(db, device, commit=True)
+            raise DeviceClaimError(exc.code, exc.message) from exc
+        if not ok:
+            record_setup_code_failure(db, device, commit=True)
+            raise DeviceClaimError("SETUP_CODE_INVALID", "Setup code verification failed")
 
     verifier = get_device_credential_verifier()
     verification = verifier.verify(device, possession_proof)
     if not verification.verified:
         code = verification.reject_reason or "POSSESSION_PROOF_FAILED"
         raise DeviceClaimError(code, "Device possession proof failed")
+
+    if not account_can_access_subject(db, account_user_id, health_subject_id):
+        raise DeviceClaimError("HEALTH_SUBJECT_ACCESS_DENIED", "Account cannot manage this health subject")
+
+    category: Optional[str] = None
+    label: Optional[str] = None
+    if requires_setup:
+        try:
+            category, label = validate_category_and_label(
+                device_category=device_category,
+                user_label=user_label,
+                require_category=True,
+            )
+        except DeviceSetupCodeError as exc:
+            raise DeviceClaimError(exc.code, exc.message) from exc
 
     binding = bind_device_to_subject(
         db,
@@ -130,6 +233,10 @@ def claim_device_to_health_subject(
     device.user_id = account_user_id
     device.status = "active"
     device.revoked_at = None
+    if requires_setup:
+        device.device_category = category
+        device.user_label = label
+        reset_setup_code_failure_state(device)
 
     record_lifecycle_audit(
         db,
@@ -138,7 +245,12 @@ def claim_device_to_health_subject(
         actor_account_user_id=account_user_id,
         health_subject_id=health_subject_id,
         gateway_install_id=gateway_install_id,
-        detail={"binding_id": binding.id},
+        detail={
+            "binding_id": binding.id,
+            "setup_code_used": requires_setup,
+            "device_category": category if requires_setup else None,
+            "user_label_set": bool(label) if requires_setup else False,
+        },
         commit=False,
     )
 

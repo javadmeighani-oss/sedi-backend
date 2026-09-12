@@ -68,7 +68,11 @@ def release_device(
     account_user_id: int,
     commit: bool = True,
 ) -> Optional[models.DeviceSubjectBinding]:
-    """Close active binding; preserve historical data on prior subject."""
+    """Close active binding; preserve historical data and setup-code authority.
+
+    Clears presentation fields and revokes all active mobile gateways.
+    Does not clear setup_code verifier/fingerprint.
+    """
     _assert_actor_can_manage_device(db, device, account_user_id)
     active = get_active_binding(db, device.id)
     if active is None:
@@ -80,6 +84,17 @@ def release_device(
     device.health_subject_id = None
     device.current_binding_id = None
     device.claim_lifecycle_status = "released"
+    device.device_category = None
+    device.user_label = None
+
+    from backend.app.services.i9.device_gateway_service import revoke_all_mobile_gateways_for_device
+
+    revoked = revoke_all_mobile_gateways_for_device(
+        db,
+        device=device,
+        account_user_id=account_user_id,
+        commit=False,
+    )
 
     record_lifecycle_audit(
         db,
@@ -87,7 +102,13 @@ def release_device(
         operation="release",
         actor_account_user_id=account_user_id,
         health_subject_id=active.health_subject_id,
-        detail={"binding_id": active.id, "unbound_at": now.isoformat()},
+        detail={
+            "binding_id": active.id,
+            "unbound_at": now.isoformat(),
+            "gateways_revoked": revoked,
+            "category_cleared": True,
+            "label_cleared": True,
+        },
         commit=False,
     )
     if commit:
@@ -96,6 +117,55 @@ def release_device(
     else:
         db.flush()
     return active
+
+
+def update_device_presentation(
+    db: Session,
+    *,
+    device: models.Device,
+    account_user_id: int,
+    device_category: Optional[str],
+    user_label: Optional[str],
+    commit: bool = True,
+) -> models.Device:
+    """Owner-authorized category/label update only; no ownership/binding mutation."""
+    _assert_actor_can_manage_device(db, device, account_user_id)
+    from backend.app.services.i9.device_setup_code_service import (
+        DeviceSetupCodeError,
+        validate_category_and_label,
+    )
+
+    prior_category = device.device_category
+    try:
+        category, label = validate_category_and_label(
+            device_category=device_category,
+            user_label=user_label,
+            require_category=True,
+        )
+    except DeviceSetupCodeError as exc:
+        raise DeviceLifecycleError(exc.code, exc.message) from exc
+
+    device.device_category = category
+    device.user_label = label
+    record_lifecycle_audit(
+        db,
+        device_row_id=device.id,
+        operation="device_presentation_update",
+        actor_account_user_id=account_user_id,
+        detail={
+            "prior_category": prior_category,
+            "new_category": category,
+            "user_label_set": bool(label),
+            "category_changed": prior_category != category,
+        },
+        commit=False,
+    )
+    if commit:
+        db.commit()
+        db.refresh(device)
+    else:
+        db.flush()
+    return device
 
 
 def transfer_device(

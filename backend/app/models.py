@@ -543,6 +543,23 @@ class DeviceEvent(Base):
 # -------------------- Device --------------------
 class Device(Base):
     __tablename__ = "devices"
+    __table_args__ = (
+        CheckConstraint(
+            "device_category IS NULL OR device_category IN ('SELF', 'OTHER')",
+            name="ck_devices_device_category",
+        ),
+        CheckConstraint(
+            "setup_code_failed_attempts >= 0",
+            name="ck_devices_setup_code_failed_attempts_nonneg",
+        ),
+        Index(
+            "uq_devices_setup_code_fingerprint",
+            "setup_code_fingerprint",
+            unique=True,
+            postgresql_where=text("setup_code_fingerprint IS NOT NULL"),
+            sqlite_where=text("setup_code_fingerprint IS NOT NULL"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
@@ -580,6 +597,15 @@ class Device(Base):
     hub_status = Column(String(32), nullable=True)
     last_heartbeat_at = Column(DateTime, nullable=True)
     last_sync_at = Column(DateTime, nullable=True)
+    # G1: device classification + setup-code authority (nullable for legacy rows)
+    device_category = Column(String(16), nullable=True)  # SELF | OTHER
+    user_label = Column(String(80), nullable=True)
+    setup_code_verifier = Column(String(64), nullable=True)
+    setup_code_fingerprint = Column(String(64), nullable=True)
+    setup_code_version = Column(SmallInteger, nullable=True)
+    setup_code_failed_attempts = Column(SmallInteger, nullable=False, default=0, server_default="0")
+    setup_code_failure_window_started_at = Column(DateTime(timezone=True), nullable=True)
+    setup_code_locked_until = Column(DateTime(timezone=True), nullable=True)
 
     sensors = relationship(
         "DeviceSensor",
