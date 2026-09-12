@@ -5,6 +5,7 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/lifestyle/lifestyle_weekly_plan_dto.dart';
 import '../../../../services/lifestyle/lifestyle_weekly_plan_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import '../pages/lifestyle_page.dart';
 
@@ -121,11 +122,8 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        appBar: AppBar(
+        appBar: A3PageAppBar(
           title: Text(title),
-          backgroundColor: AppTheme.gate3PaleOliveBackground,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
         ),
         body: RefreshIndicator(
           onRefresh: _load,

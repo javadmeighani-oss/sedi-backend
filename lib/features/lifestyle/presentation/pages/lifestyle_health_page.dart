@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/lifestyle/lifestyle_health_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 
 class LifestyleHealthPage extends StatefulWidget {
@@ -64,11 +65,8 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        appBar: AppBar(
+        appBar: A3PageAppBar(
           title: Text(l10n.health),
-          backgroundColor: AppTheme.gate3PaleOliveBackground,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
         ),
         body: RefreshIndicator(
           onRefresh: _load,

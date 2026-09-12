@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../gate3_interactive/presentation/pages/gate3_interactive_page.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
 import 'lifestyle_health_page.dart';
@@ -32,11 +33,8 @@ class LifestylePage extends StatelessWidget {
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        appBar: AppBar(
+        appBar: A3PageAppBar(
           title: Text(l10n.title),
-          backgroundColor: AppTheme.gate3PaleOliveBackground,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
         ),
         body: ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),

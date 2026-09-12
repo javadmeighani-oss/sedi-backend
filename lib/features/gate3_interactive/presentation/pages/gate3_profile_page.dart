@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../gate3_localization.dart';
+import '../widgets/a3_page_app_bar.dart';
 
 /// A3 Profile — exactly 3 sections: User info, I6/I8 summary, Log out.
 class Gate3ProfilePage extends StatefulWidget {
@@ -206,11 +207,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       textDirection: textDir,
       child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        appBar: AppBar(
+        appBar: A3PageAppBar(
           title: Text(l10n.profileTitle),
-          backgroundColor: AppTheme.gate3PaleOliveBackground,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())

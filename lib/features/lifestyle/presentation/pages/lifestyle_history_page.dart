@@ -4,6 +4,7 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/history_response.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_page.dart';
 
@@ -91,11 +92,8 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: AppTheme.gate3PaleOliveBackground,
-        appBar: AppBar(
+        appBar: A3PageAppBar(
           title: Text(l10n.myHistory),
-          backgroundColor: AppTheme.gate3PaleOliveBackground,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
         ),
         body: RefreshIndicator(
           onRefresh: _load,

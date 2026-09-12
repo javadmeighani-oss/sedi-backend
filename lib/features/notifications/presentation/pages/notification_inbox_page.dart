@@ -11,6 +11,7 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 
 enum InboxFilter { all, unread }
 
@@ -299,8 +300,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        title: const Text('Notifications'),
+      appBar: const A3PageAppBar(
+        title: Text('Notifications'),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
       ),

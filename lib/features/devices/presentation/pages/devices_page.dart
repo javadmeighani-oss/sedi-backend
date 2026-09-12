@@ -6,6 +6,7 @@ import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../logic/devices_controller.dart';
 
 class DevicesPage extends StatefulWidget {
@@ -130,8 +131,8 @@ class _DevicesPageState extends State<DevicesPage> {
 
     Widget page = Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        title: const Text('Devices'),
+      appBar: const A3PageAppBar(
+        title: Text('Devices'),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.primaryBlack,
       ),

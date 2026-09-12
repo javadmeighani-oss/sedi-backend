@@ -189,9 +189,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   Widget build(BuildContext context) {
     final l10n = _l10n;
     final isRtl = l10n.isRtl;
+    // When pushed (e.g. Lifestyle → Chat), allow one-route pop back.
+    // Root A3 (no previous route) keeps the existing double-back exit policy.
+    final routeCanPop = ModalRoute.of(context)?.canPop ?? false;
 
     final content = PopScope(
-      canPop: false,
+      canPop: routeCanPop,
       onPopInvoked: (didPop) {
         if (didPop) return;
         _handleBackPress();
