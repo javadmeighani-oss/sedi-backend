@@ -87495,3 +87495,38 @@ NEXT_EXECUTION_GATE_AUTHORIZED=NO
 
 MASTER_LOG_TIP=§502
 CURSOR_HANDOFF_TIP=v795
+
+## §503 - A3 GADGETS G1 DEVICE IDENTITY / SETUP-CODE CHECKPOINT
+
+GATE=SEDI-V1-A3-GADGETS-G1-FAST-CHECKPOINT-COMMIT-PUSH-CI-01
+PRIOR_IMPL=SEDI-V1-A3-GADGETS-G1-DEVICE-IDENTITY-CLASSIFICATION-ALIAS-SETUP-CODE-AUTHORITY-01
+COMPAT_HARDENING=SEDI-V1-A3-GADGETS-G1-PROVISION-COMPATIBILITY-HARDENING-01 (PASS; 2-value platform contract restored; V1 via provision_unclaimed_device_v1)
+GATE_RESULT=PASS
+MODE=FAST_CHECKPOINT
+
+SCOPE=I9 Device authority only: migration 084 device_category/user_label/setup-code fields; setup-code HMAC service (SEDI_DEVICE_SETUP_CODE_PEPPER); trusted /devices/provision V1 id+setup_code once; extend /devices/claim; PATCH presentation; release clears category/label + revoke all gateways; disconnect preserves claim/binding/category/label
+SELF_OTHER=DEVICE classification (not HealthSubject/person)
+MIGRATION=084_device_category_setup_code_authority (after 083)
+ALEMBIC_HEAD=084_device_category_setup_code_authority
+
+CODE_COMMIT=45d99be13174e868246bdf8b4b4b95d654776750
+REMOTE_HEAD=45d99be13174e868246bdf8b4b4b95d654776750
+BASE_HEAD=45425d43f8d285b68fe6b34abf2625f7ba8879ac
+BRANCH=feature/a3-authority-chat-stream-profile-foundation
+
+LOCAL_TESTS=G1 16/16 PASS; fleet+I9 regressions PASS except pre-existing test_t16 timezone; migration 083→084→083→084 PASS
+CI_PRIMARY=A3 Authority Foundation PG16 run 34682675483 SUCCESS (alembic upgrade head incl. 084)
+CI_NOTE=No dedicated G1 device-suite workflow without mutation; several path-triggered historical workflows fail asserting frozen Alembic head 081 (out of scope; WORKFLOW_MUTATION=NO)
+OPEN_FINDING_T16=test_t16_delayed_packet_preserves_measured_at timezone assert pre-existing; untouched
+DEPLOY=NO
+PRODUCTION_MIGRATION=NO
+MERGE=NO
+WORKFLOW_MUTATION=NO
+GADGETS_PROGRAM=IN_PROGRESS through G9
+G1_CHECKPOINT=PASS
+G2_AUTHORIZED=NO
+NEXT_EXECUTION_GATE_AUTHORIZED=NO
+
+CURSOR_HANDOFF_SUCCESSOR=v796
+MASTER_LOG_TIP=§503
+CURSOR_HANDOFF_TIP=v796
