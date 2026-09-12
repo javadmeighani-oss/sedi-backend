@@ -87361,3 +87361,110 @@ MASTER_LOG_TIP=§500
 CHATGPT_DROPBOX_UPDATED_BY_CURSOR=NO
 NEXT_GATE_AUTHORIZED=NO
 NEXT_PRODUCT_WORK=Gadgets audit/redesign (separate; not authorized here)
+
+## §501 - A3 GADGETS V1 BLE COMMISSIONING CONTRACT FREEZE
+
+GATE=SEDI-V1-A3-GADGETS-V1-BLE-COMMISSIONING-CONTRACT-FREEZE-01
+GATE_RESULT=PASS
+MODE=DOCS_ONLY
+POLICY=STRICT_LOW_TOKEN_DELTA_ONLY
+CODE_MUTATION=NO
+SCHEMA_MUTATION=NO
+MIGRATION=NO
+TEST_MUTATION=NO
+WORKFLOW_MUTATION=NO
+DEPLOY=NO
+NEXT_EXECUTION_GATE_AUTHORIZED=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+FRONTEND_HEAD=9b27b6b174e28cc56b425698179cf90e86e8dc4f
+BACKEND_HEAD=b6b43b47763bf9147639880e1682004b6ada03d4
+MASTER_LOG_PREVIOUS=§500
+CURSOR_HANDOFF_PREVIOUS=v793
+
+SOURCE_AUDIT=SEDI-V1-A3-GADGETS-MOBILE-GATEWAY-I9-I10-AUTHORITY-READONLY-AUDIT-01
+SOURCE_AUDIT_RESULT=PASS
+AUDIT_RESULT_RECORDED=YES
+V1_BLE_COMMISSIONING_CONTRACT_FROZEN=YES
+
+## V1 CONNECTION ARCHITECTURE
+Physical Gadget → BLE → Sedi Mobile Gateway → HTTPS → canonical I9 → I10 (when governed) → Notification/FCM → Sedi Mobile
+MOBILE=relay/gateway only (no physiological truth; no HealthSubject attribution)
+A3=presentation only
+I9=Device/physiological authority
+I10=notification/interruption authority
+V1_TRANSPORT=BLE→Mobile→Server (future Wi-Fi/cellular not blocked)
+
+## COMMISSIONING FLOW (APPROVED)
+A3 Gadgets → Connect → BLE scan → select → secure pair/bond → identify immutable device_id → enter 4-digit Sedi Setup/Claim Code → verify Account+device+code+possession → I9 claim lifecycle → authorize gateway_install_id → classify SELF|OTHER → OTHER requires editable user_label → persistent-logical association + auto-reconnect → data via canonical I9 only
+
+## SETUP CODE CONTRACT
+SEDI_SETUP_CLAIM_CODE=YES
+SETUP_CODE_ALONE_MUST_NOT_CLAIM_DEVICE=YES
+NOT=device identity / BLE key / permanent packet credential / HealthSubject identity
+CLAIM_REQUIRES=JWT Account + exact device_id + valid setup code for that device + possession/credential proof + valid claim lifecycle state
+SETUP_CODE_NOT_IN_ROUTINE_PACKETS=YES
+SECURE_STORAGE_HASH_RATE_LIMIT_FAIL_CLOSED_AUDIT=FUTURE_MUTATION_GATE
+
+## SELF/OTHER DEVICE SEMANTICS
+SELF_OTHER_DEVICE_SEMANTICS_RECORDED=YES
+SELF=user's own/main gadget
+OTHER=additional gadget on same Account platform
+OTHER!=HealthSubject|managed person|caregiver|mother/son|another Account|AHSA
+Multiple SELF/OTHER Devices may bind to SAME user's SELF HealthSubject
+TARGET_FIELDS_SUBJECT_TO_SCHEMA_GATE=device_category SELF|OTHER ; user_label mutable
+device_id immutable; rename must not mutate device_id/device_type/binding/historical I9/notification authority
+
+## PERSISTENT CONNECTION / DISCONNECT
+PERSISTENT_AUTO_RECONNECT_RECORDED=YES
+PERSISTENT_LOGICAL_ASSOCIATION=YES
+AUTO_RECONNECT=YES
+NOT=uninterrupted physical BLE socket
+TEMP_STATES=Connected|Connecting|Reconnecting|Out of range|Disconnected|Syncing
+TEMP_LOSS_MUST_NOT_DESTROY_ASSOCIATION=YES
+NO_SETUP_CODE_REENTRY_AFTER_TEMPORARY_LOSS=YES
+
+MANUAL_DISCONNECT_CONTRACT_RECORDED=YES
+DISCONNECT closes BLE + stops auto-reconnect + revokes mobile gateway auth + disables local gateway association
+DISCONNECT preserves Device identity/history/I9 data
+DISCONNECT!=DELETE|RELEASE|TRANSFER|DELETE_HISTORY
+
+RECONNECT_AFTER_MANUAL_DISCONNECT=scan/select/pair → verify identity → governed re-authorization → restore gateway → resume I9 relay; same-Account history intact; other Account must not silently claim
+
+## DATA-PLANE / ECG / NOTIFICATIONS
+I9_I10_BOUNDARIES_RECORDED=YES
+DATA_PATH=Gadget JSON → BLE framing → durable bounded mobile outbox → POST /device/packet → I9
+BLUETOOTH_REQUIRES_ACTIVE_GATEWAY_AUTH_FOR_EXACT_DEVICE=FUTURE_IMPLEMENTATION_REQUIRED
+MOBILE_MUST_NOT_SUPPLY_AUTHORITATIVE=user_id|arbitrary health_subject_id|binding|notification recipient
+IDEMPOTENCY=existing I9 client_packet_id contracts
+RAW_ECG=V1 architecture; reuse canonical /device/signals/raw; no second parallel API; Hub-centric assumptions to align later
+TRANSPORT_FACTS_LOCAL_OK=connected|disconnected|reconnecting|syncing|sync failed|battery|last seen
+NO_MOBILE_CLINICAL_INTERPRETATION=YES
+NOTIFICATION_PATH=I9→I10→Notification→FCM
+OTHER_DEVICE_DOES_NOT_IMPLY_CAREGIVER=YES
+SELF_AND_OTHER_MAY_NOTIFY_OWNING_SELF_ACCOUNT_VIA_I10=YES
+CAREGIVER_PATH_SEPARATE=YES
+
+## AUDIT FINDINGS PRESERVED
+REUSABLE=I9 Device identity/lifecycle; DeviceSubjectBinding; DeviceMobileGatewayAuthorization; gateway pair/disconnect BE; POST /device/packet; packet idempotency/ACK; server-side subject attribution; I9→I10 HR stability; FCM delivery
+GAPS=no FE BLE; no Android BLE permissions; no FE gateway flow; no FE gateway_install_id persist; no durable outbox; bluetooth packet ingest lacks exact active gateway revalidation; FE /devices still sends legacy user_id vs JWT-only BE; SELF/OTHER incorrectly inferred from HealthSubject; no device_category; no Device user_label; no rename API; DRVS SELF recipient partial/gap; raw ECG Hub-centric; /data/upload LEGACY/PARALLEL_RISK
+
+## UPDATED IMPLEMENTATION ORDER (PROPOSED ONLY; NOT AUTHORIZED)
+UPDATED_GATE_ORDER_RECORDED=YES
+G1 Device Identity/Classification/Alias + setup-code authority (schema/API after separate approval)
+G2 FE Device Contract Alignment (JWT-only; stop HealthSubject-as-OTHER)
+G3 BLE Mobile Gateway Foundation (scan/pair/bond/gateway_install_id/Connect-Disconnect/auto-reconnect)
+G4 Secure Gateway Data Plane (bluetooth exact gateway auth; preserve future direct path; no parallel packet API)
+G5 JSON Durable Store-and-Forward
+G6 Raw ECG Mobile-Gateway Alignment (reuse current raw endpoint)
+G7 I9→I10 Device Notification Alignment (SELF DRVS; caregiver separate)
+G8 Final A3 Gadgets UX (SELF/OTHER, rename, status, Disconnect, l10n, RTL/LTR, AppTheme)
+G9 Controlled Real E2E Validation
+NO_MUTATION_GATE_AUTHORIZED_BY_THIS_FREEZE=YES
+
+CURSOR_HANDOFF_TIP=v794
+MASTER_LOG_TIP=§501
+CHATGPT_DROPBOX_UPDATED_BY_CURSOR=NO
+DROPBOX_CURSOR_SYNC=YES
