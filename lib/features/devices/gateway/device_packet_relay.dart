@@ -1,6 +1,6 @@
-import '../../core/network/api_client.dart';
-import '../../core/network/api_response.dart';
-import '../../data/repositories/devices_repository.dart';
+import 'package:sedi_app/core/network/api_client.dart';
+import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/data/repositories/devices_repository.dart';
 import '../ble/sedi_ble_models.dart';
 import 'device_packet_mapper.dart';
 import 'durable_packet_outbox.dart';
