@@ -527,3 +527,142 @@ def test_t21_single_alembic_head():
 
     heads = ScriptDirectory("backend/alembic").get_heads()
     assert heads == ["084_device_category_setup_code_authority"]
+
+def _g4_bt_payload(*, client_packet_id: str, gateway_install_id: str | None = None):
+    body = {
+        "client_packet_id": client_packet_id,
+        "measured_at": "2026-09-12T10:00:00Z",
+        "transport": "bluetooth",
+        "observations": [{"observation_type": "heart_rate", "payload": {"bpm": 72}}],
+    }
+    if gateway_install_id is not None:
+        body["gateway_install_id"] = gateway_install_id
+    return body
+
+
+def test_g4_bluetooth_packet_requires_gateway_install_id(client, db, account_user):
+    os.environ["DEVICE_AUTH_MODE"] = "db_only"
+    device, token = provision_unclaimed_device_platform(db, device_id="G4BtGw001")
+    subject = ensure_self_subject_for_account(db, account_user.id)
+    claim_device_to_health_subject(
+        db,
+        device=device,
+        account_user_id=account_user.id,
+        health_subject_id=subject.id,
+        possession_proof=token,
+    )
+    r = client.post(
+        "/device/packet",
+        headers={"X-DEVICE-TOKEN": token},
+        json=_g4_bt_payload(client_packet_id="g4-no-gw"),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert body["data"]["ack_status"] == "GATEWAY_AUTH_REQUIRED"
+
+
+def test_g4_bluetooth_wrong_gateway_fail_closed(client, db, account_user):
+    os.environ["DEVICE_AUTH_MODE"] = "db_only"
+    device, token = provision_unclaimed_device_platform(db, device_id="G4BtGw002")
+    subject = ensure_self_subject_for_account(db, account_user.id)
+    claim_device_to_health_subject(
+        db,
+        device=device,
+        account_user_id=account_user.id,
+        health_subject_id=subject.id,
+        possession_proof=token,
+    )
+    authorize_mobile_gateway(
+        db, device=device, gateway_install_id="gateway-correct-01", account_user_id=account_user.id
+    )
+    r = client.post(
+        "/device/packet",
+        headers={"X-DEVICE-TOKEN": token},
+        json=_g4_bt_payload(client_packet_id="g4-wrong-gw", gateway_install_id="gateway-wrong-xxxx"),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert body["data"]["ack_status"] in {"GATEWAY_AUTH_REJECTED", "GATEWAY_MISMATCH"}
+
+
+def test_g4_bluetooth_revoked_gateway_fail_closed(client, db, account_user):
+    os.environ["DEVICE_AUTH_MODE"] = "db_only"
+    device, token = provision_unclaimed_device_platform(db, device_id="G4BtGw003")
+    subject = ensure_self_subject_for_account(db, account_user.id)
+    claim_device_to_health_subject(
+        db,
+        device=device,
+        account_user_id=account_user.id,
+        health_subject_id=subject.id,
+        possession_proof=token,
+    )
+    authorize_mobile_gateway(
+        db, device=device, gateway_install_id="gateway-revoked-01", account_user_id=account_user.id
+    )
+    disconnect_mobile_gateway(
+        db, device=device, gateway_install_id="gateway-revoked-01", account_user_id=account_user.id
+    )
+    r = client.post(
+        "/device/packet",
+        headers={"X-DEVICE-TOKEN": token},
+        json=_g4_bt_payload(client_packet_id="g4-revoked-gw", gateway_install_id="gateway-revoked-01"),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert body["data"]["ack_status"] == "GATEWAY_REVOKED"
+
+
+def test_g4_bluetooth_active_gateway_accepted(client, db, account_user):
+    os.environ["DEVICE_AUTH_MODE"] = "db_only"
+    device, token = provision_unclaimed_device_platform(db, device_id="G4BtGw004")
+    subject = ensure_self_subject_for_account(db, account_user.id)
+    claim_device_to_health_subject(
+        db,
+        device=device,
+        account_user_id=account_user.id,
+        health_subject_id=subject.id,
+        possession_proof=token,
+    )
+    authorize_mobile_gateway(
+        db, device=device, gateway_install_id="gateway-active-ok01", account_user_id=account_user.id
+    )
+    r = client.post(
+        "/device/packet",
+        headers={"X-DEVICE-TOKEN": token},
+        json=_g4_bt_payload(client_packet_id="g4-ok-gw", gateway_install_id="gateway-active-ok01"),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["data"]["ack_status"] == "ACCEPTED"
+    assert body["data"]["health_subject_id"] == subject.id
+
+
+def test_g4_bluetooth_gateway_mismatch_other_device(client, db, account_user):
+    os.environ["DEVICE_AUTH_MODE"] = "db_only"
+    device_a, token_a = provision_unclaimed_device_platform(db, device_id="G4BtGw005A")
+    device_b, token_b = provision_unclaimed_device_platform(db, device_id="G4BtGw005B")
+    subject = ensure_self_subject_for_account(db, account_user.id)
+    for device, token in ((device_a, token_a), (device_b, token_b)):
+        claim_device_to_health_subject(
+            db,
+            device=device,
+            account_user_id=account_user.id,
+            health_subject_id=subject.id,
+            possession_proof=token,
+        )
+    authorize_mobile_gateway(
+        db, device=device_a, gateway_install_id="gateway-only-on-a", account_user_id=account_user.id
+    )
+    r = client.post(
+        "/device/packet",
+        headers={"X-DEVICE-TOKEN": token_b},
+        json=_g4_bt_payload(client_packet_id="g4-mismatch", gateway_install_id="gateway-only-on-a"),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert body["data"]["ack_status"] == "GATEWAY_MISMATCH"

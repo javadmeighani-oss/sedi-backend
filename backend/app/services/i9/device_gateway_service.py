@@ -117,6 +117,64 @@ def disconnect_mobile_gateway(
     return True
 
 
+def require_active_bluetooth_gateway(
+    db: Session,
+    *,
+    device: models.Device,
+    gateway_install_id: Optional[str],
+) -> models.DeviceMobileGatewayAuthorization:
+    """Fail-closed ACTIVE gateway check for bluetooth-origin mobile packets.
+
+    Wrong / missing / revoked / other-device gateway → DeviceGatewayError.
+    Does not perform HealthSubject attribution (server binding retains authority).
+    """
+    gid = (gateway_install_id or "").strip()
+    if not gid:
+        raise DeviceGatewayError(
+            "GATEWAY_AUTH_REQUIRED",
+            "gateway_install_id is required for bluetooth transport",
+        )
+    row = get_active_gateway_authorization(
+        db, device_row_id=device.id, gateway_install_id=gid
+    )
+    if row is not None:
+        return row
+
+    any_for_device = (
+        db.query(models.DeviceMobileGatewayAuthorization)
+        .filter(
+            models.DeviceMobileGatewayAuthorization.device_row_id == device.id,
+            models.DeviceMobileGatewayAuthorization.gateway_install_id == gid,
+        )
+        .first()
+    )
+    if any_for_device is not None:
+        raise DeviceGatewayError(
+            "GATEWAY_REVOKED",
+            "gateway_install_id is revoked or inactive for this device",
+        )
+
+    foreign = (
+        db.query(models.DeviceMobileGatewayAuthorization)
+        .filter(
+            models.DeviceMobileGatewayAuthorization.gateway_install_id == gid,
+            models.DeviceMobileGatewayAuthorization.is_active.is_(True),
+            models.DeviceMobileGatewayAuthorization.revoked_at.is_(None),
+        )
+        .first()
+    )
+    if foreign is not None:
+        raise DeviceGatewayError(
+            "GATEWAY_MISMATCH",
+            "gateway_install_id belongs to a different device",
+        )
+
+    raise DeviceGatewayError(
+        "GATEWAY_AUTH_REJECTED",
+        "no active DeviceMobileGatewayAuthorization for gateway_install_id",
+    )
+
+
 def list_active_gateways(db: Session, device_row_id: int) -> List[models.DeviceMobileGatewayAuthorization]:
     return (
         db.query(models.DeviceMobileGatewayAuthorization)

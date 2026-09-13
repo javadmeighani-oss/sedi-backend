@@ -30,6 +30,12 @@ class DevicePacketIngestRequest(BaseModel):
     measured_interval_end: Optional[datetime] = None
     gateway_received_at: Optional[datetime] = None
     transport: Optional[Literal["bluetooth", "wifi", "cellular", "unknown"]] = None
+    gateway_install_id: Optional[str] = Field(
+        None,
+        min_length=8,
+        max_length=128,
+        description="Required when transport=bluetooth: active DeviceMobileGatewayAuthorization",
+    )
     firmware_version: Optional[str] = None
     hardware_version: Optional[str] = None
     algorithm_version: Optional[str] = None

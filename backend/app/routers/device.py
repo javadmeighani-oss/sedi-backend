@@ -30,6 +30,10 @@ from backend.app.services.i9.device_packet_service import (
     PacketObservationIn,
     ingest_device_packet,
 )
+from backend.app.services.i9.device_gateway_service import (
+    DeviceGatewayError,
+    require_active_bluetooth_gateway,
+)
 from backend.app.services.i9.health_subject_service import resolve_linked_user_id_for_subject
 from backend.app.services.gate5.gadget_hub_status import (
     apply_heartbeat_metadata,
@@ -260,6 +264,21 @@ def ingest_device_packet_route(
                 error={"code": ack, "message": "Device authentication failed"},
                 data={"ack_status": ack},
             )
+
+        # Bluetooth-origin mobile packets require ACTIVE gateway authorization.
+        if (body.transport or "").strip().lower() == "bluetooth":
+            try:
+                require_active_bluetooth_gateway(
+                    db,
+                    device=device,
+                    gateway_install_id=body.gateway_install_id,
+                )
+            except DeviceGatewayError as exc:
+                return DevicePacketIngestResponse(
+                    ok=False,
+                    error={"code": exc.code, "message": exc.message},
+                    data={"ack_status": exc.code},
+                )
 
         trace_id = http_request.headers.get("X-TRACE-ID") or uuid.uuid4().hex
         packet_in = DevicePacketIngestInput(
