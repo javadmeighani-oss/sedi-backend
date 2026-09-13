@@ -102,6 +102,13 @@ jobs:
             test/gate2_post_otp_safe_router_test.dart \
             test/gate2_otp_input_helper_test.dart
 
+      - name: Targeted G2 Gadgets contract tests
+        run: |
+          flutter test \
+            test/device_dto_test.dart \
+            test/devices_controller_actions_test.dart \
+            test/devices_g2_contract_test.dart
+
       - name: Build debug APK
         run: flutter build apk --debug
 
