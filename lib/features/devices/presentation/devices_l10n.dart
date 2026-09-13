@@ -48,11 +48,48 @@ class DevicesL10n {
         fa: 'اتصال (به‌زودی)',
         ar: 'اتصال (قريباً)',
       );
+  String get connect => _t(en: 'Connect', fa: 'اتصال', ar: 'اتصال');
+  String get disconnect => _t(en: 'Disconnect', fa: 'قطع اتصال', ar: 'قطع');
+  String get scanning => _t(en: 'Scanning…', fa: 'در حال جستجو…', ar: 'جارٍ البحث…');
+  String get setupCodeHint => _t(
+        en: '4-digit Setup Code',
+        fa: 'کد راه‌اندازی ۴ رقمی',
+        ar: 'رمز الإعداد المكوّن من 4 أرقام',
+      );
+  String get selectDevice =>
+      _t(en: 'Select gadget', fa: 'انتخاب گجت', ar: 'اختر الجهاز');
+  String get bleConnected =>
+      _t(en: 'Connected', fa: 'متصل', ar: 'متصل');
+  String get bleConnecting =>
+      _t(en: 'Connecting', fa: 'در حال اتصال', ar: 'جارٍ الاتصال');
+  String get bleReconnecting =>
+      _t(en: 'Reconnecting', fa: 'اتصال مجدد', ar: 'إعادة الاتصال');
+  String get bleOutOfRange =>
+      _t(en: 'Out of range', fa: 'خارج محدوده', ar: 'خارج النطاق');
+  String get bleDisconnected =>
+      _t(en: 'Disconnected', fa: 'قطع‌شده', ar: 'غير متصل');
+  String get battery => _t(en: 'Battery', fa: 'باتری', ar: 'البطارية');
+  String get contact => _t(en: 'Contact', fa: 'تماس', ar: 'التلامس');
   String get presentationUpdated => _t(
         en: 'Presentation updated',
         fa: 'نمایش به‌روز شد',
         ar: 'تم تحديث العرض',
       );
+
+  String transportLabel(String state) {
+    switch (state) {
+      case 'connected':
+        return bleConnected;
+      case 'connecting':
+        return bleConnecting;
+      case 'reconnecting':
+        return bleReconnecting;
+      case 'outOfRange':
+        return bleOutOfRange;
+      default:
+        return bleDisconnected;
+    }
+  }
 
   String statusLabel(String status) {
     final s = status.toLowerCase();

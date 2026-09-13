@@ -4,6 +4,7 @@ import 'package:sedi_app/data/dto/device_public_info.dart';
 import 'package:sedi_app/data/dto/devices_list_response.dart';
 import 'package:sedi_app/data/repositories/devices_repository.dart';
 import 'package:sedi_app/features/devices/logic/devices_controller.dart';
+import 'package:sedi_app/features/devices/presentation/devices_l10n.dart';
 import 'dart:io';
 
 class FakeDevicesRepository extends DevicesRepository {
@@ -179,6 +180,35 @@ void main() {
       ).readAsStringSync();
       expect(src.contains('FlutterSecureStorage'), isTrue);
       expect(src.contains('sedi_gateway_install_id_v1'), isTrue);
+    });
+  });
+
+  group('G8 connect orchestration', () {
+    test('claim omits health_subject_id; disconnect keeps device claim path', () {
+      final repoSrc = File('lib/data/repositories/devices_repository.dart')
+          .readAsStringSync();
+      expect(repoSrc.contains("'/devices/claim'"), isTrue);
+      expect(repoSrc.contains("..remove('health_subject_id')"), isTrue);
+      expect(repoSrc.contains('disconnectGateway'), isTrue);
+
+      final connectSrc = File(
+        'lib/features/devices/logic/gadgets_connect_controller.dart',
+      ).readAsStringSync();
+      expect(connectSrc.contains('manualDisconnect'), isTrue);
+      expect(connectSrc.contains('pairGateway'), isTrue);
+      expect(connectSrc.contains('obtainPossessionProof'), isTrue);
+      expect(connectSrc.contains('.revoke('), isFalse);
+      expect(connectSrc.contains('diagnose'), isFalse);
+      expect(connectSrc.contains('threshold'), isFalse);
+    });
+
+    test('transport labels separate from platform active', () {
+      final l10n = DevicesL10n('en');
+      expect(l10n.transportLabel('connected'), 'Connected');
+      expect(l10n.statusLabel('active'), isNot(l10n.bleConnected));
+      expect(l10n.connect, 'Connect');
+      expect(DevicesL10n('fa').connect, isNotEmpty);
+      expect(DevicesL10n('ar').connect, isNotEmpty);
     });
   });
 }

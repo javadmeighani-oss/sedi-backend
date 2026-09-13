@@ -1,20 +1,27 @@
 /// Gadgets screen: backend Device classification SELF / OTHER / Unclassified.
-/// No HealthSubject grouping. No BLE transport state. No active→Connected mapping.
+/// BLE transport state is separate from platform status=active (never mapped).
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/device_public_info.dart';
+import '../../../../data/repositories/devices_repository.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../ble/sedi_ble_models.dart';
+import '../../ble/sedi_ble_transport.dart';
 import '../../logic/devices_controller.dart';
+import '../../logic/gadgets_connect_controller.dart';
 import '../devices_l10n.dart';
 
 class DevicesPage extends StatefulWidget {
   final DevicesController? controller;
+  final GadgetsConnectController? connectController;
 
   const DevicesPage({
     super.key,
     this.controller,
+    this.connectController,
   });
 
   @override
@@ -23,7 +30,9 @@ class DevicesPage extends StatefulWidget {
 
 class _DevicesPageState extends State<DevicesPage> {
   late final DevicesController _controller;
+  GadgetsConnectController? _connect;
   bool _loading = true;
+  bool _connecting = false;
 
   DevicesL10n get _l10n =>
       DevicesL10n(SediLocaleController.instance.languageCode);
@@ -32,6 +41,7 @@ class _DevicesPageState extends State<DevicesPage> {
   void initState() {
     super.initState();
     _controller = widget.controller ?? DevicesController();
+    _connect = widget.connectController;
     SediLocaleController.instance.addListener(_onLocale);
     _load();
   }
@@ -39,6 +49,9 @@ class _DevicesPageState extends State<DevicesPage> {
   @override
   void dispose() {
     SediLocaleController.instance.removeListener(_onLocale);
+    if (widget.connectController == null) {
+      _connect?.dispose();
+    }
     super.dispose();
   }
 
@@ -50,6 +63,13 @@ class _DevicesPageState extends State<DevicesPage> {
     setState(() => _loading = true);
     await _controller.loadDevices();
     if (mounted) setState(() => _loading = false);
+  }
+
+  GadgetsConnectController _ensureConnect() {
+    return _connect ??= GadgetsConnectController(
+      repository: DevicesRepository(),
+      transport: ReactiveSediBleTransport(),
+    );
   }
 
   @override
@@ -122,14 +142,9 @@ class _DevicesPageState extends State<DevicesPage> {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.55,
-                child: OutlinedButton(
-                  onPressed: () {},
-                  child: Text(l10n.connectComingSoon),
-                ),
-              ),
+            child: OutlinedButton(
+              onPressed: _connecting ? null : () => _onConnectPressed(l10n),
+              child: Text(_connecting ? l10n.scanning : l10n.connect),
             ),
           ),
         ],
@@ -156,20 +171,184 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 
   Widget _deviceRow(DevicePublicInfo d, DevicesL10n l10n) {
+    final ble = _connect?.transportFor(d.deviceId);
+    final bleLabel = ble == null
+        ? null
+        : l10n.transportLabel(ble.name);
+    final status = _connect?.lastDeviceStatus;
+    final bits = <String>[
+      d.deviceType,
+      // Platform lifecycle only — never shown as BLE Connected.
+      l10n.statusLabel(d.status),
+      if (bleLabel != null) bleLabel,
+      if (d.lastSeenAt != null) d.lastSeenAt!.toUtc().toIso8601String(),
+      if (status?.batteryPercent != null)
+        '${l10n.battery} ${status!.batteryPercent}%',
+      if (status?.contactOk != null)
+        '${l10n.contact} ${status!.contactOk}',
+    ];
+    final isBleConnected = ble == SediBleTransportState.connected &&
+        _connect?.connectedDeviceId == d.deviceId;
     return ListTile(
       title: Text(d.displayName),
       subtitle: Text(
-        '${d.deviceType} · ${l10n.statusLabel(d.status)}',
+        bits.join(' · '),
         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
       ),
-      trailing: TextButton(
-        onPressed: _controller.isActionInProgress
-            ? null
-            : () => _openPresentationEditor(d, l10n),
-        child: Text(l10n.rename),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isBleConnected)
+            TextButton(
+              onPressed: _connecting
+                  ? null
+                  : () async {
+                      setState(() => _connecting = true);
+                      await _connect?.manualDisconnect(d.deviceId);
+                      if (mounted) setState(() => _connecting = false);
+                    },
+              child: Text(l10n.disconnect),
+            ),
+          TextButton(
+            onPressed: _controller.isActionInProgress
+                ? null
+                : () => _openPresentationEditor(d, l10n),
+            child: Text(l10n.rename),
+          ),
+        ],
       ),
       dense: true,
     );
+  }
+
+  Future<void> _onConnectPressed(DevicesL10n l10n) async {
+    setState(() => _connecting = true);
+    final connect = _ensureConnect();
+    try {
+      final found = await connect.scan();
+      if (!mounted) return;
+      if (found.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? l10n.noGadgets)),
+        );
+        return;
+      }
+      final selected = await showDialog<SediBleDiscoveredDevice>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: Text(l10n.selectDevice),
+          children: [
+            for (final d in found)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, d),
+                child: Text(d.name ?? d.remoteId),
+              ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+
+      final info = await connect.connectAndReadInfo(selected.remoteId);
+      if (info == null || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'connect failed')),
+        );
+        return;
+      }
+
+      final proof = await connect.obtainPossessionProof();
+      if (proof == null || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'proof failed')),
+        );
+        return;
+      }
+
+      final setupCtrl = TextEditingController();
+      var category = 'SELF';
+      final labelCtrl = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            title: Text(info.deviceId),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: setupCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(hintText: l10n.setupCodeHint),
+                ),
+                SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment(
+                        value: 'SELF', label: Text(l10n.selfCategory)),
+                    ButtonSegment(
+                        value: 'OTHER', label: Text(l10n.otherCategory)),
+                  ],
+                  selected: {category},
+                  onSelectionChanged: (s) =>
+                      setLocal(() => category = s.first),
+                ),
+                if (category == 'OTHER')
+                  TextField(
+                    controller: labelCtrl,
+                    decoration: InputDecoration(hintText: l10n.labelHint),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true || !mounted) {
+        setupCtrl.dispose();
+        labelCtrl.dispose();
+        return;
+      }
+
+      final claimed = await connect.claimDevice(
+        deviceId: info.deviceId,
+        possessionProof: proof,
+        setupCode: setupCtrl.text,
+        deviceCategory: category,
+        userLabel: labelCtrl.text,
+      );
+      setupCtrl.dispose();
+      labelCtrl.dispose();
+      if (!claimed || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'claim failed')),
+        );
+        return;
+      }
+
+      final paired =
+          await connect.pairGatewayAndStoreCredential(info.deviceId);
+      if (!paired || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'gateway failed')),
+        );
+        return;
+      }
+
+      await connect.startDataSubscription(info.deviceId);
+      await _load();
+    } finally {
+      if (mounted) setState(() => _connecting = false);
+    }
   }
 
   Future<void> _openPresentationEditor(

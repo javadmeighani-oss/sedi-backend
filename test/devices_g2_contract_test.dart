@@ -12,6 +12,7 @@ import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sedi_app/features/devices/gateway/durable_packet_outbox.dart';
+import 'gadgets_connect_g8_test.dart' as g8;
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
@@ -46,6 +47,7 @@ class _FakeDevicesRepository extends DevicesRepository {
 }
 
 void main() {
+  g8.main();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
@@ -75,10 +77,13 @@ void main() {
     expect(src.contains('selfDevices'), isTrue);
     expect(src.contains('otherDevices'), isTrue);
     expect(src.contains('unclassifiedDevices'), isTrue);
-    expect(src.contains("'Connected'"), isFalse);
-    expect(src.contains('"Connected"'), isFalse);
+    expect(src.contains('connectComingSoon'), isFalse);
+    expect(src.contains('l10n.connect'), isTrue);
+    expect(src.contains('IgnorePointer'), isFalse);
     expect(src.contains('_ecgConnected'), isFalse);
-    expect(src.contains('connectComingSoon'), isTrue);
+    // active lifecycle must never be mapped to BLE Connected label by status alone
+    expect(src.contains("status == 'active'"), isFalse);
+    expect(src.contains('manualDisconnect'), isTrue);
   });
 
   testWidgets('DevicesPage renders SELF/OTHER headings from backend authority',

@@ -72,6 +72,21 @@ class DevicesRepository {
     );
   }
 
+  /// POST /devices/claim — G1 governed claim (no arbitrary health_subject_id).
+  Future<ApiResponse<Map<String, dynamic>?>> claim({
+    required Map<String, dynamic> body,
+  }) async {
+    // Never inject user_id / health_subject_id from mobile for SELF default.
+    final safe = Map<String, dynamic>.from(body)
+      ..remove('user_id')
+      ..remove('health_subject_id');
+    return _client.post<Map<String, dynamic>?>(
+      '/devices/claim',
+      body: safe,
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
   /// POST /devices/{device_id}/gateway/pair — reuse governed gateway lifecycle.
   Future<ApiResponse<Map<String, dynamic>?>> pairGateway({
     required String deviceId,
