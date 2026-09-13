@@ -22,6 +22,7 @@ dependencies:
   firebase_messaging: ^15.1.6
   record: ^5.2.1
   path_provider: ^2.1.2
+  flutter_reactive_ble: 5.5.0
 
 dependency_overrides:
   record_linux: ^1.0.0  # Fix compatibility with record_platform_interface (startStream, hasPermission)

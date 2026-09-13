@@ -71,4 +71,41 @@ class DevicesRepository {
       parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
+
+  /// POST /devices/{device_id}/gateway/pair — reuse governed gateway lifecycle.
+  Future<ApiResponse<Map<String, dynamic>?>> pairGateway({
+    required String deviceId,
+    required String gatewayInstallId,
+  }) async {
+    return _client.post<Map<String, dynamic>?>(
+      '/devices/$deviceId/gateway/pair',
+      body: {'gateway_install_id': gatewayInstallId},
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
+  /// POST /devices/{device_id}/gateway/disconnect — revoke mobile gateway auth.
+  Future<ApiResponse<Map<String, dynamic>?>> disconnectGateway({
+    required String deviceId,
+    required String gatewayInstallId,
+  }) async {
+    return _client.post<Map<String, dynamic>?>(
+      '/devices/$deviceId/gateway/disconnect',
+      body: {'gateway_install_id': gatewayInstallId},
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
+  /// Canonical I9 ingest only: POST /device/packet (never /device/ingest or /data/upload).
+  Future<ApiResponse<Map<String, dynamic>?>> postDevicePacket({
+    required String deviceToken,
+    required Map<String, dynamic> body,
+  }) async {
+    return _client.post<Map<String, dynamic>?>(
+      '/device/packet',
+      body: body,
+      extraHeaders: {'X-DEVICE-TOKEN': deviceToken},
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
 }

@@ -11,6 +11,7 @@ import 'package:sedi_app/features/devices/logic/devices_controller.dart';
 import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sedi_app/features/devices/gateway/durable_packet_outbox.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
@@ -118,5 +119,76 @@ void main() {
       ),
       findsWidgets,
     );
+  });
+
+  group('G5 durable outbox', () {
+    late Directory tmp;
+    late DurablePacketOutbox outbox;
+
+    setUp(() async {
+      tmp = await Directory.systemTemp.createTemp('sedi_outbox_');
+      outbox = DurablePacketOutbox(
+        file: File('${tmp.path}/outbox.json'),
+        maxEntries: 2,
+      );
+    });
+
+    tearDown(() async {
+      if (await tmp.exists()) {
+        await tmp.delete(recursive: true);
+      }
+    });
+
+    OutboxEntry entry(String id) => OutboxEntry(
+          deviceId: 'SEDI-HR-1',
+          clientPacketId: id,
+          measuredAtIso: '2026-09-12T10:00:00Z',
+          gatewayInstallId: 'gateway-install-abcdefgh',
+          packetBody: {
+            'client_packet_id': id,
+            'measured_at': '2026-09-12T10:00:00Z',
+            'transport': 'bluetooth',
+            'gateway_install_id': 'gateway-install-abcdefgh',
+            'observations': [],
+          },
+          enqueuedAt: DateTime.utc(2026, 9, 12),
+        );
+
+    test('survives restart; client_packet_id stable; bounded queue', () async {
+      expect(await outbox.enqueue(entry('pkt-a')), isTrue);
+      expect(await outbox.enqueue(entry('pkt-b')), isTrue);
+      expect(await outbox.enqueue(entry('pkt-c')), isFalse);
+
+      final reloaded = DurablePacketOutbox(
+        file: File('${tmp.path}/outbox.json'),
+        maxEntries: 2,
+      );
+      final all = await reloaded.peekAll();
+      expect(all.length, 2);
+      expect(all.map((e) => e.clientPacketId).toList(), ['pkt-a', 'pkt-b']);
+      expect(await reloaded.enqueue(entry('pkt-a')), isTrue);
+      expect((await reloaded.peekAll()).length, 2);
+      expect((await reloaded.peekAll()).first.clientPacketId, 'pkt-a');
+    });
+
+    test('ACCEPTED/DUPLICATE remove; permanent failure does not retry forever',
+        () async {
+      await outbox.enqueue(entry('pkt-acc'));
+      await outbox.enqueue(entry('pkt-dup'));
+      await outbox.remove(deviceId: 'SEDI-HR-1', clientPacketId: 'pkt-acc');
+      expect((await outbox.peekAll()).map((e) => e.clientPacketId), ['pkt-dup']);
+      await outbox.remove(deviceId: 'SEDI-HR-1', clientPacketId: 'pkt-dup');
+      expect((await outbox.peekAll()), isEmpty);
+
+      await outbox.enqueue(entry('pkt-perm'));
+      await outbox.markPermanentFailure(
+        deviceId: 'SEDI-HR-1',
+        clientPacketId: 'pkt-perm',
+        reason: 'GATEWAY_AUTH_REJECTED',
+      );
+      expect((await outbox.peekAll()).single.permanentFailure, isTrue);
+      await outbox.dropPermanentFailures();
+      expect((await outbox.peekAll()), isEmpty);
+    });
   });
 }

@@ -4,6 +4,7 @@ import 'package:sedi_app/data/dto/device_public_info.dart';
 import 'package:sedi_app/data/dto/devices_list_response.dart';
 import 'package:sedi_app/data/repositories/devices_repository.dart';
 import 'package:sedi_app/features/devices/logic/devices_controller.dart';
+import 'dart:io';
 
 class FakeDevicesRepository extends DevicesRepository {
   FakeDevicesRepository() : super(baseUrl: 'http://fake');
@@ -156,6 +157,28 @@ void main() {
           ['legacy-1']);
       expect(controller.unclassifiedDevices.first.isSelfDevice, isFalse);
       expect(controller.unclassifiedDevices.first.isOtherDevice, isFalse);
+    });
+  });
+
+  group('G4/G5 relay contract source', () {
+    test('relay uses ACCEPTED/DUPLICATE removal and permanent auth set', () {
+      final src = File(
+        'lib/features/devices/gateway/device_packet_relay.dart',
+      ).readAsStringSync();
+      expect(src.contains('PacketRelayAck.accepted'), isTrue);
+      expect(src.contains('PacketRelayAck.duplicate'), isTrue);
+      expect(src.contains('permanentAckCodes'), isTrue);
+      expect(src.contains('GATEWAY_AUTH_REJECTED'), isTrue);
+      expect(src.contains('/device/ingest'), isFalse);
+      expect(src.contains('/data/upload'), isFalse);
+    });
+
+    test('gateway install id uses flutter_secure_storage', () {
+      final src = File(
+        'lib/features/devices/gateway/gateway_install_id_store.dart',
+      ).readAsStringSync();
+      expect(src.contains('FlutterSecureStorage'), isTrue);
+      expect(src.contains('sedi_gateway_install_id_v1'), isTrue);
     });
   });
 }
