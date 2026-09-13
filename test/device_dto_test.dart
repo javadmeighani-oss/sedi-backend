@@ -39,6 +39,53 @@ void main() {
       expect(d.status, 'active');
       expect(d.lastSeenAt, isNotNull);
       expect(d.revokedAt, isNull);
+      expect(d.deviceCategory, isNull);
+    });
+
+    test('parses SELF category', () {
+      final d = DevicePublicInfo.fromJson({
+        'device_id': 'SEDI-ECG-1',
+        'device_type': 'ECG',
+        'status': 'active',
+        'created_at': '2025-02-09T10:00:00Z',
+        'device_category': 'SELF',
+        'health_subject_id': 7,
+      });
+      expect(d.deviceCategory, 'SELF');
+      expect(d.isSelfDevice, isTrue);
+      expect(d.isOtherDevice, isFalse);
+      expect(d.displayName, 'ECG');
+    });
+
+    test('parses OTHER + user_label', () {
+      final d = DevicePublicInfo.fromJson({
+        'device_id': 'SEDI-BP-1',
+        'device_type': 'BP',
+        'status': 'active',
+        'created_at': '2025-02-09T10:00:00Z',
+        'device_category': 'OTHER',
+        'user_label': 'Mom cuff',
+        'health_subject_id': 7,
+      });
+      expect(d.deviceCategory, 'OTHER');
+      expect(d.userLabel, 'Mom cuff');
+      expect(d.isOtherDevice, isTrue);
+      expect(d.displayName, 'Mom cuff');
+    });
+
+    test('nullable legacy category does not infer from health_subject_id', () {
+      final d = DevicePublicInfo.fromJson({
+        'device_id': 'Legacy1',
+        'device_type': 'heart_rate',
+        'status': 'active',
+        'created_at': '2025-02-09T10:00:00Z',
+        'health_subject_id': 1,
+      });
+      expect(d.healthSubjectId, 1);
+      expect(d.deviceCategory, isNull);
+      expect(d.isSelfDevice, isFalse);
+      expect(d.isOtherDevice, isFalse);
+      expect(d.isUnclassifiedDevice, isTrue);
     });
   });
 

@@ -1,5 +1,5 @@
-/// Devices management: POST /devices/register, GET /devices, revoke, rotate-token.
-/// See: frontend/docs/FRONTEND_BACKEND_ALIGNMENT.md
+/// Devices management: JWT-authenticated Account Device control-plane.
+/// Canonical identity = ApiClient session; never send ?user_id=.
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_response.dart';
@@ -12,27 +12,21 @@ class DevicesRepository {
   DevicesRepository({String? baseUrl, ApiClient? apiClient})
       : _client = apiClient ?? ApiClient(baseUrl: baseUrl ?? AppConfig.baseUrl);
 
-  Map<String, String> _userQuery(int userId) => {'user_id': userId.toString()};
-
-  /// POST /devices/register — register device for user.
-  /// Backend returns { ok, data: { device_id, token? }, error? }.
+  /// POST /devices/register — register device for authenticated Account.
   Future<ApiResponse<Map<String, dynamic>?>> register({
-    required int userId,
     required DeviceRegisterRequest request,
   }) async {
     return _client.post<Map<String, dynamic>?>(
       '/devices/register',
-      queryParams: _userQuery(userId),
       body: request.toJson(),
       parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 
-  /// GET /devices — list devices for user.
-  Future<ApiResponse<DevicesListData?>> list({required int userId}) async {
+  /// GET /devices — list devices for authenticated Account.
+  Future<ApiResponse<DevicesListData?>> list() async {
     return _client.get<DevicesListData?>(
       '/devices',
-      queryParams: _userQuery(userId),
       parser: (v) {
         if (v == null) return null;
         final map = v is Map ? Map<String, dynamic>.from(v) : null;
@@ -44,11 +38,9 @@ class DevicesRepository {
   /// POST /devices/{device_id}/revoke — revoke device.
   Future<ApiResponse<Map<String, dynamic>?>> revoke({
     required String deviceId,
-    required int userId,
   }) async {
     return _client.post<Map<String, dynamic>?>(
       '/devices/$deviceId/revoke',
-      queryParams: _userQuery(userId),
       parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
@@ -56,11 +48,26 @@ class DevicesRepository {
   /// POST /devices/{device_id}/rotate-token — rotate device token.
   Future<ApiResponse<Map<String, dynamic>?>> rotateToken({
     required String deviceId,
-    required int userId,
   }) async {
     return _client.post<Map<String, dynamic>?>(
       '/devices/$deviceId/rotate-token',
-      queryParams: _userQuery(userId),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
+  /// PATCH /devices/{device_id} — owner presentation only (category + label).
+  Future<ApiResponse<Map<String, dynamic>?>> updatePresentation({
+    required String deviceId,
+    required String deviceCategory,
+    String? userLabel,
+  }) async {
+    final body = <String, dynamic>{
+      'device_category': deviceCategory.trim().toUpperCase(),
+      'user_label': userLabel,
+    };
+    return _client.patch<Map<String, dynamic>?>(
+      '/devices/$deviceId',
+      body: body,
       parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }

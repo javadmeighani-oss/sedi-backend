@@ -1,27 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/data/dto/device_public_info.dart';
 import 'package:sedi_app/data/dto/devices_list_response.dart';
 import 'package:sedi_app/data/repositories/devices_repository.dart';
 import 'package:sedi_app/features/devices/logic/devices_controller.dart';
 
-/// Stub repository that records calls and returns success for revoke/rotate; list returns empty data.
 class FakeDevicesRepository extends DevicesRepository {
   FakeDevicesRepository() : super(baseUrl: 'http://fake');
 
   int listCallCount = 0;
   bool revokeCalled = false;
   bool rotateTokenCalled = false;
+  bool presentationCalled = false;
+  String? lastPresentationCategory;
+  String? lastPresentationLabel;
+  List<DevicePublicInfo> listDevices = const [];
 
   @override
-  Future<ApiResponse<DevicesListData?>> list({required int userId}) async {
+  Future<ApiResponse<DevicesListData?>> list() async {
     listCallCount++;
-    return ApiResponse(ok: true, data: const DevicesListData(devices: [], count: 0));
+    return ApiResponse(
+      ok: true,
+      data: DevicesListData(devices: listDevices, count: listDevices.length),
+    );
   }
 
   @override
   Future<ApiResponse<Map<String, dynamic>?>> revoke({
     required String deviceId,
-    required int userId,
   }) async {
     revokeCalled = true;
     return const ApiResponse(ok: true, data: {});
@@ -30,33 +36,126 @@ class FakeDevicesRepository extends DevicesRepository {
   @override
   Future<ApiResponse<Map<String, dynamic>?>> rotateToken({
     required String deviceId,
-    required int userId,
   }) async {
     rotateTokenCalled = true;
+    return const ApiResponse(ok: true, data: {});
+  }
+
+  @override
+  Future<ApiResponse<Map<String, dynamic>?>> updatePresentation({
+    required String deviceId,
+    required String deviceCategory,
+    String? userLabel,
+  }) async {
+    presentationCalled = true;
+    lastPresentationCategory = deviceCategory;
+    lastPresentationLabel = userLabel;
     return const ApiResponse(ok: true, data: {});
   }
 }
 
 void main() {
-  group('DevicesController revoke/rotate', () {
-    test('revokeDevice calls repo.revoke then loadDevices on success', () async {
+  group('DevicesController JWT actions', () {
+    test('loadDevices calls repo.list without profile userId', () async {
       final fake = FakeDevicesRepository();
-      final controller = DevicesController(repo: fake, testUserId: 1);
+      final controller = DevicesController(repo: fake);
+      await controller.loadDevices();
+      expect(fake.listCallCount, 1);
+      expect(controller.errorMessage, isNull);
+    });
 
+    test('revokeDevice calls repo.revoke then loadDevices', () async {
+      final fake = FakeDevicesRepository();
+      final controller = DevicesController(repo: fake);
       await controller.revokeDevice('device-1');
-
       expect(fake.revokeCalled, isTrue);
       expect(fake.listCallCount, greaterThanOrEqualTo(1));
     });
 
-    test('rotateDeviceToken calls repo.rotateToken then loadDevices on success', () async {
+    test('rotateDeviceToken calls repo.rotateToken then loadDevices', () async {
       final fake = FakeDevicesRepository();
-      final controller = DevicesController(repo: fake, testUserId: 1);
-
+      final controller = DevicesController(repo: fake);
       await controller.rotateDeviceToken('device-2');
-
       expect(fake.rotateTokenCalled, isTrue);
       expect(fake.listCallCount, greaterThanOrEqualTo(1));
+    });
+
+    test('updateDevicePresentation PATCH then reload; reentrancy guard',
+        () async {
+      final fake = FakeDevicesRepository();
+      final controller = DevicesController(repo: fake);
+      final ok = await controller.updateDevicePresentation(
+        deviceId: 'd1',
+        deviceCategory: 'OTHER',
+        userLabel: 'Mom BP',
+      );
+      expect(ok, isTrue);
+      expect(fake.presentationCalled, isTrue);
+      expect(fake.lastPresentationCategory, 'OTHER');
+      expect(fake.lastPresentationLabel, 'Mom BP');
+      expect(fake.listCallCount, greaterThanOrEqualTo(1));
+
+      controller.isActionInProgress = true;
+      final blocked = await controller.updateDevicePresentation(
+        deviceId: 'd1',
+        deviceCategory: 'SELF',
+      );
+      expect(blocked, isFalse);
+      expect(controller.errorMessage, 'Please wait.');
+    });
+
+    test('OTHER without label rejected client-side', () async {
+      final fake = FakeDevicesRepository();
+      final controller = DevicesController(repo: fake);
+      final ok = await controller.updateDevicePresentation(
+        deviceId: 'd1',
+        deviceCategory: 'OTHER',
+        userLabel: '  ',
+      );
+      expect(ok, isFalse);
+      expect(fake.presentationCalled, isFalse);
+    });
+  });
+
+  group('DevicesController category grouping', () {
+    test('self/other from device_category only; null not inferred', () async {
+      final now = DateTime.utc(2026, 1, 1);
+      final fake = FakeDevicesRepository()
+        ..listDevices = [
+          DevicePublicInfo(
+            deviceId: 'self-1',
+            deviceType: 'ECG',
+            status: 'active',
+            createdAt: now,
+            healthSubjectId: 99,
+            deviceCategory: 'SELF',
+          ),
+          DevicePublicInfo(
+            deviceId: 'other-1',
+            deviceType: 'BP',
+            status: 'active',
+            createdAt: now,
+            healthSubjectId: 99,
+            deviceCategory: 'OTHER',
+            userLabel: 'Kitchen',
+          ),
+          DevicePublicInfo(
+            deviceId: 'legacy-1',
+            deviceType: 'SpO2',
+            status: 'active',
+            createdAt: now,
+            healthSubjectId: 1,
+            deviceCategory: null,
+          ),
+        ];
+      final controller = DevicesController(repo: fake);
+      await controller.loadDevices();
+      expect(controller.selfDevices.map((d) => d.deviceId), ['self-1']);
+      expect(controller.otherDevices.map((d) => d.deviceId), ['other-1']);
+      expect(controller.unclassifiedDevices.map((d) => d.deviceId),
+          ['legacy-1']);
+      expect(controller.unclassifiedDevices.first.isSelfDevice, isFalse);
+      expect(controller.unclassifiedDevices.first.isOtherDevice, isFalse);
     });
   });
 }

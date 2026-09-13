@@ -1,13 +1,13 @@
-/// Devices screen: MVP ECG-only. Shows Sedi-connected ECG device or "Not connected" + Coming soon.
+/// Gadgets screen: backend Device classification SELF / OTHER / Unclassified.
+/// No HealthSubject grouping. No BLE transport state. No active→Connected mapping.
 import 'package:flutter/material.dart';
 
-import '../../../../core/health_subject/sedi_health_subject.dart';
-import '../../../../core/health_subject/sedi_health_subject_controller.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../logic/devices_controller.dart';
+import '../devices_l10n.dart';
 
 class DevicesPage extends StatefulWidget {
   const DevicesPage({super.key});
@@ -19,18 +19,25 @@ class DevicesPage extends StatefulWidget {
 class _DevicesPageState extends State<DevicesPage> {
   final DevicesController _controller = DevicesController();
   bool _loading = true;
-  String _language = 'en';
+
+  DevicesL10n get _l10n =>
+      DevicesL10n(SediLocaleController.instance.languageCode);
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage();
+    SediLocaleController.instance.addListener(_onLocale);
     _load();
   }
 
-  Future<void> _loadLanguage() async {
-    final lang = await UserPreferences.getUserLanguage();
-    if (mounted) setState(() => _language = lang);
+  @override
+  void dispose() {
+    SediLocaleController.instance.removeListener(_onLocale);
+    super.dispose();
+  }
+
+  void _onLocale() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -39,42 +46,18 @@ class _DevicesPageState extends State<DevicesPage> {
     if (mounted) setState(() => _loading = false);
   }
 
-  bool get _isRtl => _language == 'fa' || _language == 'ar';
-
-  static final _ecgTypes = {'ecg', 'heart_rate', 'heart-rate', 'hr'};
-  static final _connectedStatuses = {'active', 'connected', 'online'};
-
-  /// MVP: consider ECG-type device as first device with normalized type in [ecg, heart_rate, heart-rate, hr].
-  /// Normalization: assumes deviceType/status are non-nullable from DTO; if ever nullable, use (value ?? '').toLowerCase().trim().
-  DevicePublicInfo? get _ecgDevice {
-    for (final d in _controller.devices) {
-      final t = d.deviceType.toLowerCase().trim();
-      if (_ecgTypes.contains(t)) return d;
-    }
-    return null;
-  }
-
-  bool get _ecgConnected {
-    final d = _ecgDevice;
-    if (d == null) return false;
-    final s = d.status.toLowerCase().trim();
-    return _connectedStatuses.contains(s);
-  }
-
-  String _lastSeenLabel(DateTime? lastSeenAt) {
-    if (lastSeenAt == null) return 'Never';
-    final n = DateTime.now();
-    final d = lastSeenAt;
-    if (d.year == n.year && d.month == n.month && d.day == n.day) {
-      return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-    }
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final subjects = SediHealthSubjectController.instance.accessibleSubjects;
-    final groups = _deviceGroups(subjects);
+    final l10n = _l10n;
+    final groups = <_DeviceGroup>[
+      _DeviceGroup(title: l10n.myGadgets, devices: _controller.selfDevices),
+      _DeviceGroup(title: l10n.otherGadgets, devices: _controller.otherDevices),
+      if (_controller.unclassifiedDevices.isNotEmpty)
+        _DeviceGroup(
+          title: l10n.unclassified,
+          devices: _controller.unclassifiedDevices,
+        ),
+    ];
 
     Widget body = RefreshIndicator(
       onRefresh: _load,
@@ -86,10 +69,18 @@ class _DevicesPageState extends State<DevicesPage> {
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(
-                  child:
-                      CircularProgressIndicator(color: AppTheme.pistachioGreen)),
+                child: CircularProgressIndicator(color: AppTheme.pistachioGreen),
+              ),
             )
-          else ...[
+          else if (_controller.devices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                l10n.noGadgets,
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
+          else
             for (final g in groups) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -103,25 +94,35 @@ class _DevicesPageState extends State<DevicesPage> {
                 ),
               ),
               if (g.devices.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text('No devices',
-                      style: TextStyle(color: AppTheme.textSecondary)),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    l10n.noGadgets,
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
                 )
               else
-                for (final d in g.devices) _deviceRow(d),
+                for (final d in g.devices) _deviceRow(d, l10n),
             ],
-            const SizedBox(height: 8),
-            _buildEcgCard(),
-          ],
+          if (_controller.errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _controller.errorMessage!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+              ),
+            ),
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'When connected, ECG readings will appear in Vitals.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.55,
+                child: OutlinedButton(
+                  onPressed: () {},
+                  child: Text(l10n.connectComingSoon),
+                ),
               ),
             ),
           ),
@@ -131,15 +132,15 @@ class _DevicesPageState extends State<DevicesPage> {
 
     Widget page = Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      appBar: const A3PageAppBar(
-        title: Text('Devices'),
+      appBar: A3PageAppBar(
+        title: Text(l10n.title),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.primaryBlack,
       ),
       body: body,
     );
 
-    if (_isRtl) {
+    if (SediLocaleController.instance.isRtl) {
       page = Directionality(
         textDirection: TextDirection.rtl,
         child: page,
@@ -148,175 +149,115 @@ class _DevicesPageState extends State<DevicesPage> {
     return page;
   }
 
-  List<_DeviceGroup> _deviceGroups(List<SediHealthSubject> subjects) {
-    final byId = <int?, List<DevicePublicInfo>>{};
-    for (final d in _controller.devices) {
-      byId.putIfAbsent(d.healthSubjectId, () => []).add(d);
-    }
-    final groups = <_DeviceGroup>[];
-    // SELF first
-    for (final s in subjects.where((s) => s.isSelf)) {
-      groups.add(_DeviceGroup(
-        title: 'My devices',
-        healthSubjectId: s.id,
-        devices: byId[s.id] ?? const [],
-      ));
-    }
-    // OTHER by display_name
-    for (final s in subjects.where((s) => !s.isSelf)) {
-      groups.add(_DeviceGroup(
-        title: s.visibleName,
-        healthSubjectId: s.id,
-        devices: byId[s.id] ?? const [],
-      ));
-    }
-    // Unbound devices (no subject)
-    final unbound = byId[null] ?? const [];
-    if (unbound.isNotEmpty && groups.isEmpty) {
-      groups.add(_DeviceGroup(
-        title: 'My devices',
-        healthSubjectId: null,
-        devices: unbound,
-      ));
-    } else if (unbound.isNotEmpty) {
-      groups.add(_DeviceGroup(
-        title: 'Unassigned',
-        healthSubjectId: null,
-        devices: unbound,
-      ));
-    }
-    if (groups.isEmpty) {
-      groups.add(const _DeviceGroup(
-        title: 'My devices',
-        healthSubjectId: null,
-        devices: [],
-      ));
-    }
-    return groups;
-  }
-
-  Widget _deviceRow(DevicePublicInfo d) {
+  Widget _deviceRow(DevicePublicInfo d, DevicesL10n l10n) {
     return ListTile(
-      title: Text(d.deviceType),
-      subtitle: Text(deviceStatusLabel(d.status)),
+      title: Text(d.displayName),
+      subtitle: Text(
+        '${d.deviceType} · ${l10n.statusLabel(d.status)}',
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+      ),
+      trailing: TextButton(
+        onPressed: _controller.isActionInProgress
+            ? null
+            : () => _openPresentationEditor(d, l10n),
+        child: Text(l10n.rename),
+      ),
       dense: true,
     );
   }
 
-  Widget _buildEcgCard() {
-    final connected = _ecgConnected;
-    final d = _ecgDevice;
+  Future<void> _openPresentationEditor(
+    DevicePublicInfo device,
+    DevicesL10n l10n,
+  ) async {
+    var category = device.isOtherDevice
+        ? 'OTHER'
+        : (device.isSelfDevice ? 'SELF' : 'SELF');
+    final labelCtrl = TextEditingController(text: device.userLabel ?? '');
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        border: Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ECG Device',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            return AlertDialog(
+              title: Text(l10n.rename),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(l10n.category),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(
+                        value: 'SELF',
+                        label: Text(l10n.selfCategory),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Chest device',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
+                      ButtonSegment(
+                        value: 'OTHER',
+                        label: Text(l10n.otherCategory),
                       ),
                     ],
+                    selected: {category},
+                    onSelectionChanged: (s) {
+                      setLocal(() => category = s.first);
+                    },
                   ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: labelCtrl,
+                    maxLength: 80,
+                    decoration: InputDecoration(hintText: l10n.labelHint),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l10n.cancel),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: connected
-                        ? AppTheme.pistachioGreen.withOpacity(0.2)
-                        : AppTheme.borderInactive.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    connected ? 'Connected' : 'Not connected',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: connected ? AppTheme.textPrimary : AppTheme.textSecondary,
-                    ),
-                  ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l10n.save),
                 ),
               ],
-            ),
-          ),
-          if (connected && d != null && d.lastSeenAt != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Text(
-                'Last updated: ${_lastSeenLabel(d.lastSeenAt)}',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                textDirection: TextDirection.ltr,
-              ),
-            )
-          else if (!connected) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Text(
-                'Coming soon',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.6,
-                  child: FilledButton(
-                    onPressed: () {},
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.pistachioGreen,
-                      foregroundColor: AppTheme.backgroundWhite,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                      ),
-                    ),
-                    child: const Text('Connect'),
-                  ),
-                ),
-              ),
-            ),
-          ] else
-            const SizedBox(height: 8),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
+
+    if (saved != true || !mounted) {
+      labelCtrl.dispose();
+      return;
+    }
+
+    final ok = await _controller.updateDevicePresentation(
+      deviceId: device.deviceId,
+      deviceCategory: category,
+      userLabel: labelCtrl.text,
+    );
+    labelCtrl.dispose();
+    if (!mounted) return;
+    setState(() {});
+    final messenger = ScaffoldMessenger.of(context);
+    if (ok) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.presentationUpdated)));
+    } else if (_controller.errorMessage != null) {
+      messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
+    }
   }
 }
 
 class _DeviceGroup {
   final String title;
-  final int? healthSubjectId;
   final List<DevicePublicInfo> devices;
 
   const _DeviceGroup({
     required this.title,
-    required this.healthSubjectId,
     required this.devices,
   });
 }
