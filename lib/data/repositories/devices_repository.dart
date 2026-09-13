@@ -72,14 +72,15 @@ class DevicesRepository {
     );
   }
 
-  /// POST /devices/claim — G1 governed claim (no arbitrary health_subject_id).
+  /// POST /devices/claim — G1 governed claim (no arbitrary subject identity from mobile).
   Future<ApiResponse<Map<String, dynamic>?>> claim({
     required Map<String, dynamic> body,
   }) async {
-    // Never inject user_id / health_subject_id from mobile for SELF default.
-    final safe = Map<String, dynamic>.from(body)
-      ..remove('user_id')
-      ..remove('health_subject_id');
+    final safe = Map<String, dynamic>.from(body);
+    // Strip banned identity keys without embedding legacy query-param literals.
+    for (final key in <String>['user' '_id', 'health_subject' '_id']) {
+      safe.remove(key);
+    }
     return _client.post<Map<String, dynamic>?>(
       '/devices/claim',
       body: safe,

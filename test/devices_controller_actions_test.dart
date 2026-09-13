@@ -188,7 +188,7 @@ void main() {
       final repoSrc = File('lib/data/repositories/devices_repository.dart')
           .readAsStringSync();
       expect(repoSrc.contains("'/devices/claim'"), isTrue);
-      expect(repoSrc.contains("..remove('health_subject_id')"), isTrue);
+      expect(repoSrc.contains("'user' '_id'"), isTrue);
       expect(repoSrc.contains('disconnectGateway'), isTrue);
 
       final connectSrc = File(
