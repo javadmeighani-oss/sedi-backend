@@ -87582,3 +87582,64 @@ NEXT_EXECUTION_GATE_AUTHORIZED=NO
 CURSOR_HANDOFF_SUCCESSOR=v797
 MASTER_LOG_TIP=§504
 CURSOR_HANDOFF_TIP=v797
+
+## §505 - A3 GADGETS G3+G4+G5 INTEGRATED MOBILE DATA PATH CHECKPOINT
+
+GATE=SEDI-V1-A3-GADGETS-G3-G4-G5-INTEGRATED-MOBILE-DATA-PATH-01
+GATE_RESULT=PASS
+MODE=IMPLEMENT_VALIDATE_COMPOSITE
+PRIOR_TIP=§504 / v797
+BASE_FRONTEND_HEAD=4c08970c455e19c015d8f6d1052a88df6aae5c76
+BASE_BACKEND_GOVERNANCE_HEAD=07132ce669afc9182f718c9a9a3d4c0fb9fa9726
+ALEMBIC_HEAD=084_device_category_setup_code_authority
+
+FRONTEND_PRODUCT_COMMITS=5d52d5abb9d27db87c6f9081cf6528cb0372847b;354420e02b7f0e0781e618e879fa03fb7e8c1840;4af9f51df2da762d0f71d14bd80ecb8aa46ca60e;cdf59c5d7e3be157c2d66c59fe6e1cd7880ffb2d
+FRONTEND_FINAL_HEAD=cdf59c5d7e3be157c2d66c59fe6e1cd7880ffb2d
+FRONTEND_REMOTE_HEAD=cdf59c5d7e3be157c2d66c59fe6e1cd7880ffb2d
+BACKEND_PRODUCT_COMMITS=399372f60103224f1ec862e3c3cf3b3dbeb96b8f;53f72366d8a3ac51e03d04437b2fd2a0f3d87d95
+BACKEND_FINAL_PRODUCT_HEAD=53f72366d8a3ac51e03d04437b2fd2a0f3d87d95
+BACKEND_REMOTE_CANONICAL_HEAD=(governance commit after this tip)
+REMOTE_BACKEND_BE_EXISTS=NO
+BRANCH=feature/a3-authority-chat-stream-profile-foundation
+
+BLE_DEPENDENCY=flutter_reactive_ble 5.4.1 (CI Flutter 3.24 / Dart 3.5; gate-requested 5.5.0 requires Dart ^3.11 — OPEN_FINDING)
+GATT=Primary f2e6981f-4dc1-526d-a2c8-a043a1cddfa5 + six frozen characteristics; UTF-8 JSON protocol v1
+GATEWAY_INSTALL_ID=flutter_secure_storage key sedi_gateway_install_id_v1; high-entropy 32-byte hex
+GATEWAY_AUTH=POST /device/packet transport=bluetooth requires ACTIVE DeviceMobileGatewayAuthorization(device_id, gateway_install_id); fail-closed wrong/revoked/mismatch/missing
+CANONICAL_PACKET=/device/packet ONLY; no new /device/ingest or /data/upload consumer
+DEVICE_REPORTED=gadget STABLE/UNSTABLE preserved as observation device_reported_vital_status source_class=DEVICE_REPORTED; mobile clinical inference=NO
+OUTBOX=bounded durable JSON file queue max=64; FIFO; ACCEPTED/DUPLICATE remove; recoverable retain; permanent auth mark+drop; client_packet_id stable across retries
+HARDWARE_SPEC=docs/Sedi_Gadget_BLE_and_Data_Interface_Spec_V1_FA.md
+RAW_ECG=NO
+G7_NOTIFICATION_POLICY=NO
+SCHEMA=NO
+MIGRATION=NO
+WORKFLOW=NO
+DEPLOY=NO
+MERGE=NO
+
+FRONTEND_CI_WORKFLOW=Frontend Android Debug APK
+FRONTEND_CI_RUN_ID=34739266034
+FRONTEND_CI_SHA=cdf59c5d7e3be157c2d66c59fe6e1cd7880ffb2d
+FRONTEND_CI_RESULT=SUCCESS
+FLUTTER_ANALYZE=PASS
+A3_REGRESSION=PASS
+G2_G3_G5_TESTS=PASS
+ANDROID_BUILD=PASS
+BACKEND_TARGETED_LOCAL=test_i9_device_claim_trust_ingest_runtime.py g4_bluetooth* + t17/t9 PASS (5+2)
+BACKEND_RUNTIME_CI=I9-I10 Device Reported Vital Status PG16 run 34738890703 SUCCESS on 53f72366; Stage A I1-I10 fails on frozen alembic-head==080 assertion (pre-existing; head=084) — not mutated
+
+G1_CHECKPOINT_STATUS=CLOSED_PASS
+G2_CHECKPOINT_STATUS=CLOSED_PASS
+G3_CHECKPOINT_STATUS=CLOSED_PASS
+G4_CHECKPOINT_STATUS=CLOSED_PASS
+G5_CHECKPOINT_STATUS=CLOSED_PASS
+GADGETS_PROGRAM_STATUS=IN_PROGRESS
+G6_AUTHORIZED=NO
+G7_AUTHORIZED=NO
+NEXT_EXECUTION_GATE_AUTHORIZED=NO
+
+OPEN_FINDINGS=flutter_reactive_ble 5.5.0 blocked by CI Flutter 3.24; CompanionDeviceManager/background association not implemented (in-process reconnect only); Stage A workflow still asserts alembic head 080
+CURSOR_HANDOFF_SUCCESSOR=v798
+MASTER_LOG_TIP=§505
+CURSOR_HANDOFF_TIP=v798
