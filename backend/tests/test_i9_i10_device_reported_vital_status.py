@@ -203,7 +203,9 @@ def test_05_duplicate_packet_idempotent(db, patches):
         .count()
         == 1
     )
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 2  # daily + transition
+    assert len(_transition_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_daily_intents(db, family.mother_hs.id, family.son.id)) == 1
 
 
 def test_06_invalid_verdict_fail_closed(db, patches):
