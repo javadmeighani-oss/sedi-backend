@@ -96,7 +96,7 @@ class DevicesRepository {
     );
   }
 
-  /// Canonical I9 ingest only: POST /device/packet (never /device/ingest or /data/upload).
+  /// Canonical I9 ingest only: POST /device/packet (not legacy ingest or data-upload paths).
   Future<ApiResponse<Map<String, dynamic>?>> postDevicePacket({
     required String deviceToken,
     required Map<String, dynamic> body,
