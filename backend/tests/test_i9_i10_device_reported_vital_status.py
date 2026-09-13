@@ -21,6 +21,8 @@ from backend.app.services.i10.care_subject_status_facts import assemble_care_sub
 from backend.app.services.i10.caregiver_data_gap import is_care_data_gap_candidate
 from backend.app.services.i10.caregiver_delivery_worker import process_caregiver_delivery_intent
 from backend.app.services.i10.device_reported_vital_status_producer import (
+    build_device_reported_vital_daily_occurrence_key,
+    render_device_reported_vital_daily_body,
     render_device_reported_vital_status_body,
     should_notify_device_reported_transition,
 )
@@ -63,7 +65,7 @@ _FLAGS = patch.dict(
     clear=False,
 )
 
-FORBIDDEN = ("safe", "healthy", "danger", "emergency", "diagnosis", "critical", "medically")
+FORBIDDEN = ("healthy", "danger", "emergency", "diagnosis", "critical", "medically")
 
 
 @pytest.fixture
@@ -130,6 +132,14 @@ def _device_intents(db, health_subject_id: int, recipient_user_id: int | None = 
         q = q.filter(models.CaregiverNotificationIntent.recipient_user_id == recipient_user_id)
     return q.order_by(models.CaregiverNotificationIntent.id.asc()).all()
 
+
+
+def _transition_intents(db, health_subject_id: int, recipient_user_id: int | None = None):
+    return [i for i in _device_intents(db, health_subject_id, recipient_user_id) if ":transition:" in (i.occurrence_key or "")]
+
+
+def _daily_intents(db, health_subject_id: int, recipient_user_id: int | None = None):
+    return [i for i in _device_intents(db, health_subject_id, recipient_user_id) if ":daily:" in (i.occurrence_key or "")]
 
 def _assert_safe_body(body: str) -> None:
     lower = body.lower()
@@ -289,8 +299,9 @@ def test_08_historical_binding_immutable(db, patches):
 def test_09_first_stable_one_son_notification(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="STABLE", when=family.when)
-    intents = _device_intents(db, family.mother_hs.id, family.son.id)
+    intents = _transition_intents(db, family.mother_hs.id, family.son.id)
     assert len(intents) == 1
+    assert len(_daily_intents(db, family.mother_hs.id, family.son.id)) == 1
     assert intents[0].owner_user_id is None
     meta = intents[0].payload_metadata_json or ""
     assert "stable" in meta.lower()
@@ -300,7 +311,7 @@ def test_09_first_stable_one_son_notification(db, patches):
 def test_10_first_unstable_one_son_notification(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="UNSTABLE", when=family.when)
-    intents = _device_intents(db, family.mother_hs.id, family.son.id)
+    intents = _transition_intents(db, family.mother_hs.id, family.son.id)
     assert len(intents) == 1
     assert "unstable" in (intents[0].payload_metadata_json or "").lower()
     _assert_safe_body(intents[0].payload_metadata_json or "")
@@ -311,7 +322,7 @@ def test_11_stable_to_unstable_notifies(db, patches):
     t0 = family.when
     _ingest_status(db, family.device, status="STABLE", when=t0)
     _ingest_status(db, family.device, status="UNSTABLE", when=t0 + timedelta(minutes=5))
-    intents = _device_intents(db, family.mother_hs.id, family.son.id)
+    intents = _transition_intents(db, family.mother_hs.id, family.son.id)
     assert len(intents) == 2
     assert "unstable" in (intents[-1].payload_metadata_json or "").lower()
 
@@ -321,7 +332,7 @@ def test_12_unstable_to_stable_recovery_notification(db, patches):
     t0 = family.when
     _ingest_status(db, family.device, status="UNSTABLE", when=t0)
     _ingest_status(db, family.device, status="STABLE", when=t0 + timedelta(minutes=5))
-    intents = _device_intents(db, family.mother_hs.id, family.son.id)
+    intents = _transition_intents(db, family.mother_hs.id, family.son.id)
     assert len(intents) == 2
     body = render_device_reported_vital_status_body(previous_status="UNSTABLE", new_status="STABLE")
     assert "returned to stable" in body.lower()
@@ -334,7 +345,8 @@ def test_13_stable_repeat_dedupe(db, patches):
     t0 = family.when
     _ingest_status(db, family.device, status="STABLE", when=t0)
     _ingest_status(db, family.device, status="STABLE", when=t0 + timedelta(minutes=5))
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_transition_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_daily_intents(db, family.mother_hs.id, family.son.id)) == 1
 
 
 def test_14_unstable_repeat_dedupe(db, patches):
@@ -342,7 +354,7 @@ def test_14_unstable_repeat_dedupe(db, patches):
     t0 = family.when
     _ingest_status(db, family.device, status="UNSTABLE", when=t0)
     _ingest_status(db, family.device, status="UNSTABLE", when=t0 + timedelta(minutes=5))
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_transition_intents(db, family.mother_hs.id, family.son.id)) == 1
 
 
 # --- 15–19 access / prefs / wrong HS ---
@@ -352,13 +364,13 @@ def test_15_stranger_blocked(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="UNSTABLE", when=family.when)
     assert len(_device_intents(db, family.mother_hs.id, family.stranger.id)) == 0
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_transition_intents(db, family.mother_hs.id, family.son.id)) == 1
 
 
 def test_16_access_revoke_fail_closed(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="STABLE", when=family.when)
-    intent = _device_intents(db, family.mother_hs.id, family.son.id)[0]
+    intent = _transition_intents(db, family.mother_hs.id, family.son.id)[0]
     access_rows = (
         db.query(models.AccountHealthSubjectAccess)
         .filter(
@@ -378,7 +390,7 @@ def test_16_access_revoke_fail_closed(db, patches):
 def test_17_grant_revoke_fail_closed(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="UNSTABLE", when=family.when)
-    intent = _device_intents(db, family.mother_hs.id, family.son.id)[0]
+    intent = _transition_intents(db, family.mother_hs.id, family.son.id)[0]
     revoke_subject_notification_grant_by_scope(
         db,
         actor_user_id=family.son.id,
@@ -397,7 +409,7 @@ def test_18_prefs_respected(db, patches):
     prefs.health_alert_enabled = False
     db.flush()
     _ingest_status(db, family.device, status="STABLE", when=family.when)
-    intent = _device_intents(db, family.mother_hs.id, family.son.id)[0]
+    intent = _transition_intents(db, family.mother_hs.id, family.son.id)[0]
     outcome = process_caregiver_delivery_intent(db, intent, commit=False)
     assert outcome["status"] == "suppressed"
 
@@ -409,7 +421,7 @@ def test_19_wrong_health_subject_blocked(db, patches):
     )
     _ingest_status(db, family.device, status="UNSTABLE", when=family.when)
     assert len(_device_intents(db, other.id, family.son.id)) == 0
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == 1
+    assert len(_transition_intents(db, family.mother_hs.id, family.son.id)) == 1
 
 
 # --- 20–25 ordering / safety / silence / tx ---
@@ -428,7 +440,7 @@ def test_20_out_of_order_cannot_corrupt_current(db, patches):
     assert after is not None
     assert after.status == "UNSTABLE"
     assert after.row_id == before.row_id
-    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == count_before
+    assert len(_device_intents(db, family.mother_hs.id, family.son.id)) == count_before  # no new intents
     assert (
         db.query(models.DeviceReportedVitalStatus)
         .filter(models.DeviceReportedVitalStatus.health_subject_id == family.mother_hs.id)
@@ -467,7 +479,7 @@ def test_22_clinical_rule_count_zero(db, patches):
 def test_23_unstable_never_emergency_danger_diagnosis(db, patches):
     family = seed_stage_b_family(db, commit=False)
     _ingest_status(db, family.device, status="UNSTABLE", when=family.when)
-    intent = _device_intents(db, family.mother_hs.id, family.son.id)[0]
+    intent = _transition_intents(db, family.mother_hs.id, family.son.id)[0]
     meta = intent.payload_metadata_json or ""
     _assert_safe_body(meta)
     assert intent.semantic_family == I10SemanticFamily.DEVICE_STATUS.value
@@ -615,3 +627,29 @@ def test_alembic_head_retains_080_ancestry():
     assert heads[0] == ALEMBIC_HEAD
     assert script.get_revision(_REV_080) is not None
     assert script.get_revision(_REV_080).down_revision == "079_i10_cni_owner_provenance_nullable"
+
+def test_g7_daily_once_per_day_and_self_wording(db, patches):
+    family = seed_stage_b_family(db, commit=False)
+    t0 = family.when
+    _ingest_status(db, family.device, status="STABLE", when=t0)
+    _ingest_status(db, family.device, status="STABLE", when=t0 + timedelta(minutes=10))
+    daily = _daily_intents(db, family.mother_hs.id, family.son.id)
+    assert len(daily) == 1
+    key = daily[0].occurrence_key or ""
+    assert key.startswith(f"i10:drv:daily:{family.mother_hs.id}:")
+    self_body = render_device_reported_vital_daily_body(status="STABLE", audience="self")
+    assert self_body == "Gadget reports your vital-sign status as stable."
+    assert "your" in self_body
+    unstable_self = render_device_reported_vital_daily_body(status="UNSTABLE", audience="self")
+    assert unstable_self == "Gadget reports your vital-sign status as unstable/changed."
+    _assert_safe_body(self_body)
+    _assert_safe_body(unstable_self)
+
+
+def test_g7_daily_occurrence_key_shape():
+    key = build_device_reported_vital_daily_occurrence_key(
+        health_subject_id=42,
+        period_date=__import__("datetime").date(2026, 9, 12),
+        status_row_id=7,
+    )
+    assert key == "i10:drv:daily:42:2026-09-12:7"
