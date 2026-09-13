@@ -3,11 +3,46 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
+import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/data/dto/device_public_info.dart';
+import 'package:sedi_app/data/dto/devices_list_response.dart';
+import 'package:sedi_app/data/repositories/devices_repository.dart';
+import 'package:sedi_app/features/devices/logic/devices_controller.dart';
 import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
+
+class _FakeDevicesRepository extends DevicesRepository {
+  _FakeDevicesRepository() : super(baseUrl: 'http://fake');
+
+  @override
+  Future<ApiResponse<DevicesListData?>> list() async {
+    final now = DateTime.utc(2026, 1, 1);
+    final devices = [
+      DevicePublicInfo(
+        deviceId: 'SEDI-ECG-000000000001',
+        deviceType: 'ECG',
+        status: 'active',
+        createdAt: now,
+        deviceCategory: 'SELF',
+      ),
+      DevicePublicInfo(
+        deviceId: 'SEDI-ECG-000000000002',
+        deviceType: 'ECG',
+        status: 'active',
+        createdAt: now,
+        deviceCategory: 'OTHER',
+        userLabel: 'Mom ECG',
+      ),
+    ];
+    return ApiResponse(
+      ok: true,
+      data: DevicesListData(devices: devices, count: devices.length),
+    );
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -47,27 +82,41 @@ void main() {
 
   testWidgets('DevicesPage renders SELF/OTHER headings from backend authority',
       (tester) async {
-    await SediLocaleController.instance.setRuntimeLocale('en',
-        persistBootstrapCache: false);
+    await SediLocaleController.instance.setRuntimeLocale(
+      'en',
+      persistBootstrapCache: false,
+    );
+    final controller = DevicesController(repo: _FakeDevicesRepository());
     await tester.pumpWidget(
-      const MaterialApp(home: DevicesPage()),
+      MaterialApp(home: DevicesPage(controller: controller)),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.byType(A3PageAppBar), findsOneWidget);
     expect(find.text('My gadgets'), findsWidgets);
     expect(find.text('Other gadgets'), findsWidgets);
+    expect(find.text('Mom ECG'), findsOneWidget);
     expect(find.text('Connected'), findsNothing);
   });
 
   testWidgets('FA directionality smoke on DevicesPage', (tester) async {
-    await SediLocaleController.instance.setRuntimeLocale('fa',
-        persistBootstrapCache: false);
+    await SediLocaleController.instance.setRuntimeLocale(
+      'fa',
+      persistBootstrapCache: false,
+    );
+    final controller = DevicesController(repo: _FakeDevicesRepository());
     await tester.pumpWidget(
-      const MaterialApp(home: DevicesPage()),
+      MaterialApp(home: DevicesPage(controller: controller)),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('گجت‌ها'), findsOneWidget);
     expect(find.text('گجت‌های من'), findsWidgets);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Directionality && w.textDirection == TextDirection.rtl,
+      ),
+      findsWidgets,
+    );
   });
 }

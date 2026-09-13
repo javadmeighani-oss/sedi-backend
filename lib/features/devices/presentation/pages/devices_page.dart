@@ -10,14 +10,19 @@ import '../../logic/devices_controller.dart';
 import '../devices_l10n.dart';
 
 class DevicesPage extends StatefulWidget {
-  const DevicesPage({super.key});
+  final DevicesController? controller;
+
+  const DevicesPage({
+    super.key,
+    this.controller,
+  });
 
   @override
   State<DevicesPage> createState() => _DevicesPageState();
 }
 
 class _DevicesPageState extends State<DevicesPage> {
-  final DevicesController _controller = DevicesController();
+  late final DevicesController _controller;
   bool _loading = true;
 
   DevicesL10n get _l10n =>
@@ -26,6 +31,7 @@ class _DevicesPageState extends State<DevicesPage> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? DevicesController();
     SediLocaleController.instance.addListener(_onLocale);
     _load();
   }
