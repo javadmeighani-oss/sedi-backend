@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
 import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/core/theme/app_theme.dart';
 import 'package:sedi_app/data/dto/device_public_info.dart';
 import 'package:sedi_app/data/dto/devices_list_response.dart';
 import 'package:sedi_app/data/repositories/devices_repository.dart';
 import 'package:sedi_app/features/devices/logic/devices_controller.dart';
+import 'package:sedi_app/features/devices/presentation/devices_l10n.dart';
 import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +30,7 @@ class _FakeDevicesRepository extends DevicesRepository {
         deviceType: 'ECG',
         status: 'active',
         createdAt: now,
+        lastSeenAt: now.subtract(const Duration(minutes: 5)),
         deviceCategory: 'SELF',
       ),
       DevicePublicInfo(
@@ -74,6 +77,7 @@ void main() {
     expect(src.contains('UserPreferences'), isFalse);
     expect(src.contains('SediLocaleController'), isTrue);
     expect(src.contains('A3PageAppBar'), isTrue);
+    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
     expect(src.contains('selfDevices'), isTrue);
     expect(src.contains('otherDevices'), isTrue);
     expect(src.contains('unclassifiedDevices'), isTrue);
@@ -124,6 +128,51 @@ void main() {
       ),
       findsWidgets,
     );
+  });
+
+  test('G9 A3 theme continuity + human-readable last sync (en/fa/ar)', () {
+    final src = _read('lib/features/devices/presentation/pages/devices_page.dart');
+    final native = _read(
+      'android/app/src/main/kotlin/com/sedi/app/MainActivity.kt',
+    );
+    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
+    expect(src.contains('AppTheme.gate2ButtonOlive'), isTrue);
+    expect(src.contains('AppTheme.gate2CardWhite'), isTrue);
+    expect(src.contains('AppTheme.radiusLarge'), isTrue);
+    expect(src.contains('toIso8601String'), isFalse);
+    expect(src.contains('AppTheme.dangerRed'), isFalse);
+    expect(src.contains('SediBlePermissions.request'), isTrue);
+    expect(native.contains('BLUETOOTH_SCAN'), isTrue);
+    expect(native.contains('BLUETOOTH_CONNECT'), isTrue);
+    expect(native.contains('sedi/ble_permissions'), isTrue);
+
+    final now = DateTime.utc(2026, 9, 12, 12);
+    final en = DevicesL10n('en');
+    expect(
+      en.formatLastSync(now.subtract(const Duration(minutes: 4)), now: now),
+      contains('4m ago'),
+    );
+    expect(en.contactLabel(true), isNot(contains('true')));
+    expect(DevicesL10n('fa').formatLastSync(null), contains('همگام'));
+    expect(DevicesL10n('ar').isRtl, isTrue);
+  });
+
+  testWidgets('G9 DevicesPage pale olive scaffold + olive Connect CTA',
+      (tester) async {
+    await SediLocaleController.instance.setRuntimeLocale(
+      'en',
+      persistBootstrapCache: false,
+    );
+    final controller = DevicesController(repo: _FakeDevicesRepository());
+    await tester.pumpWidget(
+      MaterialApp(home: DevicesPage(controller: controller)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    expect(scaffold.backgroundColor, AppTheme.gate3PaleOliveBackground);
+    expect(find.text('Connect'), findsOneWidget);
+    expect(find.textContaining('Last sync'), findsWidgets);
   });
 
   group('G5 durable outbox', () {

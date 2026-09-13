@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import '../ble/sedi_ble_models.dart';
+import '../ble/sedi_ble_permissions.dart';
 import '../ble/sedi_ble_transport.dart';
 import '../gateway/device_credential_store.dart';
 import '../gateway/device_packet_relay.dart';
@@ -29,7 +30,7 @@ class GadgetsConnectController {
         _credentials = credentialStore ?? DeviceCredentialStore(),
         _relay = packetRelay,
         _requestBlePermissions =
-            requestBlePermissions ?? (() async => true);
+            requestBlePermissions ?? SediBlePermissions.request;
 
   final DevicesRepository _repo;
   final SediBleTransport _transport;
@@ -75,7 +76,11 @@ class GadgetsConnectController {
     discovered.clear();
     final ok = await ensureBlePermission();
     if (!ok) {
-      lastError = 'BLE_PERMISSION_DENIED';
+      lastError =
+          SediBlePermissions.lastOutcome ==
+                  SediBlePermissionOutcome.permanentlyDenied
+              ? 'BLE_PERMISSION_PERMANENTLY_DENIED'
+              : 'BLE_PERMISSION_DENIED';
       return const [];
     }
     await _scanSub?.cancel();

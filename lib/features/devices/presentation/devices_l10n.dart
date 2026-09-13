@@ -70,6 +70,24 @@ class DevicesL10n {
       _t(en: 'Disconnected', fa: 'قطع‌شده', ar: 'غير متصل');
   String get battery => _t(en: 'Battery', fa: 'باتری', ar: 'البطارية');
   String get contact => _t(en: 'Contact', fa: 'تماس', ar: 'التلامس');
+  String get contactOk =>
+      _t(en: 'Contact OK', fa: 'تماس برقرار', ar: 'التلامس جيد');
+  String get contactNotOk =>
+      _t(en: 'No contact', fa: 'بدون تماس', ar: 'بدون تلامس');
+  String get lastSync =>
+      _t(en: 'Last sync', fa: 'آخرین همگام‌سازی', ar: 'آخر مزامنة');
+  String get neverSynced =>
+      _t(en: 'Never', fa: 'هرگز', ar: 'أبداً');
+  String get permissionDenied => _t(
+        en: 'Bluetooth permission is required to find gadgets.',
+        fa: 'برای یافتن گجت‌ها اجازه بلوتوث لازم است.',
+        ar: 'يلزم إذن البلوتوث للعثور على الأجهزة.',
+      );
+  String get permissionPermanentlyDenied => _t(
+        en: 'Bluetooth permission is blocked. Open settings to allow it.',
+        fa: 'اجازه بلوتوث مسدود است. از تنظیمات فعالش کنید.',
+        ar: 'إذن البلوتوث محظور. فعّله من الإعدادات.',
+      );
   String get presentationUpdated => _t(
         en: 'Presentation updated',
         fa: 'نمایش به‌روز شد',
@@ -95,5 +113,55 @@ class DevicesL10n {
     final s = status.toLowerCase();
     if (s == 'revoked') return revoked;
     return active;
+  }
+
+  String contactLabel(bool ok) => ok ? contactOk : contactNotOk;
+
+  String batteryLabel(int percent) => '${battery} $percent%';
+
+  /// Human-readable relative last-sync — never raw ISO.
+  String formatLastSync(DateTime? at, {DateTime? now}) {
+    if (at == null) return '$lastSync: $neverSynced';
+    final n = now ?? DateTime.now();
+    final diff = n.difference(at.toLocal());
+    final String rel;
+    if (diff.inMinutes < 1) {
+      rel = _t(en: 'Just now', fa: 'همین الان', ar: 'الآن');
+    } else if (diff.inMinutes < 60) {
+      final m = diff.inMinutes;
+      rel = _t(
+        en: '${m}m ago',
+        fa: '$m دقیقه پیش',
+        ar: 'منذ $m د',
+      );
+    } else if (diff.inHours < 24) {
+      final h = diff.inHours;
+      rel = _t(
+        en: '${h}h ago',
+        fa: '$h ساعت پیش',
+        ar: 'منذ $h س',
+      );
+    } else if (diff.inDays < 7) {
+      final d = diff.inDays;
+      rel = _t(
+        en: '${d}d ago',
+        fa: '$d روز پیش',
+        ar: 'منذ $d ي',
+      );
+    } else {
+      final local = at.toLocal();
+      rel = '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+    }
+    return '$lastSync: $rel';
+  }
+
+  String permissionMessage(String? connectError) {
+    if (connectError == 'BLE_PERMISSION_PERMANENTLY_DENIED') {
+      return permissionPermanentlyDenied;
+    }
+    if (connectError == 'BLE_PERMISSION_DENIED') {
+      return permissionDenied;
+    }
+    return connectError ?? noGadgets;
   }
 }

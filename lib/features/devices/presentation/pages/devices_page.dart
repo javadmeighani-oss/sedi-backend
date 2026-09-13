@@ -9,6 +9,7 @@ import '../../../../data/dto/device_public_info.dart';
 import '../../../../data/repositories/devices_repository.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../ble/sedi_ble_models.dart';
+import '../../ble/sedi_ble_permissions.dart';
 import '../../ble/sedi_ble_transport.dart';
 import '../../logic/devices_controller.dart';
 import '../../logic/gadgets_connect_controller.dart';
@@ -69,7 +70,23 @@ class _DevicesPageState extends State<DevicesPage> {
     return _connect ??= GadgetsConnectController(
       repository: DevicesRepository(),
       transport: ReactiveSediBleTransport(),
+      requestBlePermissions: SediBlePermissions.request,
     );
+  }
+
+  Color _transportColor(SediBleTransportState? state) {
+    switch (state) {
+      case SediBleTransportState.connected:
+        return AppTheme.gate2ButtonOlive;
+      case SediBleTransportState.connecting:
+      case SediBleTransportState.reconnecting:
+        return AppTheme.statusNeutralMuted;
+      case SediBleTransportState.outOfRange:
+        return AppTheme.statusChangeAmber;
+      case SediBleTransportState.disconnected:
+      case null:
+        return AppTheme.metalGrey;
+    }
   }
 
   @override
@@ -87,20 +104,20 @@ class _DevicesPageState extends State<DevicesPage> {
 
     Widget body = RefreshIndicator(
       onRefresh: _load,
-      color: AppTheme.pistachioGreen,
+      color: AppTheme.gate2ButtonOlive,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(
-                child: CircularProgressIndicator(color: AppTheme.pistachioGreen),
+                child: CircularProgressIndicator(color: AppTheme.gate2ButtonOlive),
               ),
             )
           else if (_controller.devices.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
                 l10n.noGadgets,
                 style: const TextStyle(color: AppTheme.textSecondary),
@@ -109,7 +126,7 @@ class _DevicesPageState extends State<DevicesPage> {
           else
             for (final g in groups) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                padding: const EdgeInsets.only(bottom: 8, top: 8),
                 child: Text(
                   g.title,
                   style: const TextStyle(
@@ -121,29 +138,40 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
               if (g.devices.isEmpty)
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
                     l10n.noGadgets,
                     style: const TextStyle(color: AppTheme.textSecondary),
                   ),
                 )
               else
-                for (final d in g.devices) _deviceRow(d, l10n),
+                for (final d in g.devices) ...[
+                  _deviceCard(d, l10n),
+                  const SizedBox(height: 12),
+                ],
             ],
           if (_controller.errorMessage != null)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 _controller.errorMessage!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
               ),
             ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton(
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
               onPressed: _connecting ? null : () => _onConnectPressed(l10n),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.gate2ButtonOlive,
+                disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
+                foregroundColor: AppTheme.backgroundWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                ),
+              ),
               child: Text(_connecting ? l10n.scanning : l10n.connect),
             ),
           ),
@@ -152,11 +180,9 @@ class _DevicesPageState extends State<DevicesPage> {
     );
 
     Widget page = Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
+      backgroundColor: AppTheme.gate3PaleOliveBackground,
       appBar: A3PageAppBar(
         title: Text(l10n.title),
-        backgroundColor: AppTheme.backgroundWhite,
-        foregroundColor: AppTheme.primaryBlack,
       ),
       body: body,
     );
@@ -170,54 +196,95 @@ class _DevicesPageState extends State<DevicesPage> {
     return page;
   }
 
-  Widget _deviceRow(DevicePublicInfo d, DevicesL10n l10n) {
+  Widget _deviceCard(DevicePublicInfo d, DevicesL10n l10n) {
     final ble = _connect?.transportFor(d.deviceId);
-    final bleLabel = ble == null
-        ? null
-        : l10n.transportLabel(ble.name);
+    final bleLabel = ble == null ? null : l10n.transportLabel(ble.name);
     final status = _connect?.lastDeviceStatus;
-    final bits = <String>[
-      d.deviceType,
-      // Platform lifecycle only — never shown as BLE Connected.
-      l10n.statusLabel(d.status),
-      if (bleLabel != null) bleLabel,
-      if (d.lastSeenAt != null) d.lastSeenAt!.toUtc().toIso8601String(),
-      if (status?.batteryPercent != null)
-        '${l10n.battery} ${status!.batteryPercent}%',
-      if (status?.contactOk != null)
-        '${l10n.contact} ${status!.contactOk}',
-    ];
     final isBleConnected = ble == SediBleTransportState.connected &&
         _connect?.connectedDeviceId == d.deviceId;
-    return ListTile(
-      title: Text(d.displayName),
-      subtitle: Text(
-        bits.join(' · '),
-        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isBleConnected)
-            TextButton(
-              onPressed: _connecting
-                  ? null
-                  : () async {
-                      setState(() => _connecting = true);
-                      await _connect?.manualDisconnect(d.deviceId);
-                      if (mounted) setState(() => _connecting = false);
-                    },
-              child: Text(l10n.disconnect),
+
+    // Transport shown once (colored); no fake health/clinical fields.
+    final facts = <String>[
+      d.deviceType,
+      l10n.statusLabel(d.status),
+      l10n.formatLastSync(d.lastSeenAt),
+      if (isBleConnected && status?.batteryPercent != null)
+        l10n.batteryLabel(status!.batteryPercent!),
+      if (isBleConnected && status?.contactOk != null)
+        l10n.contactLabel(status!.contactOk!),
+    ];
+
+    return Material(
+      color: AppTheme.gate2CardWhite,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    d.displayName,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+                if (bleLabel != null)
+                  Text(
+                    bleLabel,
+                    style: TextStyle(
+                      color: _transportColor(ble),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
             ),
-          TextButton(
-            onPressed: _controller.isActionInProgress
-                ? null
-                : () => _openPresentationEditor(d, l10n),
-            child: Text(l10n.rename),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              facts.join(' · '),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (isBleConnected)
+                  TextButton(
+                    onPressed: _connecting
+                        ? null
+                        : () async {
+                            setState(() => _connecting = true);
+                            await _connect?.manualDisconnect(d.deviceId);
+                            if (mounted) setState(() => _connecting = false);
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textSecondary,
+                    ),
+                    child: Text(l10n.disconnect),
+                  ),
+                TextButton(
+                  onPressed: _controller.isActionInProgress
+                      ? null
+                      : () => _openPresentationEditor(d, l10n),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.gate2ButtonOlive,
+                  ),
+                  child: Text(l10n.rename),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      dense: true,
     );
   }
 
@@ -229,7 +296,7 @@ class _DevicesPageState extends State<DevicesPage> {
       if (!mounted) return;
       if (found.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(connect.lastError ?? l10n.noGadgets)),
+          SnackBar(content: Text(l10n.permissionMessage(connect.lastError))),
         );
         return;
       }
@@ -271,7 +338,11 @@ class _DevicesPageState extends State<DevicesPage> {
         context: context,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, setLocal) => AlertDialog(
-            title: Text(info.deviceId),
+            backgroundColor: AppTheme.gate2CardWhite,
+            title: Text(
+              info.deviceId,
+              style: const TextStyle(color: AppTheme.textPrimary),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -280,8 +351,13 @@ class _DevicesPageState extends State<DevicesPage> {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(hintText: l10n.setupCodeHint),
+                  decoration: InputDecoration(
+                    hintText: l10n.setupCodeHint,
+                    filled: true,
+                    fillColor: AppTheme.gate2InputFill,
+                  ),
                 ),
+                const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: [
                     ButtonSegment(
@@ -293,20 +369,33 @@ class _DevicesPageState extends State<DevicesPage> {
                   onSelectionChanged: (s) =>
                       setLocal(() => category = s.first),
                 ),
-                if (category == 'OTHER')
+                if (category == 'OTHER') ...[
+                  const SizedBox(height: 12),
                   TextField(
                     controller: labelCtrl,
-                    decoration: InputDecoration(hintText: l10n.labelHint),
+                    decoration: InputDecoration(
+                      hintText: l10n.labelHint,
+                      filled: true,
+                      fillColor: AppTheme.gate2InputFill,
+                    ),
                   ),
+                ],
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                ),
                 child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.gate2ButtonOlive,
+                  foregroundColor: AppTheme.backgroundWhite,
+                ),
                 child: Text(l10n.save),
               ),
             ],
@@ -366,13 +455,17 @@ class _DevicesPageState extends State<DevicesPage> {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
             return AlertDialog(
+              backgroundColor: AppTheme.gate2CardWhite,
               title: Text(l10n.rename),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(l10n.category),
+                    child: Text(
+                      l10n.category,
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SegmentedButton<String>(
@@ -395,17 +488,28 @@ class _DevicesPageState extends State<DevicesPage> {
                   TextField(
                     controller: labelCtrl,
                     maxLength: 80,
-                    decoration: InputDecoration(hintText: l10n.labelHint),
+                    decoration: InputDecoration(
+                      hintText: l10n.labelHint,
+                      filled: true,
+                      fillColor: AppTheme.gate2InputFill,
+                    ),
                   ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(false),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                  ),
                   child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.gate2ButtonOlive,
+                    foregroundColor: AppTheme.backgroundWhite,
+                  ),
                   child: Text(l10n.save),
                 ),
               ],

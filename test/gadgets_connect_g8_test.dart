@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/network/api_response.dart';
@@ -203,5 +204,25 @@ void main() {
     expect(repo.lastClaimBody!['device_category'], 'OTHER');
     expect(repo.lastClaimBody!['user_label'], 'Mom BP');
     c.dispose();
+  });
+
+  test('G9 permission denied blocks scan; no production true-bypass default',
+      () async {
+    final src = File('lib/features/devices/logic/gadgets_connect_controller.dart')
+        .readAsStringSync();
+    expect(src.contains('() async => true'), isFalse);
+    expect(src.contains('SediBlePermissions.request'), isTrue);
+
+    final denied = GadgetsConnectController(
+      repository: _FakeRepo(),
+      transport: _FakeBle(),
+      gatewayInstallIdStore: _FakeGatewayStore(),
+      credentialStore: _FakeCredStore(),
+      requestBlePermissions: () async => false,
+    );
+    final none = await denied.scan(timeout: const Duration(milliseconds: 40));
+    expect(none, isEmpty);
+    expect(denied.lastError, 'BLE_PERMISSION_DENIED');
+    denied.dispose();
   });
 }
