@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
@@ -12,6 +13,7 @@ import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../notification_inbox_l10n.dart';
 
 enum InboxFilter { all, unread }
 
@@ -39,14 +41,22 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   InboxFilter _filter = InboxFilter.all;
   StreamSubscription<void>? _refreshSub;
 
+  NotificationInboxL10n get _l10n =>
+      NotificationInboxL10n(SediLocaleController.instance.languageCode);
+
   @override
   void initState() {
     super.initState();
+    SediLocaleController.instance.addListener(_onLocale);
     _scrollController.addListener(_onScroll);
     _refreshSub = InboxRefreshBus.instance.stream.listen((_) {
       _reload(soft: true);
     });
     _bootstrap();
+  }
+
+  void _onLocale() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _bootstrap() async {
@@ -61,6 +71,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   @override
   void dispose() {
+    SediLocaleController.instance.removeListener(_onLocale);
     _refreshSub?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -191,7 +202,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     }
   }
 
-  Future<void> _openDetails(NotificationItem item) async {
+  Future<void> _openDetails(
+      NotificationItem item, NotificationInboxL10n l10n) async {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppTheme.backgroundWhite,
@@ -210,7 +222,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 _channelPill(item.channel),
                 const SizedBox(height: 12),
                 Text(
-                  item.title.isEmpty ? 'Notification' : item.title,
+                  item.title.isEmpty ? l10n.fallbackTitle : item.title,
                   style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 20,
@@ -245,9 +257,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                                 BorderRadius.circular(AppTheme.radiusMedium),
                           ),
                         ),
-                        child: const Text(
-                          'Mark as read',
-                          style: TextStyle(color: AppTheme.textPrimary),
+                        child: Text(
+                          l10n.markAsRead,
+                          style: const TextStyle(color: AppTheme.textPrimary),
                         ),
                       ),
                     ),
@@ -266,7 +278,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                                 BorderRadius.circular(AppTheme.radiusMedium),
                           ),
                         ),
-                        child: const Text('Like'),
+                        child: Text(l10n.like),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -284,7 +296,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                                 BorderRadius.circular(AppTheme.radiusMedium),
                           ),
                         ),
-                        child: const Text('Dislike'),
+                        child: Text(l10n.dislike),
                       ),
                     ),
                   ],
@@ -297,21 +309,13 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     );
   }
 
-  String _relativeTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${dt.month}/${dt.day}';
-  }
-
-  String _displayBody(NotificationItem item) {
+  String _displayBody(NotificationItem item, NotificationInboxL10n l10n) {
     if (item.body.trim().isNotEmpty) return item.body.trim();
-    return 'No details';
+    return l10n.noDetails;
   }
 
   Widget _channelPill(String channel) {
+    // Raw API channel identity — not translated.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -340,10 +344,11 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final l10n = _l10n;
+    Widget page = Scaffold(
       backgroundColor: AppTheme.gate3PaleOliveBackground,
-      appBar: const A3PageAppBar(
-        title: Text('Notifications'),
+      appBar: A3PageAppBar(
+        title: Text(l10n.title),
         backgroundColor: AppTheme.gate3PaleOliveBackground,
         foregroundColor: AppTheme.textPrimary,
       ),
@@ -354,7 +359,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             child: Row(
               children: [
                 _filterChip(
-                  label: 'All',
+                  label: l10n.filterAll,
                   selected: _filter == InboxFilter.all,
                   onTap: () {
                     if (_filter == InboxFilter.all) return;
@@ -364,7 +369,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 ),
                 const SizedBox(width: 8),
                 _filterChip(
-                  label: 'Unread',
+                  label: l10n.filterUnread,
                   selected: _filter == InboxFilter.unread,
                   onTap: () {
                     if (_filter == InboxFilter.unread) return;
@@ -376,10 +381,15 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             ),
           ),
           Expanded(
-            child: _buildBody(),
+            child: _buildBody(l10n),
           ),
         ],
       ),
+    );
+
+    return Directionality(
+      textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: page,
     );
   }
 
@@ -410,9 +420,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(NotificationInboxL10n l10n) {
     if (_loading) {
-      return const AppLoadingState(label: 'Loading notifications...');
+      return AppLoadingState(label: l10n.loading);
     }
     if (_error != null && _items.isEmpty) {
       return AppErrorState(message: _error!, onRetry: _reload);
@@ -424,10 +434,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         child: ListView(
           children: [
             const SizedBox(height: 160),
-            const AppEmptyState(
-              title: 'No sent notifications in this history window',
-              subtitle:
-                  'Scheduled or failed notifications are not shown here.',
+            AppEmptyState(
+              title: l10n.emptyTitle,
+              subtitle: l10n.emptySubtitle,
             ),
           ],
         ),
@@ -460,7 +469,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           return GestureDetector(
             onTap: () async {
               await _markReadOptimistic(item);
-              await _openDetails(item);
+              await _openDetails(item, l10n);
             },
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -492,7 +501,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    item.title.isEmpty ? 'Notification' : item.title,
+                    item.title.isEmpty ? l10n.fallbackTitle : item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -503,7 +512,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _displayBody(item),
+                    _displayBody(item, l10n),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -516,7 +525,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   Row(
                     children: [
                       Text(
-                        _relativeTime(item.sentAt ?? item.createdAt),
+                        l10n.relativeTime(item.sentAt ?? item.createdAt),
                         style: TextStyle(
                           color: AppTheme.textSecondary.withOpacity(0.85),
                           fontSize: 12,
