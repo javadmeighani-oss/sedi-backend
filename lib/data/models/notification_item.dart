@@ -6,6 +6,7 @@ class NotificationItem {
   final String title;
   final String body;
   final DateTime createdAt;
+  final DateTime? sentAt;
   final bool isRead;
   final String? priority;
   final String? status;
@@ -19,6 +20,7 @@ class NotificationItem {
     required this.body,
     required this.createdAt,
     required this.isRead,
+    this.sentAt,
     this.priority,
     this.status,
     this.dedupeKey,
@@ -32,6 +34,7 @@ class NotificationItem {
       title: dto.title,
       body: dto.body,
       createdAt: dto.createdAt,
+      sentAt: dto.sentAt,
       isRead: dto.isRead,
       priority: dto.priority,
       status: dto.status,
@@ -49,6 +52,7 @@ class NotificationItem {
       title: title,
       body: body,
       createdAt: createdAt,
+      sentAt: sentAt,
       isRead: isRead ?? this.isRead,
       priority: priority,
       status: status,

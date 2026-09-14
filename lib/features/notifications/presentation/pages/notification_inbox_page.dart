@@ -11,7 +11,6 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
-import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 
 enum InboxFilter { all, unread }
 
@@ -27,10 +26,14 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   final Set<int> _pendingReadIds = <int>{};
   final Set<int> _likedIds = <int>{};
   final Set<int> _dislikedIds = <int>{};
+  final ScrollController _scrollController = ScrollController();
 
   List<NotificationItem> _items = const <NotificationItem>[];
   bool _loading = false;
   bool _refreshing = false;
+  bool _loadingMore = false;
+  bool _hasMore = false;
+  String? _nextCursor;
   String? _error;
   InboxFilter _filter = InboxFilter.all;
   StreamSubscription<void>? _refreshSub;
@@ -38,6 +41,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _refreshSub = InboxRefreshBus.instance.stream.listen((_) {
       _reload(soft: true);
     });
@@ -57,7 +61,17 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   @override
   void dispose() {
     _refreshSub?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hasMore || _loadingMore || _loading) return;
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 240) {
+      _loadMore();
+    }
   }
 
   Future<void> _reload({bool soft = false}) async {
@@ -70,19 +84,40 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         _error = null;
       });
     }
-    final resp = await _service.listInbox(
+    final resp = await _service.listInboxPage(
       unreadOnly: _filter == InboxFilter.unread,
-      limit: 100,
+      limit: 20,
     );
     if (!mounted) return;
     setState(() {
       _loading = false;
       _refreshing = false;
-      if (resp.ok) {
-        _items = _dedupeById(resp.data ?? const <NotificationItem>[]);
+      if (resp.ok && resp.data != null) {
+        _items = _dedupeById(resp.data!.items);
+        _nextCursor = resp.data!.nextCursor;
+        _hasMore = resp.data!.hasMore;
         _error = null;
       } else {
         _error = resp.errorMessage;
+      }
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (!_hasMore || _loadingMore || _nextCursor == null) return;
+    setState(() => _loadingMore = true);
+    final resp = await _service.listInboxPage(
+      unreadOnly: _filter == InboxFilter.unread,
+      limit: 20,
+      cursor: _nextCursor,
+    );
+    if (!mounted) return;
+    setState(() {
+      _loadingMore = false;
+      if (resp.ok && resp.data != null) {
+        _items = _dedupeById([..._items, ...resp.data!.items]);
+        _nextCursor = resp.data!.nextCursor;
+        _hasMore = resp.data!.hasMore;
       }
     });
   }
@@ -93,7 +128,13 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       byId[item.id] = item;
     }
     final deduped = byId.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) {
+        final aTs = a.sentAt ?? a.createdAt;
+        final bTs = b.sentAt ?? b.createdAt;
+        final cmp = bTs.compareTo(aTs);
+        if (cmp != 0) return cmp;
+        return b.id.compareTo(a.id);
+      });
     return deduped;
   }
 
@@ -299,11 +340,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      appBar: const A3PageAppBar(
-        title: Text('Notifications'),
-        backgroundColor: AppTheme.backgroundWhite,
+      backgroundColor: AppTheme.gate3PaleOliveBackground,
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        backgroundColor: AppTheme.gate3PaleOliveBackground,
         foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -383,8 +425,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           children: [
             const SizedBox(height: 160),
             const AppEmptyState(
-              title: 'No notifications yet',
-              subtitle: 'You are all caught up for now.',
+              title: 'No sent notifications in this history window',
+              subtitle:
+                  'Scheduled or failed notifications are not shown here.',
             ),
           ],
         ),
@@ -395,9 +438,22 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       onRefresh: _reload,
       color: AppTheme.primaryBlack,
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
-        itemCount: _items.length,
+        itemCount: _items.length + (_loadingMore ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index >= _items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
           final item = _items[index];
           final displayUnread =
               !item.isRead && !_pendingReadIds.contains(item.id);
@@ -460,7 +516,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   Row(
                     children: [
                       Text(
-                        _relativeTime(item.createdAt),
+                        _relativeTime(item.sentAt ?? item.createdAt),
                         style: TextStyle(
                           color: AppTheme.textSecondary.withOpacity(0.85),
                           fontSize: 12,

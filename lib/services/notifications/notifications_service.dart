@@ -6,22 +6,38 @@ import '../../data/dto/notifications/notification_feedback_dto.dart';
 import '../../data/dto/notifications/notification_list_response_dto.dart';
 import '../../data/models/notification_item.dart';
 
+class NotificationsInboxPageResult {
+  final List<NotificationItem> items;
+  final String? nextCursor;
+  final bool hasMore;
+  final int? unreadCount;
+  final int? total;
+
+  const NotificationsInboxPageResult({
+    required this.items,
+    this.nextCursor,
+    this.hasMore = false,
+    this.unreadCount,
+    this.total,
+  });
+}
+
 class NotificationsService {
   final ApiClient _apiClient;
 
   NotificationsService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  Future<ApiResponse<List<NotificationItem>>> listInbox({
+  Future<ApiResponse<NotificationsInboxPageResult>> listInboxPage({
     bool unreadOnly = false,
-    int limit = 50,
+    int limit = 20,
     String? cursor,
   }) async {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
-      return const ApiResponse<List<NotificationItem>>(
+      return const ApiResponse<NotificationsInboxPageResult>(
         ok: false,
-        data: [],
+        data: null,
         error: ApiError(
           code: 'USER_ID_REQUIRED',
           message: 'User identity is required to load notifications.',
@@ -29,9 +45,10 @@ class NotificationsService {
       );
     }
 
+    final safeLimit = limit < 1 ? 20 : (limit > 50 ? 50 : limit);
     final queryParams = <String, String>{
       'user_id': userId.toString(),
-      'limit': limit.toString(),
+      'limit': safeLimit.toString(),
       if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
     };
 
@@ -58,14 +75,46 @@ class NotificationsService {
     for (final item in items) {
       deduped[item.id] = item;
     }
+    // Prefer sentAt when present; else createdAt (backend orders by sent_at).
     final sorted = deduped.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) {
+        final aTs = a.sentAt ?? a.createdAt;
+        final bTs = b.sentAt ?? b.createdAt;
+        final cmp = bTs.compareTo(aTs);
+        if (cmp != 0) return cmp;
+        return b.id.compareTo(a.id);
+      });
 
-    return ApiResponse<List<NotificationItem>>(
+    return ApiResponse<NotificationsInboxPageResult>(
       ok: response.ok,
-      data: sorted,
+      data: NotificationsInboxPageResult(
+        items: sorted,
+        nextCursor: payload?.nextCursor,
+        hasMore: payload?.hasMore ?? false,
+        unreadCount: payload?.unreadCount,
+        total: payload?.total,
+      ),
       error: response.error,
       statusCode: response.statusCode,
+    );
+  }
+
+  /// Backward-compatible helper used by health services.
+  Future<ApiResponse<List<NotificationItem>>> listInbox({
+    bool unreadOnly = false,
+    int limit = 50,
+    String? cursor,
+  }) async {
+    final page = await listInboxPage(
+      unreadOnly: unreadOnly,
+      limit: limit,
+      cursor: cursor,
+    );
+    return ApiResponse<List<NotificationItem>>(
+      ok: page.ok,
+      data: page.data?.items ?? const <NotificationItem>[],
+      error: page.error,
+      statusCode: page.statusCode,
     );
   }
 

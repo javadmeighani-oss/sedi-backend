@@ -4,6 +4,7 @@ class NotificationItemDto {
   final String title;
   final String body;
   final DateTime createdAt;
+  final DateTime? sentAt;
   final bool isRead;
   final String? priority;
   final String? status;
@@ -18,6 +19,7 @@ class NotificationItemDto {
     required this.body,
     required this.createdAt,
     required this.isRead,
+    this.sentAt,
     this.priority,
     this.status,
     this.provider,
@@ -34,6 +36,10 @@ class NotificationItemDto {
     final createdRaw = json['created_at']?.toString();
     final createdAt = DateTime.tryParse(createdRaw ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0);
+    final sentRaw = json['sent_at']?.toString();
+    final sentAt = sentRaw == null || sentRaw.isEmpty
+        ? null
+        : DateTime.tryParse(sentRaw);
 
     return NotificationItemDto(
       id: id,
@@ -41,6 +47,7 @@ class NotificationItemDto {
       title: json['title']?.toString() ?? '',
       body: json['body']?.toString() ?? '',
       createdAt: createdAt,
+      sentAt: sentAt,
       isRead: json['is_read'] as bool? ?? false,
       priority: json['priority']?.toString(),
       status: json['status']?.toString(),
