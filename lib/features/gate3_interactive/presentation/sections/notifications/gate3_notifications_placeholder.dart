@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../notification/presentation/pages/notifications_inbox_page.dart';
+import '../../../../notification/presentation/pages/notifications_inbox_page.dart';
 
 /// Gate 3 primary Notifications entry — wires to canonical Inbox (no duplicate UI).
 class Gate3NotificationsPlaceholder extends StatelessWidget {
