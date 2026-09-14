@@ -3540,6 +3540,117 @@ class CareResponsePolicy(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 
+class I9AbsoluteVitalPolicy(Base):
+    """I9 versioned absolute-vital policy authority (schema scaffold only).
+
+    G8: no seed rows, no numeric thresholds, no runtime interpreter.
+    Lifecycle status is an application-bounded string (not a clinical enum).
+    """
+
+    __tablename__ = "i9_absolute_vital_policies"
+    __table_args__ = (
+        UniqueConstraint("policy_key", "version", name="uq_i9avp_policy_key_version"),
+        Index("ix_i9avp_status", "status"),
+        Index("ix_i9avp_effective_from", "effective_from"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    policy_key = Column(String(64), nullable=False)
+    version = Column(String(32), nullable=False)
+    status = Column(String(32), nullable=False, default="draft", server_default="draft")
+    population_scope_json = Column(Text, nullable=True)
+    context_scope_json = Column(Text, nullable=True)
+    evidence_refs_json = Column(Text, nullable=True)
+    governance_approval_ref = Column(String(255), nullable=True)
+    source_applicability_json = Column(Text, nullable=True)
+    effective_from = Column(DateTime(timezone=True), nullable=False)
+    effective_until = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class I9AbsoluteVitalPolicyRule(Base):
+    """Generic child rule container for an absolute-vital policy version.
+
+    rule_payload_json may exist structurally; G8 stores ZERO numeric clinical cutoffs.
+    """
+
+    __tablename__ = "i9_absolute_vital_policy_rules"
+    __table_args__ = (
+        Index("ix_i9avpr_policy_id", "policy_id"),
+        Index("ix_i9avpr_metric", "metric"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    policy_id = Column(
+        BigInteger,
+        ForeignKey("i9_absolute_vital_policies.id", ondelete="CASCADE", name="fk_i9avpr_policy_id"),
+        nullable=False,
+    )
+    metric = Column(String(32), nullable=False)
+    rule_kind = Column(String(64), nullable=False)
+    context_gates_json = Column(Text, nullable=True)
+    rule_payload_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I9AbsoluteVitalAlertResult(Base):
+    """Future ABSOLUTE_VITAL_ALERT_STATUS persistence — no G8 runtime writer.
+
+    I10 must consume governed outcomes only; this table stores no threshold recomputation.
+    """
+
+    __tablename__ = "i9_absolute_vital_alert_results"
+    __table_args__ = (
+        UniqueConstraint("occurrence_key", name="uq_i9avar_occurrence_key"),
+        Index("ix_i9avar_subject_metric", "health_subject_id", "metric"),
+        Index("ix_i9avar_policy_id", "policy_id"),
+        Index("ix_i9avar_observation_at", "observation_at"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_i9avar_health_subject_id"),
+        nullable=False,
+    )
+    policy_id = Column(
+        BigInteger,
+        ForeignKey("i9_absolute_vital_policies.id", ondelete="RESTRICT", name="fk_i9avar_policy_id"),
+        nullable=False,
+    )
+    policy_rule_id = Column(
+        BigInteger,
+        ForeignKey("i9_absolute_vital_policy_rules.id", ondelete="SET NULL", name="fk_i9avar_policy_rule_id"),
+        nullable=True,
+    )
+    metric = Column(String(32), nullable=False)
+    physiological_measurement_id = Column(
+        BigInteger,
+        ForeignKey(
+            "physiological_measurements.id",
+            ondelete="SET NULL",
+            name="fk_i9avar_physiological_measurement_id",
+        ),
+        nullable=True,
+    )
+    observation_at = Column(DateTime(timezone=True), nullable=False)
+    evidence_provenance_json = Column(Text, nullable=True)
+    quality_context_state = Column(String(64), nullable=True)
+    confirmation_state = Column(String(64), nullable=True)
+    confirmation_ref = Column(String(255), nullable=True)
+    governed_outcome = Column(String(64), nullable=False)
+    severity_band = Column(String(32), nullable=True)
+    occurrence_key = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
 class CareEpisode(Base):
     """Care continuity spine (trigger→notify→react→escalate→resolve). Not a diagnosis."""
 

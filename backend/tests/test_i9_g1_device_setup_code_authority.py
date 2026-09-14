@@ -119,9 +119,13 @@ def test_g1_01_migration_083_084_cycle_single_head():
 
         cfg = Config("backend/alembic.ini")
         cfg.set_main_option("script_location", "backend/alembic")
-        heads = ScriptDirectory.from_config(cfg).get_heads()
-        assert heads == [ALEMBIC_HEAD]
-        assert ALEMBIC_HEAD == _REV_084
+        script = ScriptDirectory.from_config(cfg)
+        heads = script.get_heads()
+        assert len(heads) == 1
+        assert heads[0] == ALEMBIC_HEAD
+        # G8 advances harness head beyond 084; 083↔084 cycle remains G1 ownership proof.
+        assert script.get_revision(_REV_084) is not None
+        assert script.get_revision(ALEMBIC_HEAD).down_revision is not None
     finally:
         isolated.close()
 
