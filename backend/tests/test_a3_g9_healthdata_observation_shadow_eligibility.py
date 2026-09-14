@@ -206,7 +206,7 @@ def test_g9_j_numeric_policy_always_blocked():
         structural_parse_ok=True,
     )
     assert evaluate_observation_eligibility(obs).blockers == ()
-    result = evaluate_shadow_eligibility(db, [obs])
+    result = evaluate_shadow_eligibility(db, [obs], attach_context=False)
     assert result.numeric_policy_authorized is False
     assert BLOCKED_POLICY_NOT_APPROVED in result.blockers
     assert result.final_state == BLOCKED_POLICY_NOT_APPROVED
@@ -251,6 +251,9 @@ def test_g9_l_no_notification_i10_side_effect():
     with patch(
         "backend.app.services.i9.absolute_vital_observation.resolve_self_health_subject_id",
         return_value=1,
+    ), patch(
+        "backend.app.services.i9.absolute_vital_shadow_eligibility.attach_context_to_observations",
+        side_effect=lambda _db, obs: list(obs),
     ), patch(
         "backend.app.services.i10.intake.enqueue_i10_notification"
     ) as enqueue, patch(
