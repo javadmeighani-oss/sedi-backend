@@ -49,15 +49,18 @@ def test_g11_static_no_thresholds_or_clinical_labels():
     assert "enqueue_i10" not in src
 
 
-def test_g11_alembic_head_unchanged():
+def test_g11_alembic_head_unchanged_at_g11_baseline():
+    """G11 itself created no migration; head may advance in later gates (G12+)."""
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
     cfg = Config("backend/alembic.ini")
     cfg.set_main_option("script_location", "backend/alembic")
-    heads = ScriptDirectory.from_config(cfg).get_heads()
-    assert heads == ["085_i9_absolute_vital_policy_schema_scaffold"]
-    assert ALEMBIC_HEAD == "085_i9_absolute_vital_policy_schema_scaffold"
+    script = ScriptDirectory.from_config(cfg)
+    heads = script.get_heads()
+    assert len(heads) == 1
+    assert heads[0] == ALEMBIC_HEAD
+    assert script.get_revision("085_i9_absolute_vital_policy_schema_scaffold") is not None
 
 
 def _obs(*, user_id=1, subject_id=1, when=None, metric="heart_rate") -> CanonicalVitalObservation:

@@ -51,9 +51,12 @@ def test_g8_static_alembic_single_head_and_ancestry():
     cfg.set_main_option("script_location", "backend/alembic")
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == [_REV_085]
-    assert ALEMBIC_HEAD == _REV_085
+    assert len(heads) == 1
+    assert heads[0] == ALEMBIC_HEAD
+    # G8 revision remains ancestral; harness head may advance in later gates.
+    assert script.get_revision(_REV_085) is not None
     assert script.get_revision(_REV_085).down_revision == _REV_084
+    assert script.get_revision(ALEMBIC_HEAD) is not None
 
 
 def test_g8_static_migration_has_no_seeds_or_forbidden_numerics():

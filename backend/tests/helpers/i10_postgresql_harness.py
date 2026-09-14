@@ -30,7 +30,8 @@ _REV_082 = "082_sedi_intro_completed_at"
 _REV_083 = "083_otp_purpose_phone_change"
 _REV_084 = "084_device_category_setup_code_authority"
 _REV_085 = "085_i9_absolute_vital_policy_schema_scaffold"
-ALEMBIC_HEAD = _REV_085
+_REV_086 = "086_i9_vital_observation_context_authority"
+ALEMBIC_HEAD = _REV_086
 
 
 def i10_test_database_url() -> str | None:

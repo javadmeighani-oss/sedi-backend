@@ -3651,6 +3651,69 @@ class I9AbsoluteVitalAlertResult(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 
+class I9VitalObservationContext(Base):
+    """Persisted I9 vital observation context authority (G12 schema only).
+
+    NULL context fields mean UNKNOWN/absent — a row does not invent authority.
+    No runtime producers/eligibility wiring in G12. No clinical thresholds.
+    """
+
+    __tablename__ = "i9_vital_observation_contexts"
+    __table_args__ = (
+        UniqueConstraint("occurrence_key", name="uq_i9voc_occurrence_key"),
+        UniqueConstraint(
+            "source_class",
+            "source_row_id",
+            "metric",
+            name="uq_i9voc_source_metric",
+        ),
+        Index("ix_i9voc_subject_observed", "health_subject_id", "observed_at"),
+        Index("ix_i9voc_metric", "metric"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_i9voc_health_subject_id"),
+        nullable=False,
+    )
+    # Structural source identity without altering HealthData / PhysiologicalMeasurement.
+    source_class = Column(String(64), nullable=False)  # LEGACY_HEALTHDATA | PHYSIOLOGICAL_MEASUREMENT
+    source_row_id = Column(BigInteger, nullable=False)
+    physiological_measurement_id = Column(
+        BigInteger,
+        ForeignKey(
+            "physiological_measurements.id",
+            ondelete="SET NULL",
+            name="fk_i9voc_physiological_measurement_id",
+        ),
+        nullable=True,
+    )
+    health_data_id = Column(
+        Integer,
+        ForeignKey("health_data.id", ondelete="SET NULL", name="fk_i9voc_health_data_id"),
+        nullable=True,
+    )
+    metric = Column(String(32), nullable=False)
+    observed_at = Column(DateTime(timezone=True), nullable=False)
+    activity_state = Column(String(64), nullable=True)
+    altitude_value = Column(Float, nullable=True)
+    altitude_unit = Column(String(32), nullable=True)
+    temperature_method = Column(String(64), nullable=True)
+    quality_state = Column(String(64), nullable=True)
+    confirmation_state = Column(String(64), nullable=True)
+    context_authority_json = Column(Text, nullable=True)
+    occurrence_key = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
 class CareEpisode(Base):
     """Care continuity spine (trigger→notify→react→escalate→resolve). Not a diagnosis."""
 
