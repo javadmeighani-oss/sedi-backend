@@ -1367,10 +1367,17 @@ class DecisionEngine:
         """
         Evaluate health data and create notification if needed.
 
-        G2: existing alert heuristics preserved; persistence routes through
-        canonical I10 intake (DEVICE_STATUS). No new clinical thresholds.
+        G2: persistence routes through canonical I10 intake (DEVICE_STATUS).
+        G3 audit: absolute vitals cutoffs below are LEGACY_AUTHORITY_NO_I9_EQUIVALENT.
+        I9 fact authority remains DeviceReportedVitalStatus (STABLE|UNSTABLE) and
+        MAD HR stability — not these absolute thresholds. No I9-equivalent duplicate
+        was removable in G3 without inventing replacement clinical logic.
         """
         # Determine priority and message based on health metrics
+        # G3 inventory (decision rules — CLINICAL_AUTHORITY_GAP / no I9 equivalent):
+        #   HR > 100 → high | HR < 60 → high | SpO2 < 95 → critical | Temp > 37.5 → high
+        # Presentation-only (do not alone raise priority / notify):
+        #   in-range HR / SpO2 / temperature body fragments
         priority = "normal"
         body_parts = []
         
@@ -1434,6 +1441,7 @@ class DecisionEngine:
             "alert_code": "health_data_alert",
             "alert_reason": body,
             "legacy_producer": "evaluate_health_data",
+            "g3_clinical_authority": "LEGACY_GAP_NO_I9_EQUIVALENT",
         }
         
         # Use health_alert type instead of legacy HEALTH
