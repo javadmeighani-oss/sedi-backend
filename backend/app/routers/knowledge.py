@@ -59,7 +59,7 @@ def _maybe_send_kc_notification(
 ) -> Dict[str, Any]:
     """
     When data is confirm_candidate with display_* fields, create notification (and optionally deliver).
-    Best-effort idempotency via dedupe_key; errors are non-fatal.
+    G2: routes through canonical I10 intake before persistence. Best-effort idempotency via dedupe_key.
     """
     result: Dict[str, Any] = {"attempted": False, "ok": False}
     if (data.get("question_type") or "").strip().lower() != "confirm_candidate":
@@ -94,36 +94,80 @@ def _maybe_send_kc_notification(
             result["notification_id"] = existing.id
             return result
 
-        now = datetime.utcnow()
-        notif = models.Notification(
+        from backend.app.schemas.notification import NotificationPayload
+        from backend.app.services.i10.contracts import I10NotificationCandidate
+        from backend.app.services.i10.intake import enqueue_i10_notification
+        from backend.app.services.i10.policy_types import (
+            I10DecisionValue,
+            I10NotificationScope,
+            I10PrivacyClass,
+            I10SemanticFamily,
+        )
+        from backend.app.services.i10.self_producer_adapter import (
+            resolve_or_ensure_self_health_subject_id,
+        )
+
+        health_subject_id = resolve_or_ensure_self_health_subject_id(db, user_id)
+        # Contract type connection_ping (engagement); presentation type restored post-intake.
+        payload = NotificationPayload(
             user_id=user_id,
-            type=_KC_NOTIFICATION_TYPE,
+            type="connection_ping",
             title=title,
             body=body,
             priority="normal",
-            is_read=False,
-            is_sent=False,
-            scheduled_for=now,
+            scheduled_for=datetime.utcnow(),
             dedupe_key=dedupe_key,
-            channel=_KC_CHANNEL,
-            language=(lang or "fa")[:20],
-            status="queued",
-            actions_json='[{"id":"open_chat","type":"OPEN_CHAT"}]',
-            provider=None,
+            metadata={
+                "language": (lang or "fa")[:20],
+                "legacy_producer": "kc_notification",
+                "kc_type": _KC_NOTIFICATION_TYPE,
+                "candidate_id": candidate_id,
+            },
+            category="engagement",
+            source_type="knowledge_capture",
+            source_id=str(candidate_id) if candidate_id is not None else "kc_confirm",
+            template_key="kc_confirm",
         )
+        candidate = I10NotificationCandidate(
+            candidate_key=dedupe_key,
+            health_subject_id=health_subject_id,
+            recipient_user_id=user_id,
+            notification_scope=I10NotificationScope.GENERAL_STATUS,
+            source_owner="KC_NOTIFY_ADAPTER",
+            source_type="kc_confirm_candidate",
+            source_id=str(candidate_id) if candidate_id is not None else "none",
+            semantic_family=I10SemanticFamily.ENGAGEMENT,
+            privacy_hint=I10PrivacyClass.PRIVATE,
+        )
+        intake = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
+        result["attempted"] = True
+        if intake.decision != I10DecisionValue.SEND or intake.notification_id is None:
+            result["ok"] = True
+            result["reason"] = f"i10_{intake.decision.value.lower()}:{intake.reason_code}"
+            result["decision_id"] = intake.decision_id
+            return result
+
+        notif = (
+            db.query(models.Notification)
+            .filter(models.Notification.id == intake.notification_id)
+            .one()
+        )
+        # Preserve KC presentation fields without bypassing I10 decision authority.
+        notif.type = _KC_NOTIFICATION_TYPE
+        notif.channel = _KC_CHANNEL
+        notif.language = (lang or "fa")[:20]
+        notif.actions_json = '[{"id":"open_chat","type":"OPEN_CHAT"}]'
         if candidate_id is not None:
             notif.deeplink_url = f"sedi://chat?from=kc&candidate_id={candidate_id}"
+        elif not notif.deeplink_url:
+            notif.deeplink_url = f"sedi://chat?from=notif&id={notif.id}"
         db.add(notif)
         db.commit()
         db.refresh(notif)
-        if not notif.deeplink_url:
-            notif.deeplink_url = f"sedi://chat?from=notif&id={notif.id}"
-            db.add(notif)
-            db.commit()
 
-        result["attempted"] = True
         result["ok"] = True
         result["notification_id"] = notif.id
+        result["decision_id"] = intake.decision_id
 
         if in_app:
             result["reason"] = "in_app_skip_delivery"

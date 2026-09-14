@@ -113,6 +113,18 @@ def analyze_health_data(
     db.add(memory)
     db.commit()
 
+    if notif is None:
+        print(f"[AI CORE] Notification suppressed by I10 for user_id={user.id}")
+        return APIResponse(
+            ok=True,
+            data={
+                "user_id": user.id,
+                "language": user.preferred_language,
+                "notification": None,
+                "i10_suppressed": True,
+            },
+        )
+
     print(f"[AI CORE] Notification created for user_id={user.id}: {notif.body}")
 
     return APIResponse(

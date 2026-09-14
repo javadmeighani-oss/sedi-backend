@@ -84,6 +84,11 @@ def build_self_occurrence_key(
         alert_code = extra or "generic"
         hour_str = scheduled_for.strftime("%H")
         return f"i10:self:health_alert:{user_id}:{alert_code}:{date_str}T{hour_str}"
+    if producer == "insight":
+        # Unique per call — legacy create_insight_notification used check_dedupe=False.
+        stamp = scheduled_for.strftime("%H%M%S%f")
+        tag = (extra or "insight")[:48]
+        return f"i10:self:insight:{user_id}:{date_str}:{stamp}:{tag}"
     if producer == "user_chat_reminder":
         return f"i10:self:user_chat_reminder:{user_id}:{extra or date_str}"
     raise ValueError(f"I10_SELF_UNKNOWN_PRODUCER:{producer}")

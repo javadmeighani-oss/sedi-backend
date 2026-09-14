@@ -1366,20 +1366,12 @@ class DecisionEngine:
     ) -> Optional[Notification]:
         """
         Evaluate health data and create notification if needed.
-        
-        Args:
-            user_id: User ID
-            health_data: HealthData object
-            memory_context: Optional MemoryContext for lifestyle-aware decisions
-        
-        Returns Notification if created, None otherwise.
+
+        G2: existing alert heuristics preserved; persistence routes through
+        canonical I10 intake (DEVICE_STATUS). No new clinical thresholds.
         """
-        # Get user conditions for context
-        user_conditions = self.medical_service.get_user_conditions(user_id)
-        
         # Determine priority and message based on health metrics
         priority = "normal"
-        title = "Health Update"
         body_parts = []
         
         # Check heart rate
@@ -1428,15 +1420,6 @@ class DecisionEngine:
         # Build notification body
         body = " | ".join(body_parts)
         
-        # TODO: RAG integration - enhance body with condition-specific care guidelines
-        # if user_conditions:
-        #     rag_context = self.rag_service.retrieve_condition_context(
-        #         condition_name=user_conditions[0].condition.name,
-        #         user_conditions=user_conditions
-        #     )
-        #     if rag_context:
-        #         body += f"\n\nCare tip: {rag_context}"
-        
         # Create notification using health_alert type (Release B2.1)
         # Resolve language
         effective_language = resolve_effective_language(
@@ -1449,7 +1432,8 @@ class DecisionEngine:
         metadata = {
             "language": effective_language,
             "alert_code": "health_data_alert",
-            "alert_reason": body
+            "alert_reason": body,
+            "legacy_producer": "evaluate_health_data",
         }
         
         # Use health_alert type instead of legacy HEALTH
@@ -1472,13 +1456,39 @@ class DecisionEngine:
             memory_context=memory_context,
             language=effective_language
         )
-        
-        # Persist
-        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method
-        if result:
+
+        from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = datetime.utcnow()
+        occurrence_key = build_self_occurrence_key(
+            "health_alert",
+            user_id=user_id,
+            scheduled_for=when,
+            extra="health_data_alert",
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.DEVICE_STATUS,
+            candidate_key=occurrence_key,
+            source_type="evaluate_health_data",
+            source_id="health_data_alert",
+            privacy_class=I10PrivacyClass.HEALTH_SENSITIVE,
+        )
+        if result is None:
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED type=health_alert user={user_id} "
+                f"lang={effective_language} reason=i10_intake (legacy:evaluate_health_data)"
+            )
+        else:
             logger.info(
                 f"[NOTIFICATION] type=health_alert user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:evaluate_health_data)"
+                f"lang={effective_language} dedupe={occurrence_key} (legacy:evaluate_health_data)"
             )
         return result
     
@@ -1738,19 +1748,13 @@ class DecisionEngine:
         user_id: int,
         insight_text: str,
         priority: str = "normal"
-    ) -> Notification:
+    ) -> Optional[Notification]:
         """
         Create an insight notification (health insights, trends, etc.) - Release B2.1.
-        
+
         Legacy method: Maps to connection_ping type (gentle check-in style).
-        Maintains backward compatibility while using new contract.
-        
-        Args:
-            user_id: User ID
-            insight_text: Insight message
-            priority: Priority level (default: normal)
-        
-        Returns Notification object.
+        G2: routes through canonical I10 intake (ENGAGEMENT). Returns None when
+        I10 suppresses.
         """
         # Resolve language
         effective_language = resolve_effective_language(
@@ -1761,7 +1765,8 @@ class DecisionEngine:
         
         # Build metadata with language
         metadata = {
-            "language": effective_language
+            "language": effective_language,
+            "legacy_producer": "create_insight_notification",
         }
         
         # Use connection_ping type (gentle check-in) instead of legacy INSIGHT
@@ -1770,7 +1775,7 @@ class DecisionEngine:
             notification_type="connection_ping",
             title=_get_title_for_language("connection_ping", effective_language),
             body=insight_text,  # Use provided text
-            priority=priority,
+            priority=priority,  # type: ignore[arg-type]
             scheduled_for=None,
             metadata=metadata
         )
@@ -1784,13 +1789,38 @@ class DecisionEngine:
             memory_context=None,
             language=effective_language
         )
-        
-        # Persist
-        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method doesn't enforce dedupe
-        if result:
+
+        from backend.app.services.i10.policy_types import I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = datetime.utcnow()
+        occurrence_key = build_self_occurrence_key(
+            "insight",
+            user_id=user_id,
+            scheduled_for=when,
+            extra="insight",
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.ENGAGEMENT,
+            candidate_key=occurrence_key,
+            source_type="create_insight_notification",
+            source_id="insight",
+        )
+        if result is None:
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED type=connection_ping user={user_id} "
+                f"lang={effective_language} reason=i10_intake (legacy:create_insight_notification)"
+            )
+        else:
             logger.info(
                 f"[NOTIFICATION] type=connection_ping user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:create_insight_notification)"
+                f"lang={effective_language} dedupe={occurrence_key} (legacy:create_insight_notification)"
             )
         return result
     

@@ -15,7 +15,6 @@ from backend.app.services.gate4.notification_context import (
     NotificationCategory,
     NotificationRiskLevel,
     NotificationSourceType,
-    resolve_traceability_fields,
 )
 from backend.app.services.gate5.ml_flags import (
     ml_care_bridge_enabled,
@@ -174,39 +173,80 @@ def run_care_bridge(
     device_event_id = device_event.id
 
     if notif_on:
-        trace = resolve_traceability_fields(
-            notification_type="care_suggestion",
+        from backend.app.schemas.notification import NotificationPayload
+        from backend.app.services.i10.contracts import I10NotificationCandidate
+        from backend.app.services.i10.intake import enqueue_i10_notification
+        from backend.app.services.i10.policy_types import (
+            I10DecisionValue,
+            I10NotificationScope,
+            I10PrivacyClass,
+            I10SemanticFamily,
+        )
+        from backend.app.services.i10.self_producer_adapter import (
+            resolve_or_ensure_self_health_subject_id,
+        )
+
+        health_subject_id = resolve_or_ensure_self_health_subject_id(db, int(row.user_id))
+        dedupe_key = f"ml_care:{row.id}"
+        # Contract type connection_ping; restore care_suggestion presentation after I10 SEND.
+        payload = NotificationPayload(
+            user_id=int(row.user_id),
+            type="connection_ping",
+            title="Sedi care signal",
+            body=care_text,
             priority="normal",
+            scheduled_for=None,
+            dedupe_key=dedupe_key,
+            metadata={
+                "legacy_producer": "ml_care_bridge",
+                "ml_output_type": row.output_type,
+                "ml_type": "care_suggestion",
+            },
             category=NotificationCategory.CARE_FOLLOW_UP.value,
             source_type=NotificationSourceType.DEVICE_EVENT.value,
             source_id=str(device_event_id),
+            risk_level=NotificationRiskLevel.INFORMATIONAL.value,
+            template_key="gate5_ml_care_suggestion",
             context={
                 "template_key": "gate5_ml_care_suggestion",
                 "trigger_reason": row.output_type,
                 "source_summary_key": "ml_inference_shadow",
             },
-            risk_level=NotificationRiskLevel.INFORMATIONAL.value,
         )
-        notification = Notification(
-            user_id=row.user_id,
-            type="care_suggestion",
-            title="Sedi care signal",
-            body=care_text,
-            priority="normal",
-            is_read=False,
-            is_sent=False,
-            status="queued",
-            category=trace["category"],
-            source_type=trace["source_type"],
-            source_id=trace["source_id"],
-            context_json=trace["context_json"],
-            risk_level=trace["risk_level"],
-            template_key=trace["template_key"],
-            dedupe_key=f"ml_care:{row.id}",
+        candidate = I10NotificationCandidate(
+            candidate_key=dedupe_key,
+            health_subject_id=health_subject_id,
+            recipient_user_id=int(row.user_id),
+            notification_scope=I10NotificationScope.CARE_ACTION,
+            source_owner="ML_CARE_BRIDGE_ADAPTER",
+            source_type="ml_care_bridge",
+            source_id=str(row.id),
+            semantic_family=I10SemanticFamily.CARE_ACTION,
+            privacy_hint=I10PrivacyClass.HEALTH_SENSITIVE,
         )
-        db.add(notification)
-        db.flush()
-        notification_id = notification.id
+        intake = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
+        if intake.decision == I10DecisionValue.SEND and intake.notification_id is not None:
+            notification = (
+                db.query(Notification)
+                .filter(Notification.id == intake.notification_id)
+                .one()
+            )
+            notification.type = "care_suggestion"
+            notification.template_key = "gate5_ml_care_suggestion"
+            notification.source_type = NotificationSourceType.DEVICE_EVENT.value
+            notification.source_id = str(device_event_id)
+            notification.category = NotificationCategory.CARE_FOLLOW_UP.value
+            notification.risk_level = NotificationRiskLevel.INFORMATIONAL.value
+            db.add(notification)
+            db.flush()
+            notification_id = notification.id
+        else:
+            logger.info(
+                "[ML_CARE_BRIDGE] I10 suppressed notification record_id=%s decision=%s reason=%s",
+                record_id,
+                intake.decision.value,
+                intake.reason_code,
+            )
 
     if chat_on:
         chat_meta = {
