@@ -17,8 +17,9 @@ void main() {
       final result = mergeSeenIdsRollingWindow(existing, newIds, 200);
       expect(result.length, 200);
       expect(result.take(3).toList(), ['new1', 'new2', 'new3']);
-      expect(result.contains('id_0'), false);
-      expect(result.contains('id_199'), true);
+      // Newest-first: early existing ids remain; oldest tail is dropped.
+      expect(result.contains('id_0'), true);
+      expect(result.contains('id_199'), false);
     });
 
     test('no duplicate new ids in merged list', () {
