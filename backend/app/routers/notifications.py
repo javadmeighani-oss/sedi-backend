@@ -69,6 +69,7 @@ def _notification_to_response(notif: Notification) -> NotificationResponse:
         is_sent=notif.is_sent,
         scheduled_for=notif.scheduled_for,
         created_at=notif.created_at,
+        sent_at=notif.sent_at,
         category=resolve_effective_category(
             category=notif.category,
             notification_type=notif.type or "",
@@ -81,6 +82,12 @@ def _notification_to_response(notif: Notification) -> NotificationResponse:
         ),
         template_key=notif.template_key,
         channel=notif.channel,
+        health_subject_id=notif.health_subject_id,
+        recipient_kind=notif.recipient_kind,
+        semantic_family=notif.semantic_family,
+        # No schema for gadget_id/display_name/device_category on Notification —
+        # do not invent Gadget SELF/OTHER from title/body.
+        gadget_provenance=None,
         gate4_metadata=NotificationGate4InboxMetadata(**gate4_meta),
     )
 
@@ -888,35 +895,42 @@ def admin_observability(
 def get_notifications(
     auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID to fetch notifications for"),
+    limit: int = Query(20, ge=1, le=50, description="Page size (default 20, max 50)"),
+    cursor: Optional[str] = Query(None, description="Opaque sent-history cursor"),
     db: Session = Depends(get_db),
 ):
     """
-    Get all notifications for a user, ordered by created_at descending.
-    Requires Bearer JWT; user_id query must match authenticated user.
-    """
-    _assert_user_id_matches(auth_user, user_id)
-    user_id = auth_user.id
-    base_query = db.query(Notification).filter(Notification.user_id == user_id)
-    total = base_query.count()
-    unread_count = base_query.filter(Notification.is_read == False).count()
-    
-    # Fetch list with ordering (no limit for this endpoint; pagination can be added later)
-    notifications = (
-        base_query
-        .order_by(Notification.created_at.desc())
-        .all()
-    )
-    
-    # Convert to response format
-    notification_list = [_notification_to_response(notif) for notif in notifications]
+    A3 Smart Notifications Inbox (G1): successfully sent history only.
 
+    Filters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.
+    Order: sent_at DESC, id DESC. Cursor pagination (no offset).
+    """
+    from backend.app.services.notifications.inbox_projection import fetch_sent_history_page
+
+    _assert_user_id_matches(auth_user, user_id)
+    try:
+        page = fetch_sent_history_page(
+            db,
+            user_id=auth_user.id,
+            limit=limit,
+            cursor=cursor,
+            unread_only=False,
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cursor")
+
+    notification_list = [_notification_to_response(n) for n in page["notifications"]]
     return APIResponse(
         ok=True,
         data={
             "notifications": [n.model_dump() for n in notification_list],
-            "total": total,
-            "unread_count": unread_count,
-        }
+            "total": page["total"],
+            "unread_count": page["unread_count"],
+            "count": page["count"],
+            "limit": page["limit"],
+            "next_cursor": page["next_cursor"],
+            "has_more": page["has_more"],
+        },
     )
 
 
@@ -947,52 +961,47 @@ def put_notification_prefs(
     return APIResponse(ok=True, data=prefs.model_dump(), error=None)
 
 
-# ------------------ GET /notifications/unread (Release B2) ------------------
+# ------------------ GET /notifications/unread (Release B2 / G1 sent-history) ------------------
 @router.get("/unread", response_model=ApiResponseV1)
 def get_unread_notifications(
     auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID to fetch unread notifications for"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of notifications to return"),
+    limit: int = Query(20, ge=1, le=50, description="Maximum number of notifications to return"),
+    cursor: Optional[str] = Query(None, description="Opaque sent-history cursor"),
     type: Optional[str] = Query(None, description="Optional filter by notification type"),
     db: Session = Depends(get_db),
 ):
     """
-    Get unread notifications for a user (Release B2). Requires Bearer JWT.
+    Unread A3 Inbox items using the same sent-history projection as GET /notifications.
+    Queued/failed/unsent rows do not inflate unread_count.
     """
-    _assert_user_id_matches(auth_user, user_id)
-    user_id = auth_user.id
-    query = (
-        db.query(Notification)
-        .filter(Notification.user_id == user_id)
-        .filter(Notification.is_read == False)
-    )
-    
-    # Apply type filter if provided
-    if type:
-        query = query.filter(Notification.type == type)
-    
-    # Total unread count (before limit) for contract total/unread_count
-    unread_total = query.count()
+    from backend.app.services.notifications.inbox_projection import fetch_sent_history_page
 
-    # Order by created_at desc and apply limit
-    notifications = (
-        query
-        .order_by(Notification.created_at.desc())
-        .limit(limit)
-        .all()
-    )
-    
-    # Convert to response format
-    notification_list = [_notification_to_response(notif) for notif in notifications]
-    
+    _assert_user_id_matches(auth_user, user_id)
+    try:
+        page = fetch_sent_history_page(
+            db,
+            user_id=auth_user.id,
+            limit=limit,
+            cursor=cursor,
+            unread_only=True,
+            notification_type=type,
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cursor")
+
+    notification_list = [_notification_to_response(n) for n in page["notifications"]]
     return APIResponse(
         ok=True,
         data={
             "notifications": [n.model_dump() for n in notification_list],
-            "count": len(notification_list),
-            "total": unread_total,
-            "unread_count": unread_total,
-        }
+            "count": page["count"],
+            "total": page["unread_count"],
+            "unread_count": page["unread_count"],
+            "limit": page["limit"],
+            "next_cursor": page["next_cursor"],
+            "has_more": page["has_more"],
+        },
     )
 
 

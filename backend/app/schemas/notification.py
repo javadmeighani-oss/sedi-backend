@@ -46,12 +46,27 @@ class NotificationResponse(NotificationBase):
     is_read: bool
     is_sent: bool
     created_at: datetime
+    sent_at: Optional[datetime] = Field(
+        None, description="Delivery timestamp; A3 Inbox orders by this when present"
+    )
     # Gate 4-B: persisted traceability (effective category/risk resolved in router when null)
     category: Optional[str] = Field(None, description="Gate 4-B notification category")
     source_type: Optional[str] = Field(None, description="Gate 4-B soft source type")
     risk_level: Optional[str] = Field(None, description="Gate 4-B risk level")
     template_key: Optional[str] = Field(None, description="Gate 4-B template key")
     channel: Optional[str] = Field(None, description="Persisted delivery channel when set")
+    health_subject_id: Optional[int] = Field(
+        None, description="I10 HealthSubject attribution when persisted (not Gadget OTHER)"
+    )
+    recipient_kind: Optional[str] = Field(
+        None, description="I10 recipient kind when persisted (SELF|CAREGIVER|MANAGER)"
+    )
+    semantic_family: Optional[str] = Field(None, description="I10 semantic family when persisted")
+    # Gadget provenance is NOT inferred from title/body. Only explicit server fields if present.
+    gadget_provenance: Optional[dict[str, Any]] = Field(
+        None,
+        description="Optional non-clinical gadget presentation fields when authoritatively known",
+    )
     gate4_metadata: Optional[NotificationGate4InboxMetadata] = Field(
         None,
         description="Safe Gate 4 inbox metadata (actions, deeplink, continuity ids)",

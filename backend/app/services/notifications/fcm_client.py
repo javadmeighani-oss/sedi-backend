@@ -107,7 +107,14 @@ def _build_fcm_message(
     android_priority: str = "normal",
     ttl_seconds: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Build FCM v1 message payload for one token."""
+    """Build FCM v1 message payload for one token.
+
+    G1: when data carries channel_id/sound/ios_sound, also set Android
+    ``android.notification`` and APNs ``apns.payload.aps.sound`` so terminated/
+    background delivery can resolve the bundled Sedi signature sound.
+    Runtime sound download is never used.
+    """
+    data_map = {k: str(v)[:1024] for k, v in (data or {}).items()}
     message: Dict[str, Any] = {
         "message": {
             "token": token,
@@ -115,15 +122,40 @@ def _build_fcm_message(
                 "title": title[:255] if title else "",
                 "body": (body or "")[:1024],
             },
-            "data": {k: str(v)[:1024] for k, v in (data or {}).items()},
+            "data": data_map,
             "android": {
                 "priority": "high" if android_priority in ("high", "critical") else "normal",
             },
         }
     }
     if ttl_seconds is not None and ttl_seconds > 0:
-        message["message"]["android"] = message["message"].get("android", {})
         message["message"]["android"]["ttl"] = f"{ttl_seconds}s"
+
+    channel_id = (data_map.get("channel_id") or "").strip()
+    sound = (data_map.get("sound") or "").strip()
+    play_sound = (data_map.get("play_sound") or "").strip().lower() in ("1", "true", "yes")
+    android_notification: Dict[str, Any] = {}
+    if channel_id:
+        android_notification["channel_id"] = channel_id
+    if play_sound and sound:
+        # Android FCM expects resource name; bundled raw is sedi_alarm.
+        android_notification["sound"] = sound
+    if android_notification:
+        message["message"]["android"]["notification"] = android_notification
+
+    ios_sound = (data_map.get("ios_sound") or "").strip()
+    if play_sound and ios_sound:
+        message["message"]["apns"] = {
+            "payload": {
+                "aps": {
+                    "sound": ios_sound,
+                    "alert": {
+                        "title": title[:255] if title else "",
+                        "body": (body or "")[:1024],
+                    },
+                }
+            }
+        }
     return message
 
 

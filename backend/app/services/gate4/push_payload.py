@@ -29,6 +29,16 @@ FEEDBACK_PATH_TEMPLATE: str = "/notifications/{notification_id}/feedback"
 # Categories that map to the reminder Android channel.
 _REMINDER_CHANNEL_CATEGORIES = frozenset({"reminder", "medication", "care_follow_up"})
 
+# Canonical V1 signature sound (bundled mobile asset name without extension on Android).
+CANONICAL_SEDI_SOUND = "sedi_alarm"
+CANONICAL_SEDI_SOUND_IOS = "sedi_alarm.wav"
+
+# Versioned Android channels (G1): existing channel IDs are sticky on installed devices;
+# v2 channels adopt the bundled sedi_alarm sound without deleting legacy channel compatibility.
+CHANNEL_MORNING_V2 = "morning_v2"
+CHANNEL_ENGAGEMENT_V2 = "engagement_v2"
+CHANNEL_HEALTH_ALERT_V2 = "health_alert_v2"
+
 
 def normalize_push_language(language: str | None) -> str:
     """Normalize user language for push payload; unsupported values fall back to ``en``."""
@@ -110,48 +120,63 @@ def build_gate4_android_notification_options(
     """
     Android channel/sound/priority contract for V1 FCM (data-side metadata).
 
-    ``alarm_like`` is ``true`` only for ``critical`` risk in V1.
+    G1: versioned channels + canonical ``sedi_alarm`` for audible paths.
+    Morning/low remains silent. ``alarm_like`` is ``true`` only for ``critical``.
     """
     risk_key = (risk or "normal").strip().lower()
     category_key = (category or "system").strip().lower()
     priority_key = (priority or "normal").strip().lower()
 
     if risk_key == "critical":
-        channel_id = "sedi_critical"
-        sound = "sedi_critical_alert" if sound_enabled else ""
+        channel_id = CHANNEL_HEALTH_ALERT_V2
+        sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
         android_priority = "high"
         critical = True
         alarm_like = True
         visibility = "public"
+        play_sound = bool(sound_enabled)
     elif category_key in ("health_alert", "health_status") or risk_key == "high" or priority_key in ("high", "critical"):
-        channel_id = "sedi_health"
-        sound = "sedi_notification" if sound_enabled else ""
+        channel_id = CHANNEL_HEALTH_ALERT_V2
+        sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
         android_priority = "high"
         critical = False
         alarm_like = False
         visibility = "public"
+        play_sound = bool(sound_enabled)
+    elif category_key in ("morning", "daily_routine") or category_key == "morning_brief":
+        channel_id = CHANNEL_MORNING_V2
+        sound = ""
+        android_priority = "normal"
+        critical = False
+        alarm_like = False
+        visibility = "private"
+        play_sound = False
     elif category_key in _REMINDER_CHANNEL_CATEGORIES:
-        channel_id = "sedi_reminder"
-        sound = "sedi_notification" if sound_enabled else ""
+        channel_id = CHANNEL_ENGAGEMENT_V2
+        sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
         android_priority = "normal"
         critical = False
         alarm_like = False
         visibility = "private"
+        play_sound = bool(sound_enabled)
     else:
-        channel_id = "sedi_default"
-        sound = "sedi_notification" if sound_enabled else ""
+        channel_id = CHANNEL_ENGAGEMENT_V2
+        sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
         android_priority = "normal"
         critical = False
         alarm_like = False
         visibility = "private"
+        play_sound = bool(sound_enabled)
 
     return {
         "android_priority": android_priority,
         "channel_id": channel_id,
         "sound": sound or None,
+        "ios_sound": CANONICAL_SEDI_SOUND_IOS if play_sound else None,
         "visibility": visibility,
         "critical": critical,
         "alarm_like": alarm_like,
+        "play_sound": play_sound,
     }
 
 
@@ -231,7 +256,7 @@ def build_gate4_push_data_payload(
         priority=priority,
         category=category,
     )
-    for key in ("android_priority", "channel_id", "sound", "visibility", "critical", "alarm_like"):
+    for key in ("android_priority", "channel_id", "sound", "ios_sound", "visibility", "critical", "alarm_like", "play_sound"):
         value = android_opts.get(key)
         if value is not None and value != "":
             payload[key] = _coerce_fcm_string(value)

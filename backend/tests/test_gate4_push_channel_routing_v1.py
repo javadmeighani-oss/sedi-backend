@@ -1,4 +1,4 @@
-"""Gate 4 Android channel routing unit tests (Section 14-A1 / Section 15-P1)."""
+"""Gate 4 Android channel routing unit tests (G1 versioned channels + sedi_alarm)."""
 
 from __future__ import annotations
 
@@ -10,85 +10,81 @@ from backend.app.services.gate4.notification_contract import (
     normalize_language,
 )
 from backend.app.services.gate4.push_payload import (
+    CANONICAL_SEDI_SOUND,
+    CHANNEL_ENGAGEMENT_V2,
+    CHANNEL_HEALTH_ALERT_V2,
+    CHANNEL_MORNING_V2,
     build_gate4_android_notification_options,
     build_gate4_push_data_payload,
     normalize_push_language,
 )
 
 
-def test_health_status_maps_to_sedi_health():
+def test_health_status_maps_to_health_alert_v2():
     opts = build_gate4_android_notification_options(
         risk="normal",
         priority="normal",
         category="health_status",
     )
-    assert opts["channel_id"] == "sedi_health"
+    assert opts["channel_id"] == CHANNEL_HEALTH_ALERT_V2
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
     assert opts["android_priority"] == "high"
     assert opts["critical"] is False
 
 
-def test_health_alert_maps_to_sedi_health():
+def test_health_alert_maps_to_health_alert_v2():
     opts = build_gate4_android_notification_options(
         risk="normal",
         priority="normal",
         category="health_alert",
     )
-    assert opts["channel_id"] == "sedi_health"
+    assert opts["channel_id"] == CHANNEL_HEALTH_ALERT_V2
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
     assert opts["android_priority"] == "high"
 
 
-def test_critical_maps_to_sedi_critical():
+def test_critical_maps_to_health_alert_v2_with_alarm_like():
     opts = build_gate4_android_notification_options(
         risk="critical",
         priority="critical",
         category="health_alert",
     )
-    assert opts["channel_id"] == "sedi_critical"
+    assert opts["channel_id"] == CHANNEL_HEALTH_ALERT_V2
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
     assert opts["android_priority"] == "high"
     assert opts["critical"] is True
     assert opts["alarm_like"] is True
 
 
-def test_critical_risk_with_health_status_maps_to_sedi_critical():
-    """Risk ``critical`` takes precedence over health_status category."""
+def test_critical_risk_with_health_status_maps_to_health_alert_v2():
     opts = build_gate4_android_notification_options(
         risk="critical",
         priority="normal",
         category="health_status",
     )
-    assert opts["channel_id"] == "sedi_critical"
+    assert opts["channel_id"] == CHANNEL_HEALTH_ALERT_V2
     assert opts["critical"] is True
     assert opts["alarm_like"] is True
 
 
-def test_reminder_maps_to_sedi_reminder():
+def test_reminder_maps_to_engagement_v2():
     opts = build_gate4_android_notification_options(
         risk="normal",
         priority="normal",
         category="reminder",
     )
-    assert opts["channel_id"] == "sedi_reminder"
+    assert opts["channel_id"] == CHANNEL_ENGAGEMENT_V2
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
     assert opts["android_priority"] == "normal"
 
 
-def test_reminder_with_high_priority_maps_to_sedi_health_by_precedence():
-    """
-    Documented implementation precedence (do not change without product approval):
-
-    1. risk == critical → sedi_critical
-    2. health category OR risk high OR priority high/critical → sedi_health
-    3. reminder categories → sedi_reminder
-    4. else → sedi_default
-
-    Therefore a reminder with high priority/risk routes to ``sedi_health``,
-    not ``sedi_reminder``.
-    """
+def test_reminder_with_high_priority_maps_to_health_alert_v2_by_precedence():
     high_priority = build_gate4_android_notification_options(
         risk="normal",
         priority="high",
         category="reminder",
     )
-    assert high_priority["channel_id"] == "sedi_health"
+    assert high_priority["channel_id"] == CHANNEL_HEALTH_ALERT_V2
     assert high_priority["android_priority"] == "high"
     assert high_priority["critical"] is False
 
@@ -97,17 +93,30 @@ def test_reminder_with_high_priority_maps_to_sedi_health_by_precedence():
         priority="normal",
         category="reminder",
     )
-    assert high_risk["channel_id"] == "sedi_health"
+    assert high_risk["channel_id"] == CHANNEL_HEALTH_ALERT_V2
 
 
-def test_default_maps_to_sedi_default():
+def test_default_maps_to_engagement_v2():
     opts = build_gate4_android_notification_options(
         risk="normal",
         priority="normal",
         category="engagement",
     )
-    assert opts["channel_id"] == "sedi_default"
+    assert opts["channel_id"] == CHANNEL_ENGAGEMENT_V2
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
     assert opts["android_priority"] == "normal"
+
+
+def test_morning_is_silent_on_morning_v2():
+    opts = build_gate4_android_notification_options(
+        risk="normal",
+        priority="normal",
+        category="morning",
+        sound_enabled=True,
+    )
+    assert opts["channel_id"] == CHANNEL_MORNING_V2
+    assert opts["sound"] is None
+    assert opts["play_sound"] is False
 
 
 def test_normalize_invalid_language_falls_back_to_en():
@@ -159,6 +168,8 @@ def test_invalid_language_metadata_and_push_payload_fall_back_to_en():
         source_notification_id=42,
     )
     assert payload["language"] == "en"
+    assert payload["channel_id"] == CHANNEL_ENGAGEMENT_V2
+    assert payload["sound"] == CANONICAL_SEDI_SOUND
     assert "de" not in payload.get("language", "")
     assert "de" not in payload.get("gate4_actions", "")
     for action_id, en_label in (

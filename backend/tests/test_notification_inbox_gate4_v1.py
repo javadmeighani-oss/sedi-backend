@@ -31,6 +31,7 @@ def _create_user(db, name: str, lang: str = "en") -> User:
 
 
 def _create_notification(db, user_id: int, **overrides) -> Notification:
+    now = datetime.utcnow()
     base = dict(
         user_id=user_id,
         type="health_alert",
@@ -39,7 +40,9 @@ def _create_notification(db, user_id: int, **overrides) -> Notification:
         priority="high",
         is_read=False,
         is_sent=True,
-        created_at=datetime.utcnow(),
+        sent_at=now,
+        status="sent",
+        created_at=now,
         category="health_status",
         risk_level="high",
         language="en",
