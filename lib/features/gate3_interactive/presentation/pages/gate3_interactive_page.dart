@@ -10,6 +10,8 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
+import '../../../../services/notifications/inbox_refresh_bus.dart';
+import '../../../../services/notifications/notifications_service.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
@@ -49,12 +51,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   final ScrollController _scrollController = ScrollController();
   final SediHealthSubjectController _subjects =
       SediHealthSubjectController.instance;
+  final NotificationsService _notificationsService = NotificationsService();
   int _subjectGenSeen = -1;
 
   bool _composerListening = false;
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
+
+  /// Backend canonical unread SENT-history count; null = not loaded yet.
+  int? _unreadNotificationCount;
+  StreamSubscription<void>? _inboxRefreshSub;
 
   @override
   void initState() {
@@ -64,6 +71,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
     _subjects.addListener(_onSubjectChanged);
+    _inboxRefreshSub = InboxRefreshBus.instance.stream.listen((_) {
+      _refreshUnreadBadge();
+    });
+    _refreshUnreadBadge();
     _subjects.loadAccessibleSubjects().then((_) {
       _syncChatSubject();
       _controller.initialize(
@@ -71,6 +82,26 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         notificationId: widget.notificationId,
       );
     });
+  }
+
+  Future<void> _refreshUnreadBadge() async {
+    final resp = await _notificationsService.fetchUnreadCount();
+    if (!mounted) return;
+    if (resp.ok) {
+      setState(() => _unreadNotificationCount = resp.data ?? 0);
+    } else {
+      setState(() => _unreadNotificationCount = _unreadNotificationCount ?? 0);
+    }
+  }
+
+  Future<void> _openNotificationsInbox() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const NotificationInboxPage(),
+      ),
+    );
+    if (!mounted) return;
+    await _refreshUnreadBadge();
   }
 
   void _syncChatSubject() {
@@ -91,8 +122,16 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshUnreadBadge();
+    }
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _inboxRefreshSub?.cancel();
     _backPressTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);
@@ -211,6 +250,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
                     lang: _controller.currentLanguage,
+                    unreadNotificationCount: _unreadNotificationCount,
                     onLifestyle: () {
                       if (!_subjects.isActiveSelf) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,8 +261,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       _goTo(const LifestylePage());
                     },
                     onGadgets: () => _goTo(const DevicesPage()),
-                    onNotifications: () =>
-                        _goTo(const NotificationInboxPage()),
+                    onNotifications: _openNotificationsInbox,
                   ),
                 ),
                 Gate3SubjectSelector(l10n: l10n),

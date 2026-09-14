@@ -142,9 +142,31 @@ class NotificationsService {
     );
   }
 
+  /// Canonical unread SENT-history count for badge (never invents local authority).
+  /// Uses GET /notifications/unread; prefers payload unread_count.
+  Future<ApiResponse<int>> fetchUnreadCount({int limit = 1}) async {
+    final page = await listInboxPage(unreadOnly: true, limit: limit);
+    if (!page.ok) {
+      return ApiResponse<int>(
+        ok: false,
+        data: 0,
+        error: page.error,
+        statusCode: page.statusCode,
+      );
+    }
+    final unread = page.data?.unreadCount ?? page.data?.total ?? 0;
+    return ApiResponse<int>(
+      ok: true,
+      data: unread < 0 ? 0 : unread,
+      statusCode: page.statusCode,
+    );
+  }
+
   Future<ApiResponse<void>> sendFeedback(
     int id, {
     required bool liked,
+    String? reason,
+    String? action,
   }) async {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
@@ -157,9 +179,27 @@ class NotificationsService {
       );
     }
 
+    if (action != null && action.isNotEmpty) {
+      final response = await _apiClient.post<Object?>(
+        '/notifications/$id/feedback',
+        queryParams: {'user_id': userId.toString()},
+        body: {
+          'action': action,
+          'client_ts': DateTime.now().toIso8601String(),
+        },
+        parser: (_) => null,
+      );
+      return ApiResponse<void>(
+        ok: response.ok,
+        error: response.error,
+        statusCode: response.statusCode,
+      );
+    }
+
     final dto = NotificationFeedbackDto(
       liked: liked,
       timestamp: DateTime.now().toIso8601String(),
+      reason: reason,
     );
     final response = await _apiClient.post<Object?>(
       '/notifications/$id/feedback',

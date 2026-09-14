@@ -59,6 +59,24 @@ class NotificationInboxL10n {
 
   String get dislike => _t(en: 'Dislike', fa: 'نپسندیدن', ar: 'عدم إعجاب');
 
+  String get continueInChat =>
+      _t(en: 'Continue in Sedi chat', fa: 'ادامه در گفتگوی سدی', ar: 'المتابعة في محادثة سدي');
+
+  String get dislikeReasonTitle =>
+      _t(en: 'Why was this not useful?', fa: 'چرا مفید نبود؟', ar: 'لماذا لم يكن مفيداً؟');
+
+  String get dislikeReasonTooFrequent =>
+      _t(en: 'Too frequent', fa: 'خیلی زیاد بود', ar: 'متكرر جداً');
+
+  String get dislikeReasonIrrelevant =>
+      _t(en: 'Irrelevant', fa: 'مرتبط نبود', ar: 'غير ذي صلة');
+
+  String get dislikeReasonUnclear =>
+      _t(en: 'Unclear', fa: 'واضح نبود', ar: 'غير واضح');
+
+  String get dislikeReasonSkip =>
+      _t(en: 'Skip reason', fa: 'بدون دلیل', ar: 'بدون سبب');
+
   String get now => _t(en: 'Now', fa: 'الان', ar: 'الآن');
 
   String minutesAgo(int n) => _t(

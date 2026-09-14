@@ -92,6 +92,13 @@ jobs:
       - name: Targeted A3 lifestyle hub tests
         run: flutter test test/a3_lifestyle_hub_minimal_test.dart test/a3_shared_back_navigation_test.dart
 
+      - name: Targeted A3 FE1 Smart Notifications icon/badge/inbox tests
+        run: |
+          flutter test \
+            test/a3_fe1_icon_badge_inbox_test.dart \
+            test/a3_g1_inbox_wiring_test.dart \
+            test/notification_sync_and_badge_test.dart
+
       - name: Targeted A2 functional alignment tests
         run: |
           flutter test \

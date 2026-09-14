@@ -176,10 +176,14 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     setState(() {
       _pendingReadIds.remove(item.id);
     });
+    InboxRefreshBus.instance.triggerDebounced();
   }
 
-  Future<void> _sendFeedback(NotificationItem item,
-      {required bool liked}) async {
+  Future<void> _sendFeedback(
+    NotificationItem item, {
+    required bool liked,
+    String? reason,
+  }) async {
     if (liked && _likedIds.contains(item.id)) return;
     if (!liked && _dislikedIds.contains(item.id)) return;
 
@@ -195,11 +199,92 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       });
     }
 
-    final resp = await _service.sendFeedback(item.id, liked: liked);
+    final resp = await _service.sendFeedback(
+      item.id,
+      liked: liked,
+      reason: liked ? null : reason,
+    );
     if (!mounted) return;
     if (!resp.ok) {
       _showMessage(resp.errorMessage);
+      return;
     }
+    InboxRefreshBus.instance.triggerDebounced();
+  }
+
+  Future<void> _continueToChat(NotificationItem item) async {
+    await _markReadOptimistic(item);
+    final resp = await _service.sendFeedback(
+      item.id,
+      liked: true,
+      action: 'open_chat',
+    );
+    if (!mounted) return;
+    if (!resp.ok) {
+      _showMessage(resp.errorMessage);
+      return;
+    }
+    InboxRefreshBus.instance.triggerDebounced();
+    AppGateRouter.goToHeart(
+      context,
+      fromNotification: true,
+      notificationId: item.id,
+    );
+  }
+
+  Future<String?> _pickDislikeReason(NotificationInboxL10n l10n) {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppTheme.backgroundWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    l10n.dislikeReasonTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: Text(l10n.dislikeReasonTooFrequent),
+                  onTap: () => Navigator.of(ctx).pop('too_frequent'),
+                ),
+                ListTile(
+                  title: Text(l10n.dislikeReasonIrrelevant),
+                  onTap: () => Navigator.of(ctx).pop('irrelevant'),
+                ),
+                ListTile(
+                  title: Text(l10n.dislikeReasonUnclear),
+                  onTap: () => Navigator.of(ctx).pop('unclear'),
+                ),
+                ListTile(
+                  title: Text(
+                    l10n.dislikeReasonSkip,
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
+                  onTap: () => Navigator.of(ctx).pop(null),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _openDetails(
@@ -239,6 +324,25 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await _continueToChat(item);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlack,
+                      foregroundColor: AppTheme.backgroundWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusMedium),
+                      ),
+                    ),
+                    child: Text(l10n.continueInChat),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
@@ -286,7 +390,13 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                       child: ElevatedButton(
                         onPressed: () async {
                           Navigator.of(context).pop();
-                          await _sendFeedback(item, liked: false);
+                          final reason = await _pickDislikeReason(l10n);
+                          if (!mounted) return;
+                          await _sendFeedback(
+                            item,
+                            liked: false,
+                            reason: reason,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.metalGrey,

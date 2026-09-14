@@ -30,9 +30,34 @@ void main() {
   });
 
   group('NotificationService.parseUnreadCount', () {
-    test('returns count when ok and data.count present', () {
-      final resp = {'ok': true, 'data': {'count': 5, 'notifications': []}};
-      expect(NotificationService.parseUnreadCount(resp), 5);
+    test('prefers unread_count over page count', () {
+      final resp = {
+        'ok': true,
+        'data': {
+          'count': 20,
+          'unread_count': 42,
+          'total': 42,
+          'notifications': [],
+        },
+      };
+      expect(NotificationService.parseUnreadCount(resp), 42);
+    });
+
+    test('falls back to total then count', () {
+      expect(
+        NotificationService.parseUnreadCount({
+          'ok': true,
+          'data': {'total': 7, 'count': 3, 'notifications': []},
+        }),
+        7,
+      );
+      expect(
+        NotificationService.parseUnreadCount({
+          'ok': true,
+          'data': {'count': 5, 'notifications': []},
+        }),
+        5,
+      );
     });
 
     test('falls back to notifications length when count missing', () {
