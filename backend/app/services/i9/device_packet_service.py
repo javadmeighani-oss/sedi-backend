@@ -341,4 +341,14 @@ def _write_physiological_measurement(
     )
     db.add(row)
     db.flush()
+    try:
+        from backend.app.services.i9.vital_observation_context_persistence import (
+            persist_context_from_physiological_measurement,
+        )
+
+        persist_context_from_physiological_measurement(db, row, commit=False)
+    except Exception:  # noqa: BLE001 — never break device ingress on context persist
+        logger.exception(
+            "[I9_VOC] persist context from PM failed pm_id=%s", getattr(row, "id", None)
+        )
     return int(row.id)

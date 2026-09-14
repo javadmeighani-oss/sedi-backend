@@ -53,15 +53,22 @@ def test_g12_static_alembic_single_head():
 
 
 def test_g12_static_no_runtime_wiring():
-    """G12 must not wire context table into routers/eligibility/I10."""
+    """G12 schema only; G13 may wire persistence/load — still no routers/I10."""
     root = Path(__file__).resolve().parents[1] / "app"
+    allowed = {
+        "services/i9/vital_observation_context_persistence.py",
+        "services/i9/vital_observation_context.py",
+        "services/i9/device_packet_service.py",
+    }
     hits = []
     for path in root.rglob("*.py"):
         if path.name in ("models.py",):
             continue
         text_src = path.read_text(encoding="utf-8")
         if "i9_vital_observation_contexts" in text_src or "I9VitalObservationContext" in text_src:
-            hits.append(str(path.relative_to(root.parent)))
+            rel = str(path.relative_to(root)).replace("\\", "/")
+            if rel not in allowed:
+                hits.append(rel)
     assert hits == [], f"unexpected runtime consumers: {hits}"
 
 

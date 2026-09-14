@@ -138,7 +138,16 @@ def _resolve_symptom_refs(
         )
     if not refs:
         return _unknown(source="health_symptom_reports_none_in_window")
-    return _known(refs, source="health_symptom_reports")
+    # G13: ±24h window is NOT clinical authority — keep PARTIAL/UNKNOWN (do not promote to KNOWN).
+    return ContextualField(
+        state=AuthorityState.UNKNOWN,
+        value={
+            "refs": refs,
+            "authority": "PARTIAL_HEURISTIC_NOT_CLINICAL",
+            "window": "adapter_heuristic_not_governed",
+        },
+        source="health_symptom_reports_window_heuristic_not_authority",
+    )
 
 
 def _resolve_medication_context(
@@ -174,7 +183,14 @@ def resolve_vital_observation_context(
     db: Session,
     observation: CanonicalVitalObservation,
 ) -> VitalObservationContext:
-    """Build context for one observation from existing authorities only."""
+    """Build context from transient authorities + persisted G12 row when present."""
+    from backend.app.services.i9.vital_observation_context_persistence import (
+        SOURCE_LEGACY_HEALTHDATA,
+        SOURCE_PHYSIOLOGICAL_MEASUREMENT,
+        apply_persisted_row_to_context,
+        load_vital_observation_context_row,
+    )
+
     symptoms = _resolve_symptom_refs(
         db,
         account_user_id=observation.account_user_id,
@@ -183,13 +199,12 @@ def resolve_vital_observation_context(
     )
     medication = _resolve_medication_context(db, account_user_id=observation.account_user_id)
 
-    # No authoritative sources today — remain UNKNOWN (do not copy PM quality onto HealthData).
+    # Do not copy PM quality onto HealthData. Observation-local quality only if already set.
     quality = _unknown(source="healthdata_quality_absent")
     if observation.quality_state not in (None, ""):
-        # Only accept quality already attached on the observation from its own authority path.
         quality = _known(observation.quality_state, source="observation.quality_state")
 
-    return VitalObservationContext(
+    base = VitalObservationContext(
         activity_state=_unknown(source="no_vital_activity_authority"),
         symptom_refs=symptoms,
         altitude=_unknown(source="no_altitude_authority"),
@@ -211,8 +226,46 @@ def resolve_vital_observation_context(
             "clinical_inference": False,
             "repeat_inference": False,
             "medication_effect_inferred": False,
+            "symptom_authority": "EXPLICIT_ONLY_OR_PARTIAL_HEURISTIC",
         },
     )
+
+    # Load persisted context for the same observation identity when known.
+    prov = observation.provenance or {}
+    source_class = None
+    source_row_id = None
+    if prov.get("physiological_measurement_id") is not None:
+        source_class = SOURCE_PHYSIOLOGICAL_MEASUREMENT
+        source_row_id = int(prov["physiological_measurement_id"])
+    elif prov.get("health_data_id") is not None:
+        source_class = SOURCE_LEGACY_HEALTHDATA
+        source_row_id = int(prov["health_data_id"])
+
+    if source_class is not None and source_row_id is not None:
+        row = load_vital_observation_context_row(
+            db,
+            source_class=source_class,
+            source_row_id=source_row_id,
+            metric=observation.metric,
+        )
+        if row is not None and observation.health_subject_id is not None:
+            if int(row.health_subject_id) != int(observation.health_subject_id):
+                # Fail closed: ignore mismatched subject row.
+                diagnostics = dict(base.diagnostics)
+                diagnostics["persisted_context_ignored"] = "SUBJECT_MISMATCH"
+                return VitalObservationContext(
+                    activity_state=base.activity_state,
+                    symptom_refs=base.symptom_refs,
+                    altitude=base.altitude,
+                    temperature_method=base.temperature_method,
+                    quality_state=base.quality_state,
+                    confirmation_state=base.confirmation_state,
+                    medication_context=base.medication_context,
+                    diagnostics=diagnostics,
+                )
+            return apply_persisted_row_to_context(base, row)
+
+    return base
 
 
 def attach_context_to_observations(
@@ -224,6 +277,13 @@ def attach_context_to_observations(
     for obs in observations:
         ctx = resolve_vital_observation_context(db, obs)
         prov = dict(obs.provenance or {})
+        symptom_ids: list[int] = []
+        if isinstance(ctx.symptom_refs.value, dict):
+            refs = ctx.symptom_refs.value.get("refs") or []
+            if isinstance(refs, list):
+                symptom_ids = [int(r["id"]) for r in refs if isinstance(r, dict) and "id" in r]
+        elif ctx.symptom_refs.is_known and isinstance(ctx.symptom_refs.value, list):
+            symptom_ids = [int(r["id"]) for r in ctx.symptom_refs.value]
         prov["vital_observation_context"] = {
             "activity_state": ctx.activity_state.state.value,
             "symptom_refs": ctx.symptom_refs.state.value,
@@ -235,12 +295,12 @@ def attach_context_to_observations(
             "medication_authority": (ctx.medication_context.value or {}).get("authority")
             if isinstance(ctx.medication_context.value, dict)
             else None,
-            "symptom_ref_ids": [r["id"] for r in (ctx.symptom_refs.value or [])]
-            if ctx.symptom_refs.is_known and isinstance(ctx.symptom_refs.value, list)
-            else [],
+            "symptom_ref_ids": symptom_ids,
+            "symptom_authority": (ctx.symptom_refs.value or {}).get("authority")
+            if isinstance(ctx.symptom_refs.value, dict)
+            else None,
             "diagnostics": ctx.diagnostics,
         }
-        # Keep object for eligibility without inventing clinical meaning.
         prov["context_object"] = ctx
         out.append(replace(obs, provenance=prov))
     return out

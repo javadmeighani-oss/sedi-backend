@@ -150,9 +150,11 @@ def test_g11_pg_context_contract_and_symptom_subject_boundary():
         assert ctx.quality_state.state == AuthorityState.UNKNOWN
         assert ctx.confirmation_state.state == AuthorityState.UNKNOWN
         assert ctx.confirmation_state.value == "UNCONFIRMED"
-        assert ctx.symptom_refs.state == AuthorityState.KNOWN
-        assert len(ctx.symptom_refs.value) == 1
-        assert ctx.symptom_refs.value[0]["symptom_label"] == "shortness of breath"
+        # G13: ±24h symptom window is PARTIAL heuristic — not KNOWN clinical authority.
+        assert ctx.symptom_refs.state == AuthorityState.UNKNOWN
+        assert ctx.symptom_refs.value["authority"] == "PARTIAL_HEURISTIC_NOT_CLINICAL"
+        assert len(ctx.symptom_refs.value["refs"]) == 1
+        assert ctx.symptom_refs.value["refs"][0]["symptom_label"] == "shortness of breath"
         assert ctx.medication_context.state in (AuthorityState.KNOWN, AuthorityState.UNKNOWN)
         if ctx.medication_context.state == AuthorityState.KNOWN:
             assert ctx.medication_context.value["effect"] == "UNKNOWN"
