@@ -147,7 +147,8 @@ void main() {
     final health = File(
       'lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart',
     ).readAsStringSync();
-    expect(health.contains('hrStatusLabel'), isTrue);
+    expect(health.contains('deviceReportedHrStatusLabel'), isTrue);
+    expect(health.contains('isDeviceReportedStatus'), isTrue);
   });
 
   test('18 weekly DTO parse + domain split + states (CI coverage)', () {
