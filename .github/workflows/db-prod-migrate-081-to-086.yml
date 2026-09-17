@@ -132,7 +132,7 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${BEFORE_Q} bash -s" \
-            2>&1 | tee /tmp/mig081086_preflight.log <<'REMOTE'
+            <<'REMOTE' | tee /tmp/mig081086_preflight.log
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
           summary() { echo "MIG081086_SUMMARY|$1|$2"; }
@@ -275,7 +275,7 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${BEFORE_Q} MIGRATION_DIGEST=${DIGEST_Q} MIGRATION_SHA=${SHA_Q} TARGET_REV=${TARGET_Q} IMAGE_NAME=${IMAGE_NAME_Q} ARCHIVE_SHA256=${ARCHIVE_SHA_Q} RUNNER_ROOTFS_SHA256=${ROOTFS_SHA_Q} bash -s" \
-            2>&1 | tee /tmp/mig081086_apply.log <<'REMOTE'
+            <<'REMOTE' | tee /tmp/mig081086_apply.log
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
           summary() { echo "MIG081086_SUMMARY|$1|$2"; }
