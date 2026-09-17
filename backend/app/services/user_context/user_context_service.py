@@ -302,7 +302,7 @@ class UserContextService:
         else:
             source_meta["facts_source"] = "profile_knowledge|user_memory_facts"
 
-        return UserContextPack(
+        pack = UserContextPack(
             user_id=user_id,
             preferred_name=preferred_name,
             language=language,
@@ -320,3 +320,35 @@ class UserContextService:
             height_cm=height_cm,
             weight_kg=weight_kg,
         )
+
+        # Lifecycle + bounded I8/I9 — fail-open; never invent NEW_DAY without TZ authority.
+        try:
+            from backend.app.services.a3_bounded_context_projection import (
+                project_bounded_i8_actions,
+                project_bounded_i9_facts,
+            )
+            from backend.app.services.a3_interaction_lifecycle import (
+                resolve_interaction_lifecycle,
+            )
+
+            models = _get_models()
+            User = getattr(models, "User", None)
+            user = self.db.query(User).filter(User.id == user_id).first() if User else None
+            if user is not None:
+                snap = resolve_interaction_lifecycle(
+                    self.db, user, user_context_pack=pack
+                )
+                pack.interaction_lifecycle = snap.as_dict()
+                pack.i8_bounded_actions = project_bounded_i8_actions(
+                    self.db,
+                    user_id,
+                    today_local_date=snap.today_local_date,
+                )
+                pack.i9_bounded_facts = project_bounded_i9_facts(self.db, user_id)
+                source_meta["interaction_lifecycle"] = snap.state
+                source_meta["timezone_authority_gap"] = snap.timezone_authority_gap
+                pack.source_meta = source_meta
+        except Exception as e:
+            logger.debug("%s lifecycle/I8/I9 projection skipped: %s", _LOG_PREFIX, e)
+
+        return pack

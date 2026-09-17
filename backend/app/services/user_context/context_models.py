@@ -45,3 +45,7 @@ class UserContextPack(BaseModel):
     addressing_preference: Optional[str] = None
     height_cm: Optional[int] = None
     weight_kg: Optional[float] = None
+    # A3 Heart lifecycle + bounded I8/I9 projections (optional; fail-open when empty)
+    interaction_lifecycle: Optional[Dict[str, Any]] = None
+    i8_bounded_actions: List[Dict[str, Any]] = Field(default_factory=list)
+    i9_bounded_facts: List[Dict[str, Any]] = Field(default_factory=list)

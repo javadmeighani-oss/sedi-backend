@@ -9,12 +9,18 @@ on:
       - feature/a3-authority-chat-stream-profile-foundation
     paths:
       - "backend/app/services/a3_session_open.py"
+      - "backend/app/services/a3_interaction_lifecycle.py"
+      - "backend/app/services/a3_bounded_context_projection.py"
+      - "backend/app/services/user_context/**"
+      - "backend/app/core/conversation/brain.py"
+      - "backend/app/core/conversation/persona_policy_v1.py"
       - "backend/app/routers/interact.py"
       - "backend/app/routers/user_profile_facts.py"
       - "backend/app/schemas/interaction.py"
       - "backend/app/models.py"
       - "backend/alembic/versions/082_sedi_intro_completed_at.py"
       - "backend/tests/test_a3_authority_foundation.py"
+      - "backend/tests/test_a3_heart_interaction_lifecycle.py"
       - ".github/workflows/a3-authority-foundation-pg16.yml"
 
 permissions:
@@ -85,7 +91,10 @@ jobs:
           assert "sedi_intro_completed_at" in cols, sorted(cols)
           print("MIGRATION_082_COLUMN=PASS")
           PY
-      - name: Targeted A3 foundation tests (with conftest)
+      - name: Targeted A3 foundation + Heart lifecycle tests (with conftest)
         run: |
           set -euo pipefail
-          python -m pytest -q backend/tests/test_a3_authority_foundation.py --tb=short
+          python -m pytest -q \
+            backend/tests/test_a3_authority_foundation.py \
+            backend/tests/test_a3_heart_interaction_lifecycle.py \
+            --tb=short

@@ -326,6 +326,67 @@ def _build_user_context_block(pack) -> str:
     return "\n".join(lines[:9])
 
 
+def _append_a3_lifecycle_and_bounded_context(
+    messages: list,
+    db,
+    user_id: int,
+    *,
+    pack=None,
+    notification_context: Optional[Mapping[str, Any]] = None,
+    source_notification_id: Optional[int] = None,
+) -> None:
+    """Append lifecycle + bounded I8/I9 system blocks (fail-open)."""
+    try:
+        from backend.app.models import User
+        from backend.app.services.a3_bounded_context_projection import (
+            format_i8_context_block,
+            format_i9_context_block,
+            project_bounded_i8_actions,
+            project_bounded_i9_facts,
+        )
+        from backend.app.services.a3_interaction_lifecycle import (
+            format_lifecycle_context_block,
+            resolve_interaction_lifecycle,
+        )
+        from backend.app.core.conversation.persona_policy_v1 import PERSONA_POLICY_VERSION
+
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if user is None:
+            return
+        snap = resolve_interaction_lifecycle(
+            db,
+            user,
+            source_notification_id=source_notification_id,
+            notification_context=dict(notification_context)
+            if notification_context
+            else None,
+            user_context_pack=pack,
+        )
+        messages.append(
+            {
+                "role": "system",
+                "content": format_lifecycle_context_block(snap)
+                + f"\npersona_policy_version={PERSONA_POLICY_VERSION}",
+            }
+        )
+        i8_items = getattr(pack, "i8_bounded_actions", None) if pack is not None else None
+        if not i8_items:
+            i8_items = project_bounded_i8_actions(
+                db, user_id, today_local_date=snap.today_local_date
+            )
+        i8_block = format_i8_context_block(list(i8_items or []))
+        if i8_block:
+            messages.append({"role": "system", "content": i8_block})
+        i9_items = getattr(pack, "i9_bounded_facts", None) if pack is not None else None
+        if not i9_items:
+            i9_items = project_bounded_i9_facts(db, user_id)
+        i9_block = format_i9_context_block(list(i9_items or []))
+        if i9_block:
+            messages.append({"role": "system", "content": i9_block})
+    except Exception as exc:
+        print(f"[BRAIN WARNING] A3 lifecycle/context append skipped: {exc}")
+
+
 def _redact_secrets(text: str) -> str:
     """Mask likely API key fragments before logging."""
     import re
@@ -481,6 +542,15 @@ class ConversationBrain:
                 except Exception as history_error:
                     # Memory failure is non-critical - continue without history
                     print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
+
+            # A3 lifecycle + bounded I8/I9 — both structured and compat paths.
+            _append_a3_lifecycle_and_bounded_context(
+                messages,
+                self.db,
+                user_id,
+                pack=pack,
+                notification_context=notification_context,
+            )
             
             # Always append current user message
             messages.append({"role": "user", "content": user_message})

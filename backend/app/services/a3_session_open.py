@@ -53,21 +53,28 @@ def _lang(user: models.User) -> str:
     return raw if raw in ("en", "fa", "ar") else "en"
 
 
-def _name_part(user: models.User, lang: str) -> str:
-    name = (user.name or "").strip()
-    if not name:
+def _name_part_from(name: Optional[str], lang: str) -> str:
+    cleaned = (name or "").strip()
+    if not cleaned:
         return ""
     if lang == "fa":
-        return f" {name}"
+        return f" {cleaned}"
     if lang == "ar":
-        return f" {name}"
-    return f", {name}"
+        return f" {cleaned}"
+    return f", {cleaned}"
 
 
-def build_first_intro_message(user: models.User) -> str:
+def _name_part(user: models.User, lang: str) -> str:
+    return _name_part_from(getattr(user, "name", None), lang)
+
+
+def build_first_intro_message(
+    user: models.User, *, preferred_name: Optional[str] = None
+) -> str:
     lang = _lang(user)
     template = _INTRO.get(lang, _INTRO["en"])
-    return template.format(name_part=_name_part(user, lang))
+    name = preferred_name if preferred_name is not None else getattr(user, "name", None)
+    return template.format(name_part=_name_part_from(name, lang))
 
 
 def _last_user_message_at(db: Session, user_id: int) -> Optional[datetime]:
@@ -98,19 +105,47 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
 
 
 def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
-    """Return first-intro or proactive opener; mark intro durable when first."""
+    """Return first-intro or proactive opener; mark intro durable when first.
+
+    NEW_DAY is lifecycle context for chat — not a forced session/open greeting.
+    Engagement cooldown may still supply a bounded returning opener.
+    """
+    from backend.app.services.a3_interaction_lifecycle import resolve_interaction_lifecycle
+    from backend.app.services.user_context import UserContextService
+
     lang = _lang(user)
     first_intro = user.sedi_intro_completed_at is None
     message = ""
     proactive: Optional[str] = None
+    pack = None
+    preferred_name: Optional[str] = None
+    try:
+        pack = UserContextService(db).get_user_context(int(user.id))
+        if pack and getattr(pack, "preferred_name", None) and str(pack.preferred_name).strip():
+            preferred_name = str(pack.preferred_name).strip()
+        if pack and getattr(pack, "language", None) and str(pack.language).strip():
+            pl = str(pack.language).strip().lower()
+            if pl.startswith("fa"):
+                lang = "fa"
+            elif pl.startswith("ar"):
+                lang = "ar"
+            elif pl.startswith("en"):
+                lang = "en"
+    except Exception:
+        pack = None
+
+    lifecycle = resolve_interaction_lifecycle(db, user, user_context_pack=pack)
 
     if first_intro:
-        message = build_first_intro_message(user)
+        message = build_first_intro_message(user, preferred_name=preferred_name)
         user.sedi_intro_completed_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)
+        # Re-resolve after stamp so response reflects completed intro.
+        lifecycle = resolve_interaction_lifecycle(db, user, user_context_pack=pack)
     else:
+        # Cooldown engagement only — calendar NEW_DAY does not force greeting.
         proactive = maybe_proactive_opener(db, user)
         if proactive:
             message = proactive
@@ -122,6 +157,9 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
         "first_intro": first_intro,
         "intro_completed": user.sedi_intro_completed_at is not None,
         "proactive_opener": proactive if not first_intro else None,
+        "interaction_lifecycle": lifecycle.as_dict(),
+        "known_profile_keys": list(lifecycle.known_profile_keys),
+        "timezone_authority_gap": lifecycle.timezone_authority_gap,
     }
 
 

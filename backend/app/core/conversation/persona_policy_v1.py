@@ -77,8 +77,14 @@ def _inject_preferred_name(prompt: str, preferred_name: Optional[str], lang: str
     return prompt.rstrip() + line
 
 
+# Code-owned version metadata (inspectable / loggable / testable). Not a DB prompt store.
+PERSONA_POLICY_VERSION = "persona_policy_v1"
+
+
 class PersonaPolicyV1:
     """Unified persona policy v1: canonical English, fa/ar variants; female companion; human tone; safety."""
+
+    policy_version = PERSONA_POLICY_VERSION
 
     @staticmethod
     def resolve_language(language: Optional[str]) -> str:
