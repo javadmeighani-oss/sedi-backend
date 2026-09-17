@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/notification_repository.dart';
+import '../health_subject/sedi_health_subject_controller.dart';
 import '../navigation/app_gate_router.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/user_profile_manager.dart';
@@ -54,6 +55,7 @@ class AuthHelper {
     await AuthService.clearUserData();
     await UserProfileManager.clearProfile();
     UserIdentityService.clearCache();
+    SediHealthSubjectController.instance.clearSessionState();
 
     final navContext = context ?? navigatorKey.currentContext;
     if (navContext != null && navContext.mounted) {

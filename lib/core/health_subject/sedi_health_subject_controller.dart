@@ -78,6 +78,18 @@ class SediHealthSubjectController extends ChangeNotifier {
 
   bool get isActiveSelf => activeSubject?.isSelf ?? true;
 
+  /// Clears presentation subject state on logout / invalid-session end.
+  /// Does not invent subjects; next A3 must reload from backend.
+  void clearSessionState() {
+    accessibleSubjects = const [];
+    selfSubject = null;
+    activeSubject = null;
+    generation++;
+    loading = false;
+    error = null;
+    notifyListeners();
+  }
+
   @visibleForTesting
   void debugResetForTest() {
     accessibleSubjects = const [];

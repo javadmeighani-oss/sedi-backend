@@ -206,24 +206,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
-  List<ChatMessage> _sampleMessages(Gate3Localization l10n) {
-    return [
-      ChatMessage(
-        text: l10n.sampleIntroAssistant1(),
-        role: ChatRole.assistant,
-      ),
-      ChatMessage.user(
-        text: l10n.sampleIntroUser1(),
-        localId: 'sample-1',
-        status: ChatMessageStatus.sent,
-      ),
-      ChatMessage(
-        text: l10n.sampleIntroAssistant2(),
-        role: ChatRole.assistant,
-      ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -386,21 +368,24 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   Widget _buildMessages(Gate3Localization l10n) {
     if (_controller.messages.isEmpty) {
-      final sample = _sampleMessages(l10n);
-      return ListView.builder(
+      // Non-transcript empty presentation — never invent assistant/user dialogue.
+      return ListView(
         controller: _scrollController,
-        reverse: true,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 6, bottom: 8),
-        itemCount: sample.length,
-        itemBuilder: (context, index) {
-          final reverseIndex = sample.length - 1 - index;
-          final msg = sample[reverseIndex];
-          return MessageBubble(
-            message: msg.text,
-            isSedi: msg.isSedi,
-          );
-        },
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        children: [
+          const SizedBox(height: 48),
+          Text(
+            l10n.emptyConversationHint,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.35,
+              color: AppTheme.textSecondary.withOpacity(0.85),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       );
     }
 

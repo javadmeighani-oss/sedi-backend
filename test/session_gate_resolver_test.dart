@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/auth/auth_profile_service.dart';
 import 'package:sedi_app/core/auth/auth_service.dart';
+import 'package:sedi_app/core/auth/user_identity_service.dart';
 import 'package:sedi_app/core/navigation/app_gate.dart';
 import 'package:sedi_app/core/navigation/session_gate_resolver.dart';
 import 'package:sedi_app/core/network/api_error.dart';
@@ -71,6 +72,7 @@ void main() {
     AuthService.resetForTest();
     await AuthService.clearUserData();
     await UserProfileManager.clearProfile();
+    UserIdentityService.clearCache();
   });
 
   group('A1 session authority', () {
@@ -152,6 +154,7 @@ void main() {
         accessToken: 'expired',
         refreshToken: 'bad-refresh',
       );
+      UserIdentityService.debugSetCachedUserId(99);
       final fake = _FakeAuthProfileService([_unauthorized()]);
       final result = await SessionGateResolver.resolveColdStart(
         profileService: fake,
@@ -161,6 +164,7 @@ void main() {
       expect(result.status, SessionResolveStatus.authInvalid);
       expect(result.nextGate, SediAppGate.login);
       expect(await AuthService.hasToken(), isFalse);
+      expect(UserIdentityService.debugCachedUserId, isNull);
     });
 
     test('backend unavailable keeps tokens and routes A2', () async {
@@ -168,6 +172,7 @@ void main() {
         accessToken: 'access',
         refreshToken: 'refresh',
       );
+      UserIdentityService.debugSetCachedUserId(42);
       final fake = _FakeAuthProfileService([_network()]);
       final result = await SessionGateResolver.resolveColdStart(
         profileService: fake,
@@ -176,6 +181,7 @@ void main() {
       expect(result.status, SessionResolveStatus.backendUnavailable);
       expect(result.nextGate, SediAppGate.login);
       expect(await AuthService.hasToken(), isTrue);
+      expect(UserIdentityService.debugCachedUserId, 42);
     });
   });
 

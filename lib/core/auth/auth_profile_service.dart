@@ -8,6 +8,7 @@ import '../network/api_client.dart';
 import '../network/api_error.dart';
 import '../network/api_response.dart';
 import '../utils/user_profile_manager.dart';
+import 'user_identity_service.dart';
 
 /// Backend profile source of truth: GET/PATCH /auth/me.
 class AuthProfileService {
@@ -151,6 +152,8 @@ class AuthProfileService {
       isVerified: true,
     );
     await UserProfileManager.saveProfile(profile);
+    // Identity cache must reflect only this backend-confirmed account.
+    UserIdentityService.adoptBackendConfirmedUserId(me.userId);
   }
 
   static String? _mapSexToGender(String? sex) {

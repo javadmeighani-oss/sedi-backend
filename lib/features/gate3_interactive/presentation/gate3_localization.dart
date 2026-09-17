@@ -1,5 +1,4 @@
 import '../../../core/locale/sedi_locale_registry.dart';
-import '../../../core/utils/brand_name.dart';
 
 /// Gate 3 localized strings — presentation adaptor only.
 /// Language authority is [SediLocaleController] / Account.preferred_language.
@@ -254,25 +253,11 @@ class Gate3Localization {
         ar: 'ستتوفر المرفقات هنا قريبًا.',
       );
 
-  String sampleIntroAssistant1() {
-    final brand = sediBrandName(lang);
-    return _t(
-      en: 'Hello, I\'m $brand — your trusted health companion.',
-      fa: 'سلام، من $brand‌ام — همراه هوشمند سلامت شما.',
-      ar: 'مرحبًا، أنا $brand — رفيقك الموثوق في الصحة.',
-    );
-  }
-
-  String sampleIntroUser1() => _t(
-        en: 'Hi Sedi. I\'m not feeling well today.',
-        fa: 'سلام صدی. امروز حالم خوب نیست.',
-        ar: 'مرحبًا صدي. لا أشعر بحالة جيدة اليوم.',
-      );
-
-  String sampleIntroAssistant2() => _t(
-        en: 'Share your symptoms and I\'ll guide you.',
-        fa: 'علائمت را بگو تا دقیق‌تر راهنماییت کنم.',
-        ar: 'شاركني أعراضك لأرشدك بدقة.',
+  /// Non-clinical empty-state hint — not a chat transcript or Sedi reply.
+  String get emptyConversationHint => _t(
+        en: 'Your conversation will appear here.',
+        fa: 'گفتگو اینجا نمایش داده می‌شود.',
+        ar: 'ستظهر محادثتك هنا.',
       );
 
   String _t({required String en, required String fa, required String ar}) {

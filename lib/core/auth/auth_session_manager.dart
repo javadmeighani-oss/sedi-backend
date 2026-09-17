@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../health_subject/sedi_health_subject_controller.dart';
 import '../navigation/app_gate_router.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/user_profile_manager.dart';
@@ -19,6 +20,7 @@ class AuthSessionManager {
       await AuthService.clearUserData();
       await UserProfileManager.clearProfile();
       UserIdentityService.clearCache();
+      SediHealthSubjectController.instance.clearSessionState();
       final ctx = navigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
         AppGateRouter.goToLogin(ctx);

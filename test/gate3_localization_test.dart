@@ -24,4 +24,15 @@ void main() {
     expect(l10n.isRtl, isTrue);
     expect(l10n.gadgets, 'الأجهزة');
   });
+
+  test('Gate3 empty hint is non-clinical (no sampleIntro dialogue)', () {
+    for (final lang in ['en', 'fa', 'ar']) {
+      final l10n = Gate3Localization(lang);
+      final hint = l10n.emptyConversationHint.toLowerCase();
+      expect(hint.contains('symptom'), isFalse);
+      expect(hint.contains('feeling'), isFalse);
+      expect(hint.contains('guide'), isFalse);
+      expect(l10n.emptyConversationHint.trim().isNotEmpty, isTrue);
+    }
+  });
 }

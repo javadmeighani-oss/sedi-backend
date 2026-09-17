@@ -89,6 +89,13 @@ jobs:
       - name: Targeted A3 single-page profile tests
         run: flutter test test/a3_single_page_profile_test.dart
 
+      - name: Targeted R1 session identity and empty-state tests
+        run: |
+          flutter test \
+            test/r1_session_identity_empty_state_test.dart \
+            test/session_gate_resolver_test.dart \
+            test/gate3_localization_test.dart
+
       - name: Targeted A3 lifestyle hub tests
         run: flutter test test/a3_lifestyle_hub_minimal_test.dart test/a3_shared_back_navigation_test.dart
 

@@ -1,6 +1,8 @@
 import '../auth/auth_profile_service.dart';
 import '../auth/auth_refresh_service.dart';
 import '../auth/auth_service.dart';
+import '../auth/user_identity_service.dart';
+import '../health_subject/sedi_health_subject_controller.dart';
 import '../network/api_response.dart';
 import '../utils/user_profile_manager.dart';
 import '../../data/dto/auth/me_profile.dart';
@@ -146,6 +148,8 @@ class SessionGateResolver {
   static Future<void> _clearInvalidSession() async {
     await AuthService.clearUserData();
     await UserProfileManager.clearProfile();
+    UserIdentityService.clearCache();
+    SediHealthSubjectController.instance.clearSessionState();
     // Avoid navigator side-effects during splash; Intro routes explicitly.
   }
 
