@@ -4,10 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';

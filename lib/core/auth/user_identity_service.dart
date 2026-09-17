@@ -57,7 +57,7 @@ class UserIdentityService {
   }
 
   @visibleForTesting
-  static int? debugCachedUserId => _cachedUserId;
+  static int? debugCachedUserId() => _cachedUserId;
 
   @visibleForTesting
   static void debugSetCachedUserId(int? userId) {

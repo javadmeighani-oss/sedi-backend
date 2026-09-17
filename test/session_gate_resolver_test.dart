@@ -164,7 +164,7 @@ void main() {
       expect(result.status, SessionResolveStatus.authInvalid);
       expect(result.nextGate, SediAppGate.login);
       expect(await AuthService.hasToken(), isFalse);
-      expect(UserIdentityService.debugCachedUserId, isNull);
+      expect(UserIdentityService.debugCachedUserId(), isNull);
     });
 
     test('backend unavailable keeps tokens and routes A2', () async {
@@ -181,7 +181,7 @@ void main() {
       expect(result.status, SessionResolveStatus.backendUnavailable);
       expect(result.nextGate, SediAppGate.login);
       expect(await AuthService.hasToken(), isTrue);
-      expect(UserIdentityService.debugCachedUserId, 42);
+      expect(UserIdentityService.debugCachedUserId(), 42);
     });
   });
 

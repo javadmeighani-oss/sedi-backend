@@ -88,7 +88,7 @@ void main() {
       expect(result.status, SessionResolveStatus.authInvalid);
       expect(result.nextGate, SediAppGate.login);
       expect(await AuthService.hasToken(), isFalse);
-      expect(UserIdentityService.debugCachedUserId, isNull);
+      expect(UserIdentityService.debugCachedUserId(), isNull);
     });
 
     test('invalid session also clears HealthSubject presentation state',
@@ -140,7 +140,7 @@ void main() {
 
       expect(result.status, SessionResolveStatus.backendUnavailable);
       expect(await AuthService.hasToken(), isTrue);
-      expect(UserIdentityService.debugCachedUserId, 42);
+      expect(UserIdentityService.debugCachedUserId(), 42);
       expect(SediHealthSubjectController.instance.activeSubject?.id, 7);
     });
   });
@@ -150,7 +150,7 @@ void main() {
       UserIdentityService.debugSetCachedUserId(111);
       await AuthProfileService().cacheProfileFromBackend(_me(222));
 
-      expect(UserIdentityService.debugCachedUserId, 222);
+      expect(UserIdentityService.debugCachedUserId(), 222);
       final profile = await UserProfileManager.loadProfile();
       expect(profile.userId, 222);
     });
@@ -173,15 +173,15 @@ void main() {
         profileService: _FakeAuthProfileService([_unauthorized()]),
         tryRefresh: () async => false,
       );
-      expect(UserIdentityService.debugCachedUserId, isNull);
+      expect(UserIdentityService.debugCachedUserId(), isNull);
 
       await AuthService.setTokens(
         accessToken: 'b-token',
         refreshToken: 'b-refresh',
       );
       await AuthProfileService().cacheProfileFromBackend(_me(222));
-      expect(UserIdentityService.debugCachedUserId, 222);
-      expect(UserIdentityService.debugCachedUserId, isNot(111));
+      expect(UserIdentityService.debugCachedUserId(), 222);
+      expect(UserIdentityService.debugCachedUserId(), isNot(111));
     });
   });
 
@@ -212,7 +212,7 @@ void main() {
       expect(c.accessibleSubjects, isEmpty);
       expect(c.selfSubject, isNull);
       expect(c.activeSubject, isNull);
-      expect(UserIdentityService.debugCachedUserId, isNull);
+      expect(UserIdentityService.debugCachedUserId(), isNull);
     });
 
     test('AuthHelper logout path clears identity and subjects', () {
