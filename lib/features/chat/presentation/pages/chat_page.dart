@@ -31,15 +31,14 @@ import '../../../notification/presentation/pages/notifications_inbox_page.dart';
 import '../../../../data/repositories/notification_prefs_repository.dart';
 
 /// ============================================
-/// Gate 3 — Sedi Heart / Main Interaction (`ChatPage`)
+/// UNREACHABLE_LEGACY — quarantined from product navigation (R3).
 /// ============================================
 ///
-/// Official permanent home after login (Gate 3).
-/// Chat is the central experience; notifications, health, lifestyle,
-/// devices, history, and settings are sections under this gate (not separate gates).
-/// Back navigation must not return to Gate 1 or Gate 2 (`PopScope` + gate router on logout).
+/// Canonical Gate 3 Heart/Chat is [Gate3InteractivePage] via [AppGateRouter].
+/// Do not wire this page into [AppGateRouter], Intro, OTP, or A3 Home.
+/// Kept for internal/reference only; not a second user-facing chat authority.
 ///
-/// CONTRACT:
+/// CONTRACT (legacy surface only):
 /// - پیام‌های صدی نباید زیر چت‌باکس بروند
 /// - فقط آخرین پیام به صورت طبیعی دیده شود
 /// - اسکرول دستی برای پیام‌های قبلی

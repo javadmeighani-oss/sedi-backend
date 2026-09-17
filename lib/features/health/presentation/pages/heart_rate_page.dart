@@ -11,6 +11,9 @@ import '../../logic/heart_rate_thresholds.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/health/heart_rate_service.dart';
 
+/// UNREACHABLE_LEGACY — quarantined from product navigation (R3).
+/// Canonical HR is Lifestyle Health → GET /lifestyle/health-hr (DEVICE_REPORTED).
+/// Do not wire into [AppGateRouter] or A3 Home.
 class HeartRatePage extends StatefulWidget {
   const HeartRatePage({super.key});
 

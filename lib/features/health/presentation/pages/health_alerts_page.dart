@@ -10,6 +10,8 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/health/health_alerts_service.dart';
 
+/// UNREACHABLE_LEGACY — quarantined from product navigation (R3).
+/// Canonical Smart Notifications is A3 → NotificationInboxPage.
 class HealthAlertsPage extends StatefulWidget {
   const HealthAlertsPage({super.key});
 

@@ -10,12 +10,13 @@ import '../../../../data/models/user_profile.dart';
 import '../../../../data/repositories/user_knowledge_repository.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../services/push/push_service.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../chat/chat_service.dart';
-import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../chat/presentation/widgets/sedi_header.dart';
 
-/// LEGACY — not part of the 3-gate main route flow (Gate 1→2/3).
-/// Superseded by `OtpLoginPage` + OTP auth. Kept for reference; do not wire into [AppGateRouter].
+/// UNREACHABLE_LEGACY — quarantined from product navigation (R3).
+/// Superseded by `OtpLoginPage` + OTP auth. Do not wire into [AppGateRouter].
+/// Any residual success path redirects to canonical Gate 2 (login), never legacy ChatPage.
 ///
 /// OnboardingPage – pre-OTP name/goals registration via `/interact/onboarding`.
 const List<String> _goalKeys = [
@@ -68,9 +69,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final hasCompletedOnboarding = hasName && isVerified;
 
       if (hasCompletedOnboarding && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const ChatPage()),
-        );
+        // Quarantine: never enter legacy ChatPage from this surface.
+        AppGateRouter.goToLogin(context);
       }
     } catch (e) {
       // Continue with onboarding page
@@ -372,15 +372,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
     debugPrint(
         '[OnboardingPage] Note: Message may be empty if chat failed - that is OK, chat handles it separately');
 
-    // Navigate to chat (OUTSIDE try/catch)
-    debugPrint('[OnboardingPage] Navigating to ChatPage...');
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ChatPage(initialMessage: initialMessage),
-      ),
-    );
+    // Quarantine (R3): legacy ChatPage is not a product destination.
+    // Residual onboarding success returns to canonical Gate 2 admission.
+    debugPrint(
+        '[OnboardingPage] Quarantined — redirecting to OtpLoginPage (not ChatPage)');
+    debugPrint('[OnboardingPage] Initial message discarded: "$initialMessage"');
+    AppGateRouter.goToLogin(context);
 
-    debugPrint('[OnboardingPage] ✅ Navigation completed');
+    debugPrint('[OnboardingPage] ✅ Quarantine redirect completed');
     debugPrint('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
 
     // Registration is COMPLETE - no error banner should appear

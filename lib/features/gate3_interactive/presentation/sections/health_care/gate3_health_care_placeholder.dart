@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Gate 3 primary section placeholder.
-/// Health UI currently lives in `features/health/`.
+/// UNREACHABLE_LEGACY — quarantined (R3).
+/// Canonical Health is A3 → Lifestyle → Health (`LifestyleHealthPage`).
+/// Not wired into [Gate3MainIconRow] or [AppGateRouter].
 class Gate3HealthCarePlaceholder extends StatelessWidget {
   const Gate3HealthCarePlaceholder({super.key});
 

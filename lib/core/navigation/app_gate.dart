@@ -6,6 +6,6 @@ enum SediAppGate {
   /// Gate 2 — Login / Registration (`OtpLoginPage`).
   login,
 
-  /// Gate 3 — Sedi Heart / main home (`ChatPage`).
+  /// Gate 3 — Sedi Heart / main home (`Gate3InteractivePage`).
   heart,
 }

@@ -89,6 +89,9 @@ jobs:
       - name: Targeted A3 single-page profile tests
         run: flutter test test/a3_single_page_profile_test.dart
 
+      - name: Targeted R3 canonical structure and legacy quarantine tests
+        run: flutter test test/r3_canonical_structure_legacy_quarantine_test.dart
+
       - name: Targeted R1 session identity and empty-state tests
         run: |
           flutter test \

@@ -1,3 +1,5 @@
+/// UNREACHABLE_LEGACY — quarantined from product navigation (R3).
+/// Canonical Health is A3 → Lifestyle → Health.
 /// Vitals screen: view-only. Last known vitals (from cache) + trend. Updates via chat only.
 import 'package:flutter/material.dart';
 

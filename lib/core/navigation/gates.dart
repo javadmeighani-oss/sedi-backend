@@ -3,10 +3,11 @@
 /// ```text
 /// Gate 1 (splash)  → IntroPage
 /// Gate 2 (auth)    → OtpLoginPage
-/// Gate 3 (heart)   → ChatPage
+/// Gate 3 (heart)   → Gate3InteractivePage
 /// ```
 ///
 /// Decision flow: [SessionGateResolver] → [AppGateRouter]
+/// Legacy `ChatPage` is UNREACHABLE_LEGACY — not part of this graph.
 library;
 
 export 'app_gate.dart';

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../notification/presentation/pages/notifications_inbox_page.dart';
 
-/// Gate 3 primary Notifications entry — wires to canonical Inbox (no duplicate UI).
+/// INTERNAL_ONLY alias — wires to canonical Inbox (no duplicate UI).
+/// Production A3 opens [NotificationInboxPage] from [Gate3InteractivePage] directly.
 class Gate3NotificationsPlaceholder extends StatelessWidget {
   const Gate3NotificationsPlaceholder({super.key});
 
