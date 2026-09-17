@@ -1,6 +1,7 @@
-# GATE=SEDI-V1-PROD-MIGRATE-081-TO-086-01
-# Digest-pinned one-off alembic upgrade 081→086. NO backend deploy. NO stamp/downgrade.
-# Mirrors db-prod-migrate-070-to-081 secure-transfer pattern.
+# GATE=SEDI-V1-PROD-MIGRATE-081-TO-086-02-MIGRATION-ADMIN
+# Digest-pinned one-off alembic upgrade 081→086 via sedi_migration_admin DDL.
+# NO backend deploy/restart. NO stamp/downgrade. NO ownership/GRANT mutation.
+# Secure-transfer mirrors 070→081; DDL auth mirrors ops/db03/db_prod_migrate_070_to_081_remote.sh.
 name: DB-PROD Migrate 081 to 086
 
 on:
@@ -150,6 +151,13 @@ jobs:
           summary "postgres_version" "$(psql_ro "SHOW server_version;")"
           summary "pgvector_version" "$(psql_ro "SELECT extversion FROM pg_extension WHERE extname='vector';")"
           summary "db_name" "${PD}"
+          ROLES_ENV="${DEPLOY_PATH}/secrets/sedi-db-roles.env"
+          summary "roles_env_present" "$([ -f "${ROLES_ENV}" ] && echo YES || echo NO)"
+          summary "migration_admin_key_present" "$(grep -Eq '^SEDI_MIGRATION_ADMIN_PASSWORD=.+' "${ROLES_ENV}" 2>/dev/null && echo YES || echo NO)"
+          summary "owner_users" "$(psql_ro "SELECT tableowner FROM pg_tables WHERE schemaname='public' AND tablename='users';")"
+          summary "owner_otp_codes" "$(psql_ro "SELECT tableowner FROM pg_tables WHERE schemaname='public' AND tablename='otp_codes';")"
+          summary "owner_devices" "$(psql_ro "SELECT tableowner FROM pg_tables WHERE schemaname='public' AND tablename='devices';")"
+          summary "role_migration_admin" "$(psql_ro "SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname='sedi_migration_admin' AND rolcanlogin) THEN 'YES' ELSE 'NO' END")"
           RUNNING="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
           REV="$(docker image inspect "$(docker inspect sedi-backend --format '{{.Image}}')" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
           summary "running_image" "${RUNNING}"
@@ -320,20 +328,21 @@ jobs:
           [ "${GOT_SHA}" = "${ARCHIVE_SHA256}" ] || { log "ARCHIVE_SHA_MISMATCH"; rm -f "${ARCHIVE}"; exit 15; }
           summary "archive_sha256_verified" "${GOT_SHA}"
 
-          log "=== PRE-MIGRATE BACKUP ==="
+          log "=== PRE-MIGRATE BACKUP (ATTEMPT02) ==="
           mkdir -p "${DEPLOY_PATH}/backups/postgres"
           TS="$(date +%Y%m%d_%H%M%S)"
-          BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_migrate_081_086_${TS}.sql.gz"
+          BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_migrate_081_086_attempt02_${TS}.sql.gz"
           docker exec sedi-postgres pg_dump -U "${PU}" -d "${PD}" | gzip > "${BACKUP_FILE}"
           gzip -t "${BACKUP_FILE}"
           BACKUP_SHA="$(sha256sum "${BACKUP_FILE}" | awk '{print $1}')"
           BACKUP_SIZE="$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
-          summary "recovery_point_id" "sedi_db_pre_migrate_081_086_${TS}.sql.gz"
+          summary "recovery_point_id" "sedi_db_pre_migrate_081_086_attempt02_${TS}.sql.gz"
           summary "backup_sha256" "${BACKUP_SHA}"
           summary "backup_size_bytes" "${BACKUP_SIZE}"
           summary "backup_path" "${BACKUP_FILE}"
           summary "restore_path_known" "YES"
           summary "pre_migration_recovery_point" "VERIFIED"
+          summary "attempt01_backup_retained" "YES"
           log "recovery_command: gunzip -c ${BACKUP_FILE} | docker exec -i sedi-postgres psql -U ${PU} -d ${PD}"
 
           USERS_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM users;")"
@@ -354,22 +363,50 @@ jobs:
           summary "rootfs_match" "PASS"
           summary "loaded_oci_revision" "${LOADED_REV}"
 
+          ROLES_ENV="${DEPLOY_PATH}/secrets/sedi-db-roles.env"
+          [ -f "${ROLES_ENV}" ] || { log "missing roles env"; exit 19; }
+          grep -Eq '^SEDI_MIGRATION_ADMIN_PASSWORD=.+' "${ROLES_ENV}" || {
+            log "SEDI_MIGRATION_ADMIN_PASSWORD missing"; exit 19; }
+          summary "migration_admin_credential_present" "YES"
+          summary "migration_role" "sedi_migration_admin"
+
           # Final lock: re-read alembic immediately before mutation
           ALEMBIC_LOCK="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
           [ "${ALEMBIC_LOCK}" = "${EXPECTED_BEFORE}" ] || { log "LOCK_FAIL rev=${ALEMBIC_LOCK}"; exit 18; }
           summary "mutation_lock" "OPEN"
 
+          MIG_PY="${DEPLOY_PATH}/ops/db03/_migrate_081_086_once.py"
+          mkdir -p "${DEPLOY_PATH}/ops/db03"
+          umask 077
+          # Ephemeral helper (same semantics as db_prod_migrate_070_to_081_remote.sh).
+          # Base64 avoids nested-heredoc terminator issues inside workflow YAML.
+          printf '%s' 'aW1wb3J0IG9zLCBzdWJwcm9jZXNzLCBzeXMKZnJvbSB1cmxsaWIucGFyc2UgaW1wb3J0IHVybHNwbGl0LCB1cmx1bnNwbGl0LCBxdW90ZQpmcm9tIHNxbGFsY2hlbXkuZW5naW5lIGltcG9ydCBtYWtlX3VybAoKdGFyZ2V0ID0gb3MuZW52aXJvblsiTUlHX1RBUkdFVF9SRVYiXQpyYXcgPSBvcy5lbnZpcm9uWyJEQVRBQkFTRV9VUkwiXS5yZXBsYWNlKCJwb3N0Z3Jlc3FsK3BzeWNvcGcyOi8vIiwgInBvc3RncmVzcWw6Ly8iLCAxKQpwYXJ0cyA9IHVybHNwbGl0KHJhdykKcHcgPSBvcy5lbnZpcm9uWyJTRURJX01JR1JBVElPTl9BRE1JTl9QQVNTV09SRCJdCmF1dGggPSBmInNlZGlfbWlncmF0aW9uX2FkbWluOntxdW90ZShwdywgc2FmZT0nJyl9Igpob3N0ID0gcGFydHMuaG9zdG5hbWUgb3IgIiIKcG9ydCA9IGYiOntwYXJ0cy5wb3J0fSIgaWYgcGFydHMucG9ydCBlbHNlICIiCm5ldGxvYyA9IGYie2F1dGh9QHtob3N0fXtwb3J0fSIKbWlnX3VybCA9IHVybHVuc3BsaXQoKCJwb3N0Z3Jlc3FsK3BzeWNvcGcyIiwgbmV0bG9jLCBwYXJ0cy5wYXRoLCBwYXJ0cy5xdWVyeSwgcGFydHMuZnJhZ21lbnQpKQp1ID0gbWFrZV91cmwobWlnX3VybCkKYXNzZXJ0IHUudXNlcm5hbWUgPT0gInNlZGlfbWlncmF0aW9uX2FkbWluIiwgdS51c2VybmFtZQplbnYgPSBvcy5lbnZpcm9uLmNvcHkoKQplbnZbIkRBVEFCQVNFX1VSTCJdID0gbWlnX3VybAplbnZbIlRFU1RfREFUQUJBU0VfVVJMIl0gPSAiIgpwcmludCgiTUlHMDgxMDg2fG1pZ3JhdGlvbl9yb2xlfHNlZGlfbWlncmF0aW9uX2FkbWluIiwgZmx1c2g9VHJ1ZSkKcHJpbnQoZiJNSUcwODEwODZ8bWlncmF0aW9uX2NvbW1hbmR8YWxlbWJpYyB1cGdyYWRlIHt0YXJnZXR9IiwgZmx1c2g9VHJ1ZSkKcmMgPSBzdWJwcm9jZXNzLmNhbGwoCiAgICBbInB5dGhvbiIsICItbSIsICJhbGVtYmljIiwgIi1jIiwgImJhY2tlbmQvYWxlbWJpYy5pbmkiLCAidXBncmFkZSIsIHRhcmdldF0sCiAgICBlbnY9ZW52LAopCnN5cy5leGl0KHJjKQo=' \
+            | base64 -d > "${MIG_PY}"
+          chmod 600 "${MIG_PY}"
+          grep -Fq 'sedi_migration_admin' "${MIG_PY}"
+          grep -Fq 'alembic' "${MIG_PY}"
+
           MIGRATION_START="$(date -Is)"
           summary "migration_start" "${MIGRATION_START}"
-          log "=== ALEMBIC UPGRADE ${TARGET_REV} ==="
+          log "=== ALEMBIC UPGRADE ${TARGET_REV} AS sedi_migration_admin ==="
+          set +e
           docker run --rm \
             --network sedi-net \
             --env-file "${ENV_FILE}" \
+            --env-file "${ROLES_ENV}" \
             --env TEST_DATABASE_URL= \
+            --env "MIG_TARGET_REV=${TARGET_REV}" \
+            -v "${MIG_PY}:/tmp/_migrate_081_086_once.py:ro" \
+            --entrypoint python \
             "${TAG_REF}" \
-            python -m alembic -c backend/alembic.ini upgrade "${TARGET_REV}"
+            /tmp/_migrate_081_086_once.py
+          MIG_RC=$?
+          set -e
+          rm -f "${MIG_PY}"
           MIGRATION_END="$(date -Is)"
           summary "migration_end" "${MIGRATION_END}"
+          summary "migration_exit_status" "${MIG_RC}"
+          [ "${MIG_RC}" = "0" ] || { log "ALEMBIC_UPGRADE_FAIL rc=${MIG_RC}"; exit 20; }
 
           ALEMBIC_AFTER_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
           ALEMBIC_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
