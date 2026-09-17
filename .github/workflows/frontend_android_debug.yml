@@ -10,9 +10,6 @@ jobs:
   build-debug-apk:
     name: Build Debug APK
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout code
@@ -38,7 +35,7 @@ jobs:
             echo "FAIL: google-services.json missing project_id"
             exit 1
           fi
-          PROJECT_ID=$(python3 -c "import json; print(json.load(open('$GS')).get('project_info',{}).get('project_id',''))")
+          PROJECT_ID=$(python3 -c "import json; print(json.load(open('android/app/google-services.json')).get('project_info',{}).get('project_id',''))")
           echo "REAL_GOOGLE_SERVICES_CONFIG_USED=YES"
           echo "GOOGLE_SERVICES_PROJECT_ID=${PROJECT_ID}"
           if [ "$PROJECT_ID" = "sedi-ci-placeholder" ] || [ -z "$PROJECT_ID" ]; then
@@ -63,7 +60,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('frontend/pubspec.lock') }}
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
           restore-keys: |
             pub-${{ runner.os }}-
 
@@ -73,7 +70,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('frontend/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
@@ -91,5 +88,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sedi-android-debug-apk
-          path: frontend/build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
