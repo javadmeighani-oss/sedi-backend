@@ -80,7 +80,11 @@ def test_2_self_hr_projection_shape(client, db):
     r = client.get("/lifestyle/health-hr?range_key=7d", headers=_auth(u.id))
     assert r.status_code == 200
     data = r.json()["data"]
-    assert data["hr_status"] in (
+    # Without DEVICE_REPORTED row: fail-closed (null), MAD kept as compact only.
+    assert data["hr_status"] is None
+    assert data["hr_status_source"] is None
+    assert data["hr_status_observed_at"] is None
+    assert data["hr_stability_compact"] in (
         "STABLE",
         "UNSTABLE_OR_CHANGED",
         "INSUFFICIENT_DATA",
@@ -202,7 +206,9 @@ def test_7_hr_range_keys(client, db):
     for key in ("7d", "30d", "3m", "1y"):
         data = build_lifestyle_hr_projection(db, u.id, range_key=key)
         assert data["range_key"] == key
-        assert data["hr_status"] in (
+        assert data["hr_status"] is None
+        assert data["hr_status_source"] is None
+        assert data["hr_stability_compact"] in (
             "STABLE",
             "UNSTABLE_OR_CHANGED",
             "INSUFFICIENT_DATA",

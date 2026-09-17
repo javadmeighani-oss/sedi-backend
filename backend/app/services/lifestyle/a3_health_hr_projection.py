@@ -1,4 +1,9 @@
-"""A3 Lifestyle SELF HR presentation — I9 + measurement/rollup reuse. Schema-free."""
+"""A3 Lifestyle SELF HR presentation — I9 measurement/rollup + DEVICE_REPORTED status.
+
+BPM/history = observed vitals only.
+hr_status = gadget DEVICE_REPORTED STABLE|UNSTABLE when present; never MAD-relabeled.
+hr_stability_compact = legacy MAD compact (non-authoritative for Frontend device path).
+"""
 
 from __future__ import annotations
 
@@ -9,6 +14,10 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.services.i10.self_producer_adapter import resolve_or_ensure_self_health_subject_id
+from backend.app.services.i9.device_reported_vital_status import (
+    SOURCE_CLASS as DEVICE_REPORTED_SOURCE,
+    get_effective_device_reported_vital_status,
+)
 from backend.app.services.i9.hr_stability import evaluate_canonical_hr_stability
 
 _RANGE_DAYS = {
@@ -38,10 +47,28 @@ def build_lifestyle_hr_projection(
     now = datetime.now(timezone.utc)
 
     subject_id = resolve_or_ensure_self_health_subject_id(db, int(user_id))
-    status = "INSUFFICIENT_DATA"
+
+    # Authoritative gadget status only — never map MAD into DEVICE_REPORTED.
+    hr_status: Optional[str] = None
+    hr_status_source: Optional[str] = None
+    hr_status_observed_at: Optional[str] = None
     if subject_id is not None:
-        result = evaluate_canonical_hr_stability(db, health_subject_id=int(subject_id))
-        status = result.status.value
+        device_eff = get_effective_device_reported_vital_status(
+            db, health_subject_id=int(subject_id)
+        )
+        if device_eff is not None and device_eff.status in ("STABLE", "UNSTABLE"):
+            hr_status = str(device_eff.status)
+            hr_status_source = DEVICE_REPORTED_SOURCE
+            ts = _as_utc(device_eff.detected_at)
+            hr_status_observed_at = ts.isoformat() if ts else None
+
+    # Legacy MAD compact — distinguishable; not device-reported authority.
+    hr_stability_compact = "INSUFFICIENT_DATA"
+    if subject_id is not None:
+        result = evaluate_canonical_hr_stability(
+            db, health_subject_id=int(subject_id)
+        )
+        hr_stability_compact = result.status.value
 
     latest = (
         db.query(models.PhysiologicalMeasurement)
@@ -93,7 +120,10 @@ def build_lifestyle_hr_projection(
     available_to = points[-1]["bucket_start"] if points else latest_at
 
     return {
-        "hr_status": status,
+        "hr_status": hr_status,
+        "hr_status_source": hr_status_source,
+        "hr_status_observed_at": hr_status_observed_at,
+        "hr_stability_compact": hr_stability_compact,
         "latest_value": latest_value,
         "latest_received_at": latest_at,
         "range_key": key,

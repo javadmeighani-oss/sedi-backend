@@ -11,6 +11,7 @@ on:
       - "backend/app/services/i10/event_reminder_i10_adapter.py"
       - "backend/app/services/section10/event_reminder_scheduler.py"
       - "backend/tests/test_a3_lifestyle_hub_minimal.py"
+      - "backend/tests/test_a3_lifestyle_hr_device_reported_projection.py"
       - ".github/workflows/a3-lifestyle-hub-minimal-pg16.yml"
 
 permissions:
@@ -67,5 +68,9 @@ jobs:
               c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
           PY
           python -m alembic -c backend/alembic.ini upgrade head
-      - name: Targeted A3 lifestyle hub tests
-        run: python -m pytest -q backend/tests/test_a3_lifestyle_hub_minimal.py --tb=short
+      - name: Targeted A3 lifestyle hub + DEVICE_REPORTED HR projection tests
+        run: |
+          python -m pytest -q \
+            backend/tests/test_a3_lifestyle_hub_minimal.py \
+            backend/tests/test_a3_lifestyle_hr_device_reported_projection.py \
+            --tb=short
