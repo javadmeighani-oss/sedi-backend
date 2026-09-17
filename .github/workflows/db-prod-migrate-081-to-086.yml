@@ -71,35 +71,18 @@ jobs:
           DIGEST_REF="${IMAGE_NAME}@${DIGEST}"
           TAG_REF="${IMAGE_NAME}:${SHA}"
           docker pull "${DIGEST_REF}"
-          PULLED="$(docker image inspect "${DIGEST_REF}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
-          echo "${PULLED}" | grep -Fq "${DIGEST}"
-          REV="$(docker image inspect "${DIGEST_REF}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
-          [ "${REV}" = "${SHA}" ]
           docker tag "${DIGEST_REF}" "${TAG_REF}"
-          HEADS="$(docker run --rm --entrypoint python "${TAG_REF}" - <<'PY'
-          from alembic.config import Config
-          from alembic.script import ScriptDirectory
-          s = ScriptDirectory.from_config(Config("backend/alembic.ini"))
-          heads = list(s.get_heads())
-          print("HEADS=" + ",".join(heads))
-          assert heads == ["086_i9_vital_observation_context_authority"], heads
-          chain = [
-            "081_self_health_subject_1to1_hardening",
-            "082_sedi_intro_completed_at",
-            "083_otp_purpose_phone_change",
-            "084_device_category_setup_code_authority",
-            "085_i9_absolute_vital_policy_schema_scaffold",
-            "086_i9_vital_observation_context_authority",
-          ]
-          for i in range(1, len(chain)):
-            r = s.get_revision(chain[i])
-            assert r.down_revision == chain[i - 1], (chain[i], r.down_revision)
-          print("CHAIN_OK")
-          PY
-          )"
-          echo "${HEADS}"
-          echo "${HEADS}" | grep -Fq "HEADS=086_i9_vital_observation_context_authority"
-          echo "${HEADS}" | grep -Fq "CHAIN_OK"
+          PULLED="$(docker image inspect "${TAG_REF}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
+          echo "${PULLED}" | grep -Fq "${DIGEST}"
+          REV="$(docker image inspect "${TAG_REF}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          echo "OCI_REVISION=${REV}"
+          [ "${REV}" = "${SHA}" ]
+          HEADS_OUT="$(docker run --rm --entrypoint python "${TAG_REF}" -m alembic -c backend/alembic.ini heads)"
+          echo "ALEMBIC_HEADS_OUT=${HEADS_OUT}"
+          echo "${HEADS_OUT}" | grep -Fq "086_i9_vital_observation_context_authority"
+          CHAIN_OUT="$(docker run --rm --entrypoint python "${TAG_REF}" -c "from alembic.config import Config; from alembic.script import ScriptDirectory; s=ScriptDirectory.from_config(Config('backend/alembic.ini')); assert list(s.get_heads())==['086_i9_vital_observation_context_authority']; assert s.get_revision('082_sedi_intro_completed_at').down_revision=='081_self_health_subject_1to1_hardening'; assert s.get_revision('083_otp_purpose_phone_change').down_revision=='082_sedi_intro_completed_at'; assert s.get_revision('084_device_category_setup_code_authority').down_revision=='083_otp_purpose_phone_change'; assert s.get_revision('085_i9_absolute_vital_policy_schema_scaffold').down_revision=='084_device_category_setup_code_authority'; assert s.get_revision('086_i9_vital_observation_context_authority').down_revision=='085_i9_absolute_vital_policy_schema_scaffold'; print('CHAIN_OK')")"
+          echo "${CHAIN_OUT}"
+          echo "${CHAIN_OUT}" | grep -Fq "CHAIN_OK"
           for f in \
             082_sedi_intro_completed_at.py \
             083_otp_purpose_phone_change.py \
@@ -232,23 +215,17 @@ jobs:
           DIGEST_REF="${IMAGE_NAME}@${DIGEST}"
           TAG_REF="${IMAGE_NAME}:${SHA}"
           docker pull "${DIGEST_REF}"
-          PULLED="$(docker image inspect "${DIGEST_REF}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
-          echo "${PULLED}" | grep -Fq "${DIGEST}"
-          REV="$(docker image inspect "${DIGEST_REF}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
-          [ "${REV}" = "${SHA}" ]
-          HEADS="$(docker run --rm --entrypoint python "${DIGEST_REF}" - <<'PY'
-          from alembic.config import Config
-          from alembic.script import ScriptDirectory
-          s = ScriptDirectory.from_config(Config("backend/alembic.ini"))
-          heads = list(s.get_heads())
-          print(",".join(heads))
-          assert heads == ["086_i9_vital_observation_context_authority"], heads
-          PY
-          )"
-          [ "${HEADS}" = "086_i9_vital_observation_context_authority" ]
-          ROOTFS_JSON="$(docker image inspect "${DIGEST_REF}" --format '{{json .RootFS.Layers}}')"
-          ROOTFS_SHA="$(printf '%s' "${ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
           docker tag "${DIGEST_REF}" "${TAG_REF}"
+          PULLED="$(docker image inspect "${TAG_REF}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
+          echo "${PULLED}" | grep -Fq "${DIGEST}"
+          REV="$(docker image inspect "${TAG_REF}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          echo "OCI_REVISION=${REV}"
+          [ "${REV}" = "${SHA}" ]
+          HEADS="$(docker run --rm --entrypoint python "${TAG_REF}" -m alembic -c backend/alembic.ini heads)"
+          echo "ALEMBIC_HEADS_OUT=${HEADS}"
+          echo "${HEADS}" | grep -Fq "086_i9_vital_observation_context_authority"
+          ROOTFS_JSON="$(docker image inspect "${TAG_REF}" --format '{{json .RootFS.Layers}}')"
+          ROOTFS_SHA="$(printf '%s' "${ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
           ARCHIVE="/tmp/sedi-backend-mig-${SHA}.tar"
           docker save -o "${ARCHIVE}" "${TAG_REF}"
           ARCHIVE_SHA="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
