@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/services/lifestyle/lifestyle_health_service.dart';
 
 void main() {
-  test('HR DTO hides non-device status unless provenance is DEVICE_REPORTED', () {
+  test('HR DTO requires DEVICE_REPORTED + STABLE|UNSTABLE', () {
     final madOnly = LifestyleHealthHrDto.fromJson({
       'hr_status': 'STABLE',
       'range_key': '7d',
@@ -17,6 +17,13 @@ void main() {
       'range_key': '7d',
     });
     expect(device.isDeviceReportedStatus, isTrue);
+
+    final invalid = LifestyleHealthHrDto.fromJson({
+      'hr_status': 'INSUFFICIENT_DATA',
+      'hr_status_source': 'DEVICE_REPORTED',
+      'range_key': '7d',
+    });
+    expect(invalid.isDeviceReportedStatus, isFalse);
   });
 
   test('Lifestyle Health page gates status UI on device-reported provenance', () {

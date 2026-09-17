@@ -2,9 +2,12 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_response.dart';
 
 class LifestyleHealthHrDto {
-  final String hrStatus;
-  /// When absent or not `DEVICE_REPORTED`, UI must not present [hrStatus] as gadget authority.
+  /// Authoritative gadget status only when [hrStatusSource] is DEVICE_REPORTED.
+  final String? hrStatus;
   final String? hrStatusSource;
+  final String? hrStatusObservedAt;
+  /// Legacy MAD compact — never treat as DEVICE_REPORTED authority.
+  final String? hrStabilityCompact;
   final double? latestValue;
   final String? latestReceivedAt;
   final String rangeKey;
@@ -13,8 +16,10 @@ class LifestyleHealthHrDto {
   final String? availableTo;
 
   const LifestyleHealthHrDto({
-    required this.hrStatus,
+    this.hrStatus,
     this.hrStatusSource,
+    this.hrStatusObservedAt,
+    this.hrStabilityCompact,
     this.latestValue,
     this.latestReceivedAt,
     required this.rangeKey,
@@ -23,8 +28,14 @@ class LifestyleHealthHrDto {
     this.availableTo,
   });
 
-  bool get isDeviceReportedStatus =>
-      (hrStatusSource ?? '').trim().toUpperCase() == 'DEVICE_REPORTED';
+  static const _deviceStatuses = {'STABLE', 'UNSTABLE'};
+
+  /// True only for authoritative DEVICE_REPORTED STABLE|UNSTABLE.
+  bool get isDeviceReportedStatus {
+    final source = (hrStatusSource ?? '').trim().toUpperCase();
+    final status = (hrStatus ?? '').trim().toUpperCase();
+    return source == 'DEVICE_REPORTED' && _deviceStatuses.contains(status);
+  }
 
   factory LifestyleHealthHrDto.fromJson(Map<String, dynamic> json) {
     final raw = json['history'];
@@ -34,11 +45,16 @@ class LifestyleHealthHrDto {
         if (e is Map) hist.add(Map<String, dynamic>.from(e));
       }
     }
+    final statusRaw = json['hr_status']?.toString().trim();
+    final status =
+        (statusRaw == null || statusRaw.isEmpty) ? null : statusRaw;
     return LifestyleHealthHrDto(
-      hrStatus: json['hr_status']?.toString() ?? 'INSUFFICIENT_DATA',
+      hrStatus: status,
       hrStatusSource: json['hr_status_source']?.toString() ??
           json['status_source']?.toString() ??
           json['status_provenance']?.toString(),
+      hrStatusObservedAt: json['hr_status_observed_at']?.toString(),
+      hrStabilityCompact: json['hr_stability_compact']?.toString(),
       latestValue: (json['latest_value'] is num)
           ? (json['latest_value'] as num).toDouble()
           : double.tryParse('${json['latest_value']}'),

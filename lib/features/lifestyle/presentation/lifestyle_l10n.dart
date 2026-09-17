@@ -34,6 +34,8 @@ class LifestyleL10n {
 
   String get hrStable =>
       _t(en: 'Stable pattern', fa: 'الگوی پایدار', ar: 'نمط مستقر');
+  String get hrUnstable =>
+      _t(en: 'Unstable pattern', fa: 'الگوی ناپایدار', ar: 'نمط غير مستقر');
   String get hrChanged =>
       _t(en: 'Change detected', fa: 'تغییر مشاهده شد', ar: 'تم رصد تغيير');
   String get hrInsufficient =>
@@ -224,10 +226,24 @@ class LifestyleL10n {
         ar: '$minutes دقيقة',
       );
 
+  /// Labels for DEVICE_REPORTED STABLE|UNSTABLE only (presentation).
+  String deviceReportedHrStatusLabel(String code) {
+    switch (code.toUpperCase()) {
+      case 'STABLE':
+        return hrStable;
+      case 'UNSTABLE':
+        return hrUnstable;
+      default:
+        return hrInsufficient;
+    }
+  }
+
   String hrStatusLabel(String code) {
     switch (code) {
       case 'STABLE':
         return hrStable;
+      case 'UNSTABLE':
+        return hrUnstable;
       case 'UNSTABLE_OR_CHANGED':
         return hrChanged;
       default:

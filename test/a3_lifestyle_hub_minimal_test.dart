@@ -46,9 +46,10 @@ void main() {
     expect(LifestyleL10n('ar').mySchedule, isNotEmpty);
   });
 
-  test('6/7/8 I9 status mapping — amber not red for changed', () {
+  test('6/7/8 DEVICE_REPORTED status mapping — amber not red for UNSTABLE', () {
     final l10n = LifestyleL10n('en');
-    expect(l10n.hrStatusLabel('STABLE'), contains('Stable'));
+    expect(l10n.deviceReportedHrStatusLabel('STABLE'), contains('Stable'));
+    expect(l10n.deviceReportedHrStatusLabel('UNSTABLE'), contains('Unstable'));
     expect(l10n.hrStatusLabel('UNSTABLE_OR_CHANGED'), contains('Change'));
     expect(l10n.hrStatusLabel('INSUFFICIENT_DATA'), contains('Not enough'));
     final healthSrc = File(
@@ -57,13 +58,13 @@ void main() {
     expect(healthSrc.contains('isDeviceReportedStatus'), isTrue);
     expect(healthSrc.contains('statusChangeAmber'), isTrue);
     expect(healthSrc.contains('statusStableOlive'), isTrue);
-    // I9 changed state must not use dangerRed in status mapping.
+    // Device-reported UNSTABLE must not use dangerRed in status mapping.
     final statusFn = RegExp(
       r'Color _statusColor[\s\S]*?default:\s*return AppTheme\.statusNeutralMuted;',
     ).firstMatch(healthSrc)?.group(0);
     expect(statusFn, isNotNull);
     expect(statusFn!.contains('dangerRed'), isFalse);
-    expect(statusFn.contains('UNSTABLE_OR_CHANGED'), isTrue);
+    expect(statusFn.contains("'UNSTABLE'"), isTrue);
   });
 
   test('9/10 health page uses backend projection + ranges', () {

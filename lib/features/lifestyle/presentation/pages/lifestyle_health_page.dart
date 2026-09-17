@@ -48,10 +48,10 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
   }
 
   Color _statusColor(String code) {
-    switch (code) {
+    switch (code.toUpperCase()) {
       case 'STABLE':
         return AppTheme.statusStableOlive;
-      case 'UNSTABLE_OR_CHANGED':
+      case 'UNSTABLE':
         return AppTheme.statusChangeAmber;
       default:
         return AppTheme.statusNeutralMuted;
@@ -157,7 +157,8 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
   }
 
   Widget _statusBlock(LifestyleL10n l10n) {
-    final code = _data?.hrStatus ?? 'INSUFFICIENT_DATA';
+    // Caller must already gate with isDeviceReportedStatus (STABLE|UNSTABLE only).
+    final code = (_data?.hrStatus ?? '').trim().toUpperCase();
     final color = _statusColor(code);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -172,7 +173,7 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l10n.hrStatusLabel(code),
+              l10n.deviceReportedHrStatusLabel(code),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
