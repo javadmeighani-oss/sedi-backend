@@ -36,6 +36,8 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _history = null;
+      _summaryText = null;
     });
     try {
       // JWT-only — do not send legacy user_id (BE rejects it).

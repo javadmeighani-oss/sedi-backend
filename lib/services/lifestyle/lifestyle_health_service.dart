@@ -3,6 +3,8 @@ import '../../core/network/api_response.dart';
 
 class LifestyleHealthHrDto {
   final String hrStatus;
+  /// When absent or not `DEVICE_REPORTED`, UI must not present [hrStatus] as gadget authority.
+  final String? hrStatusSource;
   final double? latestValue;
   final String? latestReceivedAt;
   final String rangeKey;
@@ -12,6 +14,7 @@ class LifestyleHealthHrDto {
 
   const LifestyleHealthHrDto({
     required this.hrStatus,
+    this.hrStatusSource,
     this.latestValue,
     this.latestReceivedAt,
     required this.rangeKey,
@@ -19,6 +22,9 @@ class LifestyleHealthHrDto {
     this.availableFrom,
     this.availableTo,
   });
+
+  bool get isDeviceReportedStatus =>
+      (hrStatusSource ?? '').trim().toUpperCase() == 'DEVICE_REPORTED';
 
   factory LifestyleHealthHrDto.fromJson(Map<String, dynamic> json) {
     final raw = json['history'];
@@ -30,6 +36,9 @@ class LifestyleHealthHrDto {
     }
     return LifestyleHealthHrDto(
       hrStatus: json['hr_status']?.toString() ?? 'INSUFFICIENT_DATA',
+      hrStatusSource: json['hr_status_source']?.toString() ??
+          json['status_source']?.toString() ??
+          json['status_provenance']?.toString(),
       latestValue: (json['latest_value'] is num)
           ? (json['latest_value'] as num).toDouble()
           : double.tryParse('${json['latest_value']}'),

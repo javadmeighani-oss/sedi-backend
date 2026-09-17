@@ -81,8 +81,10 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
               else if (_error != null)
                 Text(_error!, style: const TextStyle(color: AppTheme.dangerRed))
               else ...[
-                _statusBlock(l10n),
-                const SizedBox(height: 20),
+                if (_data?.isDeviceReportedStatus == true) ...[
+                  _statusBlock(l10n),
+                  const SizedBox(height: 20),
+                ],
                 Text(l10n.latestHr,
                     style: const TextStyle(color: AppTheme.textSecondary)),
                 Text(

@@ -54,6 +54,7 @@ void main() {
     final healthSrc = File(
       'lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart',
     ).readAsStringSync();
+    expect(healthSrc.contains('isDeviceReportedStatus'), isTrue);
     expect(healthSrc.contains('statusChangeAmber'), isTrue);
     expect(healthSrc.contains('statusStableOlive'), isTrue);
     // I9 changed state must not use dangerRed in status mapping.
