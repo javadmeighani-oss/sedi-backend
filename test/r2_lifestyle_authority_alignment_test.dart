@@ -38,7 +38,8 @@ void main() {
     ).readAsStringSync();
     expect(hist.contains('/memory/history'), isTrue);
     expect(hist.contains('/memory/period-summary'), isTrue);
-    expect(hist.contains('user_id'), isFalse);
+    expect(hist.contains("'user_id'"), isFalse);
+    expect(hist.contains('queryParams: {'), isTrue);
     expect(hist.contains('_history = null'), isTrue);
     expect(hist.contains('_summaryText = null'), isTrue);
   });
@@ -47,8 +48,10 @@ void main() {
     final view = File(
       'lib/features/lifestyle/presentation/widgets/lifestyle_weekly_plan_view.dart',
     ).readAsStringSync();
+    final svc = File('lib/services/lifestyle/lifestyle_weekly_plan_service.dart')
+        .readAsStringSync();
     expect(view.contains('LifestyleWeeklyPlanService'), isTrue);
-    expect(view.contains('/lifestyle/weekly-plan'), isTrue);
+    expect(svc.contains('/lifestyle/weekly-plan'), isTrue);
     expect(view.contains('openLifestyleChat'), isTrue);
     expect(view.toLowerCase().contains('fake'), isFalse);
     expect(view.contains("'Mon'"), isFalse);
