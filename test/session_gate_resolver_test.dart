@@ -190,7 +190,11 @@ void main() {
   group('A1 intro', () {
     test('approved visual contract constants', () {
       expect(IntroPage.kIntroDuration, const Duration(milliseconds: 3000));
-      expect(IntroPage.kFinalLogoSize, 204.24);
+      expect(IntroPage.kBrandLatin, 'Sedi.');
+      expect(IntroPage.kMotionKeyframes.length, 3);
+      expect(IntroPage.kMotionKeyframes[0], (0.00, 0.79, 0.05));
+      expect(IntroPage.kMotionKeyframes[1], (0.50, 0.52, 0.24));
+      expect(IntroPage.kMotionKeyframes[2], (1.00, 0.27, 0.52));
       expect(
         IntroPage.kHorizonAsset,
         'assets/images/cosmic_sunrise_background.png',
@@ -202,8 +206,8 @@ void main() {
         'lib/features/intro/presentation/pages/intro_page.dart',
       ).readAsStringSync();
       expect(src.contains('cosmic_sunrise_background.png'), isTrue);
-      expect(src.contains('Curves.linear'), isTrue);
-      expect(src.contains('TweenSequence'), isFalse);
+      expect(src.contains('kMotionKeyframes'), isTrue);
+      expect(src.contains('sampleMotion'), isTrue);
       expect(
         File('assets/images/cosmic_sunrise_background.png').existsSync(),
         isTrue,
