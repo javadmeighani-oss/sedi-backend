@@ -42,6 +42,7 @@ Legacy ChatPage / OnboardingPage / VitalsPage / singular `features/notification/
 - Production API base: `https://api.sedi-ai.com` (`AppConfig.baseUrl`)
 - Android package / applicationId: `com.sedi.app`
 - Physical APK Firebase: repository secret `GOOGLE_SERVICES_JSON` for project `sedi-b0f08` (placeholder not allowed for physical builds)
+- Network security: production cleartext disabled; legacy direct-IP `91.107.168.130` / `network_security_config.xml` **ABSENT**
 
 ## Docs
 
