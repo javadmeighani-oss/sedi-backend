@@ -4,6 +4,14 @@
 **Repo:** `javadmeighani-oss/sedi-frontend`  
 **Canonical product graph:** IntroPage → OtpLoginPage → Gate3InteractivePage  
 
+```
+ARCHITECTURE_AUTHORITY=SEDI-V1-ARCH-BASELINE-001@v1
+ARCHITECTURE_FILE=references/authoritative/architecture/Sedi_V1_Canonical_Architecture_Baseline_v1_FA.md
+CERTIFIED_FRONTEND_HEAD=75f1b40097aefe6109078b1935b9a382c8643cde
+```
+
+See also: `docs/ARCHITECTURE_AUTHORITY.md`
+
 ## Product gates
 
 | Gate | Authority | Entry |
