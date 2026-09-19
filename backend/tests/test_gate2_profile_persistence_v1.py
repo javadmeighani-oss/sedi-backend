@@ -11,9 +11,9 @@ from backend.app.services import auth_otp_service as svc
 def _access_token_for_phone(client, db, monkeypatch, phone: str, code: str = "123456") -> str:
     monkeypatch.setenv("OTP_SECRET", f"test_otp_gate2_{phone[-4:]}")
     with patch.object(svc, "generate_otp_code", return_value=code):
-        ok, _, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
     assert ok is True
-    verify = client.post("/auth/otp/verify", json={"phone": phone, "code": code})
+    verify = client.post("/auth/otp/verify", json={"phone": phone, "code": code, "purpose": "REGISTRATION"})
     assert verify.status_code == 200 and verify.json().get("ok") is True
     return verify.json()["data"]["access_token"]
 

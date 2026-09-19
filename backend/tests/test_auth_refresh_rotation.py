@@ -18,9 +18,9 @@ def test_refresh_rotates_token_and_reusing_old_returns_401(client: TestClient, d
     code_plain = "123456"
     phone = "+989121111111"
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
-        ok, _, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
     assert ok is True
-    r1 = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain})
+    r1 = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain, "purpose": "REGISTRATION"})
     assert r1.status_code == 200
     data1 = r1.json()
     assert data1.get("ok") is True
@@ -63,8 +63,8 @@ def test_refresh_rotation_only_one_unrevoked_per_user(client: TestClient, db, mo
     code_plain = "654321"
     phone = "+989122222222"
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
-        svc.request_otp(db, phone)
-    r = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain})
+        svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    r = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain, "purpose": "REGISTRATION"})
     assert r.status_code == 200
     refresh_1 = r.json()["data"]["refresh_token"]
     client.post("/auth/refresh", headers={"Authorization": f"Bearer {refresh_1}"})
