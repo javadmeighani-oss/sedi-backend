@@ -53,6 +53,7 @@ def _notif(db, user_id: int, **overrides) -> Notification:
         is_sent=True,
         sent_at=now,
         status="sent",
+        provider="fcm",
         created_at=now,
         channel="engagement",
     )
@@ -94,6 +95,33 @@ def test_sent_appears_queued_future_failed_hidden(client, db):
         created_at=now - timedelta(days=200),
         status="sent",
     )
+    _notif(
+        db,
+        u.id,
+        title="db_only",
+        is_sent=True,
+        sent_at=now,
+        status="sent",
+        provider=None,
+    )
+    _notif(
+        db,
+        u.id,
+        title="delivered_status",
+        is_sent=True,
+        sent_at=now,
+        status="delivered",
+        provider="fcm",
+    )
+    _notif(
+        db,
+        u.id,
+        title="sent_at_null",
+        is_sent=True,
+        sent_at=None,
+        status="sent",
+        provider="fcm",
+    )
 
     resp = client.get(f"/notifications/?user_id={u.id}&limit=20", headers=_auth_header(u.id))
     assert resp.status_code == 200
@@ -105,7 +133,11 @@ def test_sent_appears_queued_future_failed_hidden(client, db):
     assert "queued" not in titles
     assert "failed" not in titles
     assert "old_sent" not in titles
+    assert "db_only" not in titles
+    assert "delivered_status" not in titles
+    assert "sent_at_null" not in titles
     assert data["unread_count"] == 1
+    assert db.query(Notification).filter(Notification.user_id == u.id).count() == 7
 
 
 def test_order_sent_at_then_id_and_cursor_pagination(client, db):
@@ -173,10 +205,57 @@ def test_unread_excludes_unsent_and_failed(client, db):
     _notif(db, u.id, is_sent=True, sent_at=now, is_read=False, status="sent")
     _notif(db, u.id, is_sent=False, sent_at=None, is_read=False, status="queued")
     _notif(db, u.id, is_sent=False, sent_at=None, is_read=False, status="failed")
+    _notif(db, u.id, is_sent=True, sent_at=now, is_read=False, status="sent", provider=None)
+    _notif(db, u.id, is_sent=True, sent_at=now, is_read=False, status="failed", provider="fcm")
     resp = client.get(f"/notifications/unread?user_id={u.id}", headers=_auth_header(u.id))
     data = resp.json()["data"]
     assert data["unread_count"] == 1
     assert data["count"] == 1
+
+
+def test_unread_count_uses_same_fcm_sent_projection(client, db):
+    u = _user(db, "unread_projection")
+    now = datetime.utcnow()
+    visible_unread = _notif(
+        db,
+        u.id,
+        title="visible_unread",
+        is_sent=True,
+        sent_at=now,
+        is_read=False,
+        status="sent",
+        provider="fcm",
+    )
+    _notif(
+        db,
+        u.id,
+        title="visible_read",
+        is_sent=True,
+        sent_at=now,
+        is_read=True,
+        status="sent",
+        provider="fcm",
+    )
+    _notif(
+        db,
+        u.id,
+        title="hidden_unread_db_only",
+        is_sent=True,
+        sent_at=now,
+        is_read=False,
+        status="sent",
+        provider=None,
+    )
+
+    list_resp = client.get(f"/notifications/?user_id={u.id}", headers=_auth_header(u.id))
+    unread_resp = client.get(f"/notifications/unread?user_id={u.id}", headers=_auth_header(u.id))
+    list_data = list_resp.json()["data"]
+    unread_data = unread_resp.json()["data"]
+
+    assert list_data["unread_count"] == 1
+    assert unread_data["unread_count"] == 1
+    assert unread_data["total"] == 1
+    assert [n["id"] for n in unread_data["notifications"]] == [visible_unread.id]
 
 
 def test_auth_isolation(client, db):

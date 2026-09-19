@@ -34,11 +34,14 @@ def test_otp_request_alias_works_same_as_request_otp(client: TestClient, db):
     assert (data.get("data") or {}).get("next") == "verify_otp"
 
 
-def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: TestClient, db, monkeypatch):
-    """Request OTP with mocked code; verify with same code; tokens and user created (HMAC OTP)."""
+def test_login_existing_issues_tokens(client: TestClient, db, monkeypatch):
+    """LOGIN OTP verifies an existing account and issues tokens."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_123")
     code_plain = "123456"
     phone = "+989123456789"
+    user = models.User(phone=phone, name="Login", secret_key="test", preferred_language="en")
+    db.add(user)
+    db.commit()
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
         ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
@@ -53,8 +56,132 @@ def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: Tes
     assert "access_token" in payload
     assert "refresh_token" in payload
     assert payload.get("token_type") == "bearer"
+    assert payload.get("user_id") == user.id
+
+
+def test_login_unknown_returns_account_not_found_and_does_not_create_user(
+    client: TestClient, db, monkeypatch
+):
+    """LOGIN can verify an OTP, but unknown phones must not create accounts."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_login_unknown")
+    code_plain = "444555"
+    phone = "+989123450001"
+    with patch.object(svc, "generate_otp_code", return_value=code_plain):
+        ok, _, _ = svc.request_otp(db, phone)
+    assert ok is True
+    r = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain})
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("ok") is False
+    assert body.get("error", {}).get("code") == "ACCOUNT_NOT_FOUND"
+    assert db.query(models.User).filter(models.User.phone == phone).first() is None
+
+
+def test_registration_unknown_creates_user_only_after_valid_otp(client: TestClient, db, monkeypatch):
+    """REGISTRATION creates an account only after a valid purpose-bound OTP."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_registration")
+    code_plain = "222333"
+    phone = "+989123450002"
+    with patch.object(svc, "generate_otp_code", return_value=code_plain):
+        ok, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    assert ok is True
+
+    wrong = client.post(
+        "/auth/verify_otp",
+        json={"phone": phone, "code": "000000", "purpose": "REGISTRATION"},
+    )
+    assert wrong.status_code == 200
+    assert wrong.json().get("ok") is False
+    assert db.query(models.User).filter(models.User.phone == phone).first() is None
+
+    r = client.post(
+        "/auth/verify_otp",
+        json={"phone": phone, "code": code_plain, "purpose": "REGISTRATION"},
+    )
+    assert r.status_code == 200
+    assert r.json().get("ok") is True
     user = db.query(models.User).filter(models.User.phone == phone).first()
     assert user is not None
+
+
+def test_registration_existing_returns_account_exists_no_duplicate(client: TestClient, db, monkeypatch):
+    """REGISTRATION with a valid OTP must reject existing phones and avoid duplicates."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_registration_existing")
+    code_plain = "333444"
+    phone = "+989123450003"
+    user = models.User(phone=phone, name="Existing", secret_key="test", preferred_language="en")
+    db.add(user)
+    db.commit()
+    with patch.object(svc, "generate_otp_code", return_value=code_plain):
+        ok, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    assert ok is True
+    r = client.post(
+        "/auth/verify_otp",
+        json={"phone": phone, "code": code_plain, "purpose": "REGISTRATION"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("ok") is False
+    assert body.get("error", {}).get("code") == "ACCOUNT_EXISTS"
+    assert db.query(models.User).filter(models.User.phone == phone).count() == 1
+
+
+def test_login_registration_purpose_isolation(client: TestClient, db, monkeypatch):
+    """A REGISTRATION code cannot satisfy LOGIN verification for the same phone."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_purpose_iso")
+    phone = "+989123450004"
+    db.add(models.User(phone=phone, name="PurposeIso", secret_key="test", preferred_language="en"))
+    db.commit()
+    with patch.object(svc, "generate_otp_code", return_value="555666"):
+        ok, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    assert ok is True
+
+    r = client.post("/auth/verify_otp", json={"phone": phone, "code": "555666"})
+    assert r.status_code == 200
+    assert r.json().get("ok") is False
+    assert "access_token" not in (r.json().get("data") or {})
+
+
+def test_request_otp_rate_limit_is_isolated_by_purpose(db, monkeypatch):
+    """LOGIN and REGISTRATION maintain separate rate-limit buckets."""
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_COUNT", 1)
+    phone = "+989123450005"
+    with patch.object(svc, "generate_otp_code", return_value="101010"):
+        ok_login, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+        ok_registration, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+        ok_login_again, err, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok_login is True
+    assert ok_registration is True
+    assert ok_login_again is False
+    assert "Too many OTP requests" in err
+
+
+def test_verify_otp_expired_and_attempt_limits_for_login(client: TestClient, db, monkeypatch):
+    """LOGIN preserves expiry and attempt-limit behavior for existing accounts."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_login_limits")
+    expired_phone = "+989123450006"
+    db.add(models.User(phone=expired_phone, name="Expired", secret_key="test", preferred_language="en"))
+    db.commit()
+    with patch.object(svc, "generate_otp_code", return_value="121212"):
+        ok, _, _ = svc.request_otp(db, expired_phone)
+    assert ok is True
+    row = db.query(models.OtpCode).filter(models.OtpCode.phone == expired_phone).first()
+    row.expires_at = datetime.utcnow() - timedelta(minutes=1)
+    db.commit()
+    expired = client.post("/auth/verify_otp", json={"phone": expired_phone, "code": "121212"})
+    assert expired.json().get("error", {}).get("code") == "OTP_EXPIRED"
+
+    attempts_phone = "+989123450007"
+    db.add(models.User(phone=attempts_phone, name="Attempts", secret_key="test", preferred_language="en"))
+    db.commit()
+    with patch.object(svc, "generate_otp_code", return_value="343434"):
+        ok, _, _ = svc.request_otp(db, attempts_phone)
+    assert ok is True
+    row = db.query(models.OtpCode).filter(models.OtpCode.phone == attempts_phone).first()
+    row.attempts = svc.OTP_MAX_ATTEMPTS
+    db.commit()
+    limited = client.post("/auth/verify_otp", json={"phone": attempts_phone, "code": "343434"})
+    assert limited.json().get("error", {}).get("code") == "TOO_MANY_ATTEMPTS"
 
 
 def test_verify_otp_stores_device_info_and_ip_when_headers_present(client: TestClient, db, monkeypatch):
@@ -62,6 +189,8 @@ def test_verify_otp_stores_device_info_and_ip_when_headers_present(client: TestC
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_device")
     code_plain = "111222"
     phone = "+989177777777"
+    db.add(models.User(phone=phone, name="Device", secret_key="test", preferred_language="en"))
+    db.commit()
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
         ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
@@ -103,6 +232,8 @@ def test_auth_me_works_with_access_token(client: TestClient, db, monkeypatch):
     """GET /auth/me with valid Bearer returns user info (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_me")
     phone = "+989128888888"
+    db.add(models.User(phone=phone, name="Me", secret_key="test", preferred_language="en"))
+    db.commit()
     with patch.object(svc, "generate_otp_code", return_value="654321"):
         ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
