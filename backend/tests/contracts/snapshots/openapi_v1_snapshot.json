@@ -790,6 +790,18 @@
             "description": "V2-compatible thread id",
             "title": "Conversation Id"
           },
+          "health_subject_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Active HealthSubject; JWT Account must hold AHSA; OTHER chat fail-closed until governed context",
+            "title": "Health Subject Id"
+          },
           "interaction_source": {
             "anyOf": [
               {
@@ -1139,6 +1151,22 @@
       "DeviceClaimRequest": {
         "additionalProperties": false,
         "properties": {
+          "device_category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OTHER",
+                  "SELF"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Device classification (not HealthSubject/person semantics)",
+            "title": "Device Category"
+          },
           "device_id": {
             "title": "Device Id",
             "type": "string"
@@ -1156,18 +1184,50 @@
             "title": "Gateway Install Id"
           },
           "health_subject_id": {
-            "title": "Health Subject Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional; omitted => server resolves Account SELF HealthSubject",
+            "title": "Health Subject Id"
           },
           "possession_proof": {
             "description": "COMMISSIONING_READY / per-device credential proof",
             "title": "Possession Proof",
             "type": "string"
+          },
+          "setup_code": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Required when Device has setup_code_verifier",
+            "title": "Setup Code"
+          },
+          "user_label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when device_category=OTHER",
+            "title": "User Label"
           }
         },
         "required": [
           "device_id",
-          "health_subject_id",
           "possession_proof"
         ],
         "title": "DeviceClaimRequest",
@@ -1467,6 +1527,20 @@
             ],
             "title": "Firmware Version"
           },
+          "gateway_install_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when transport=bluetooth: active DeviceMobileGatewayAuthorization",
+            "title": "Gateway Install Id"
+          },
           "gateway_received_at": {
             "anyOf": [
               {
@@ -1622,6 +1696,36 @@
           "ok"
         ],
         "title": "DevicePacketIngestResponse",
+        "type": "object"
+      },
+      "DevicePresentationUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "device_category": {
+            "enum": [
+              "OTHER",
+              "SELF"
+            ],
+            "title": "Device Category",
+            "type": "string"
+          },
+          "user_label": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Label"
+          }
+        },
+        "required": [
+          "device_category"
+        ],
+        "title": "DevicePresentationUpdateRequest",
         "type": "object"
       },
       "DeviceProvisionRequest": {
@@ -3265,6 +3369,18 @@
             "description": "nutrition|exercise|routine|lifestyle|wellbeing|cross_domain",
             "title": "Domain"
           },
+          "health_subject_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Target HealthSubject; JWT Account must hold AHSA",
+            "title": "Health Subject Id"
+          },
           "persist": {
             "default": true,
             "title": "Persist",
@@ -3365,6 +3481,39 @@
             ],
             "title": "Detected Name"
           },
+          "first_intro": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Intro"
+          },
+          "health_subject_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Subject Id"
+          },
+          "intro_completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intro Completed"
+          },
           "language": {
             "title": "Language",
             "type": "string"
@@ -3372,6 +3521,28 @@
           "message": {
             "title": "Message",
             "type": "string"
+          },
+          "other_chat_blocked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Chat Blocked"
+          },
+          "proactive_opener": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Proactive Opener"
           },
           "requires_security_check": {
             "anyOf": [
@@ -4662,6 +4833,18 @@
             },
             "title": "Entries",
             "type": "array"
+          },
+          "health_subject_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If set and not SELF, rejected — Lifestyle OTHER not supported without schema",
+            "title": "Health Subject Id"
           }
         },
         "required": [
@@ -5853,6 +6036,11 @@
           "phone": {
             "title": "Phone",
             "type": "string"
+          },
+          "purpose": {
+            "default": "LOGIN",
+            "title": "Purpose",
+            "type": "string"
           }
         },
         "required": [
@@ -5869,6 +6057,11 @@
           },
           "phone": {
             "title": "Phone",
+            "type": "string"
+          },
+          "purpose": {
+            "default": "LOGIN",
+            "title": "Purpose",
             "type": "string"
           }
         },
@@ -5896,7 +6089,7 @@
             "title": "Detected At"
           },
           "observation_type": {
-            "description": "heart_rate | blood_pressure | glucose | temperature | spo2 | device_reported_cardiac_event",
+            "description": "heart_rate | blood_pressure | glucose | temperature | spo2 | device_reported_cardiac_event | device_reported_vital_status",
             "title": "Observation Type",
             "type": "string"
           },
@@ -5912,6 +6105,40 @@
           "payload"
         ],
         "title": "PacketObservationSchema",
+        "type": "object"
+      },
+      "PhoneChangeRequestIn": {
+        "additionalProperties": false,
+        "description": "Authenticated phone-change OTP request — new E.164 only; JWT is account authority.",
+        "properties": {
+          "new_phone": {
+            "title": "New Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_phone"
+        ],
+        "title": "PhoneChangeRequestIn",
+        "type": "object"
+      },
+      "PhoneChangeVerifyIn": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "new_phone": {
+            "title": "New Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "new_phone"
+        ],
+        "title": "PhoneChangeVerifyIn",
         "type": "object"
       },
       "ProfileFactCreateIn": {
@@ -8279,6 +8506,33 @@
         ]
       }
     },
+    "/auth/me/profile-summary": {
+      "get": {
+        "description": "Read-only I6+I8 compact summary for A3 Profile (no IDs / no mutation).",
+        "operationId": "auth_me_profile_summary_auth_me_profile_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Auth Me Profile Summary",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/auth/otp/request": {
       "post": {
         "description": "Alias for /request_otp. Use POST /auth/otp/request for REST-style paths.",
@@ -8358,6 +8612,100 @@
           }
         },
         "summary": "Otp Verify Alias",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/phone-change/request": {
+      "post": {
+        "description": "JWT Account → OTP to NEW phone (purpose=PHONE_CHANGE). No phone mutation yet.",
+        "operationId": "phone_change_request_auth_phone_change_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneChangeRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Phone Change Request",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/phone-change/verify": {
+      "post": {
+        "description": "Verify PHONE_CHANGE OTP; atomically update same Account.phone; return /auth/me profile.",
+        "operationId": "phone_change_verify_auth_phone_change_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneChangeVerifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Phone Change Verify",
         "tags": [
           "Authentication"
         ]
@@ -9754,6 +10102,64 @@
           }
         ],
         "summary": "Register Device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}": {
+      "patch": {
+        "description": "Owner-authorized presentation update: device_category + user_label only.",
+        "operationId": "patch_device_presentation_route_devices__device_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePresentationUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Device Presentation Route",
         "tags": [
           "Devices"
         ]
@@ -12259,6 +12665,51 @@
         ]
       }
     },
+    "/interact/chat/stream": {
+      "post": {
+        "description": "SSE transport over the canonical /chat orchestration core.\nSafety: never stream ungoverned raw model output — obtain governed final\nanswer first, then stream approved text chunks only.",
+        "operationId": "chat_stream_interact_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chat Stream",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
     "/interact/greeting": {
       "get": {
         "description": "Get personalized greeting for user. Requires Bearer JWT.\nuser_id query is optional (defaults to authenticated user); if provided must match JWT.",
@@ -12507,6 +12958,33 @@
           }
         },
         "summary": "Setup Onboarding",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/interact/session/open": {
+      "post": {
+        "description": "Server-authoritative A3 open: durable intro once + optional proactive opener.",
+        "operationId": "open_session_interact_session_open_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Open Session",
         "tags": [
           "Interaction"
         ]
@@ -13706,8 +14184,114 @@
     },
     "/lifestyle/context": {
       "get": {
-        "description": "Get compact memory context for the authenticated user.\n\nReturns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).\nRequires Bearer JWT.",
+        "description": "Get compact memory context for the authenticated user (SELF only if subject set).",
         "operationId": "get_lifestyle_context_lifestyle_context_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "health_subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Health Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Lifestyle Context",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/health-hr": {
+      "get": {
+        "description": "SELF-only I9 HR status + latest value + bounded rollup history (presentation).",
+        "operationId": "lifestyle_health_hr_lifestyle_health_hr_get",
+        "parameters": [
+          {
+            "description": "7d|30d|3m|1y",
+            "in": "query",
+            "name": "range_key",
+            "required": false,
+            "schema": {
+              "default": "7d",
+              "description": "7d|30d|3m|1y",
+              "title": "Range Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Health Hr",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/schedule-actions": {
+      "get": {
+        "description": "Compact I8 active actions for My Schedule (distinct from UserEvent).",
+        "operationId": "lifestyle_schedule_actions_lifestyle_schedule_actions_get",
         "responses": {
           "200": {
             "content": {
@@ -13725,7 +14309,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Get Lifestyle Context",
+        "summary": "Lifestyle Schedule Actions",
         "tags": [
           "Lifestyle Data"
         ]
@@ -13733,7 +14317,7 @@
     },
     "/lifestyle/summary": {
       "get": {
-        "description": "Get lifestyle summary for frontend display.\nComposes: What I know, Recent patterns, Next suggested check-in.\nRequires Bearer JWT.",
+        "description": "Get lifestyle summary for frontend display.\nComposes: What I know, Recent patterns, Next suggested check-in.\nRequires Bearer JWT. OTHER subject fail-closed.",
         "operationId": "get_lifestyle_summary_lifestyle_summary_get",
         "parameters": [
           {
@@ -13746,6 +14330,22 @@
               "description": "Response language: en, fa, ar",
               "title": "Lang",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "health_subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Health Subject Id"
             }
           }
         ],
@@ -13824,6 +14424,33 @@
           }
         ],
         "summary": "Update Lifestyle",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/weekly-plan": {
+      "get": {
+        "description": "Read-only 7-day I8 nutrition/exercise projection. No generation side effects.",
+        "operationId": "lifestyle_weekly_plan_lifestyle_weekly_plan_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Weekly Plan",
         "tags": [
           "Lifestyle Data"
         ]
@@ -14219,9 +14846,41 @@
     },
     "/notifications": {
       "get": {
-        "description": "Get all notifications for a user, ordered by created_at descending.\nRequires Bearer JWT; user_id query must match authenticated user.",
+        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.\nOrder: sent_at DESC, id DESC. Cursor pagination (no offset).",
         "operationId": "get_notifications_notifications_get",
         "parameters": [
+          {
+            "description": "Opaque sent-history cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Opaque sent-history cursor",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size (default 20, max 50)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Page size (default 20, max 50)",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
           {
             "description": "User ID to fetch notifications for",
             "in": "query",
@@ -14269,9 +14928,41 @@
     },
     "/notifications/": {
       "get": {
-        "description": "Get all notifications for a user, ordered by created_at descending.\nRequires Bearer JWT; user_id query must match authenticated user.",
+        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.\nOrder: sent_at DESC, id DESC. Cursor pagination (no offset).",
         "operationId": "get_notifications_notifications__get",
         "parameters": [
+          {
+            "description": "Opaque sent-history cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Opaque sent-history cursor",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size (default 20, max 50)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Page size (default 20, max 50)",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
           {
             "description": "User ID to fetch notifications for",
             "in": "query",
@@ -15130,7 +15821,7 @@
     },
     "/notifications/unread": {
       "get": {
-        "description": "Get unread notifications for a user (Release B2). Requires Bearer JWT.",
+        "description": "Unread A3 Inbox items using the same sent-history projection as GET /notifications.\nQueued/failed/unsent rows do not inflate unread_count.",
         "operationId": "get_unread_notifications_notifications_unread_get",
         "parameters": [
           {
@@ -15141,10 +15832,28 @@
             "schema": {
               "default": 20,
               "description": "Maximum number of notifications to return",
-              "maximum": 100,
+              "maximum": 50,
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque sent-history cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Opaque sent-history cursor",
+              "title": "Cursor"
             }
           },
           {
@@ -18065,6 +18774,33 @@
           }
         ],
         "summary": "Post Lifestyle Event",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/me/known-facts": {
+      "get": {
+        "description": "A3 user-facing 'what Sedi knows' card — governed facts only, no raw memory.",
+        "operationId": "get_known_facts_card_user_me_known_facts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Known Facts Card",
         "tags": [
           "User"
         ]

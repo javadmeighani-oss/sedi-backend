@@ -23,13 +23,9 @@ NOTIFICATION_TYPE_HEALTH_ALERT = "health_alert"
 
 
 def _access_token_for_phone(client: TestClient, db, monkeypatch, phone: str, code: str = "123456") -> str:
-    monkeypatch.setenv("OTP_SECRET", f"test_otp_secret_{phone[-4:]}")
-    with patch.object(svc, "generate_otp_code", return_value=code):
-        ok, _, _ = svc.request_otp(db, phone)
-    assert ok is True
-    verify = client.post("/auth/verify_otp", json={"phone": phone, "code": code})
-    assert verify.status_code == 200 and verify.json().get("ok") is True
-    return verify.json()["data"]["access_token"]
+    from backend.tests.otp_test_helpers import issue_access_token
+
+    return issue_access_token(client, db, monkeypatch, phone, code=code)
 
 
 def _auth_header(user_id: int) -> dict[str, str]:
