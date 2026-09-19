@@ -41,7 +41,8 @@ def test_user(db: Session):
 
 @pytest.fixture
 def test_notification(db: Session, test_user: User):
-    """Create a test notification"""
+    """Create a test notification visible in A4 FCM-sent inbox projection."""
+    now = datetime.utcnow()
     notification = Notification(
         user_id=test_user.id,
         type="morning_brief",
@@ -49,13 +50,17 @@ def test_notification(db: Session, test_user: User):
         body="Test body",
         priority="normal",
         is_read=False,
-        is_sent=False,
-        created_at=datetime.utcnow()
+        is_sent=True,
+        sent_at=now,
+        status="sent",
+        provider="fcm",
+        created_at=now,
     )
     db.add(notification)
     db.commit()
     db.refresh(notification)
     return notification
+
 
 
 def test_get_unread_notifications_requires_auth(
@@ -109,6 +114,7 @@ def test_get_unread_notifications_with_type_filter(client: TestClient, db: Sessi
 def test_get_unread_notifications_limit(client: TestClient, db: Session, test_user: User):
     """Test GET /notifications/unread respects limit parameter"""
     # Create multiple notifications
+    now = datetime.utcnow()
     for i in range(5):
         notification = Notification(
             user_id=test_user.id,
@@ -117,8 +123,11 @@ def test_get_unread_notifications_limit(client: TestClient, db: Session, test_us
             body=f"Body {i}",
             priority="normal",
             is_read=False,
-            is_sent=False,
-            created_at=datetime.utcnow()
+            is_sent=True,
+            sent_at=now,
+            status="sent",
+            provider="fcm",
+            created_at=now,
         )
         db.add(notification)
     db.commit()

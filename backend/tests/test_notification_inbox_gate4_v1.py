@@ -42,6 +42,7 @@ def _create_notification(db, user_id: int, **overrides) -> Notification:
         is_sent=True,
         sent_at=now,
         status="sent",
+        provider="fcm",
         created_at=now,
         category="health_status",
         risk_level="high",
