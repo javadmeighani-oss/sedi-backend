@@ -34,12 +34,30 @@ void main() {
     // Non-archive product tree must not reintroduce the legacy IP.
     final libRoot = Directory('lib');
     final androidRoot = Directory('android');
+    const textExts = <String>{
+      '.dart',
+      '.xml',
+      '.gradle',
+      '.kts',
+      '.properties',
+      '.kt',
+      '.java',
+      '.yml',
+      '.yaml',
+      '.md',
+      '.txt',
+      '.json',
+    };
     final hits = <String>[];
     for (final root in [libRoot, androidRoot]) {
       for (final f in root.listSync(recursive: true)) {
         if (f is! File) continue;
         final path = f.path.replaceAll('\\', '/');
-        if (path.endsWith('.png') || path.endsWith('.jpg')) continue;
+        final lower = path.toLowerCase();
+        final dot = lower.lastIndexOf('.');
+        if (dot < 0) continue;
+        final ext = lower.substring(dot);
+        if (!textExts.contains(ext)) continue;
         final src = f.readAsStringSync();
         if (src.contains('91.107.168.130')) {
           hits.add(path);
