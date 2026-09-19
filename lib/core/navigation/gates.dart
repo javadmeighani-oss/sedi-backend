@@ -7,7 +7,7 @@
 /// ```
 ///
 /// Decision flow: [SessionGateResolver] → [AppGateRouter]
-/// Legacy `ChatPage` is UNREACHABLE_LEGACY — not part of this graph.
+/// Legacy `ChatPage` is ABSENT — not part of this graph.
 library;
 
 export 'app_gate.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:sedi_app/features/notification/utils/notification_ui_mapping.dart';
 import 'package:sedi_app/data/models/notification.dart' as sedi;
+import 'package:sedi_app/features/notifications/utils/notification_ui_mapping.dart';
 
 void main() {
   group('defaultTitleForNotificationType', () {

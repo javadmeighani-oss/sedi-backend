@@ -9,7 +9,9 @@ import 'package:sedi_app/features/intro/presentation/pages/intro_page.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
-/// Production lib paths that must never import quarantined legacy product pages.
+bool _exists(String relativePath) => File(relativePath).existsSync();
+
+/// Production lib paths that must never import deleted legacy product pages.
 const _canonicalProductSurfaces = <String>[
   'lib/app.dart',
   'lib/main.dart',
@@ -27,6 +29,25 @@ const _canonicalProductSurfaces = <String>[
   'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
 ];
 
+/// Legacy product surfaces that must be ABSENT after hygiene recovery.
+const _absentLegacySurfaces = <String>[
+  'lib/features/chat/presentation/pages/chat_page.dart',
+  'lib/features/chat/presentation/pages/chat_history_page.dart',
+  'lib/features/onboarding/presentation/pages/onboarding_page.dart',
+  'lib/features/user_verification/presentation/pages/user_verification_page.dart',
+  'lib/features/health/presentation/pages/vitals_page.dart',
+  'lib/features/health/presentation/pages/heart_rate_page.dart',
+  'lib/features/health/presentation/pages/health_alerts_page.dart',
+  'lib/features/gate3_interactive/presentation/sections/health_care/gate3_health_care_placeholder.dart',
+  'lib/features/gate3_interactive/presentation/sections/gadgets/gate3_gadgets_placeholder.dart',
+  'lib/features/gate3_interactive/presentation/sections/lifestyle/gate3_lifestyle_placeholder.dart',
+  'lib/features/gate3_interactive/presentation/sections/history/gate3_history_placeholder.dart',
+  'lib/features/gate3_interactive/presentation/sections/notifications/gate3_notifications_placeholder.dart',
+  'lib/features/gate4_notifications/presentation/pages/gate4_notifications_placeholder_page.dart',
+  'lib/features/notification/presentation/pages/notifications_inbox_page.dart',
+  'lib/features/chat/chat_service.dart',
+];
+
 const _legacyPageImportNeedles = <String>[
   'chat/presentation/pages/chat_page.dart',
   'onboarding/presentation/pages/onboarding_page.dart',
@@ -35,6 +56,9 @@ const _legacyPageImportNeedles = <String>[
   'health/presentation/pages/heart_rate_page.dart',
   'health/presentation/pages/health_alerts_page.dart',
   'gate3_health_care_placeholder.dart',
+  'package:sedi_app/features/notification/',
+  'Gate3NotificationsPlaceholder',
+  'Gate4NotificationsPlaceholderPage',
 ];
 
 void main() {
@@ -141,15 +165,19 @@ void main() {
     expect(profile.contains('AuthHelper.performLogout'), isTrue);
   });
 
-  test('legacy Chat/Onboarding/UserVerification unreachable from product surfaces',
+  test('legacy product surfaces are absent and unreachable from canonical graph',
       () {
+    for (final path in _absentLegacySurfaces) {
+      expect(_exists(path), isFalse, reason: '$path must be deleted');
+    }
+
     for (final path in _canonicalProductSurfaces) {
       final src = _read(path);
       for (final needle in _legacyPageImportNeedles) {
         expect(
           src.contains(needle),
           isFalse,
-          reason: '$path must not import $needle',
+          reason: '$path must not reference $needle',
         );
       }
       expect(src.contains('ChatPage('), isFalse, reason: path);
@@ -160,49 +188,7 @@ void main() {
       expect(src.contains('HealthAlertsPage('), isFalse, reason: path);
     }
 
-    final onboarding = _read(
-      'lib/features/onboarding/presentation/pages/onboarding_page.dart',
-    );
-    expect(onboarding.contains('chat_page.dart'), isFalse);
-    expect(onboarding.contains('ChatPage('), isFalse);
-    expect(onboarding.contains('AppGateRouter.goToLogin'), isTrue);
-    expect(onboarding.contains('UNREACHABLE_LEGACY'), isTrue);
-
-    final chat = _read('lib/features/chat/presentation/pages/chat_page.dart');
-    expect(chat.contains('UNREACHABLE_LEGACY'), isTrue);
-  });
-
-  test('legacy Health pages unreachable; Gate3HealthCarePlaceholder unused', () {
-    final vitals = _read('lib/features/health/presentation/pages/vitals_page.dart');
-    expect(vitals.contains('UNREACHABLE_LEGACY'), isTrue);
-
-    final hr = _read('lib/features/health/presentation/pages/heart_rate_page.dart');
-    expect(hr.contains('UNREACHABLE_LEGACY'), isTrue);
-
-    final alerts =
-        _read('lib/features/health/presentation/pages/health_alerts_page.dart');
-    expect(alerts.contains('UNREACHABLE_LEGACY'), isTrue);
-
-    // Placeholder exists but is not imported by any other lib dart file.
-    final placeholderPath =
-        'lib/features/gate3_interactive/presentation/sections/health_care/gate3_health_care_placeholder.dart';
-    expect(_read(placeholderPath).contains('UNREACHABLE_LEGACY'), isTrue);
-
-    final libRoot = Directory('lib');
-    final importers = <String>[];
-    for (final f in libRoot.listSync(recursive: true)) {
-      if (f is! File || !f.path.endsWith('.dart')) continue;
-      final normalized = f.path.replaceAll('\\', '/');
-      if (normalized.endsWith('gate3_health_care_placeholder.dart')) continue;
-      final src = f.readAsStringSync();
-      if (src.contains('gate3_health_care_placeholder.dart') ||
-          src.contains('Gate3HealthCarePlaceholder')) {
-        importers.add(normalized);
-      }
-    }
-    expect(importers, isEmpty);
-
-    // Production Gate3 must not push legacy notification placeholder pages.
+    // Production Gate3 must open canonical NotificationInboxPage directly.
     final gate3 = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -210,6 +196,9 @@ void main() {
     expect(gate3.contains('Gate4NotificationsPlaceholderPage'), isFalse);
     expect(gate3.contains('NotificationsInboxPage'), isFalse);
     expect(gate3.contains('NotificationInboxPage'), isTrue);
+
+    // Singular legacy notification tree must be gone.
+    expect(Directory('lib/features/notification').existsSync(), isFalse);
   });
 
   test('gates.dart / app_gate.dart document Gate3InteractivePage authority', () {

@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sedi_app/data/dto/notifications/notification_feedback_dto.dart';
-import 'package:sedi_app/features/notification/data/notification_service.dart';
 import 'package:sedi_app/features/notifications/presentation/notification_inbox_l10n.dart';
+import 'package:sedi_app/services/notifications/notifications_service.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
@@ -32,7 +32,7 @@ void main() {
 
   test('parseUnreadCount prefers unread_count over page count', () {
     expect(
-      NotificationService.parseUnreadCount({
+      NotificationsService.parseUnreadCount({
         'ok': true,
         'data': {
           'count': 20,
@@ -44,7 +44,7 @@ void main() {
       37,
     );
     expect(
-      NotificationService.parseUnreadCount({
+      NotificationsService.parseUnreadCount({
         'ok': true,
         'data': {'unread_count': 0, 'count': 0, 'notifications': []},
       }),

@@ -1,6 +1,6 @@
 /// Mapping: Notification type -> default title (for UI when title is absent).
-/// Used by Inbox and tests. English default; FA/AR can use l10n later.
-import '../../../../data/models/notification.dart' as sedi;
+/// Used by inbox helpers and tests. English default; FA/AR can use l10n later.
+import '../../../data/models/notification.dart' as sedi;
 
 /// Returns a short display title for [type] when backend does not provide title.
 String defaultTitleForNotificationType(sedi.NotificationType type) {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sedi_app/features/notification/data/notification_service.dart';
-import 'package:sedi_app/features/notification/logic/notification_sync.dart';
+import 'package:sedi_app/core/notifications/notification_seen_window.dart';
+import 'package:sedi_app/services/notifications/notifications_service.dart';
 
 void main() {
   group('mergeSeenIdsRollingWindow', () {
@@ -30,7 +30,7 @@ void main() {
     });
   });
 
-  group('NotificationService.parseUnreadCount', () {
+  group('NotificationsService.parseUnreadCount', () {
     test('prefers unread_count over page count', () {
       final resp = {
         'ok': true,
@@ -41,19 +41,19 @@ void main() {
           'notifications': [],
         },
       };
-      expect(NotificationService.parseUnreadCount(resp), 42);
+      expect(NotificationsService.parseUnreadCount(resp), 42);
     });
 
     test('falls back to total then count', () {
       expect(
-        NotificationService.parseUnreadCount({
+        NotificationsService.parseUnreadCount({
           'ok': true,
           'data': {'total': 7, 'count': 3, 'notifications': []},
         }),
         7,
       );
       expect(
-        NotificationService.parseUnreadCount({
+        NotificationsService.parseUnreadCount({
           'ok': true,
           'data': {'count': 5, 'notifications': []},
         }),
@@ -71,15 +71,18 @@ void main() {
           ],
         },
       };
-      expect(NotificationService.parseUnreadCount(resp), 2);
+      expect(NotificationsService.parseUnreadCount(resp), 2);
     });
 
     test('returns 0 when not ok', () {
-      expect(NotificationService.parseUnreadCount({'ok': false}), 0);
+      expect(NotificationsService.parseUnreadCount({'ok': false}), 0);
     });
 
     test('returns 0 when data null', () {
-      expect(NotificationService.parseUnreadCount({'ok': true, 'data': null}), 0);
+      expect(
+        NotificationsService.parseUnreadCount({'ok': true, 'data': null}),
+        0,
+      );
     });
   });
 }

@@ -5,32 +5,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/data/dto/notifications/notification_item_dto.dart';
 import 'package:sedi_app/data/dto/notifications/notification_list_response_dto.dart';
 import 'package:sedi_app/data/models/notification_item.dart';
-import 'package:sedi_app/features/gate3_interactive/presentation/sections/notifications/gate3_notifications_placeholder.dart';
-import 'package:sedi_app/features/gate4_notifications/presentation/pages/gate4_notifications_placeholder_page.dart';
-import 'package:sedi_app/features/notification/presentation/pages/notifications_inbox_page.dart';
 import 'package:sedi_app/features/notifications/presentation/notification_inbox_l10n.dart';
 import 'package:sedi_app/features/notifications/presentation/pages/notification_inbox_page.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
 void main() {
-  test('Gate3/Gate4 placeholders wire to canonical NotificationsInboxPage', () {
-    expect(
-      const Gate3NotificationsPlaceholder(),
-      isA<Gate3NotificationsPlaceholder>(),
-    );
-    expect(
-      const Gate4NotificationsPlaceholderPage(),
-      isA<Gate4NotificationsPlaceholderPage>(),
-    );
-    expect(const NotificationsInboxPage(), isA<NotificationsInboxPage>());
+  test('A3 Smart Notifications opens canonical NotificationInboxPage directly',
+      () {
     expect(const NotificationInboxPage(), isA<NotificationInboxPage>());
 
     final gate3 = _read(
-      'lib/features/gate3_interactive/presentation/sections/notifications/gate3_notifications_placeholder.dart',
+      'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(gate3.contains('NotificationsInboxPage'), isTrue);
-    expect(gate3.contains('Scaffold'), isFalse);
+    expect(gate3.contains('NotificationInboxPage'), isTrue);
+    expect(gate3.contains('_openNotificationsInbox'), isTrue);
+    expect(gate3.contains('NotificationsInboxPage'), isFalse);
+    expect(gate3.contains('Gate3NotificationsPlaceholder'), isFalse);
+    expect(gate3.contains('Gate4NotificationsPlaceholderPage'), isFalse);
+
+    expect(
+      File(
+        'lib/features/gate3_interactive/presentation/sections/notifications/gate3_notifications_placeholder.dart',
+      ).existsSync(),
+      isFalse,
+    );
+    expect(
+      File(
+        'lib/features/gate4_notifications/presentation/pages/gate4_notifications_placeholder_page.dart',
+      ).existsSync(),
+      isFalse,
+    );
+    expect(
+      File(
+        'lib/features/notification/presentation/pages/notifications_inbox_page.dart',
+      ).existsSync(),
+      isFalse,
+    );
   });
 
   test('list response parses cursor pagination metadata and sent_at', () {

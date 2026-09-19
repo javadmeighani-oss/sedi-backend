@@ -28,6 +28,23 @@ class NotificationsService {
   NotificationsService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
+  /// Parse unread count from a legacy Map-shaped unread response.
+  /// Authority order: unread_count → total → count → notifications.length.
+  /// Prefer unread_count so page-sized `count` never under-reports badge authority.
+  static int parseUnreadCount(Map<String, dynamic> resp) {
+    if (resp['ok'] != true) return 0;
+    final data = resp['data'] as Map<String, dynamic>?;
+    if (data == null) return 0;
+    final unread = data['unread_count'];
+    if (unread is int) return unread < 0 ? 0 : unread;
+    final total = data['total'];
+    if (total is int) return total < 0 ? 0 : total;
+    final count = data['count'];
+    if (count is int) return count < 0 ? 0 : count;
+    final list = data['notifications'] as List<dynamic>?;
+    return list?.length ?? 0;
+  }
+
   Future<ApiResponse<NotificationsInboxPageResult>> listInboxPage({
     bool unreadOnly = false,
     int limit = 20,
