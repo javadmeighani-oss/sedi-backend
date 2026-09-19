@@ -1,40 +1,37 @@
-/// Devices list and register logic. Uses DevicesRepository; single responsibility.
-import '../../../core/utils/user_profile_manager.dart';
+/// Devices list and register logic. JWT via DevicesRepository; no profile userId.
 import '../../../data/dto/device_public_info.dart';
 import '../../../data/dto/device_register_request.dart';
 import '../../../data/repositories/devices_repository.dart';
 
 class DevicesController {
   final DevicesRepository _repo;
-  final int? _testUserId;
 
-  DevicesController({DevicesRepository? repo, int? testUserId})
-      : _repo = repo ?? DevicesRepository(),
-        _testUserId = testUserId;
+  DevicesController({DevicesRepository? repo})
+      : _repo = repo ?? DevicesRepository();
 
   bool isLoading = false;
   bool isActionInProgress = false;
   List<DevicePublicInfo> devices = [];
   String? errorMessage;
 
-  Future<int?> _getUserId() async {
-    if (_testUserId != null) return _testUserId;
-    final profile = await UserProfileManager.loadProfile();
-    return profile.userId;
-  }
+  /// Devices with backend device_category=SELF only.
+  List<DevicePublicInfo> get selfDevices =>
+      devices.where((d) => d.isSelfDevice).toList(growable: false);
 
-  /// Load devices for current user. Clears error on success.
+  /// Devices with backend device_category=OTHER only.
+  List<DevicePublicInfo> get otherDevices =>
+      devices.where((d) => d.isOtherDevice).toList(growable: false);
+
+  /// Legacy rows with null/empty category — never inferred as OTHER/SELF.
+  List<DevicePublicInfo> get unclassifiedDevices =>
+      devices.where((d) => d.isUnclassifiedDevice).toList(growable: false);
+
+  /// Load devices for authenticated Account. Clears error on success.
   Future<void> loadDevices() async {
-    final userId = await _getUserId();
-    if (userId == null) {
-      devices = [];
-      errorMessage = 'User not found';
-      return;
-    }
     isLoading = true;
     errorMessage = null;
     try {
-      final response = await _repo.list(userId: userId);
+      final response = await _repo.list();
       if (response.ok && response.data != null) {
         devices = response.data!.devices;
         errorMessage = null;
@@ -59,16 +56,15 @@ class DevicesController {
       errorMessage = 'Device ID is required';
       return false;
     }
-    final userId = await _getUserId();
-    if (userId == null) {
-      errorMessage = 'User not found';
-      return false;
-    }
     isActionInProgress = true;
     errorMessage = null;
     try {
-      final request = DeviceRegisterRequest(deviceId: trimmed, deviceType: deviceType?.trim().isEmpty == true ? null : deviceType?.trim());
-      final response = await _repo.register(userId: userId, request: request);
+      final request = DeviceRegisterRequest(
+        deviceId: trimmed,
+        deviceType:
+            deviceType?.trim().isEmpty == true ? null : deviceType?.trim(),
+      );
+      final response = await _repo.register(request: request);
       if (!response.ok) {
         errorMessage = response.errorMessage;
         return false;
@@ -86,15 +82,10 @@ class DevicesController {
       errorMessage = 'Please wait.';
       return false;
     }
-    final userId = await _getUserId();
-    if (userId == null) {
-      errorMessage = 'User not found';
-      return false;
-    }
     isActionInProgress = true;
     errorMessage = null;
     try {
-      final response = await _repo.revoke(deviceId: deviceId, userId: userId);
+      final response = await _repo.revoke(deviceId: deviceId);
       if (!response.ok) {
         errorMessage = response.errorMessage;
         return false;
@@ -112,15 +103,58 @@ class DevicesController {
       errorMessage = 'Please wait.';
       return false;
     }
-    final userId = await _getUserId();
-    if (userId == null) {
-      errorMessage = 'User not found';
+    isActionInProgress = true;
+    errorMessage = null;
+    try {
+      final response = await _repo.rotateToken(deviceId: deviceId);
+      if (!response.ok) {
+        errorMessage = response.errorMessage;
+        return false;
+      }
+      await loadDevices();
+      return true;
+    } finally {
+      isActionInProgress = false;
+    }
+  }
+
+  /// Owner presentation update (category + optional label). Reloads on success.
+  Future<bool> updateDevicePresentation({
+    required String deviceId,
+    required String deviceCategory,
+    String? userLabel,
+  }) async {
+    if (isActionInProgress) {
+      errorMessage = 'Please wait.';
+      return false;
+    }
+    final category = deviceCategory.trim().toUpperCase();
+    if (category != 'SELF' && category != 'OTHER') {
+      errorMessage = 'Invalid device category';
+      return false;
+    }
+    final trimmedLabel = userLabel?.trim();
+    if (category == 'OTHER' &&
+        (trimmedLabel == null || trimmedLabel.isEmpty)) {
+      errorMessage = 'Label required for OTHER devices';
+      return false;
+    }
+    if (trimmedLabel != null && trimmedLabel.length > 80) {
+      errorMessage = 'Label max length is 80';
       return false;
     }
     isActionInProgress = true;
     errorMessage = null;
     try {
-      final response = await _repo.rotateToken(deviceId: deviceId, userId: userId);
+      final response = await _repo.updatePresentation(
+        deviceId: deviceId,
+        deviceCategory: category,
+        userLabel: category == 'OTHER'
+            ? trimmedLabel
+            : (trimmedLabel == null || trimmedLabel.isEmpty
+                ? null
+                : trimmedLabel),
+      );
       if (!response.ok) {
         errorMessage = response.errorMessage;
         return false;
@@ -135,7 +169,7 @@ class DevicesController {
 
 // --- UI-friendly mapping (for tests and UI) ---
 
-/// Status label for device card: Active / Revoked.
+/// Status label for device card: Active / Revoked (lifecycle — not BLE Connected).
 String deviceStatusLabel(String status) {
   final s = (status).toLowerCase();
   if (s == 'revoked') return 'Revoked';

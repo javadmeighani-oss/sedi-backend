@@ -6,22 +6,55 @@ import '../../data/dto/notifications/notification_feedback_dto.dart';
 import '../../data/dto/notifications/notification_list_response_dto.dart';
 import '../../data/models/notification_item.dart';
 
+class NotificationsInboxPageResult {
+  final List<NotificationItem> items;
+  final String? nextCursor;
+  final bool hasMore;
+  final int? unreadCount;
+  final int? total;
+
+  const NotificationsInboxPageResult({
+    required this.items,
+    this.nextCursor,
+    this.hasMore = false,
+    this.unreadCount,
+    this.total,
+  });
+}
+
 class NotificationsService {
   final ApiClient _apiClient;
 
   NotificationsService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  Future<ApiResponse<List<NotificationItem>>> listInbox({
+  /// Parse unread count from a legacy Map-shaped unread response.
+  /// Authority order: unread_count → total → count → notifications.length.
+  /// Prefer unread_count so page-sized `count` never under-reports badge authority.
+  static int parseUnreadCount(Map<String, dynamic> resp) {
+    if (resp['ok'] != true) return 0;
+    final data = resp['data'] as Map<String, dynamic>?;
+    if (data == null) return 0;
+    final unread = data['unread_count'];
+    if (unread is int) return unread < 0 ? 0 : unread;
+    final total = data['total'];
+    if (total is int) return total < 0 ? 0 : total;
+    final count = data['count'];
+    if (count is int) return count < 0 ? 0 : count;
+    final list = data['notifications'] as List<dynamic>?;
+    return list?.length ?? 0;
+  }
+
+  Future<ApiResponse<NotificationsInboxPageResult>> listInboxPage({
     bool unreadOnly = false,
-    int limit = 50,
+    int limit = 20,
     String? cursor,
   }) async {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
-      return const ApiResponse<List<NotificationItem>>(
+      return const ApiResponse<NotificationsInboxPageResult>(
         ok: false,
-        data: [],
+        data: null,
         error: ApiError(
           code: 'USER_ID_REQUIRED',
           message: 'User identity is required to load notifications.',
@@ -29,9 +62,10 @@ class NotificationsService {
       );
     }
 
+    final safeLimit = limit < 1 ? 20 : (limit > 50 ? 50 : limit);
     final queryParams = <String, String>{
       'user_id': userId.toString(),
-      'limit': limit.toString(),
+      'limit': safeLimit.toString(),
       if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
     };
 
@@ -58,14 +92,46 @@ class NotificationsService {
     for (final item in items) {
       deduped[item.id] = item;
     }
+    // Prefer sentAt when present; else createdAt (backend orders by sent_at).
     final sorted = deduped.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) {
+        final aTs = a.sentAt ?? a.createdAt;
+        final bTs = b.sentAt ?? b.createdAt;
+        final cmp = bTs.compareTo(aTs);
+        if (cmp != 0) return cmp;
+        return b.id.compareTo(a.id);
+      });
 
-    return ApiResponse<List<NotificationItem>>(
+    return ApiResponse<NotificationsInboxPageResult>(
       ok: response.ok,
-      data: sorted,
+      data: NotificationsInboxPageResult(
+        items: sorted,
+        nextCursor: payload?.nextCursor,
+        hasMore: payload?.hasMore ?? false,
+        unreadCount: payload?.unreadCount,
+        total: payload?.total,
+      ),
       error: response.error,
       statusCode: response.statusCode,
+    );
+  }
+
+  /// Backward-compatible helper used by health services.
+  Future<ApiResponse<List<NotificationItem>>> listInbox({
+    bool unreadOnly = false,
+    int limit = 50,
+    String? cursor,
+  }) async {
+    final page = await listInboxPage(
+      unreadOnly: unreadOnly,
+      limit: limit,
+      cursor: cursor,
+    );
+    return ApiResponse<List<NotificationItem>>(
+      ok: page.ok,
+      data: page.data?.items ?? const <NotificationItem>[],
+      error: page.error,
+      statusCode: page.statusCode,
     );
   }
 
@@ -93,9 +159,31 @@ class NotificationsService {
     );
   }
 
+  /// Canonical unread SENT-history count for badge (never invents local authority).
+  /// Uses GET /notifications/unread; prefers payload unread_count.
+  Future<ApiResponse<int>> fetchUnreadCount({int limit = 1}) async {
+    final page = await listInboxPage(unreadOnly: true, limit: limit);
+    if (!page.ok) {
+      return ApiResponse<int>(
+        ok: false,
+        data: 0,
+        error: page.error,
+        statusCode: page.statusCode,
+      );
+    }
+    final unread = page.data?.unreadCount ?? page.data?.total ?? 0;
+    return ApiResponse<int>(
+      ok: true,
+      data: unread < 0 ? 0 : unread,
+      statusCode: page.statusCode,
+    );
+  }
+
   Future<ApiResponse<void>> sendFeedback(
     int id, {
     required bool liked,
+    String? reason,
+    String? action,
   }) async {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
@@ -108,9 +196,27 @@ class NotificationsService {
       );
     }
 
+    if (action != null && action.isNotEmpty) {
+      final response = await _apiClient.post<Object?>(
+        '/notifications/$id/feedback',
+        queryParams: {'user_id': userId.toString()},
+        body: {
+          'action': action,
+          'client_ts': DateTime.now().toIso8601String(),
+        },
+        parser: (_) => null,
+      );
+      return ApiResponse<void>(
+        ok: response.ok,
+        error: response.error,
+        statusCode: response.statusCode,
+      );
+    }
+
     final dto = NotificationFeedbackDto(
       liked: liked,
       timestamp: DateTime.now().toIso8601String(),
+      reason: reason,
     );
     final response = await _apiClient.post<Object?>(
       '/notifications/$id/feedback',

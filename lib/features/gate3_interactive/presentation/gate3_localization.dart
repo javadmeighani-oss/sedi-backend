@@ -1,0 +1,273 @@
+import '../../../core/locale/sedi_locale_registry.dart';
+
+/// Gate 3 localized strings — presentation adaptor only.
+/// Language authority is [SediLocaleController] / Account.preferred_language.
+class Gate3Localization {
+  final String lang;
+
+  const Gate3Localization(this.lang);
+
+  bool get isRtl => SediLocaleRegistry.resolve(lang).isRtl;
+
+  String get notifications =>
+      _t(en: 'Notifications', fa: 'اعلان‌ها', ar: 'الإشعارات');
+
+  String get healthCare =>
+      _t(en: 'Health Care', fa: 'مراقبت سلامت', ar: 'الرعاية الصحية');
+
+  String get lifestyle =>
+      _t(en: 'Lifestyle', fa: 'سبک زندگی', ar: 'نمط الحياة');
+
+  String get gadgets => _t(en: 'Gadgets', fa: 'گجت‌ها', ar: 'الأجهزة');
+
+  String get history => _t(en: 'History', fa: 'تاریخچه', ar: 'السجل');
+
+  String get settings => _t(en: 'Settings', fa: 'تنظیمات', ar: 'الإعدادات');
+
+  String get editProfile => _t(
+        en: 'Edit profile',
+        fa: 'ویرایش پروفایل',
+        ar: 'تعديل الملف الشخصي',
+      );
+
+  String get profileTitle =>
+      _t(en: 'Profile', fa: 'پروفایل', ar: 'الملف الشخصي');
+
+  String get userInformationSection => _t(
+        en: 'User information',
+        fa: 'اطلاعات کاربر',
+        ar: 'معلومات المستخدم',
+      );
+
+  String get userSummarySection => _t(
+        en: 'User summary',
+        fa: 'خلاصه کاربر',
+        ar: 'ملخص المستخدم',
+      );
+
+  String get logoutSection =>
+      _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
+
+  String get userSummaryEmpty => _t(
+        en: 'Summary unavailable right now.',
+        fa: 'خلاصه در حال حاضر در دسترس نیست.',
+        ar: 'الملخص غير متاح الآن.',
+      );
+
+  String get profileLanguageLabel =>
+      _t(en: 'Preferred language', fa: 'زبان ترجیحی', ar: 'اللغة المفضلة');
+
+  String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
+
+  String get profileNameLabel =>
+      _t(en: 'Name', fa: 'نام', ar: 'الاسم');
+  String get profileDobLabel =>
+      _t(en: 'Date of birth', fa: 'تاریخ تولد', ar: 'تاريخ الميلاد');
+  String get profileSexLabel =>
+      _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
+  String get profilePhoneLabel =>
+      _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
+
+  /// Localized label for a backend summary row key (presentation only).
+  String summaryRowLabel(String key) {
+    switch (key) {
+      case 'memory_consent':
+        return _t(
+          en: 'Memory consent',
+          fa: 'رضایت حافظه',
+          ar: 'موافقة الذاكرة',
+        );
+      case 'memory_write':
+        return _t(
+          en: 'Memory write',
+          fa: 'نوشتن حافظه',
+          ar: 'كتابة الذاكرة',
+        );
+      case 'memory_read':
+        return _t(
+          en: 'Memory read',
+          fa: 'خواندن حافظه',
+          ar: 'قراءة الذاكرة',
+        );
+      case 'daily_plan':
+        return _t(
+          en: "Today's plan",
+          fa: 'برنامه امروز',
+          ar: 'خطة اليوم',
+        );
+      case 'plan_actions':
+        return _t(
+          en: 'Plan actions',
+          fa: 'اقدامات برنامه',
+          ar: 'إجراءات الخطة',
+        );
+      default:
+        return key;
+    }
+  }
+
+  /// Localized label for a backend summary status code (presentation only).
+  String summaryStatusLabel(String status) {
+    switch (status) {
+      case 'granted':
+        return _t(en: 'Granted', fa: 'اعطا شده', ar: 'ممنوحة');
+      case 'not_granted':
+        return _t(en: 'Not granted', fa: 'اعطا نشده', ar: 'غير ممنوحة');
+      case 'revoked':
+        return _t(en: 'Revoked', fa: 'لغو شده', ar: 'ملغاة');
+      case 'expired':
+        return _t(en: 'Expired', fa: 'منقضی', ar: 'منتهية');
+      case 'allowed':
+        return _t(en: 'Allowed', fa: 'مجاز', ar: 'مسموح');
+      case 'denied':
+        return _t(en: 'Not allowed', fa: 'غیرمجاز', ar: 'غير مسموح');
+      case 'active':
+        return _t(en: 'Active', fa: 'فعال', ar: 'نشطة');
+      case 'none':
+        return _t(en: 'None', fa: 'وجود ندارد', ar: 'لا يوجد');
+      case 'unavailable':
+        return _t(en: 'Unavailable', fa: 'در دسترس نیست', ar: 'غير متاح');
+      case 'no_actions':
+        return _t(en: 'No actions', fa: 'بدون اقدام', ar: 'لا إجراءات');
+      case 'in_progress':
+        return _t(en: 'In progress', fa: 'در حال انجام', ar: 'قيد التنفيذ');
+      case 'completed':
+        return _t(en: 'Completed', fa: 'تکمیل شده', ar: 'مكتملة');
+      case 'partial':
+        return _t(en: 'Partial', fa: 'ناقص', ar: 'جزئي');
+      default:
+        return status;
+    }
+  }
+  String get changePhone =>
+      _t(en: 'Change phone', fa: 'تغییر شماره', ar: 'تغيير الهاتف');
+  String get newPhoneLabel =>
+      _t(en: 'New phone number', fa: 'شماره جدید', ar: 'رقم جديد');
+  String get sendPhoneOtp =>
+      _t(en: 'Send code', fa: 'ارسال کد', ar: 'إرسال الرمز');
+  String get verifyPhoneOtp =>
+      _t(en: 'Verify', fa: 'تأیید', ar: 'تحقق');
+  String get otpCodeLabel =>
+      _t(en: 'OTP code', fa: 'کد تأیید', ar: 'رمز التحقق');
+  String get phoneChangeSuccess => _t(
+        en: 'Phone updated.',
+        fa: 'شماره به‌روز شد.',
+        ar: 'تم تحديث الهاتف.',
+      );
+  String get phoneInvalid => _t(
+        en: 'Enter a valid phone number.',
+        fa: 'شماره معتبر وارد کنید.',
+        ar: 'أدخل رقم هاتف صالحًا.',
+      );
+  String get phoneSame => _t(
+        en: 'That is already your current number.',
+        fa: 'این همان شماره فعلی شماست.',
+        ar: 'هذا هو رقمك الحالي بالفعل.',
+      );
+  String get phoneDuplicate => _t(
+        en: 'This number is already in use.',
+        fa: 'این شماره قبلاً استفاده شده است.',
+        ar: 'هذا الرقم مستخدم بالفعل.',
+      );
+  String get phoneOtpInvalid =>
+      _t(en: 'Incorrect code.', fa: 'کد نادرست است.', ar: 'رمز غير صحيح.');
+  String get phoneOtpExpired =>
+      _t(en: 'Code expired.', fa: 'کد منقضی شده است.', ar: 'انتهت صلاحية الرمز.');
+  String get phoneOtpRateLimited => _t(
+        en: 'Too many requests. Try again later.',
+        fa: 'درخواست‌های زیاد. بعداً تلاش کنید.',
+        ar: 'طلبات كثيرة. حاول لاحقًا.',
+      );
+  String get phoneChangeNetworkError => _t(
+        en: 'Network error. Try again.',
+        fa: 'خطای شبکه. دوباره تلاش کنید.',
+        ar: 'خطأ في الشبكة. حاول مرة أخرى.',
+      );
+  String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
+  String get activeSubjectSelf =>
+      _t(en: 'Viewing: Me', fa: 'نمایش: خودم', ar: 'العرض: أنا');
+  String get activeSubjectFor =>
+      _t(en: 'Viewing:', fa: 'نمایش:', ar: 'العرض:');
+  String get activeSubjectUnknown =>
+      _t(en: 'Viewing: —', fa: 'نمایش: —', ar: 'العرض: —');
+  String get selectSubject =>
+      _t(en: 'Select person', fa: 'انتخاب فرد', ar: 'اختر شخصًا');
+  String get lifestyleOtherUnavailable => _t(
+        en: 'Lifestyle is available for your own profile only.',
+        fa: 'سبک زندگی فقط برای پروفایل خودتان در دسترس است.',
+        ar: 'نمط الحياة متاح لملفك الشخصي فقط.',
+      );
+  String get gadgetsGroupMine =>
+      _t(en: 'My devices', fa: 'دستگاه‌های من', ar: 'أجهزتي');
+  String get whatSediKnows => _t(
+        en: 'What Sedi knows about me',
+        fa: 'آنچه صدی درباره من می‌داند',
+        ar: 'ما تعرفه صدي عني',
+      );
+  String get whatSediKnowsEmpty => _t(
+        en: 'No saved facts yet.',
+        fa: 'هنوز حقیقت ذخیره‌شده‌ای نیست.',
+        ar: 'لا توجد حقائق محفوظة بعد.',
+      );
+
+  String get profileSettingsPlaceholder => _t(
+        en: 'Profile settings will be available here soon.',
+        fa: 'تنظیمات پروفایل به‌زودی در این بخش در دسترس خواهد بود.',
+        ar: 'ستتوفر إعدادات الملف الشخصي هنا قريبًا.',
+      );
+
+  String get composerPlaceholderFa => 'صحبت با صدی';
+
+  String get composerPlaceholder {
+    if (lang == 'fa') return composerPlaceholderFa;
+    if (lang == 'ar') return 'تحدث مع صدي';
+    return 'Talk to Sedi';
+  }
+
+  String get microphonePermissionRequired => _t(
+        en: 'Microphone permission required',
+        fa: 'دسترسی به میکروفون لازم است',
+        ar: 'مطلوب إذن الميكروفون',
+      );
+
+  String get pressBackAgainToExit => _t(
+        en: 'Press back again to exit',
+        fa: 'برای خروج دوباره back بزنید',
+        ar: 'اضغط رجوع مرة أخرى للخروج',
+      );
+
+  String get returnToLatest =>
+      _t(en: 'Latest', fa: 'آخرین', ar: 'الأحدث');
+
+  String get close => _t(en: 'Close', fa: 'بستن', ar: 'إغلاق');
+
+  String get camera => _t(en: 'Camera', fa: 'دوربین', ar: 'الكاميرا');
+
+  String get photos => _t(en: 'Photos', fa: 'تصاویر', ar: 'الصور');
+
+  String get files => _t(en: 'Files', fa: 'فایل‌ها', ar: 'الملفات');
+
+  String get attachmentComingSoon => _t(
+        en: 'Attachments will be available here soon.',
+        fa: 'پیوست‌ها به‌زودی در این بخش در دسترس خواهند بود.',
+        ar: 'ستتوفر المرفقات هنا قريبًا.',
+      );
+
+  /// Non-clinical empty-state hint — not a chat transcript or Sedi reply.
+  String get emptyConversationHint => _t(
+        en: 'Your conversation will appear here.',
+        fa: 'گفتگو اینجا نمایش داده می‌شود.',
+        ar: 'ستظهر محادثتك هنا.',
+      );
+
+  String _t({required String en, required String fa, required String ar}) {
+    switch (lang) {
+      case 'fa':
+        return fa;
+      case 'ar':
+        return ar;
+      default:
+        return en;
+    }
+  }
+}

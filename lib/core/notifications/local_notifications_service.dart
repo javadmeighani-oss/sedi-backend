@@ -1,8 +1,9 @@
 /// Local notifications: init (permissions + Android channels), show.
 /// Stage 16.6: FCM remote message display with action buttons (LIKE, DISLIKE, OPEN_CHAT).
-/// Channels: sedi_alerts (legacy), morning, engagement, health_alert.
+/// Channels: legacy sedi_alerts/morning/engagement/health_alert + G1 versioned *_v2.
 /// Android: custom sound via RawResourceAndroidNotificationSound('sedi_alarm').
 /// iOS: custom sound via DarwinNotificationDetails.sound ('sedi_alarm.wav').
+/// Runtime sound download is PROHIBITED — binary must be bundled.
 import 'dart:convert';
 import 'dart:io';
 
@@ -20,10 +21,15 @@ const String _androidSoundResource = 'sedi_alarm';
 /// iOS sound file name (as in Runner bundle): sedi_alarm.wav (or .caf).
 const String _iosSoundFile = 'sedi_alarm.wav';
 
-/// Channel IDs for Stage 16.6 push
-const String _channelMorning = 'morning';
-const String _channelEngagement = 'engagement';
-const String _channelHealthAlert = 'health_alert';
+/// Legacy Stage 16.6 channel IDs (kept for compatibility; sticky OS settings).
+const String _channelMorningLegacy = 'morning';
+const String _channelEngagementLegacy = 'engagement';
+const String _channelHealthAlertLegacy = 'health_alert';
+
+/// G1 versioned channels — adopt bundled sedi_alarm without mutating sticky legacy IDs.
+const String _channelMorningV2 = 'morning_v2';
+const String _channelEngagementV2 = 'engagement_v2';
+const String _channelHealthAlertV2 = 'health_alert_v2';
 
 class LocalNotificationsService {
   /// Callback when user taps notification or action. Set via init(onResponse:).
@@ -64,18 +70,17 @@ class LocalNotificationsService {
       final impl = _plugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
-      // Legacy channel
+      // Legacy channel (compatibility)
       await impl?.createNotificationChannel(AndroidNotificationChannel(
         _channelId,
         _channelName,
         description: '${sediBrandName('en')} health and reminder alerts',
         importance: Importance.high,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound(_androidSoundResource),
+        sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
         enableVibration: true,
       ));
-      // Stage 16.6 channels
-      for (final ch in _pushChannels) {
+      for (final ch in _allChannels) {
         await impl?.createNotificationChannel(ch);
       }
     }
@@ -84,12 +89,13 @@ class LocalNotificationsService {
   }
 
   /// Channel behavior (market-ready):
-  /// - health_alert: HIGH importance, heads-up, vibration+sound for urgent health care alerts.
-  /// - engagement: DEFAULT importance, non-intrusive nudges.
-  /// - morning: LOW importance, no heads-up; user can override per-channel settings in Android system settings.
-  static List<AndroidNotificationChannel> get _pushChannels => [
+  /// - health_alert(_v2): HIGH importance, heads-up, vibration+sedi_alarm.
+  /// - engagement(_v2): DEFAULT importance, sedi_alarm, no vibration.
+  /// - morning(_v2): LOW importance, silent.
+  static List<AndroidNotificationChannel> get _allChannels => [
+        // Legacy IDs preserved
         AndroidNotificationChannel(
-          _channelMorning,
+          _channelMorningLegacy,
           'Morning Brief',
           description: 'Daily morning notifications',
           importance: Importance.low,
@@ -97,20 +103,48 @@ class LocalNotificationsService {
           enableVibration: false,
         ),
         AndroidNotificationChannel(
-          _channelEngagement,
+          _channelEngagementLegacy,
           'Engagement',
           description: 'Engagement nudges',
           importance: Importance.defaultImportance,
           playSound: true,
+          sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
           enableVibration: false,
         ),
         AndroidNotificationChannel(
-          _channelHealthAlert,
+          _channelHealthAlertLegacy,
           'Health Alerts',
           description: 'Health care alerts',
           importance: Importance.high,
           playSound: true,
-          sound: RawResourceAndroidNotificationSound(_androidSoundResource),
+          sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
+          enableVibration: true,
+        ),
+        // G1 versioned IDs (canonical for new pushes)
+        AndroidNotificationChannel(
+          _channelMorningV2,
+          'Morning Brief',
+          description: 'Daily morning notifications (v2)',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          _channelEngagementV2,
+          'Engagement',
+          description: 'Engagement nudges (v2)',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          _channelHealthAlertV2,
+          'Health Alerts',
+          description: 'Health care alerts (v2)',
+          importance: Importance.high,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
           enableVibration: true,
         ),
       ];
@@ -121,7 +155,7 @@ class LocalNotificationsService {
   }
 
   /// Show notification from FCM remote message. Use title/body as received.
-  /// Parses notification_id, channel, deeplink_url, actions_json from data.
+  /// Parses notification_id, channel / channel_id, deeplink_url, actions_json from data.
   static Future<void> showRemoteNotification(RemoteMessage message) async {
     if (!_initialized) await init();
     final notif = message.notification;
@@ -130,7 +164,7 @@ class LocalNotificationsService {
         notif?.title ?? data['title'] ?? 'Notification';
     String body = notif?.body ?? data['body'] ?? '';
     final notificationId = data['notification_id']?.toString() ?? '';
-    final channel = data['channel'] ?? data['type'] ?? 'engagement';
+    final channel = data['channel_id'] ?? data['channel'] ?? data['type'] ?? 'engagement';
     final deeplinkUrl = data['deeplink_url']?.toString() ?? '';
 
     final payload = <String, String>{
@@ -174,6 +208,9 @@ class LocalNotificationsService {
         importance: importance,
         priority: priority,
         playSound: playSound,
+        sound: playSound
+            ? const RawResourceAndroidNotificationSound(_androidSoundResource)
+            : null,
         enableVibration: enableVibration,
         actions: actions,
       );
@@ -203,22 +240,32 @@ class LocalNotificationsService {
   static String _channelForPush(String channel) {
     switch (channel) {
       case 'morning':
-        return _channelMorning;
+      case 'morning_v2':
+        return _channelMorningV2;
       case 'health_alert':
-        return _channelHealthAlert;
+      case 'health_alert_v2':
+      case 'sedi_health':
+      case 'sedi_critical':
+        return _channelHealthAlertV2;
       case 'engagement':
+      case 'engagement_v2':
+      case 'sedi_reminder':
+      case 'sedi_default':
       default:
-        return _channelEngagement;
+        return _channelEngagementV2;
     }
   }
 
   static String _channelDisplayName(String channelId) {
     switch (channelId) {
-      case _channelMorning:
+      case _channelMorningV2:
+      case _channelMorningLegacy:
         return 'Morning Brief';
-      case _channelHealthAlert:
+      case _channelHealthAlertV2:
+      case _channelHealthAlertLegacy:
         return 'Health Alerts';
-      case _channelEngagement:
+      case _channelEngagementV2:
+      case _channelEngagementLegacy:
       default:
         return 'Engagement';
     }
@@ -226,11 +273,14 @@ class LocalNotificationsService {
 
   static (Importance, Priority, bool, bool) _channelImportance(String channelId) {
     switch (channelId) {
-      case _channelHealthAlert:
+      case _channelHealthAlertV2:
+      case _channelHealthAlertLegacy:
         return (Importance.high, Priority.high, true, true);
-      case _channelEngagement:
+      case _channelEngagementV2:
+      case _channelEngagementLegacy:
         return (Importance.defaultImportance, Priority.defaultPriority, true, false);
-      case _channelMorning:
+      case _channelMorningV2:
+      case _channelMorningLegacy:
       default:
         return (Importance.low, Priority.low, false, false);
     }
@@ -257,7 +307,7 @@ class LocalNotificationsService {
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound(_androidSoundResource),
+      sound: const RawResourceAndroidNotificationSound(_androidSoundResource),
     );
     const darwin = DarwinNotificationDetails(
       presentAlert: true,

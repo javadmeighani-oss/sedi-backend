@@ -5,12 +5,18 @@ class NotificationListResponseDto {
   final int? total;
   final int? unreadCount;
   final int? count;
+  final String? nextCursor;
+  final bool hasMore;
+  final int? limit;
 
   const NotificationListResponseDto({
     required this.notifications,
     this.total,
     this.unreadCount,
     this.count,
+    this.nextCursor,
+    this.hasMore = false,
+    this.limit,
   });
 
   factory NotificationListResponseDto.fromJson(Map<String, dynamic> json) {
@@ -29,6 +35,9 @@ class NotificationListResponseDto {
       total: json['total'] as int?,
       unreadCount: json['unread_count'] as int?,
       count: json['count'] as int?,
+      nextCursor: json['next_cursor']?.toString(),
+      hasMore: json['has_more'] == true,
+      limit: json['limit'] as int?,
     );
   }
 }

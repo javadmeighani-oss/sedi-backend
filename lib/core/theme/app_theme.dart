@@ -45,6 +45,92 @@ class AppTheme {
   static const Color borderInactive = metalGrey;
   static const Color borderActive = primaryBlack;
 
+  /// Gate 2 — light gray input fill
+  static const Color inputFillLight = Color(0xFFF3F3F3);
+
+  /// Gate 2 — very light placeholder text
+  static const Color placeholderLight = Color(0xFFBDBDBD);
+
+  /// Gate 2 — selected language button fill
+  static const Color languageSelectedFill = Color(0xFFE8E8E8);
+
+  /// Gate 2 — disabled action button
+  static const Color buttonDisabled = Color(0xFFD6D6D6);
+
+  // ===============================
+  // Gate 2 Luxury Palette
+  // ===============================
+  static const Color gate2WarmBackground = Color(0xFFFAFAF8);
+  static const Color gate2CardWhite = Color(0xFFFFFFFF);
+  static const Color gate2InputFill = Color(0xFFF4F4F2);
+  static const Color gate2ButtonActive = Color(0xFF050505);
+  /// Gate 2 primary CTA — calm olive green (not bright green).
+  static const Color gate2ButtonOlive = Color(0xFF6F7F3A);
+  static const Color gate2ButtonDisabled = Color(0xFFE3E3E0);
+  static const Color gate2TextDisabled = Color(0xFF8A8A86);
+  static const Color gate2Placeholder = Color(0xFFC8C8C4);
+  static const Color gate2TextPrimary = Color(0xFF080808);
+  static const Color gate2TextMuted = Color(0xFF8A8A86);
+  static const Color gate2BorderSubtle = Color(0xFFD8D8D4);
+
+  // ===============================
+  // Intro (A1) — Birth of Sedi
+  // ===============================
+  /// Deep night sky behind the horizon emergence.
+  static const Color introNightSky = Color(0xFF0A0E14);
+
+  /// Mid-atmosphere tone between sky and horizon.
+  static const Color introAtmosphere = Color(0xFF1A2332);
+
+  /// Soft horizon glow (calm olive-earth).
+  static const Color introHorizonGlow = Color(0xFF3D5A40);
+
+  /// Emergence accent aligned with brand olive CTA.
+  static const Color introEmergenceAccent = gate2ButtonOlive;
+
+  /// Logo / wordmark emphasis during final born state.
+  static const Color introLogoEmphasis = gate2ButtonOlive;
+
+  /// Subtle overlay while startup/session work finishes.
+  static const Color introOverlaySubtle = Color(0x660A0E14);
+
+  /// Soft status text on intro (availability / loading).
+  static const Color introStatusText = Color(0xB3FFFFFF);
+
+  /// Fully transparent — InkWell/Material wrappers with no fill.
+  static const Color surfaceTransparent = Color(0x00000000);
+
+  static const double gate2RadiusCard = 22;
+  static const double gate2RadiusInput = 14;
+
+  // ===============================
+  // Gate 3 Premium Palette
+  // ===============================
+  /// Gate 3 — soft pale olive-green background (premium, calm; avoid pure white).
+  static const Color gate3PaleOliveBackground = Color(0xFFF3F5EE);
+
+  /// I9 STABLE / calm positive status (olive; not clinical “safe”).
+  static const Color statusStableOlive = Color(0xFF6F7F3A);
+
+  /// I9 UNSTABLE_OR_CHANGED — warning amber (never danger red).
+  static const Color statusChangeAmber = Color(0xFFC49A3C);
+
+  /// I9 INSUFFICIENT_DATA — neutral muted.
+  static const Color statusNeutralMuted = Color(0xFF8A8A86);
+
+  static const List<BoxShadow> gate2CardShadow = [
+    BoxShadow(
+      color: Color(0x0F000000),
+      blurRadius: 24,
+      offset: Offset(0, 8),
+    ),
+    BoxShadow(
+      color: Color(0x08000000),
+      blurRadius: 6,
+      offset: Offset(0, 2),
+    ),
+  ];
+
   // ===============================
   // Radius
   // ===============================

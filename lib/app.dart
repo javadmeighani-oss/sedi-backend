@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'core/locale/sedi_locale_controller.dart';
+import 'core/locale/sedi_locale_registry.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/theme/app_theme.dart';
-import 'core/utils/user_profile_manager.dart';
 import 'features/intro/presentation/pages/intro_page.dart';
 
 class SediApp extends StatefulWidget {
@@ -13,30 +14,38 @@ class SediApp extends StatefulWidget {
 }
 
 class _SediAppState extends State<SediApp> {
-  TextDirection _textDirection = TextDirection.ltr;
+  final SediLocaleController _locale = SediLocaleController.instance;
 
   @override
   void initState() {
     super.initState();
-    _loadDirectionality();
+    _locale.addListener(_onLocaleChanged);
+    _bootstrapLocale();
   }
 
-  Future<void> _loadDirectionality() async {
-    final profile = await UserProfileManager.loadProfile();
-    final lang = profile.preferredLanguage.toLowerCase();
-    if (!mounted) return;
-    setState(() {
-      _textDirection = (lang == 'fa' || lang == 'ar')
-          ? TextDirection.rtl
-          : TextDirection.ltr;
-    });
+  Future<void> _bootstrapLocale() async {
+    await _locale.bootstrapFromCache();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _locale.removeListener(_onLocaleChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final descriptor = _locale.current;
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      locale: descriptor.locale,
+      supportedLocales: SediLocaleRegistry.supportedLocales,
 
       // ===============================
       // Theme (Single Source of Truth)
@@ -60,12 +69,12 @@ class _SediAppState extends State<SediApp> {
         ),
       ),
       builder: (context, child) => Directionality(
-        textDirection: _textDirection,
+        textDirection: descriptor.textDirection,
         child: child ?? const SizedBox.shrink(),
       ),
 
       // ===============================
-      // Entry Page
+      // Gate 1 entry (see AppGateRouter / SessionGateResolver)
       // ===============================
       home: const IntroPage(),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sedi_app/features/notification/data/notification_service.dart';
-import 'package:sedi_app/features/notification/logic/notification_sync.dart';
+import 'package:sedi_app/core/notifications/notification_seen_window.dart';
+import 'package:sedi_app/services/notifications/notifications_service.dart';
 
 void main() {
   group('mergeSeenIdsRollingWindow', () {
@@ -17,8 +17,9 @@ void main() {
       final result = mergeSeenIdsRollingWindow(existing, newIds, 200);
       expect(result.length, 200);
       expect(result.take(3).toList(), ['new1', 'new2', 'new3']);
-      expect(result.contains('id_0'), false);
-      expect(result.contains('id_199'), true);
+      // Newest-first: early existing ids remain; oldest tail is dropped.
+      expect(result.contains('id_0'), true);
+      expect(result.contains('id_199'), false);
     });
 
     test('no duplicate new ids in merged list', () {
@@ -29,10 +30,35 @@ void main() {
     });
   });
 
-  group('NotificationService.parseUnreadCount', () {
-    test('returns count when ok and data.count present', () {
-      final resp = {'ok': true, 'data': {'count': 5, 'notifications': []}};
-      expect(NotificationService.parseUnreadCount(resp), 5);
+  group('NotificationsService.parseUnreadCount', () {
+    test('prefers unread_count over page count', () {
+      final resp = {
+        'ok': true,
+        'data': {
+          'count': 20,
+          'unread_count': 42,
+          'total': 42,
+          'notifications': [],
+        },
+      };
+      expect(NotificationsService.parseUnreadCount(resp), 42);
+    });
+
+    test('falls back to total then count', () {
+      expect(
+        NotificationsService.parseUnreadCount({
+          'ok': true,
+          'data': {'total': 7, 'count': 3, 'notifications': []},
+        }),
+        7,
+      );
+      expect(
+        NotificationsService.parseUnreadCount({
+          'ok': true,
+          'data': {'count': 5, 'notifications': []},
+        }),
+        5,
+      );
     });
 
     test('falls back to notifications length when count missing', () {
@@ -45,15 +71,18 @@ void main() {
           ],
         },
       };
-      expect(NotificationService.parseUnreadCount(resp), 2);
+      expect(NotificationsService.parseUnreadCount(resp), 2);
     });
 
     test('returns 0 when not ok', () {
-      expect(NotificationService.parseUnreadCount({'ok': false}), 0);
+      expect(NotificationsService.parseUnreadCount({'ok': false}), 0);
     });
 
     test('returns 0 when data null', () {
-      expect(NotificationService.parseUnreadCount({'ok': true, 'data': null}), 0);
+      expect(
+        NotificationsService.parseUnreadCount({'ok': true, 'data': null}),
+        0,
+      );
     });
   });
 }

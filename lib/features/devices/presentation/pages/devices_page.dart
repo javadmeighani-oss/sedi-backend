@@ -1,33 +1,63 @@
-/// Devices screen: MVP ECG-only. Shows Sedi-connected ECG device or "Not connected" + Coming soon.
+/// Gadgets screen: backend Device classification SELF / OTHER / Unclassified.
+/// BLE transport state is separate from platform status=active (never mapped).
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
+import '../../../../data/repositories/devices_repository.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../ble/sedi_ble_models.dart';
+import '../../ble/sedi_ble_permissions.dart';
+import '../../ble/sedi_ble_transport.dart';
 import '../../logic/devices_controller.dart';
+import '../../logic/gadgets_connect_controller.dart';
+import '../devices_l10n.dart';
 
 class DevicesPage extends StatefulWidget {
-  const DevicesPage({super.key});
+  final DevicesController? controller;
+  final GadgetsConnectController? connectController;
+
+  const DevicesPage({
+    super.key,
+    this.controller,
+    this.connectController,
+  });
 
   @override
   State<DevicesPage> createState() => _DevicesPageState();
 }
 
 class _DevicesPageState extends State<DevicesPage> {
-  final DevicesController _controller = DevicesController();
+  late final DevicesController _controller;
+  GadgetsConnectController? _connect;
   bool _loading = true;
-  String _language = 'en';
+  bool _connecting = false;
+
+  DevicesL10n get _l10n =>
+      DevicesL10n(SediLocaleController.instance.languageCode);
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage();
+    _controller = widget.controller ?? DevicesController();
+    _connect = widget.connectController;
+    SediLocaleController.instance.addListener(_onLocale);
     _load();
   }
 
-  Future<void> _loadLanguage() async {
-    final lang = await UserPreferences.getUserLanguage();
-    if (mounted) setState(() => _language = lang);
+  @override
+  void dispose() {
+    SediLocaleController.instance.removeListener(_onLocale);
+    if (widget.connectController == null) {
+      _connect?.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onLocale() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -36,74 +66,113 @@ class _DevicesPageState extends State<DevicesPage> {
     if (mounted) setState(() => _loading = false);
   }
 
-  bool get _isRtl => _language == 'fa' || _language == 'ar';
-
-  static final _ecgTypes = {'ecg', 'heart_rate', 'heart-rate', 'hr'};
-  static final _connectedStatuses = {'active', 'connected', 'online'};
-
-  /// MVP: consider ECG-type device as first device with normalized type in [ecg, heart_rate, heart-rate, hr].
-  /// Normalization: assumes deviceType/status are non-nullable from DTO; if ever nullable, use (value ?? '').toLowerCase().trim().
-  DevicePublicInfo? get _ecgDevice {
-    for (final d in _controller.devices) {
-      final t = d.deviceType.toLowerCase().trim();
-      if (_ecgTypes.contains(t)) return d;
-    }
-    return null;
+  GadgetsConnectController _ensureConnect() {
+    return _connect ??= GadgetsConnectController(
+      repository: DevicesRepository(),
+      transport: ReactiveSediBleTransport(),
+      requestBlePermissions: SediBlePermissions.request,
+    );
   }
 
-  bool get _ecgConnected {
-    final d = _ecgDevice;
-    if (d == null) return false;
-    final s = d.status.toLowerCase().trim();
-    return _connectedStatuses.contains(s);
-  }
-
-  String _lastSeenLabel(DateTime? lastSeenAt) {
-    if (lastSeenAt == null) return 'Never';
-    final n = DateTime.now();
-    final d = lastSeenAt;
-    if (d.year == n.year && d.month == n.month && d.day == n.day) {
-      return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  Color _transportColor(SediBleTransportState? state) {
+    switch (state) {
+      case SediBleTransportState.connected:
+        return AppTheme.gate2ButtonOlive;
+      case SediBleTransportState.connecting:
+      case SediBleTransportState.reconnecting:
+        return AppTheme.statusNeutralMuted;
+      case SediBleTransportState.outOfRange:
+        return AppTheme.statusChangeAmber;
+      case SediBleTransportState.disconnected:
+      case null:
+        return AppTheme.metalGrey;
     }
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = _l10n;
+    final groups = <_DeviceGroup>[
+      _DeviceGroup(title: l10n.myGadgets, devices: _controller.selfDevices),
+      _DeviceGroup(title: l10n.otherGadgets, devices: _controller.otherDevices),
+      if (_controller.unclassifiedDevices.isNotEmpty)
+        _DeviceGroup(
+          title: l10n.unclassified,
+          devices: _controller.unclassifiedDevices,
+        ),
+    ];
+
     Widget body = RefreshIndicator(
       onRefresh: _load,
-      color: AppTheme.pistachioGreen,
+      color: AppTheme.gate2ButtonOlive,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
-          // Section: Connected devices
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text(
-              'Connected devices',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: AppTheme.pistachioGreen)),
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.gate2ButtonOlive),
+              ),
+            )
+          else if (_controller.devices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                l10n.noGadgets,
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
             )
           else
-            _buildEcgCard(),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'When connected, ECG readings will appear in Vitals.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
+            for (final g in groups) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, top: 8),
+                child: Text(
+                  g.title,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
+              if (g.devices.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    l10n.noGadgets,
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
+                )
+              else
+                for (final d in g.devices) ...[
+                  _deviceCard(d, l10n),
+                  const SizedBox(height: 12),
+                ],
+            ],
+          if (_controller.errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _controller.errorMessage!,
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              ),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: _connecting ? null : () => _onConnectPressed(l10n),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.gate2ButtonOlive,
+                disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
+                foregroundColor: AppTheme.backgroundWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                ),
+              ),
+              child: Text(_connecting ? l10n.scanning : l10n.connect),
             ),
           ),
         ],
@@ -111,16 +180,14 @@ class _DevicesPageState extends State<DevicesPage> {
     );
 
     Widget page = Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        title: const Text('Devices'),
-        backgroundColor: AppTheme.backgroundWhite,
-        foregroundColor: AppTheme.primaryBlack,
+      backgroundColor: AppTheme.gate3PaleOliveBackground,
+      appBar: A3PageAppBar(
+        title: Text(l10n.title),
       ),
       body: body,
     );
 
-    if (_isRtl) {
+    if (SediLocaleController.instance.isRtl) {
       page = Directionality(
         textDirection: TextDirection.rtl,
         child: page,
@@ -129,108 +196,357 @@ class _DevicesPageState extends State<DevicesPage> {
     return page;
   }
 
-  Widget _buildEcgCard() {
-    final connected = _ecgConnected;
-    final d = _ecgDevice;
+  Widget _deviceCard(DevicePublicInfo d, DevicesL10n l10n) {
+    final ble = _connect?.transportFor(d.deviceId);
+    final bleLabel = ble == null ? null : l10n.transportLabel(ble.name);
+    final status = _connect?.lastDeviceStatus;
+    final isBleConnected = ble == SediBleTransportState.connected &&
+        _connect?.connectedDeviceId == d.deviceId;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        border: Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Row(
+    // Transport shown once (colored); no fake health/clinical fields.
+    final facts = <String>[
+      d.deviceType,
+      l10n.statusLabel(d.status),
+      l10n.formatLastSync(d.lastSeenAt),
+      if (isBleConnected && status?.batteryPercent != null)
+        l10n.batteryLabel(status!.batteryPercent!),
+      if (isBleConnected && status?.contactOk != null)
+        l10n.contactLabel(status!.contactOk!),
+    ];
+
+    return Material(
+      color: AppTheme.gate2CardWhite,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ECG Device',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Chest device',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: connected
-                        ? AppTheme.pistachioGreen.withOpacity(0.2)
-                        : AppTheme.borderInactive.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
                   child: Text(
-                    connected ? 'Connected' : 'Not connected',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: connected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    d.displayName,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
+                ),
+                if (bleLabel != null)
+                  Text(
+                    bleLabel,
+                    style: TextStyle(
+                      color: _transportColor(ble),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              facts.join(' · '),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (isBleConnected)
+                  TextButton(
+                    onPressed: _connecting
+                        ? null
+                        : () async {
+                            setState(() => _connecting = true);
+                            await _connect?.manualDisconnect(d.deviceId);
+                            if (mounted) setState(() => _connecting = false);
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textSecondary,
+                    ),
+                    child: Text(l10n.disconnect),
+                  ),
+                TextButton(
+                  onPressed: _controller.isActionInProgress
+                      ? null
+                      : () => _openPresentationEditor(d, l10n),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.gate2ButtonOlive,
+                  ),
+                  child: Text(l10n.rename),
                 ),
               ],
             ),
-          ),
-          if (connected && d != null && d.lastSeenAt != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Text(
-                'Last updated: ${_lastSeenLabel(d.lastSeenAt)}',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                textDirection: TextDirection.ltr,
-              ),
-            )
-          else if (!connected) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Text(
-                'Coming soon',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.6,
-                  child: FilledButton(
-                    onPressed: () {},
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.pistachioGreen,
-                      foregroundColor: AppTheme.backgroundWhite,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                      ),
-                    ),
-                    child: const Text('Connect'),
-                  ),
-                ),
-              ),
-            ),
-          ] else
-            const SizedBox(height: 8),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  Future<void> _onConnectPressed(DevicesL10n l10n) async {
+    setState(() => _connecting = true);
+    final connect = _ensureConnect();
+    try {
+      final found = await connect.scan();
+      if (!mounted) return;
+      if (found.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.permissionMessage(connect.lastError))),
+        );
+        return;
+      }
+      final selected = await showDialog<SediBleDiscoveredDevice>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: Text(l10n.selectDevice),
+          children: [
+            for (final d in found)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, d),
+                child: Text(d.name ?? d.remoteId),
+              ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+
+      final info = await connect.connectAndReadInfo(selected.remoteId);
+      if (info == null || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'connect failed')),
+        );
+        return;
+      }
+
+      final proof = await connect.obtainPossessionProof();
+      if (proof == null || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'proof failed')),
+        );
+        return;
+      }
+
+      final setupCtrl = TextEditingController();
+      var category = 'SELF';
+      final labelCtrl = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            backgroundColor: AppTheme.gate2CardWhite,
+            title: Text(
+              info.deviceId,
+              style: const TextStyle(color: AppTheme.textPrimary),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: setupCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    hintText: l10n.setupCodeHint,
+                    filled: true,
+                    fillColor: AppTheme.gate2InputFill,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment(
+                        value: 'SELF', label: Text(l10n.selfCategory)),
+                    ButtonSegment(
+                        value: 'OTHER', label: Text(l10n.otherCategory)),
+                  ],
+                  selected: {category},
+                  onSelectionChanged: (s) =>
+                      setLocal(() => category = s.first),
+                ),
+                if (category == 'OTHER') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: labelCtrl,
+                    decoration: InputDecoration(
+                      hintText: l10n.labelHint,
+                      filled: true,
+                      fillColor: AppTheme.gate2InputFill,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                ),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.gate2ButtonOlive,
+                  foregroundColor: AppTheme.backgroundWhite,
+                ),
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true || !mounted) {
+        setupCtrl.dispose();
+        labelCtrl.dispose();
+        return;
+      }
+
+      final claimed = await connect.claimDevice(
+        deviceId: info.deviceId,
+        possessionProof: proof,
+        setupCode: setupCtrl.text,
+        deviceCategory: category,
+        userLabel: labelCtrl.text,
+      );
+      setupCtrl.dispose();
+      labelCtrl.dispose();
+      if (!claimed || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'claim failed')),
+        );
+        return;
+      }
+
+      final paired =
+          await connect.pairGatewayAndStoreCredential(info.deviceId);
+      if (!paired || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(connect.lastError ?? 'gateway failed')),
+        );
+        return;
+      }
+
+      await connect.startDataSubscription(info.deviceId);
+      await _load();
+    } finally {
+      if (mounted) setState(() => _connecting = false);
+    }
+  }
+
+  Future<void> _openPresentationEditor(
+    DevicePublicInfo device,
+    DevicesL10n l10n,
+  ) async {
+    var category = device.isOtherDevice
+        ? 'OTHER'
+        : (device.isSelfDevice ? 'SELF' : 'SELF');
+    final labelCtrl = TextEditingController(text: device.userLabel ?? '');
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            return AlertDialog(
+              backgroundColor: AppTheme.gate2CardWhite,
+              title: Text(l10n.rename),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      l10n.category,
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(
+                        value: 'SELF',
+                        label: Text(l10n.selfCategory),
+                      ),
+                      ButtonSegment(
+                        value: 'OTHER',
+                        label: Text(l10n.otherCategory),
+                      ),
+                    ],
+                    selected: {category},
+                    onSelectionChanged: (s) {
+                      setLocal(() => category = s.first);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: labelCtrl,
+                    maxLength: 80,
+                    decoration: InputDecoration(
+                      hintText: l10n.labelHint,
+                      filled: true,
+                      fillColor: AppTheme.gate2InputFill,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                  ),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.gate2ButtonOlive,
+                    foregroundColor: AppTheme.backgroundWhite,
+                  ),
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (saved != true || !mounted) {
+      labelCtrl.dispose();
+      return;
+    }
+
+    final ok = await _controller.updateDevicePresentation(
+      deviceId: device.deviceId,
+      deviceCategory: category,
+      userLabel: labelCtrl.text,
+    );
+    labelCtrl.dispose();
+    if (!mounted) return;
+    setState(() {});
+    final messenger = ScaffoldMessenger.of(context);
+    if (ok) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.presentationUpdated)));
+    } else if (_controller.errorMessage != null) {
+      messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
+    }
+  }
+}
+
+class _DeviceGroup {
+  final String title;
+  final List<DevicePublicInfo> devices;
+
+  const _DeviceGroup({
+    required this.title,
+    required this.devices,
+  });
 }

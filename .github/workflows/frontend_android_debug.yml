@@ -1,21 +1,49 @@
 name: Frontend Android Debug APK
 
+# Canonical physical real-Firebase debug APK authority for sedi-frontend.
+# Fail-closed: placeholder google-services.json.ci is NEVER accepted here.
+
 on:
   push:
     branches:
       - main
+      - feature/**
   workflow_dispatch:
 
 jobs:
   build-debug-apk:
-    name: Build Debug APK
+    name: Build Canonical Real-Firebase Debug APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Provide real google-services.json from secret
+      - name: Canonical frontend + API + graph preflight
+        run: |
+          set -euo pipefail
+          echo "CANONICAL_FRONTEND=YES"
+          test -f lib/features/intro/presentation/pages/intro_page.dart
+          test -f lib/features/auth_otp/presentation/pages/otp_login_page.dart
+          test -f lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart
+          test -f lib/core/navigation/app_gate_router.dart
+          test -f lib/core/navigation/session_gate_resolver.dart
+          test -f lib/features/notifications/presentation/pages/notification_inbox_page.dart
+          test ! -f lib/features/chat/presentation/pages/chat_page.dart
+          test ! -d lib/features/notification
+          grep -q 'https://api.sedi-ai.com' lib/core/config/app_config.dart
+          grep -q 'applicationId "com.sedi.app"' android/app/build.gradle
+          ROW=lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart
+          grep -q 'Profile | Lifestyle | Gadgets | Smart Notifications' "$ROW"
+          GATE3=lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart
+          grep -q 'NotificationInboxPage' "$GATE3"
+          ! grep -q 'ChatPage' "$GATE3"
+          echo "A1_A2_A3_GRAPH=PASS"
+          echo "API_BASE=https://api.sedi-ai.com"
+          echo "ANDROID_PACKAGE=com.sedi.app"
+          echo "LEGACY_CHAT_ROUTE=ABSENT"
+
+      - name: Provide real google-services.json from secret (fail-closed)
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
@@ -35,13 +63,24 @@ jobs:
             echo "FAIL: google-services.json missing project_id"
             exit 1
           fi
-          PROJECT_ID=$(python3 -c "import json; print(json.load(open('android/app/google-services.json')).get('project_info',{}).get('project_id',''))")
+          PROJECT_ID=$(python3 -c "import json; print(json.load(open('$GS')).get('project_info',{}).get('project_id',''))")
+          PACKAGE_NAME=$(python3 -c "import json; c=json.load(open('$GS')).get('client',[{}])[0]; print(c.get('client_info',{}).get('android_client_info',{}).get('package_name',''))")
           echo "REAL_GOOGLE_SERVICES_CONFIG_USED=YES"
           echo "GOOGLE_SERVICES_PROJECT_ID=${PROJECT_ID}"
-          if [ "$PROJECT_ID" = "sedi-ci-placeholder" ] || [ -z "$PROJECT_ID" ]; then
+          echo "ANDROID_PACKAGE_FROM_GOOGLE_SERVICES=${PACKAGE_NAME}"
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "sedi-ci-placeholder" ]; then
             echo "FAIL: invalid google-services project_id"
             exit 1
           fi
+          if [ "$PROJECT_ID" != "sedi-b0f08" ]; then
+            echo "FAIL: project_id must be sedi-b0f08 (got ${PROJECT_ID})"
+            exit 1
+          fi
+          if [ "$PACKAGE_NAME" != "com.sedi.app" ]; then
+            echo "FAIL: package_name must be com.sedi.app (got ${PACKAGE_NAME})"
+            exit 1
+          fi
+          echo "PLACEHOLDER_PHYSICAL_BUILD_ALLOWED=NO"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -60,7 +99,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
           restore-keys: |
             pub-${{ runner.os }}-
 
@@ -77,16 +116,82 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Flutter analyze
-        run: flutter analyze
-        continue-on-error: true
+      - name: Flutter analyze (fail on errors only; C1 legacy warnings non-blocking)
+        run: |
+          set +e
+          flutter analyze > analyze_out.txt 2>&1
+          status=$?
+          cat analyze_out.txt
+          if grep -E "error •" analyze_out.txt; then
+            echo "Analyzer reported errors"
+            exit 1
+          fi
+          echo "No analyzer errors (warnings/infos non-blocking for this Gate)"
+          exit 0
+
+      - name: Targeted Android network-security canonicalization tests
+        run: flutter test test/android_network_security_canonical_test.dart
+
+      - name: Targeted A3 authority foundation tests
+        run: flutter test test/a3_authority_foundation_test.dart
+
+      - name: Targeted A3 phone-change tests
+        run: flutter test test/a3_phone_change_otp_test.dart
+
+      - name: Targeted A3 SELF/OTHER subject authority tests
+        run: flutter test test/a3_self_other_subject_authority_test.dart
+
+      - name: Targeted A3 single-page profile tests
+        run: flutter test test/a3_single_page_profile_test.dart
+
+      - name: Targeted R3 canonical structure and legacy quarantine tests
+        run: flutter test test/r3_canonical_structure_legacy_quarantine_test.dart
+
+      - name: Targeted R1 session identity and empty-state tests
+        run: |
+          flutter test \
+            test/r1_session_identity_empty_state_test.dart \
+            test/session_gate_resolver_test.dart \
+            test/gate3_localization_test.dart
+
+      - name: Targeted A3 lifestyle hub tests
+        run: |
+          flutter test \
+            test/a3_lifestyle_hub_minimal_test.dart \
+            test/a3_shared_back_navigation_test.dart \
+            test/r2_lifestyle_authority_alignment_test.dart \
+            test/lifestyle_hr_device_reported_render_test.dart
+
+      - name: Targeted A3 FE1 Smart Notifications icon/badge/inbox tests
+        run: |
+          flutter test \
+            test/a3_fe1_icon_badge_inbox_test.dart \
+            test/a3_g1_inbox_wiring_test.dart \
+            test/notification_sync_and_badge_test.dart
+
+      - name: Targeted A2 functional alignment tests
+        run: |
+          flutter test \
+            test/sedi_locale_foundation_test.dart \
+            test/a2_stable_enable_test.dart \
+            test/a2_phone_e164_test.dart \
+            test/a2_ui_functional_alignment_test.dart \
+            test/gate2_post_otp_safe_router_test.dart \
+            test/gate2_otp_input_helper_test.dart
+
+      - name: Targeted G2 Gadgets contract tests
+        run: |
+          flutter test \
+            test/device_dto_test.dart \
+            test/devices_controller_actions_test.dart \
+            test/devices_g2_contract_test.dart
 
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Upload debug APK artifact
+      - name: Upload canonical real-Firebase debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sedi-android-debug-apk
+          name: sedi-canonical-real-firebase-debug-apk-${{ github.sha }}
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error

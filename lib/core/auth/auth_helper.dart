@@ -1,8 +1,14 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 
 import '../../data/repositories/notification_repository.dart';
+import '../health_subject/sedi_health_subject_controller.dart';
+import '../navigation/app_gate_router.dart';
+import '../navigation/app_navigator.dart';
 import '../utils/user_profile_manager.dart';
 import 'auth_service.dart';
+import 'auth_session_manager.dart';
+import 'user_identity_service.dart';
 
 /// راهنمای استفاده از سرویس احراز هویت
 ///
@@ -27,10 +33,10 @@ import 'auth_service.dart';
 /// ```
 
 class AuthHelper {
-  /// Performs full logout: unregisters FCM token (best-effort), then clears session.
-  /// Call before navigating to onboarding/login. Best-effort: unregister errors are ignored.
-  /// Manual test: call performLogout() from a logout button; verify POST /notifications/push/unregister.
-  static Future<bool> performLogout() async {
+  /// Performs full logout: revoke refresh, unregister FCM, clear session, navigate to login.
+  static Future<bool> performLogout({BuildContext? context}) async {
+    await AuthSessionManager.revokeRefreshOnServer();
+
     final profile = await UserProfileManager.loadProfile();
     final userId = profile.userId;
 
@@ -48,6 +54,13 @@ class AuthHelper {
 
     await AuthService.clearUserData();
     await UserProfileManager.clearProfile();
+    UserIdentityService.clearCache();
+    SediHealthSubjectController.instance.clearSessionState();
+
+    final navContext = context ?? navigatorKey.currentContext;
+    if (navContext != null && navContext.mounted) {
+      AppGateRouter.goToLogin(navContext);
+    }
     return true;
   }
   /// تنظیم توکن از یک endpoint لاگین (در صورت نیاز)
