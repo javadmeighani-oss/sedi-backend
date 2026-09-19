@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/locale/sedi_locale_controller.dart';
 import 'core/locale/sedi_locale_registry.dart';
@@ -8,6 +9,14 @@ import 'features/intro/presentation/pages/intro_page.dart';
 
 class SediApp extends StatefulWidget {
   const SediApp({super.key});
+
+  /// Single root localization authority — used by production MaterialApp and
+  /// production-root regression tests (do not fork feature-local delegates).
+  static const List<LocalizationsDelegate<dynamic>> localizationDelegates = [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ];
 
   @override
   State<SediApp> createState() => _SediAppState();
@@ -46,6 +55,7 @@ class _SediAppState extends State<SediApp> {
       debugShowCheckedModeBanner: false,
       locale: descriptor.locale,
       supportedLocales: SediLocaleRegistry.supportedLocales,
+      localizationsDelegates: SediApp.localizationDelegates,
 
       // ===============================
       // Theme (Single Source of Truth)

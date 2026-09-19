@@ -14,24 +14,28 @@ import '../../../../services/push/push_service.dart';
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
 
+  /// Approved A1 intro duration (~3 seconds).
+  static const Duration kIntroDuration = Duration(milliseconds: 3000);
+
+  /// Canonical horizon / cosmic sunrise background asset.
+  static const String kHorizonAsset =
+      'assets/images/cosmic_sunrise_background.png';
+
+  /// Final rendered logo size — approved +15% contract (204.24).
+  static const double kFinalLogoSize = 204.24;
+
   @override
   State<IntroPage> createState() => _IntroPageState();
 }
 
 class _IntroPageState extends State<IntroPage>
     with SingleTickerProviderStateMixin {
-  /// Intended intro duration ≈ 2.5 seconds (frames 1 → 3).
-  static const Duration kIntroDuration = Duration(milliseconds: 2500);
-
   static const String _logoAsset = 'assets/images/sedi_logo_1024.png';
   static const String _logoFallbackAsset = 'assets/images/sedi_logo_white.png';
-  static const double _finalLogoSize = 204.24;
 
   late final AnimationController _masterController;
   late final Animation<double> _scaleAnimation;
   late final Animation<double> _fadeAnimation;
-  late final Animation<double> _riseAnimation;
-  late final Animation<double> _glowAnimation;
 
   late final Future<SessionResolveResult> _sessionFuture;
   late final Future<bool> _healthFuture;
@@ -49,84 +53,23 @@ class _IntroPageState extends State<IntroPage>
 
     _masterController = AnimationController(
       vsync: this,
-      duration: kIntroDuration,
+      duration: IntroPage.kIntroDuration,
     );
 
-    // Phase 1 (0–700ms): tiny / faint near horizon
-    // Phase 2 (700–1600ms): emerge upward, scale + opacity
-    // Phase 3 (1600–2500ms): stable born presentation
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.12, end: 0.22)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 28,
+    // Uniform linear growth — no pulse, heartbeat, bounce, or breathing loop.
+    _scaleAnimation = Tween<double>(begin: 0.28, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _masterController,
+        curve: Curves.linear,
       ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.22, end: 0.85)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 36,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.85, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 36,
-      ),
-    ]).animate(_masterController);
+    );
 
-    _fadeAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.08, end: 0.28)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 28,
+    _fadeAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _masterController,
+        curve: const Interval(0.0, 0.28, curve: Curves.easeOut),
       ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.28, end: 0.92)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 36,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.92, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 36,
-      ),
-    ]).animate(_masterController);
-
-    // Rise from horizon: positive dy early → settle near center-upper.
-    _riseAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.22, end: 0.18)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 28,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.18, end: -0.06)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 36,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: -0.06, end: -0.10)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 36,
-      ),
-    ]).animate(_masterController);
-
-    _glowAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.25, end: 0.45)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 28,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.45, end: 0.85)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 36,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.85, end: 0.70)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 36,
-      ),
-    ]).animate(_masterController);
+    );
 
     _masterController.forward();
     _awaitIntroThenRoute();
@@ -134,7 +77,7 @@ class _IntroPageState extends State<IntroPage>
 
   Future<void> _awaitIntroThenRoute() async {
     // Animation duration and startup futures already kicked off in initState.
-    await Future<void>.delayed(kIntroDuration);
+    await Future<void>.delayed(IntroPage.kIntroDuration);
     final session = await _sessionFuture;
     final healthy = await _healthFuture;
 
@@ -178,8 +121,6 @@ class _IntroPageState extends State<IntroPage>
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: AppTheme.introNightSky,
       body: AnimatedBuilder(
@@ -188,81 +129,52 @@ class _IntroPageState extends State<IntroPage>
           return Stack(
             fit: StackFit.expand,
             children: [
-              // Night sky → horizon glow atmosphere (AppTheme only).
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppTheme.introNightSky,
-                      Color.lerp(
-                        AppTheme.introAtmosphere,
-                        AppTheme.introHorizonGlow,
-                        _glowAnimation.value * 0.55,
-                      )!,
-                      Color.lerp(
-                        AppTheme.introHorizonGlow,
-                        AppTheme.introEmergenceAccent,
-                        _glowAnimation.value * 0.35,
-                      )!,
-                    ],
-                    stops: const [0.0, 0.58, 1.0],
-                  ),
-                ),
-              ),
-              // Soft horizon bloom.
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Opacity(
-                  opacity: _glowAnimation.value.clamp(0.0, 1.0),
-                  child: Container(
-                    height: height * 0.42,
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: const Alignment(0, 0.85),
-                        radius: 1.15,
-                        colors: [
-                          AppTheme.introEmergenceAccent
-                              .withOpacity(0.35 * _glowAnimation.value),
-                          AppTheme.introHorizonGlow
-                              .withOpacity(0.18 * _glowAnimation.value),
-                          AppTheme.introNightSky.withOpacity(0.0),
-                        ],
+              Positioned.fill(
+                child: Image.asset(
+                  IntroPage.kHorizonAsset,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF0A0E14),
+                            Color(0xFF1A2332),
+                            Color(0xFF3D5A40),
+                          ],
+                          stops: [0.0, 0.55, 1.0],
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
-              // Sedi emergence from horizon.
               SafeArea(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Transform.translate(
-                    offset: Offset(0, height * _riseAnimation.value),
-                    child: Opacity(
-                      opacity: _fadeAnimation.value.clamp(0.0, 1.0),
-                      child: Transform.scale(
-                        scale: _scaleAnimation.value,
-                        child: ColorFiltered(
-                          colorFilter: const ColorFilter.mode(
-                            AppTheme.introLogoEmphasis,
-                            BlendMode.srcIn,
-                          ),
-                          child: Image.asset(
-                            _logoAsset,
-                            width: _finalLogoSize,
-                            height: _finalLogoSize,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                _logoFallbackAsset,
-                                width: _finalLogoSize,
-                                height: _finalLogoSize,
-                                fit: BoxFit.contain,
-                              );
-                            },
-                          ),
+                child: Center(
+                  child: Opacity(
+                    opacity: _fadeAnimation.value.clamp(0.0, 1.0),
+                    child: Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: ColorFiltered(
+                        colorFilter: const ColorFilter.mode(
+                          AppTheme.introLogoEmphasis,
+                          BlendMode.srcIn,
+                        ),
+                        child: Image.asset(
+                          _logoAsset,
+                          width: IntroPage.kFinalLogoSize,
+                          height: IntroPage.kFinalLogoSize,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              _logoFallbackAsset,
+                              width: IntroPage.kFinalLogoSize,
+                              height: IntroPage.kFinalLogoSize,
+                              fit: BoxFit.contain,
+                            );
+                          },
                         ),
                       ),
                     ),

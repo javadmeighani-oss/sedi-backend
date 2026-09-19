@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/app.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
+import 'package:sedi_app/core/locale/sedi_locale_registry.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_language_sync.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_otp_error_mapper.dart';
@@ -9,6 +11,7 @@ import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_safe_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/otp_login_localization.dart';
+import 'package:sedi_app/features/auth_otp/presentation/pages/otp_login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -232,6 +235,99 @@ void main() {
       expect(backend, Gate2PostOtpAction.enterGate3);
     });
   });
+
+  group('A2 production-root MaterialLocalizations (SediApp delegates)', () {
+    testWidgets('SediApp exposes Global Material/Widgets/Cupertino delegates',
+        (tester) async {
+      await tester.pumpWidget(const SediApp());
+      await tester.pump();
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.localizationsDelegates, isNotNull);
+      final delegates = app.localizationsDelegates!.toList();
+      expect(delegates, containsAll(SediApp.localizationDelegates));
+      expect(app.supportedLocales, SediLocaleRegistry.supportedLocales);
+      // Flush IntroPage timers.
+      await tester.pump(const Duration(milliseconds: 4000));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+
+    testWidgets('FA returning TextField has MaterialLocalizations via SediApp',
+        (tester) async {
+      await _pumpOtpReturningWithRootLocale(tester, langCode: 'fa');
+      expect(find.byType(TextFormField), findsWidgets);
+      expect(tester.takeException(), isNull);
+      expect(
+        Localizations.localeOf(tester.element(find.byType(OtpLoginPage))),
+        const Locale('fa'),
+      );
+    });
+
+    testWidgets('AR returning TextField has MaterialLocalizations via SediApp',
+        (tester) async {
+      await _pumpOtpReturningWithRootLocale(tester, langCode: 'ar');
+      expect(find.byType(TextFormField), findsWidgets);
+      expect(tester.takeException(), isNull);
+      expect(
+        Localizations.localeOf(tester.element(find.byType(OtpLoginPage))),
+        const Locale('ar'),
+      );
+    });
+
+    testWidgets('EN returning TextField runtime remains valid via SediApp',
+        (tester) async {
+      await _pumpOtpReturningWithRootLocale(tester, langCode: 'en');
+      expect(find.byType(TextFormField), findsWidgets);
+      expect(tester.takeException(), isNull);
+      expect(
+        Localizations.localeOf(tester.element(find.byType(OtpLoginPage))),
+        const Locale('en'),
+      );
+    });
+  });
+}
+
+/// Production-root locale + delegates from [SediApp], home = [OtpLoginPage].
+Future<void> _pumpOtpReturningWithRootLocale(
+  WidgetTester tester, {
+  required String langCode,
+}) async {
+  await SediLocaleController.instance.setRuntimeLocale(
+    langCode,
+    persistBootstrapCache: false,
+  );
+
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: SediLocaleController.instance.current.locale,
+      supportedLocales: SediLocaleRegistry.supportedLocales,
+      localizationsDelegates: SediApp.localizationDelegates,
+      builder: (context, child) => Directionality(
+        textDirection: SediLocaleController.instance.current.textDirection,
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: const OtpLoginPage(),
+    ),
+  );
+  await tester.pump();
+
+  final langLabel = switch (langCode) {
+    'fa' => 'فارسی',
+    'ar' => 'العربية',
+    _ => 'English',
+  };
+  await tester.tap(find.text(langLabel));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 320));
+  final l10n = OtpLoginLocalization(langCode);
+  await tester.tap(find.text(l10n.confirm));
+  await tester.pumpAndSettle();
+
+  await tester.tap(find.text(l10n.haveAccountTitle));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 320));
+  await tester.tap(find.text(l10n.confirm));
+  await tester.pumpAndSettle();
 }
 
 /// Minimal A2 language-step probe matching production behavior:

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -186,15 +188,45 @@ void main() {
   });
 
   group('A1 intro', () {
-    testWidgets('IntroPage appears on app open', (tester) async {
+    test('approved visual contract constants', () {
+      expect(IntroPage.kIntroDuration, const Duration(milliseconds: 3000));
+      expect(IntroPage.kFinalLogoSize, 204.24);
+      expect(
+        IntroPage.kHorizonAsset,
+        'assets/images/cosmic_sunrise_background.png',
+      );
+    });
+
+    test('horizon asset recovered on disk and wired in IntroPage source', () {
+      final src = File(
+        'lib/features/intro/presentation/pages/intro_page.dart',
+      ).readAsStringSync();
+      expect(src.contains('cosmic_sunrise_background.png'), isTrue);
+      expect(src.contains('Curves.linear'), isTrue);
+      expect(src.contains('TweenSequence'), isFalse);
+      expect(
+        File('assets/images/cosmic_sunrise_background.png').existsSync(),
+        isTrue,
+      );
+    });
+
+    testWidgets('IntroPage appears on app open with horizon Image.asset',
+        (tester) async {
       await tester.pumpWidget(const MaterialApp(home: IntroPage()));
       expect(find.byType(IntroPage), findsOneWidget);
       expect(find.byType(Image), findsWidgets);
-      // Advance partially through the 2.5s birth animation.
+      final images = tester.widgetList<Image>(find.byType(Image)).toList();
+      final usesHorizon = images.any((img) {
+        final provider = img.image;
+        return provider is AssetImage &&
+            provider.assetName == IntroPage.kHorizonAsset;
+      });
+      expect(usesHorizon, isTrue);
+      // Advance partially through the 3s birth animation.
       await tester.pump(const Duration(milliseconds: 800));
       expect(find.byType(IntroPage), findsOneWidget);
       // Flush remaining intro / health timers before dispose.
-      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pump(const Duration(milliseconds: 4000));
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     });
