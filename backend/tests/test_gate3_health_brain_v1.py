@@ -103,6 +103,8 @@ def test_brain_safety_validator_fallback():
 def test_brain_appends_care_context_for_medical_intent(db, monkeypatch):
     from backend.app.models import User
 
+    # Clear any aborted transaction left by prior suite noise.
+    db.rollback()
     user = User(phone="+989143005099", secret_key="<otp>", created_at=datetime.utcnow())
     db.add(user)
     db.flush()
