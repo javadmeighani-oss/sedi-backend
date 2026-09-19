@@ -1,5 +1,8 @@
 name: Frontend Android Debug APK
 
+# Canonical physical real-Firebase debug APK authority for sedi-frontend.
+# Fail-closed: placeholder google-services.json.ci is NEVER accepted here.
+
 on:
   push:
     branches:
@@ -9,32 +12,75 @@ on:
 
 jobs:
   build-debug-apk:
-    name: Build Debug APK
+    name: Build Canonical Real-Firebase Debug APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Provide google-services.json for build
+      - name: Canonical frontend + API + graph preflight
+        run: |
+          set -euo pipefail
+          echo "CANONICAL_FRONTEND=YES"
+          test -f lib/features/intro/presentation/pages/intro_page.dart
+          test -f lib/features/auth_otp/presentation/pages/otp_login_page.dart
+          test -f lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart
+          test -f lib/core/navigation/app_gate_router.dart
+          test -f lib/core/navigation/session_gate_resolver.dart
+          test -f lib/features/notifications/presentation/pages/notification_inbox_page.dart
+          test ! -f lib/features/chat/presentation/pages/chat_page.dart
+          test ! -d lib/features/notification
+          grep -q 'https://api.sedi-ai.com' lib/core/config/app_config.dart
+          grep -q 'applicationId "com.sedi.app"' android/app/build.gradle
+          ROW=lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart
+          grep -q 'Profile | Lifestyle | Gadgets | Smart Notifications' "$ROW"
+          GATE3=lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart
+          grep -q 'NotificationInboxPage' "$GATE3"
+          ! grep -q 'ChatPage' "$GATE3"
+          echo "A1_A2_A3_GRAPH=PASS"
+          echo "API_BASE=https://api.sedi-ai.com"
+          echo "ANDROID_PACKAGE=com.sedi.app"
+          echo "LEGACY_CHAT_ROUTE=ABSENT"
+
+      - name: Provide real google-services.json from secret (fail-closed)
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -euo pipefail
-          DIR="$GITHUB_WORKSPACE/android/app"
-          GS="$DIR/google-services.json"
-          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
-            printf '%s\n' "$GOOGLE_SERVICES_JSON" > "$GS"
-            echo "Using google-services.json from repository secret."
-          elif [ -f "$DIR/google-services.json.ci" ]; then
-            cp "$DIR/google-services.json.ci" "$GS"
-            echo "Using CI placeholder google-services.json."
-          else
-            echo "Missing google-services.json.ci — cannot build Android."
+          GS="android/app/google-services.json"
+          mkdir -p "$(dirname "$GS")"
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            echo "FAIL: GOOGLE_SERVICES_JSON repository secret is missing/empty"
             exit 1
           fi
-          python3 -c "import json; json.load(open('$GS'))"
-          echo "google-services.json JSON parse OK"
+          printf '%s\n' "$GOOGLE_SERVICES_JSON" > "$GS"
+          if grep -q "sedi-ci-placeholder" "$GS"; then
+            echo "FAIL: placeholder sedi-ci-placeholder detected; real Firebase config required"
+            exit 1
+          fi
+          if ! grep -q '"project_id"' "$GS"; then
+            echo "FAIL: google-services.json missing project_id"
+            exit 1
+          fi
+          PROJECT_ID=$(python3 -c "import json; print(json.load(open('$GS')).get('project_info',{}).get('project_id',''))")
+          PACKAGE_NAME=$(python3 -c "import json; c=json.load(open('$GS')).get('client',[{}])[0]; print(c.get('client_info',{}).get('android_client_info',{}).get('package_name',''))")
+          echo "REAL_GOOGLE_SERVICES_CONFIG_USED=YES"
+          echo "GOOGLE_SERVICES_PROJECT_ID=${PROJECT_ID}"
+          echo "ANDROID_PACKAGE_FROM_GOOGLE_SERVICES=${PACKAGE_NAME}"
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "sedi-ci-placeholder" ]; then
+            echo "FAIL: invalid google-services project_id"
+            exit 1
+          fi
+          if [ "$PROJECT_ID" != "sedi-b0f08" ]; then
+            echo "FAIL: project_id must be sedi-b0f08 (got ${PROJECT_ID})"
+            exit 1
+          fi
+          if [ "$PACKAGE_NAME" != "com.sedi.app" ]; then
+            echo "FAIL: package_name must be com.sedi.app (got ${PACKAGE_NAME})"
+            exit 1
+          fi
+          echo "PLACEHOLDER_PHYSICAL_BUILD_ALLOWED=NO"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -140,9 +186,9 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Upload debug APK artifact
+      - name: Upload canonical real-Firebase debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sedi-android-debug-apk
+          name: sedi-canonical-real-firebase-debug-apk-${{ github.sha }}
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
