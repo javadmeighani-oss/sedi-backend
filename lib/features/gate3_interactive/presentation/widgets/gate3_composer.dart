@@ -133,14 +133,14 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           hintText: widget.placeholder,
           hintStyle: const TextStyle(
             color: AppTheme.textSecondary,
-            fontSize: 16,
+            fontSize: 12.8,
             height: 1.35,
           ),
           alignLabelWithHint: true,
         ),
         style: const TextStyle(
           color: AppTheme.textPrimary,
-          fontSize: 16,
+          fontSize: 16.2,
           height: 1.35,
         ),
         onSubmitted: (_) => _send(),
@@ -182,12 +182,6 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         children: [
           Gate3ComposerActionButton(
             icon: Icons.add_rounded,
-            onTap: widget.isRecording ? null : _openAttachmentMenu,
-          ),
-          const SizedBox(width: 6),
-          Gate3ComposerActionButton(
-            icon: Icons.image_outlined,
-            iconSize: 20,
             onTap: widget.isRecording ? null : _openAttachmentMenu,
           ),
           const Spacer(),

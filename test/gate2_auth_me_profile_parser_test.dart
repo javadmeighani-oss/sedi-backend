@@ -148,7 +148,7 @@ void main() {
         me: profile!,
         registrationDraftComplete: false,
       );
-      expect(returningAction, Gate2PostOtpAction.showProfileCorrectionReturning);
+      expect(returningAction, Gate2PostOtpAction.enterGate3);
 
       final newUserAction = Gate2PostOtpRouter.decide(
         isNewUserPath: true,

@@ -193,6 +193,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   Gate3InteractionState _orbState() {
+    if (_controller.isSpeaking) return Gate3InteractionState.speaking;
     if (_controller.isThinking) return Gate3InteractionState.thinking;
     if (_controller.isRecording || _composerListening) {
       return Gate3InteractionState.listening;
@@ -219,7 +220,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         _handleBackPress();
       },
       child: Scaffold(
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Directionality(
@@ -244,7 +245,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     onNotifications: _openNotificationsInbox,
                   ),
                 ),
-                Gate3SubjectSelector(l10n: l10n),
+                Offstage(
+                  offstage: true,
+                  child: Gate3SubjectSelector(l10n: l10n),
+                ),
                 const SizedBox(height: 4),
                 SediBrainOrb(
                   state: _orbState(),
@@ -257,7 +261,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.55),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(26),
                         border: Border.all(
                           color: AppTheme.borderInactive.withOpacity(0.22),

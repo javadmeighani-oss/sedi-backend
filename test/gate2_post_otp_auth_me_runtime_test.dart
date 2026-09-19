@@ -147,7 +147,7 @@ void main() {
         me: result.profile!,
         registrationDraftComplete: false,
       );
-      expect(returning, Gate2PostOtpAction.showProfileCorrectionReturning);
+      expect(returning, Gate2PostOtpAction.enterGate3);
     });
 
     test('7. 401/403 shows auth failure not parse failure', () {

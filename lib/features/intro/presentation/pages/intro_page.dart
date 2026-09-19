@@ -21,8 +21,16 @@ class IntroPage extends StatefulWidget {
   static const String kHorizonAsset =
       'assets/images/cosmic_sunrise_background.png';
 
-  /// Final rendered logo size — approved +15% contract (204.24).
-  static const double kFinalLogoSize = 204.24;
+  /// LATIN brand lock for A1 (never localized).
+  static const String kBrandLatin = 'Sedi.';
+
+  /// Normalized keyframes: t, centerY (fraction of H), brandWidth (fraction of W).
+  /// centerX is always 0.50W.
+  static const List<(double t, double cy, double bw)> kMotionKeyframes = [
+    (0.00, 0.79, 0.05),
+    (0.50, 0.52, 0.24),
+    (1.00, 0.27, 0.52),
+  ];
 
   @override
   State<IntroPage> createState() => _IntroPageState();
@@ -30,12 +38,7 @@ class IntroPage extends StatefulWidget {
 
 class _IntroPageState extends State<IntroPage>
     with SingleTickerProviderStateMixin {
-  static const String _logoAsset = 'assets/images/sedi_logo_1024.png';
-  static const String _logoFallbackAsset = 'assets/images/sedi_logo_white.png';
-
   late final AnimationController _masterController;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _fadeAnimation;
 
   late final Future<SessionResolveResult> _sessionFuture;
   late final Future<bool> _healthFuture;
@@ -47,36 +50,37 @@ class _IntroPageState extends State<IntroPage>
   void initState() {
     super.initState();
 
-    // Startup work in parallel with animation (does not block first paint).
     _sessionFuture = SessionGateResolver.resolveColdStart();
     _healthFuture = BackendAvailability.probeHealthz();
 
     _masterController = AnimationController(
       vsync: this,
       duration: IntroPage.kIntroDuration,
-    );
+    )..forward();
 
-    // Uniform linear growth — no pulse, heartbeat, bounce, or breathing loop.
-    _scaleAnimation = Tween<double>(begin: 0.28, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _masterController,
-        curve: Curves.linear,
-      ),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _masterController,
-        curve: const Interval(0.0, 0.28, curve: Curves.easeOut),
-      ),
-    );
-
-    _masterController.forward();
     _awaitIntroThenRoute();
   }
 
+  /// Deterministic piecewise-linear interpolation across the 3 keyframes.
+  static (double cy, double bw) sampleMotion(double t) {
+    final frames = IntroPage.kMotionKeyframes;
+    final clamped = t.clamp(0.0, 1.0);
+    for (var i = 0; i < frames.length - 1; i++) {
+      final a = frames[i];
+      final b = frames[i + 1];
+      if (clamped <= b.$1 || i == frames.length - 2) {
+        final span = (b.$1 - a.$1).clamp(1e-9, 1.0);
+        final u = ((clamped - a.$1) / span).clamp(0.0, 1.0);
+        return (
+          a.$2 + (b.$2 - a.$2) * u,
+          a.$3 + (b.$3 - a.$3) * u,
+        );
+      }
+    }
+    return (frames.last.$2, frames.last.$3);
+  }
+
   Future<void> _awaitIntroThenRoute() async {
-    // Animation duration and startup futures already kicked off in initState.
     await Future<void>.delayed(IntroPage.kIntroDuration);
     final session = await _sessionFuture;
     final healthy = await _healthFuture;
@@ -89,7 +93,6 @@ class _IntroPageState extends State<IntroPage>
           session.status == SessionResolveStatus.backendUnavailable;
     });
 
-    // Brief controlled hint when backend unavailable (does not claim auth).
     if (_showAvailabilityHint) {
       await Future<void>.delayed(const Duration(milliseconds: 450));
       if (!mounted) return;
@@ -121,11 +124,21 @@ class _IntroPageState extends State<IntroPage>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: AppTheme.introNightSky,
       body: AnimatedBuilder(
         animation: _masterController,
         builder: (context, _) {
+          final sample = sampleMotion(_masterController.value);
+          final brandW = size.width * sample.$2;
+          // Keep aspect for "Sedi." wordmark roughly 1025:317
+          final brandH = brandW * (317 / 1025);
+          final centerY = size.height * sample.$1;
+          final left = size.width * 0.5 - brandW / 2;
+          final top = centerY - brandH / 2;
+
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -151,32 +164,22 @@ class _IntroPageState extends State<IntroPage>
                   },
                 ),
               ),
-              SafeArea(
-                child: Center(
-                  child: Opacity(
-                    opacity: _fadeAnimation.value.clamp(0.0, 1.0),
-                    child: Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: ColorFiltered(
-                        colorFilter: const ColorFilter.mode(
-                          AppTheme.introLogoEmphasis,
-                          BlendMode.srcIn,
-                        ),
-                        child: Image.asset(
-                          _logoAsset,
-                          width: IntroPage.kFinalLogoSize,
-                          height: IntroPage.kFinalLogoSize,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              _logoFallbackAsset,
-                              width: IntroPage.kFinalLogoSize,
-                              height: IntroPage.kFinalLogoSize,
-                              fit: BoxFit.contain,
-                            );
-                          },
-                        ),
-                      ),
+              Positioned(
+                left: left,
+                top: top,
+                width: brandW,
+                height: brandH,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Text(
+                    IntroPage.kBrandLatin,
+                    textDirection: TextDirection.ltr,
+                    style: const TextStyle(
+                      color: AppTheme.introLogoEmphasis,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 120,
+                      height: 1.0,
+                      letterSpacing: -1.2,
                     ),
                   ),
                 ),

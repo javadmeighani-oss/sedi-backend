@@ -32,6 +32,7 @@ class ChatController extends ChangeNotifier {
   // ===============================
 
   bool isThinking = false;
+  bool isSpeaking = false;
   bool isAlert = false;
 
   // ===============================
@@ -186,6 +187,7 @@ class ChatController extends ChangeNotifier {
       ),
     );
     isThinking = true;
+    isSpeaking = false;
     notifyListeners();
 
     final streamLocalId = 'sedi-stream-$localId';
@@ -200,6 +202,8 @@ class ChatController extends ChangeNotifier {
         onDelta: (delta) {
           if (!streamStarted) {
             streamStarted = true;
+            isThinking = false;
+            isSpeaking = true;
             messages.add(
               ChatMessage.assistant(text: delta, localId: streamLocalId),
             );
@@ -213,7 +217,6 @@ class ChatController extends ChangeNotifier {
               );
             }
           }
-          isThinking = false;
           notifyListeners();
         },
       );
@@ -232,14 +235,17 @@ class ChatController extends ChangeNotifier {
           }
         }
         isThinking = false;
+        isSpeaking = false;
         notifyListeners();
         return;
       }
     } catch (e) {
+      isSpeaking = false;
       if (kDebugMode) {
         debugPrint('[ChatController] stream failed, JSON fallback: $e');
       }
     }
+    isSpeaking = false;
 
     final response = await _chatService.sendMessage(
       message: trimmed,
@@ -251,6 +257,7 @@ class ChatController extends ChangeNotifier {
     if (!response.ok || response.data == null) {
       _setMessageStatus(localId, ChatMessageStatus.failed);
       isThinking = false;
+      isSpeaking = false;
       notifyListeners();
       return;
     }
@@ -267,6 +274,7 @@ class ChatController extends ChangeNotifier {
 
     _setMessageStatus(localId, ChatMessageStatus.sending);
     isThinking = true;
+    isSpeaking = false;
     notifyListeners();
 
     final response = await _chatService.sendMessage(
@@ -278,6 +286,7 @@ class ChatController extends ChangeNotifier {
     if (!response.ok || response.data == null) {
       _setMessageStatus(localId, ChatMessageStatus.failed);
       isThinking = false;
+      isSpeaking = false;
       notifyListeners();
       return;
     }
@@ -287,6 +296,7 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> _appendAssistantResponse(ChatSendResponse data) async {
+    isSpeaking = false;
     if (data.userId != null && _userProfile.userId == null) {
       _userProfile = _userProfile.copyWith(userId: data.userId);
     }
@@ -321,6 +331,7 @@ class ChatController extends ChangeNotifier {
 
   void _addSediMessage(String text) {
     isThinking = false;
+    isSpeaking = false;
 
     messages.add(
       ChatMessage(

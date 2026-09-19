@@ -43,14 +43,14 @@ void main() {
       );
     });
 
-    test('returning incomplete profile routes to correction', () {
+    test('returning incomplete profile enters Gate 3 after backend GET', () {
       final action = Gate2PostOtpSafeRouter.resolve(
         meSource: PostOtpMeSource.backendConfirmed,
         isNewUserPath: false,
         me: incompleteMe,
         registrationDraftComplete: false,
       );
-      expect(action, Gate2PostOtpAction.showProfileCorrectionReturning);
+      expect(action, Gate2PostOtpAction.enterGate3);
     });
 
     test('new user complete draft PATCHes then requires GET before Gate 3', () {

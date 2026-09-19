@@ -74,7 +74,6 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   @override
   Widget build(BuildContext context) {
     final orbDiameter = SediBrainOrb.size * 0.72;
-    final brand = sediBrandName(widget.lang);
     final brandFontSize = orbDiameter * 0.34;
 
     return SizedBox(
@@ -131,14 +130,17 @@ class _SediBrainOrbState extends State<SediBrainOrb>
                   painter: SediOrbTexturePainter(phase: _controller.value),
                 ),
               ),
-              Text(
-                '$brand.',
-                style: TextStyle(
-                  fontSize: brandFontSize,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF4F5E38),
-                  letterSpacing: -0.6,
-                  height: 1.0,
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(
+                  sediOrbBrandLatin,
+                  style: TextStyle(
+                    fontSize: brandFontSize,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF4F5E38),
+                    letterSpacing: -0.6,
+                    height: 1.0,
+                  ),
                 ),
               ),
             ],

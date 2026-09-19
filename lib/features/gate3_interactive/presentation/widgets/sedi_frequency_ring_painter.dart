@@ -50,16 +50,7 @@ class SediFrequencyRingPainter extends CustomPainter {
   }
 
   static double phaseSpeed(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 1.0;
-      case Gate3InteractionState.listening:
-        return 1.45;
-      case Gate3InteractionState.thinking:
-        return 2.1;
-      case Gate3InteractionState.speaking:
-        return 1.9;
-    }
+    return 0.85;
   }
 
   @override

@@ -31,10 +31,7 @@ class Gate2PostOtpRouter {
       return Gate2PostOtpAction.showRegistrationCompletion;
     }
 
-    if (profileComplete) {
-      return Gate2PostOtpAction.enterGate3;
-    }
-    return Gate2PostOtpAction.showProfileCorrectionReturning;
+    return Gate2PostOtpAction.enterGate3;
   }
 }
 

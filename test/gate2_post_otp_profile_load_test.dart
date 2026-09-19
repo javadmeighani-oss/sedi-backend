@@ -100,7 +100,7 @@ void main() {
         registrationDraftComplete: false,
       );
 
-      expect(action, Gate2PostOtpAction.showProfileCorrectionReturning);
+      expect(action, Gate2PostOtpAction.enterGate3);
       expect(Gate2ProfileRules.isProfileComplete(incomplete), isFalse);
     });
 

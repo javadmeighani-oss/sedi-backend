@@ -45,9 +45,6 @@ class Gate3Localization {
         ar: 'ملخص المستخدم',
       );
 
-  String get logoutSection =>
-      _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
-
   String get userSummaryEmpty => _t(
         en: 'Summary unavailable right now.',
         fa: 'خلاصه در حال حاضر در دسترس نیست.',
@@ -58,6 +55,9 @@ class Gate3Localization {
       _t(en: 'Preferred language', fa: 'زبان ترجیحی', ar: 'اللغة المفضلة');
 
   String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
+
+  String get logoutApp =>
+      _t(en: 'Log out of app', fa: 'خروج از برنامه', ar: 'تسجيل الخروج من التطبيق');
 
   String get profileNameLabel =>
       _t(en: 'Name', fa: 'نام', ar: 'الاسم');

@@ -44,24 +44,24 @@ void main() {
       expect(NotificationsService.parseUnreadCount(resp), 42);
     });
 
-    test('falls back to total then count', () {
+    test('ignores total and count when unread_count missing', () {
       expect(
         NotificationsService.parseUnreadCount({
           'ok': true,
           'data': {'total': 7, 'count': 3, 'notifications': []},
         }),
-        7,
+        0,
       );
       expect(
         NotificationsService.parseUnreadCount({
           'ok': true,
           'data': {'count': 5, 'notifications': []},
         }),
-        5,
+        0,
       );
     });
 
-    test('falls back to notifications length when count missing', () {
+    test('does not derive badge from notifications length', () {
       final resp = {
         'ok': true,
         'data': {
@@ -71,7 +71,7 @@ void main() {
           ],
         },
       };
-      expect(NotificationsService.parseUnreadCount(resp), 2);
+      expect(NotificationsService.parseUnreadCount(resp), 0);
     });
 
     test('returns 0 when not ok', () {

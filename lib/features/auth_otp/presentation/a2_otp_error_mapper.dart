@@ -59,6 +59,10 @@ class A2OtpErrorMapper {
         return l10n.otpExpired;
       case 'TOO_MANY_ATTEMPTS':
         return l10n.tooManyOtp;
+      case 'ACCOUNT_NOT_FOUND':
+        return l10n.accountNotFoundCreateAccount;
+      case 'ACCOUNT_EXISTS':
+        return l10n.accountExistsHaveAccount;
       default:
         if (isRequest && code.toUpperCase().contains('OTP_REQUEST')) {
           return l10n.genericOtpRequestFailed;

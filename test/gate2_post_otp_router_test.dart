@@ -32,14 +32,14 @@ void main() {
       expect(Gate2ProfileRules.isProfileComplete(completeMe), isTrue);
     });
 
-    test('returning incomplete user routes to profile correction', () {
+    test('returning incomplete user still enters Gate 3', () {
       final action = Gate2PostOtpRouter.decide(
         isNewUserPath: false,
         me: incompleteMe,
         registrationDraftComplete: false,
       );
 
-      expect(action, Gate2PostOtpAction.showProfileCorrectionReturning);
+      expect(action, Gate2PostOtpAction.enterGate3);
     });
 
     test('new incomplete user with complete draft PATCHes then enters Gate 3', () {

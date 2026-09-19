@@ -28,21 +28,15 @@ class NotificationsService {
   NotificationsService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  /// Parse unread count from a legacy Map-shaped unread response.
-  /// Authority order: unread_count → total → count → notifications.length.
-  /// Prefer unread_count so page-sized `count` never under-reports badge authority.
+  /// Parse unread count from a legacy Map-shaped response.
+  /// Authority is backend unread_count only; page count/list length are not badges.
   static int parseUnreadCount(Map<String, dynamic> resp) {
     if (resp['ok'] != true) return 0;
     final data = resp['data'] as Map<String, dynamic>?;
     if (data == null) return 0;
     final unread = data['unread_count'];
     if (unread is int) return unread < 0 ? 0 : unread;
-    final total = data['total'];
-    if (total is int) return total < 0 ? 0 : total;
-    final count = data['count'];
-    if (count is int) return count < 0 ? 0 : count;
-    final list = data['notifications'] as List<dynamic>?;
-    return list?.length ?? 0;
+    return 0;
   }
 
   Future<ApiResponse<NotificationsInboxPageResult>> listInboxPage({
@@ -66,10 +60,11 @@ class NotificationsService {
     final queryParams = <String, String>{
       'user_id': userId.toString(),
       'limit': safeLimit.toString(),
+      if (unreadOnly) 'unread_only': 'true',
       if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
     };
 
-    final path = unreadOnly ? '/notifications/unread' : '/notifications/';
+    const path = '/notifications/';
     final response = await _apiClient.get<NotificationListResponseDto>(
       path,
       queryParams: queryParams,
@@ -160,9 +155,9 @@ class NotificationsService {
   }
 
   /// Canonical unread SENT-history count for badge (never invents local authority).
-  /// Uses GET /notifications/unread; prefers payload unread_count.
+  /// Uses GET /notifications/ and trusts backend unread_count only.
   Future<ApiResponse<int>> fetchUnreadCount({int limit = 1}) async {
-    final page = await listInboxPage(unreadOnly: true, limit: limit);
+    final page = await listInboxPage(unreadOnly: false, limit: limit);
     if (!page.ok) {
       return ApiResponse<int>(
         ok: false,
@@ -171,7 +166,7 @@ class NotificationsService {
         statusCode: page.statusCode,
       );
     }
-    final unread = page.data?.unreadCount ?? page.data?.total ?? 0;
+    final unread = page.data?.unreadCount ?? 0;
     return ApiResponse<int>(
       ok: true,
       data: unread < 0 ? 0 : unread,

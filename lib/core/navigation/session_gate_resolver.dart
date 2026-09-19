@@ -6,7 +6,6 @@ import '../health_subject/sedi_health_subject_controller.dart';
 import '../network/api_response.dart';
 import '../utils/user_profile_manager.dart';
 import '../../data/dto/auth/me_profile.dart';
-import '../../data/models/user_profile.dart';
 import 'app_gate.dart';
 
 /// Outcome of cold-start session authority (local profile is cache only).
@@ -78,13 +77,13 @@ class SessionGateResolver {
     var me = await service.fetchMe(recoverSessionOn401: false);
     if (me.ok && me.data != null) {
       await service.cacheProfileFromBackend(me.data!);
-      if (_profileMeetsGateRequirements(await UserProfileManager.loadProfile())) {
+      if (_profileMeetsGateRequirements(me.data!)) {
         return const SessionResolveResult(
           status: SessionResolveStatus.authenticated,
           nextGate: SediAppGate.heart,
         );
       }
-      // Backend responded but profile incomplete — treat as invalid for A3.
+      // Backend responded without session identity authority — treat as invalid.
       return const SessionResolveResult(
         status: SessionResolveStatus.authInvalid,
         nextGate: SediAppGate.login,
@@ -104,8 +103,7 @@ class SessionGateResolver {
       me = await service.fetchMe(recoverSessionOn401: false);
       if (me.ok && me.data != null) {
         await service.cacheProfileFromBackend(me.data!);
-        if (_profileMeetsGateRequirements(
-            await UserProfileManager.loadProfile())) {
+        if (_profileMeetsGateRequirements(me.data!)) {
           return const SessionResolveResult(
             status: SessionResolveStatus.authenticated,
             nextGate: SediAppGate.heart,
@@ -153,10 +151,8 @@ class SessionGateResolver {
     // Avoid navigator side-effects during splash; Intro routes explicitly.
   }
 
-  static bool _profileMeetsGateRequirements(UserProfile profile) {
-    final hasPhone =
-        profile.phoneNumber != null && profile.phoneNumber!.trim().isNotEmpty;
-    final hasUserId = profile.userId != null && profile.userId! > 0;
-    return hasUserId && profile.isVerified && hasPhone;
+  static bool _profileMeetsGateRequirements(MeProfileDto me) {
+    final hasPhone = me.phone != null && me.phone!.trim().isNotEmpty;
+    return me.userId > 0 && hasPhone;
   }
 }

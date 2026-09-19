@@ -13,6 +13,7 @@ import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
+import '../../../../data/dto/auth/otp_request.dart';
 import '../../../../data/dto/auth/otp_verify_response.dart';
 import '../../../../services/push/push_service.dart';
 import '../a2_language_sync.dart';
@@ -378,6 +379,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     setState(() => _isLoading = true);
     final response = await _authOtpService.requestOtp(
       phone: phone,
+      purpose: isNewUser ? OtpPurpose.registration : OtpPurpose.login,
       language: _language ?? 'en',
     );
     if (!mounted) return;
@@ -422,6 +424,9 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     final response = await _authOtpService.verifyOtp(
       phone: _requestedPhone,
       code: code,
+      purpose: _accountChoice == _AccountChoice.newUser
+          ? OtpPurpose.registration
+          : OtpPurpose.login,
       language: _language ?? 'en',
     );
     if (!mounted) return;
@@ -741,16 +746,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
 
     final me = meRes.data!;
-    if (!Gate2ProfileRules.isProfileComplete(me)) {
-      setState(() {
-        _isLoading = false;
-        _verifiedMeProfile = me;
-        _correctionCase = _CorrectionCase.returningProfileIncomplete;
-        _step = _Gate2Step.profileCorrection;
-      });
-      return;
-    }
-
     await _finishWithProfile(me, backendConfirmed: true);
     if (mounted) setState(() => _isLoading = false);
   }

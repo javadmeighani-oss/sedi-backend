@@ -13,9 +13,10 @@ class AuthOtpService {
 
   Future<ApiResponse<Map<String, dynamic>>> requestOtp({
     required String phone,
+    required OtpPurpose purpose,
     String? language,
   }) async {
-    final dto = OtpRequestDto(phone: phone);
+    final dto = OtpRequestDto(phone: phone, purpose: purpose);
     final headers = <String, String>{};
     if (language != null && language.trim().isNotEmpty) {
       headers['Accept-Language'] = language.trim();
@@ -32,9 +33,10 @@ class AuthOtpService {
   Future<ApiResponse<OtpVerifyResponse>> verifyOtp({
     required String phone,
     required String code,
+    required OtpPurpose purpose,
     String? language,
   }) async {
-    final dto = OtpVerifyDto(phone: phone, code: code);
+    final dto = OtpVerifyDto(phone: phone, code: code, purpose: purpose);
     final headers = <String, String>{};
     if (language != null && language.trim().isNotEmpty) {
       headers['Accept-Language'] = language.trim();

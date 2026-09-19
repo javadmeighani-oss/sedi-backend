@@ -10,15 +10,16 @@ import 'package:sedi_app/features/gate3_interactive/presentation/pages/gate3_pro
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart';
 
 void main() {
-  test('1 profile has exactly 3 section titles', () {
+  test('1 profile has user info, summary, and one logout button label', () {
     final en = Gate3Localization('en');
-    final sections = [
+    final labels = [
       en.userInformationSection,
       en.userSummarySection,
-      en.logoutSection,
+      en.logoutApp,
     ];
-    expect(sections.toSet().length, 3);
-    expect(sections.any((s) => s.toLowerCase().contains('what sedi')), isFalse);
+    expect(labels.toSet().length, 3);
+    expect(labels.any((s) => s.toLowerCase().contains('what sedi')), isFalse);
+    expect(Gate3Localization('fa').logoutApp, 'خروج از برنامه');
   });
 
   test('2/3 /auth/me field labels include preferred language', () {
@@ -61,7 +62,7 @@ void main() {
       l10n.profileTitle,
       l10n.userInformationSection,
       l10n.userSummarySection,
-      l10n.logoutSection,
+      l10n.logoutApp,
       l10n.summaryRowLabel('daily_plan'),
     ].join(' ').toLowerCase();
     expect(blob.contains('sedi id'), isFalse);
@@ -105,7 +106,7 @@ void main() {
     expect(Gate3Localization('ar').isRtl, isTrue);
     expect(Gate3Localization('fa').userInformationSection, isNotEmpty);
     expect(Gate3Localization('ar').userSummarySection, isNotEmpty);
-    expect(Gate3Localization('en').logout, isNotEmpty);
+    expect(Gate3Localization('en').logoutApp, 'Log out of app');
   });
 
   test('MeProfileDto preferred_language parse regression', () {

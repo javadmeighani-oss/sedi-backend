@@ -206,7 +206,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: Colors.white,
         appBar: A3PageAppBar(
           title: Text(l10n.profileTitle),
         ),
@@ -232,9 +232,13 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                     _field(l10n.profileSexLabel, _me?.sex ?? '—'),
                     _field(
                       l10n.profileLanguageLabel,
-                      _me?.preferredLanguage ?? '—',
+                      _formatLanguage(_me?.preferredLanguage),
                     ),
-                    _field(l10n.profilePhoneLabel, _me?.phone ?? '—'),
+                    _field(
+                      l10n.profilePhoneLabel,
+                      _me?.phone ?? '—',
+                      valueDirection: TextDirection.ltr,
+                    ),
                     const SizedBox(height: 8),
                     if (!_changingPhone)
                       Align(
@@ -274,16 +278,13 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                         ),
                       ),
                     const SizedBox(height: 36),
-                    // --- Section 3: Log out ---
-                    _sectionTitle(l10n.logoutSection),
-                    const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () =>
                             AuthHelper.performLogout(context: context),
                         icon: const Icon(Icons.logout_rounded),
-                        label: Text(l10n.logout),
+                        label: Text(l10n.logoutApp),
                       ),
                     ),
                   ],
@@ -421,6 +422,19 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     return '—';
   }
 
+  String _formatLanguage(String? code) {
+    switch ((code ?? '').toLowerCase()) {
+      case 'fa':
+        return 'فارسی';
+      case 'ar':
+        return 'العربية';
+      case 'en':
+        return 'English';
+      default:
+        return '—';
+    }
+  }
+
   Widget _sectionTitle(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Text(
@@ -433,9 +447,22 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         ),
       );
 
-  Widget _field(String label, String value) => Padding(
+  Widget _field(
+    String label,
+    String value, {
+    TextDirection? valueDirection,
+  }) =>
+      Container(
         padding: const EdgeInsets.only(bottom: 10),
-        child: Column(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderInactive.withOpacity(0.35)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -446,14 +473,22 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppTheme.textPrimary,
+            Directionality(
+              textDirection:
+                  valueDirection ?? Directionality.of(context),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
               ),
             ),
           ],
+        ),
         ),
       );
 

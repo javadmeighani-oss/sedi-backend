@@ -346,6 +346,18 @@ class OtpLoginLocalization {
         ar: 'رمز التحقق غير صالح أو منتهٍ. يرجى المحاولة مرة أخرى.',
       );
 
+  String get accountNotFoundCreateAccount => _t(
+        en: 'Account not found. Create an account to continue.',
+        fa: 'حساب کاربری یافت نشد. برای ادامه حساب بسازید.',
+        ar: 'لم يتم العثور على الحساب. أنشئ حسابًا للمتابعة.',
+      );
+
+  String get accountExistsHaveAccount => _t(
+        en: 'Account already exists. Use Have account to sign in.',
+        fa: 'حساب کاربری وجود دارد. برای ورود گزینه حساب دارم را انتخاب کنید.',
+        ar: 'الحساب موجود بالفعل. استخدم لدي حساب لتسجيل الدخول.',
+      );
+
   String get otpInvalid => _t(
         en: 'The verification code is invalid. Please try again.',
         fa: 'کد تأیید نامعتبر است. لطفاً دوباره تلاش کنید.',
