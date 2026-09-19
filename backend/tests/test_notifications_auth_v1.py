@@ -27,6 +27,7 @@ def _create_user(db, name: str) -> User:
 
 
 def _create_notification(db, user_id: int) -> Notification:
+    now = datetime.utcnow()
     n = Notification(
         user_id=user_id,
         type="health_alert",
@@ -35,7 +36,10 @@ def _create_notification(db, user_id: int) -> Notification:
         priority="normal",
         is_read=False,
         is_sent=True,
-        created_at=datetime.utcnow(),
+        sent_at=now,
+        status="sent",
+        provider="fcm",
+        created_at=now,
     )
     db.add(n)
     db.commit()
