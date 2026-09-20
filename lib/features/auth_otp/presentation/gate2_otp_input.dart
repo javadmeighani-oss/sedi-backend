@@ -9,10 +9,30 @@ class OtpInputHelper {
 
   static const int codeLength = 6;
 
+  /// ASCII `0-9`, Persian `۰-۹` (U+06F0–U+06F9), Arabic-Indic `٠-٩` (U+0660–U+0669).
+  static String? asciiDigitFromRune(int rune) {
+    if (rune >= 0x30 && rune <= 0x39) {
+      return String.fromCharCode(rune);
+    }
+    if (rune >= 0x06F0 && rune <= 0x06F9) {
+      return String.fromCharCode(0x30 + (rune - 0x06F0));
+    }
+    if (rune >= 0x0660 && rune <= 0x0669) {
+      return String.fromCharCode(0x30 + (rune - 0x0660));
+    }
+    return null;
+  }
+
+  /// Normalize Unicode decimal digits → ASCII, drop non-digits, cap at [codeLength].
   static String sanitize(String raw) {
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (digits.length <= codeLength) return digits;
-    return digits.substring(0, codeLength);
+    final out = StringBuffer();
+    for (final rune in raw.runes) {
+      final digit = asciiDigitFromRune(rune);
+      if (digit == null) continue;
+      out.write(digit);
+      if (out.length >= codeLength) break;
+    }
+    return out.toString();
   }
 
   static bool isComplete(String code) => sanitize(code).length == codeLength;
@@ -21,6 +41,26 @@ class OtpInputHelper {
     final sanitized = sanitize(code);
     if (index < 0 || index >= sanitized.length) return '';
     return sanitized[index];
+  }
+}
+
+/// Accepts ASCII / Persian / Arabic-Indic digits; stores ASCII only.
+class OtpDigitInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final sanitized = OtpInputHelper.sanitize(newValue.text);
+    if (sanitized == newValue.text &&
+        sanitized.length == newValue.selection.baseOffset) {
+      return newValue;
+    }
+    return TextEditingValue(
+      text: sanitized,
+      selection: TextSelection.collapsed(offset: sanitized.length),
+      composing: TextRange.empty,
+    );
   }
 }
 
@@ -51,6 +91,12 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
   void initState() {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enabled) return;
+      if (!widget.focusNode.hasFocus) {
+        widget.focusNode.requestFocus();
+      }
+    });
   }
 
   @override
@@ -69,17 +115,35 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
   }
 
   void _handleControllerChanged() {
+    final sanitized = OtpInputHelper.sanitize(widget.controller.text);
+    if (sanitized != widget.controller.text) {
+      widget.controller.value = TextEditingValue(
+        text: sanitized,
+        selection: TextSelection.collapsed(offset: sanitized.length),
+      );
+      return;
+    }
     if (mounted) setState(() {});
-    widget.onChanged?.call(widget.controller.text);
+    widget.onChanged?.call(sanitized);
   }
 
   void _applyInput(String raw) {
     final sanitized = OtpInputHelper.sanitize(raw);
-    if (sanitized == widget.controller.text) return;
+    if (sanitized == widget.controller.text) {
+      widget.onChanged?.call(sanitized);
+      return;
+    }
     widget.controller.value = TextEditingValue(
       text: sanitized,
       selection: TextSelection.collapsed(offset: sanitized.length),
     );
+  }
+
+  void _ensureFocus() {
+    if (!widget.enabled) return;
+    if (!widget.focusNode.hasFocus) {
+      widget.focusNode.requestFocus();
+    }
   }
 
   @override
@@ -95,67 +159,74 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
         return AutofillGroup(
           child: Directionality(
             textDirection: TextDirection.ltr,
-            child: SizedBox(
-              width: maxWidth,
-              height: layout.boxSize + 8,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  IgnorePointer(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(
-                        OtpInputHelper.codeLength,
-                        (index) => _OtpDigitBox(
-                          digit: OtpInputHelper.digitAt(code, index),
-                          size: layout.boxSize,
-                          gap: layout.gap,
-                          isLast: index == OtpInputHelper.codeLength - 1,
-                          active: widget.enabled &&
-                              widget.focusNode.hasFocus &&
-                              (code.length == index ||
-                                  (code.length == OtpInputHelper.codeLength &&
-                                      index == OtpInputHelper.codeLength - 1)),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _ensureFocus,
+              child: SizedBox(
+                width: maxWidth,
+                height: layout.boxSize + 8,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IgnorePointer(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(
+                          OtpInputHelper.codeLength,
+                          (index) => _OtpDigitBox(
+                            digit: OtpInputHelper.digitAt(code, index),
+                            size: layout.boxSize,
+                            gap: layout.gap,
+                            isLast: index == OtpInputHelper.codeLength - 1,
+                            active: widget.enabled &&
+                                widget.focusNode.hasFocus &&
+                                (code.length == index ||
+                                    (code.length ==
+                                            OtpInputHelper.codeLength &&
+                                        index ==
+                                            OtpInputHelper.codeLength - 1)),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: widget.focusNode,
-                      enabled: widget.enabled,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.oneTimeCode],
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      maxLength: OtpInputHelper.codeLength,
-                      showCursor: true,
-                      cursorColor: AppTheme.gate2ButtonOlive,
-                      style: const TextStyle(
-                        color: Colors.transparent,
-                        fontSize: 1,
-                        height: 1,
+                    Positioned.fill(
+                      child: TextField(
+                        controller: widget.controller,
+                        focusNode: widget.focusNode,
+                        enabled: widget.enabled,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        showCursor: true,
+                        cursorColor: AppTheme.gate2ButtonOlive,
+                        style: const TextStyle(
+                          color: Colors.transparent,
+                          fontSize: 1,
+                          height: 1,
+                        ),
+                        strutStyle: const StrutStyle(height: 1, fontSize: 1),
+                        inputFormatters: [
+                          // Must NOT use digitsOnly — that strips Persian/Arabic
+                          // digits before normalization can run.
+                          OtpDigitInputFormatter(),
+                        ],
+                        decoration: const InputDecoration(
+                          counterText: '',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                        onChanged: _applyInput,
+                        onTap: _ensureFocus,
                       ),
-                      strutStyle: const StrutStyle(height: 1, fontSize: 1),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(OtpInputHelper.codeLength),
-                      ],
-                      decoration: const InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
-                      ),
-                      onChanged: _applyInput,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
 
 void main() {
-  testWidgets('OTP paste/autofill enables six-digit completion state', (tester) async {
+  testWidgets('OTP paste/autofill enables six-digit completion state',
+      (tester) async {
     final controller = TextEditingController();
     final focusNode = FocusNode();
 
@@ -22,6 +23,7 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
 
     controller.text = '246810';
     await tester.pump();
@@ -30,6 +32,176 @@ void main() {
     expect(OtpInputHelper.isComplete(controller.text), isTrue);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('0'), findsOneWidget);
+  });
+
+  testWidgets('manual ASCII sequential typing renders boxes LTR',
+      (tester) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    expect(focusNode.hasFocus, isTrue);
+
+    await tester.enterText(find.byType(TextField), '1');
+    await tester.pump();
+    expect(controller.text, '1');
+    expect(find.text('1'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '12');
+    await tester.pump();
+    expect(controller.text, '12');
+
+    await tester.enterText(find.byType(TextField), '123456');
+    await tester.pump();
+    expect(controller.text, '123456');
+    expect(OtpInputHelper.isComplete(controller.text), isTrue);
+    expect(find.text('6'), findsOneWidget);
+
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.autofillHints, contains(AutofillHints.oneTimeCode));
+    expect(field.keyboardType, TextInputType.number);
+  });
+
+  testWidgets('Persian manual input normalizes to ASCII in boxes',
+      (tester) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), '۱۲۳۴۵۶');
+    await tester.pump();
+
+    expect(controller.text, '123456');
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('۶'), findsNothing);
+    expect(find.text('6'), findsOneWidget);
+  });
+
+  testWidgets('Arabic-Indic manual input normalizes to ASCII', (tester) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), '١٢٣٤٥٦');
+    await tester.pump();
+    expect(controller.text, '123456');
+  });
+
+  testWidgets('backspace shortens ASCII code', (tester) async {
+    final controller = TextEditingController(text: '123456');
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), '12345');
+    await tester.pump();
+    expect(controller.text, '12345');
+    expect(OtpInputHelper.isComplete(controller.text), isFalse);
+  });
+
+  testWidgets('paste six mixed digits becomes ASCII', (tester) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), '12۳٤5۶');
+    await tester.pump();
+    expect(controller.text, '123456');
+  });
+
+  testWidgets('OTP row is LTR Directionality', (tester) async {
+    final controller = TextEditingController(text: '123456');
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final dir = tester.widget<Directionality>(
+      find
+          .descendant(
+            of: find.byType(Gate2OtpInput),
+            matching: find.byType(Directionality),
+          )
+          .first,
+    );
+    expect(dir.textDirection, TextDirection.ltr);
   });
 
   testWidgets('OTP row fits narrow width without overflow', (tester) async {
