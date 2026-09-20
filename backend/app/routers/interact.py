@@ -17,6 +17,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import uuid
 
 from backend.app.database import get_db
@@ -29,6 +30,21 @@ from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Presentation-only SSE pacing after governed final answer is complete.
+_PRESENTATION_WORD_PACE_S = 0.035
+_WORD_DELTA_RE = re.compile(r"\S+|\s+")
+
+
+def presentation_word_deltas(approved: str) -> list[str]:
+    """Split approved governed text at word/whitespace boundaries.
+
+    Concatenation of returned deltas equals ``approved`` exactly.
+    Never used for ungoverned raw model tokens.
+    """
+    if not approved:
+        return []
+    return _WORD_DELTA_RE.findall(approved)
 
 
 def _legacy_onboarding_enabled() -> bool:
@@ -487,15 +503,15 @@ async def chat_stream(
         "intro_completed": result.intro_completed,
         "proactive_opener": result.proactive_opener,
     }
-    chunk_size = 28
 
     async def event_gen():
         yield f"event: start\ndata: {json.dumps({'ok': True}, ensure_ascii=False)}\n\n"
         yield f"event: metadata\ndata: {json.dumps(meta, ensure_ascii=False, default=str)}\n\n"
-        for i in range(0, len(approved), chunk_size):
-            piece = approved[i : i + chunk_size]
+        pieces = presentation_word_deltas(approved)
+        for i, piece in enumerate(pieces):
             yield f"event: delta\ndata: {json.dumps({'text': piece}, ensure_ascii=False)}\n\n"
-            await asyncio.sleep(0)
+            if i < len(pieces) - 1:
+                await asyncio.sleep(_PRESENTATION_WORD_PACE_S)
         final_payload = result.model_dump(mode="json")
         yield f"event: final\ndata: {json.dumps(final_payload, ensure_ascii=False, default=str)}\n\n"
 

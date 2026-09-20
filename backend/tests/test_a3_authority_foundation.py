@@ -118,11 +118,37 @@ def test_known_facts_empty_without_rows(monkeypatch):
 
 
 def test_stream_chunks_match_governed_final_text():
-    approved = "Hello from governed Sedi answer."
-    chunk_size = 28
-    pieces = [approved[i : i + chunk_size] for i in range(0, len(approved), chunk_size)]
-    assert "".join(pieces) == approved
-    assert all(p for p in pieces)
+    from backend.app.routers.interact import presentation_word_deltas
+
+    cases = [
+        "Hello from governed Sedi answer.",
+        "سلام پاسخ تاییدشده صدی است.",
+        "مرحبا، هذه إجابة معتمدة من Sedi!",
+        "A, B — C?\nNext line.",
+        "  leading and trailing  ",
+    ]
+    for approved in cases:
+        pieces = presentation_word_deltas(approved)
+        assert "".join(pieces) == approved
+        assert all(p for p in pieces)
+
+
+def test_presentation_word_deltas_en_fa_ar_and_whitespace():
+    from backend.app.routers.interact import presentation_word_deltas
+
+    en = presentation_word_deltas("Hello world!")
+    assert "".join(en) == "Hello world!"
+    assert "Hello" in en[0]
+    assert any("world" in p for p in en)
+
+    fa = presentation_word_deltas("سلام دنیا")
+    assert "".join(fa) == "سلام دنیا"
+
+    ar = presentation_word_deltas("مرحبا بالعالم")
+    assert "".join(ar) == "مرحبا بالعالم"
+
+    punct = presentation_word_deltas("Ok — yes.")
+    assert "".join(punct) == "Ok — yes."
 
 
 def test_migration_082_column_exists_on_postgres(db):
@@ -232,3 +258,12 @@ def test_chat_stream_sse_final_consistency(client, db, monkeypatch):
     assert "event: final" in text
     assert approved in text
     assert "77" in text
+    # Word-boundary deltas concatenate to the governed answer.
+    import json as _json
+    import re as _re
+
+    deltas = []
+    for m in _re.finditer(r"event: delta\ndata: (.+)\n", text):
+        deltas.append(_json.loads(m.group(1))["text"])
+    assert "".join(deltas) == approved
+    assert len(deltas) > 1
