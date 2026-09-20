@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/calendar_date_math.dart';
@@ -201,6 +203,68 @@ void main() {
         expect(find.byType(SediHorizontalResonanceVisualizer), findsOneWidget);
         await tester.pump(const Duration(milliseconds: 16));
       }
+    });
+  });
+
+  group('User edit-as-new-message', () {
+    test('edit labels EN/FA/AR', () {
+      expect(Gate3Localization('en').editMessage, 'Edit');
+      expect(Gate3Localization('fa').editMessage, 'ویرایش');
+      expect(Gate3Localization('ar').editMessage, 'تعديل');
+    });
+
+    testWidgets('user shows edit; assistant has none; edit does not auto-send',
+        (tester) async {
+      var editTaps = 0;
+      var sent = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                MessageBubble(
+                  message: 'Original user text',
+                  isSedi: false,
+                  onEdit: () => editTaps++,
+                  editLabel: 'Edit',
+                ),
+                const MessageBubble(
+                  message: 'Assistant reply',
+                  isSedi: true,
+                ),
+                Gate3Composer(
+                  key: const ValueKey('edit-composer'),
+                  placeholder: 'Talk',
+                  lang: 'en',
+                  isRtl: false,
+                  isRecording: false,
+                  recordingTime: '00:00',
+                  initialText: 'Original user text',
+                  onListeningChanged: (_) {},
+                  onSendText: (_) => sent++,
+                  onStartRecording: () {},
+                  onStopRecordingAndSend: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+      await tester.tap(find.text('Edit'));
+      await tester.pump();
+      expect(editTaps, 1);
+      expect(sent, 0);
+
+      final page = File(
+        'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
+      ).readAsStringSync();
+      expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+      expect(page.contains('updateMessage'), isFalse);
+      expect(page.contains('patchMessage'), isFalse);
     });
   });
 }

@@ -209,6 +209,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller.sendUserMessage(text);
   }
 
+  /// Presentation-only: seed composer with historical user text.
+  /// Does not mutate transcript; Send creates a NEW user message.
+  void _editUserMessageAsNewDraft(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      _composerDraftSeed = trimmed;
+      _composerDraftToken++;
+    });
+  }
+
   Gate3InteractionState _orbState() {
     if (_controller.isSpeaking) return Gate3InteractionState.speaking;
     if (_controller.isThinking) return Gate3InteractionState.thinking;
@@ -441,6 +452,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           onRetry: msg.isUser && msg.status == ChatMessageStatus.failed
               ? () => _controller.retryFailedMessage(msg.localId)
               : null,
+          onEdit: msg.isUser && msg.text.trim().isNotEmpty
+              ? () => _editUserMessageAsNewDraft(msg.text)
+              : null,
+          editLabel: l10n.editMessage,
         );
       },
     );

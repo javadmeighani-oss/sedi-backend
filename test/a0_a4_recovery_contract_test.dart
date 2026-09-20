@@ -118,6 +118,20 @@ void main() {
     expect(src.contains('messages[idx].text + delta'), isTrue);
   });
 
+  test('user edit-as-new-message uses composer seed without transcript mutation', () {
+    final page = _read(
+      'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
+    );
+    final bubble = _read(
+      'lib/features/chat/presentation/widgets/message_bubble.dart',
+    );
+    expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+    expect(page.contains('onEdit:'), isTrue);
+    expect(bubble.contains('onEdit'), isTrue);
+    expect(bubble.contains('Icons.edit_outlined'), isTrue);
+    expect(Gate3Localization('fa').editMessage, 'ویرایش');
+  });
+
   testWidgets('Gate3Composer has plus-only left action and required fonts',
       (tester) async {
     await tester.pumpWidget(

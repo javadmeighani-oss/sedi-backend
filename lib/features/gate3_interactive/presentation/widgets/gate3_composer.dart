@@ -48,6 +48,10 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     if (seed != null && seed.isNotEmpty) {
       _controller.text = seed;
       _controller.selection = TextSelection.collapsed(offset: seed.length);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
     }
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_notifyListening);

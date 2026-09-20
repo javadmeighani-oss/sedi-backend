@@ -6,6 +6,8 @@ class MessageBubble extends StatefulWidget {
   final bool isSedi;
   final bool isFailed;
   final VoidCallback? onRetry;
+  final VoidCallback? onEdit;
+  final String? editLabel;
   final bool showTyping;
 
   const MessageBubble({
@@ -14,6 +16,8 @@ class MessageBubble extends StatefulWidget {
     required this.isSedi,
     this.isFailed = false,
     this.onRetry,
+    this.onEdit,
+    this.editLabel,
     this.showTyping = false,
   });
 
@@ -80,6 +84,34 @@ class _MessageBubbleState extends State<MessageBubble> {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ],
+        if (!widget.isSedi &&
+            !widget.showTyping &&
+            widget.onEdit != null &&
+            widget.message.trim().isNotEmpty) ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: widget.onEdit,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.edit_outlined,
+                  size: 14,
+                  color: AppTheme.textSecondary.withOpacity(0.9),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  widget.editLabel ?? 'Edit',
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

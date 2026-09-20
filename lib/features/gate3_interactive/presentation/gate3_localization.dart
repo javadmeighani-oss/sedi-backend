@@ -274,6 +274,8 @@ class Gate3Localization {
         ar: 'ستظهر محادثتك هنا.',
       );
 
+  String get editMessage => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
+
   String _t({required String en, required String fa, required String ar}) {
     switch (lang) {
       case 'fa':
