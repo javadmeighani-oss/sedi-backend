@@ -156,6 +156,139 @@ def test_request_otp_rate_limit_is_isolated_by_purpose(db, monkeypatch):
     assert "Too many OTP requests" in err
 
 
+def test_request_otp_rate_window_resets_sent_count_outside_window(db, monkeypatch):
+    """Outside-window OTP row must start a new window with sent_count=1 (relogin counter bug)."""
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_COUNT", 3)
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_WINDOW_MINUTES", 10)
+    phone = "+989123450091"
+    with patch.object(svc, "generate_otp_code", return_value="555555"):
+        ok, err, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok is True
+    assert err == ""
+    row = (
+        db.query(models.OtpCode)
+        .filter(
+            models.OtpCode.phone == phone,
+            models.OtpCode.purpose == svc.OTP_PURPOSE_LOGIN,
+        )
+        .first()
+    )
+    assert row is not None
+    # Simulate exhausted prior window carried on the reused row.
+    row.sent_count = 5
+    row.created_at = datetime.utcnow() - timedelta(minutes=11)
+    db.commit()
+
+    with patch.object(svc, "generate_otp_code", return_value="555556"):
+        ok2, err2, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok2 is True, err2
+    db.refresh(row)
+    assert row.sent_count == 1
+
+    with patch.object(svc, "generate_otp_code", return_value="555557"):
+        ok3, err3, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok3 is True, err3
+    db.refresh(row)
+    assert row.sent_count == 2
+
+    with patch.object(svc, "generate_otp_code", return_value="555558"):
+        ok4, err4, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok4 is True, err4
+    db.refresh(row)
+    assert row.sent_count == 3
+
+    with patch.object(svc, "generate_otp_code", return_value="555559"):
+        ok5, err5, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+    assert ok5 is False
+    assert "Too many OTP requests" in err5
+    db.refresh(row)
+    assert row.sent_count == 3
+
+
+def test_request_otp_rate_window_reset_keeps_login_registration_isolation(db, monkeypatch):
+    """Window reset must not mix LOGIN and REGISTRATION buckets."""
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_COUNT", 1)
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_WINDOW_MINUTES", 10)
+    phone = "+989123450092"
+    with patch.object(svc, "generate_otp_code", return_value="606060"):
+        assert svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)[0] is True
+        assert svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)[0] is True
+
+    login_row = (
+        db.query(models.OtpCode)
+        .filter(
+            models.OtpCode.phone == phone,
+            models.OtpCode.purpose == svc.OTP_PURPOSE_LOGIN,
+        )
+        .first()
+    )
+    reg_row = (
+        db.query(models.OtpCode)
+        .filter(
+            models.OtpCode.phone == phone,
+            models.OtpCode.purpose == svc.OTP_PURPOSE_REGISTRATION,
+        )
+        .first()
+    )
+    assert login_row is not None and reg_row is not None
+    login_row.sent_count = 9
+    login_row.created_at = datetime.utcnow() - timedelta(minutes=15)
+    reg_row.sent_count = 9
+    reg_row.created_at = datetime.utcnow() - timedelta(minutes=15)
+    db.commit()
+
+    with patch.object(svc, "generate_otp_code", return_value="606061"):
+        ok_l, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_LOGIN)
+        ok_r, _, _ = svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    assert ok_l is True
+    assert ok_r is True
+    db.refresh(login_row)
+    db.refresh(reg_row)
+    assert login_row.sent_count == 1
+    assert reg_row.sent_count == 1
+
+
+def test_phone_change_otp_rate_window_reset_preserves_user_binding(db, monkeypatch):
+    """PHONE_CHANGE outside-window reuse resets sent_count and stays user-bound."""
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_COUNT", 2)
+    monkeypatch.setattr(svc, "OTP_RATE_LIMIT_WINDOW_MINUTES", 10)
+    user = models.User(
+        phone="+989123450093",
+        name="PC",
+        secret_key="test",
+        preferred_language="en",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    new_phone = "+989123450094"
+
+    with patch.object(svc, "generate_otp_code", return_value="707070"):
+        ok, err, _ = svc.request_phone_change_otp(db, user, new_phone)
+    assert ok is True, err
+    row = (
+        db.query(models.OtpCode)
+        .filter(
+            models.OtpCode.phone == new_phone,
+            models.OtpCode.purpose == svc.OTP_PURPOSE_PHONE_CHANGE,
+            models.OtpCode.user_id == user.id,
+        )
+        .first()
+    )
+    assert row is not None
+    row.sent_count = 8
+    row.created_at = datetime.utcnow() - timedelta(minutes=20)
+    db.commit()
+
+    with patch.object(svc, "generate_otp_code", return_value="707071"):
+        ok2, err2, _ = svc.request_phone_change_otp(db, user, new_phone)
+    assert ok2 is True, err2
+    db.refresh(row)
+    assert row.sent_count == 1
+    assert row.user_id == user.id
+    assert row.purpose == svc.OTP_PURPOSE_PHONE_CHANGE
+
+
 def test_verify_otp_expired_and_attempt_limits_for_login(client: TestClient, db, monkeypatch):
     """LOGIN preserves expiry and attempt-limit behavior for existing accounts."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_login_limits")

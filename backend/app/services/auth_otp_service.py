@@ -169,10 +169,16 @@ def request_otp(
         q = q.filter(models.OtpCode.user_id.is_(None))
     row = q.first()
     if row:
+        # New rate window: prior created_at outside window must not carry
+        # historical sent_count into the fresh window (relogin counter bug).
+        outside_window = row.created_at is None or row.created_at < window_start
         row.code_hash = code_hash
         row.expires_at = expires_at
         row.attempts = 0
-        row.sent_count += 1
+        if outside_window:
+            row.sent_count = 1
+        else:
+            row.sent_count += 1
         row.created_at = now
         row.purpose = purpose
         row.user_id = user_id
