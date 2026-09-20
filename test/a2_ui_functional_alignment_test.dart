@@ -4,6 +4,7 @@ import 'package:sedi_app/app.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
 import 'package:sedi_app/core/locale/sedi_locale_registry.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
+import 'package:sedi_app/data/dto/auth/otp_request.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_language_sync.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_otp_error_mapper.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_stable_enable.dart';
@@ -170,6 +171,98 @@ void main() {
         A2OtpErrorMapper.mapVerify(l10n: ar, code: 'OTP_EXPIRED'),
         ar.otpExpired,
       );
+    });
+
+    test('OTP_REQUEST_FAILED + Too many OTP maps to tooManyOtp', () {
+      const en = OtpLoginLocalization('en');
+      const fa = OtpLoginLocalization('fa');
+      const ar = OtpLoginLocalization('ar');
+      const msg = 'Too many OTP requests. Try again later.';
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: en,
+          code: 'OTP_REQUEST_FAILED',
+          message: msg,
+        ),
+        en.tooManyOtp,
+      );
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: fa,
+          code: 'OTP_REQUEST_FAILED',
+          message: msg,
+        ),
+        fa.tooManyOtp,
+      );
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: ar,
+          code: 'OTP_REQUEST_FAILED',
+          message: 'too many requests',
+        ),
+        ar.tooManyOtp,
+      );
+    });
+
+    test('OTP_REQUEST_FAILED provider failure stays generic', () {
+      const en = OtpLoginLocalization('en');
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: en,
+          code: 'OTP_REQUEST_FAILED',
+          message: 'SMS delivery failed. Please try again later.',
+        ),
+        en.genericOtpRequestFailed,
+      );
+    });
+
+    test('503 and network map correctly on request', () {
+      const en = OtpLoginLocalization('en');
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: en,
+          statusCode: 503,
+        ),
+        en.serverUnavailable,
+      );
+      expect(
+        A2OtpErrorMapper.mapRequest(
+          l10n: en,
+          message: 'SocketException: Connection failed',
+        ),
+        en.networkError,
+      );
+    });
+
+    test('verify mappings unchanged for expired/invalid heuristics', () {
+      const en = OtpLoginLocalization('en');
+      expect(
+        A2OtpErrorMapper.mapVerify(l10n: en, message: 'OTP expired'),
+        en.otpExpired,
+      );
+      expect(
+        A2OtpErrorMapper.mapVerify(l10n: en, message: 'invalid code'),
+        en.otpInvalid,
+      );
+    });
+  });
+
+  group('A2 OTP language invariance (request shape)', () {
+    test('OtpRequestDto wire body is phone+purpose only', () {
+      final login = const OtpRequestDto(
+        phone: '+989121234567',
+        purpose: OtpPurpose.login,
+      ).toJson();
+      expect(login.keys.toSet(), {'phone', 'purpose'});
+      expect(login['purpose'], 'LOGIN');
+      expect(login.containsKey('language'), isFalse);
+      expect(login.containsKey('Accept-Language'), isFalse);
+
+      final registration = const OtpRequestDto(
+        phone: '+989121234567',
+        purpose: OtpPurpose.registration,
+      ).toJson();
+      expect(registration['purpose'], 'REGISTRATION');
     });
   });
 

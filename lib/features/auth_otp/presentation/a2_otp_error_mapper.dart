@@ -12,15 +12,20 @@ class A2OtpErrorMapper {
     String? message,
     int? statusCode,
   }) {
+    final msg = message ?? '';
+    // Rate-limit evidence before known-code mapping so OTP_REQUEST_FAILED +
+    // "Too many OTP..." surfaces localized tooManyOtp (not generic).
+    if (_looksLikeTooMany(msg) ||
+        code == 'TOO_MANY_ATTEMPTS' ||
+        (code != null && code.trim().toUpperCase() == 'OTP_RATE_LIMITED')) {
+      return l10n.tooManyOtp;
+    }
+
     final byCode = _mapKnownCode(l10n: l10n, code: code, isRequest: true);
     if (byCode != null) return byCode;
 
-    final msg = message ?? '';
     if (statusCode == 503) return l10n.serverUnavailable;
     if (_looksLikeNetwork(msg)) return l10n.networkError;
-    if (_looksLikeTooMany(msg) || code == 'TOO_MANY_ATTEMPTS') {
-      return l10n.tooManyOtp;
-    }
     if (statusCode != null && statusCode >= 500) {
       return l10n.serverUnavailable;
     }
