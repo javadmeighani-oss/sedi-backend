@@ -68,6 +68,20 @@ class Gate3Localization {
   String get profilePhoneLabel =>
       _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
 
+  /// Presentation-only sex label from backend canonical codes.
+  String profileSexValue(String? code) {
+    switch ((code ?? '').trim().toLowerCase()) {
+      case 'male':
+        return _t(en: 'Male', fa: 'مرد', ar: 'ذكر');
+      case 'female':
+        return _t(en: 'Female', fa: 'زن', ar: 'أنثى');
+      case 'other':
+        return _t(en: 'Other', fa: 'سایر', ar: 'آخر');
+      default:
+        return '—';
+    }
+  }
+
   /// Localized label for a backend summary row key (presentation only).
   String summaryRowLabel(String key) {
     switch (key) {

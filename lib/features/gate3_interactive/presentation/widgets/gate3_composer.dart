@@ -73,7 +73,12 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   void _onTextChanged() {
     if (mounted) setState(() {});
-    _notifyListening();
+    // Defer parent listening callback so initState seeding never calls
+    // setState on an ancestor during build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _notifyListening();
+    });
   }
 
   void _notifyListening() {

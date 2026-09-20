@@ -1,0 +1,205 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/locale/calendar_date_math.dart';
+import 'package:sedi_app/features/chat/presentation/widgets/message_bubble.dart';
+import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_state.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/gate3_composer_draft_bus.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
+import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.dart';
+
+void main() {
+  group('A3 profile DOB/sex localization', () {
+    test('EN Gregorian Latin digits + sex labels', () {
+      expect(
+        CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'en'),
+        '1990-05-15',
+      );
+      expect(Gate3Localization('en').profileSexValue('male'), 'Male');
+      expect(Gate3Localization('en').profileSexValue('female'), 'Female');
+      expect(Gate3Localization('en').profileSexValue('other'), 'Other');
+    });
+
+    test('FA Jalali Persian digits + sex labels', () {
+      final dob =
+          CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'fa');
+      expect(RegExp(r'[0-9]').hasMatch(dob), isFalse);
+      expect(RegExp(r'[۰-۹]').hasMatch(dob), isTrue);
+      expect(dob.contains('/'), isTrue);
+      expect(Gate3Localization('fa').profileSexValue('male'), 'مرد');
+      expect(Gate3Localization('fa').profileSexValue('female'), 'زن');
+      expect(Gate3Localization('fa').profileSexValue('other'), 'سایر');
+    });
+
+    test('AR Hijri Arabic-Indic digits + sex labels', () {
+      final dob =
+          CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'ar');
+      expect(RegExp(r'[0-9]').hasMatch(dob), isFalse);
+      expect(RegExp(r'[٠-٩]').hasMatch(dob), isTrue);
+      expect(Gate3Localization('ar').profileSexValue('male'), 'ذكر');
+      expect(Gate3Localization('ar').profileSexValue('female'), 'أنثى');
+      expect(Gate3Localization('ar').profileSexValue('other'), 'آخر');
+    });
+  });
+
+  group('Lifestyle → canonical A3 chat', () {
+    testWidgets('nutrition/exercise draft handoff pops to root without nested A3',
+        (tester) async {
+      var nestedGate3Pushed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: Column(
+                  children: [
+                    const Text('root-a3'),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => Scaffold(
+                              body: ElevatedButton(
+                                onPressed: () {
+                                  openLifestyleChat(
+                                    context,
+                                    initialDraft:
+                                        'Review my nutrition plan with Sedi',
+                                  );
+                                },
+                                child: const Text('talk-nutrition'),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('open-lifestyle'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      String? received;
+      final sub = Gate3ComposerDraftBus.instance.stream.listen((d) {
+        received = d;
+      });
+      addTearDown(sub.cancel);
+
+      await tester.tap(find.text('open-lifestyle'));
+      await tester.pumpAndSettle();
+      expect(find.text('talk-nutrition'), findsOneWidget);
+
+      await tester.tap(find.text('talk-nutrition'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('root-a3'), findsOneWidget);
+      expect(find.text('talk-nutrition'), findsNothing);
+      expect(received, 'Review my nutrition plan with Sedi');
+      expect(nestedGate3Pushed, isFalse);
+    });
+
+    testWidgets('initialDraft seeds composer without auto-send / build error',
+        (tester) async {
+      FlutterErrorDetails? error;
+      final old = FlutterError.onError;
+      FlutterError.onError = (details) => error = details;
+      addTearDown(() => FlutterError.onError = old);
+
+      var sent = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Gate3Composer(
+              placeholder: 'Talk',
+              lang: 'en',
+              isRtl: false,
+              isRecording: false,
+              recordingTime: '00:00',
+              initialText: 'Review my exercise plan with Sedi',
+              onListeningChanged: (_) {},
+              onSendText: (_) => sent++,
+              onStartRecording: () {},
+              onStopRecordingAndSend: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(error, isNull);
+      expect(find.text('Review my exercise plan with Sedi'), findsOneWidget);
+      expect(sent, 0);
+    });
+  });
+
+  group('Chat bubbles + resonance', () {
+    testWidgets('user bubble only; assistant unboxed and full', (tester) async {
+      const long = 'line one\nline two\nline three';
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Column(
+            children: [
+              MessageBubble(message: long, isSedi: false),
+              MessageBubble(message: long, isSedi: true),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Read more'), findsOneWidget);
+      // Assistant shows full three lines immediately (no collapse).
+      expect(find.text(long), findsOneWidget);
+      final assistantDecorated = find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => w is MessageBubble && w.isSedi,
+        ),
+        matching: find.byType(DecoratedBox),
+      );
+      // Unboxed assistant should not wrap content in DecoratedBox/Container decoration.
+      expect(assistantDecorated, findsNothing);
+    });
+
+    test('speaking is strongest energy; IDLE < LISTENING < THINKING < SPEAKING',
+        () {
+      final idle =
+          SediFrequencyRingPainter.targetAmplitude(Gate3InteractionState.idle);
+      final listening = SediFrequencyRingPainter.targetAmplitude(
+          Gate3InteractionState.listening);
+      final thinking = SediFrequencyRingPainter.targetAmplitude(
+          Gate3InteractionState.thinking);
+      final speaking = SediFrequencyRingPainter.targetAmplitude(
+          Gate3InteractionState.speaking);
+      expect(idle < listening, isTrue);
+      expect(listening < thinking, isTrue);
+      expect(thinking < speaking, isTrue);
+      expect(
+        SediFrequencyRingPainter.phaseSpeed(Gate3InteractionState.speaking),
+        0.85,
+      );
+      expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
+      expect(SediHorizontalResonanceVisualizer.height, 36);
+    });
+
+    testWidgets('horizontal visualizer present for all four states',
+        (tester) async {
+      for (final state in Gate3InteractionState.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SediHorizontalResonanceVisualizer(state: state),
+            ),
+          ),
+        );
+        expect(find.byType(SediHorizontalResonanceVisualizer), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+    });
+  });
+}

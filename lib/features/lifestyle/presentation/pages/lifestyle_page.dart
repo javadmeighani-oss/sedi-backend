@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../gate3_interactive/presentation/pages/gate3_interactive_page.dart';
+import '../../../gate3_interactive/presentation/gate3_composer_draft_bus.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
@@ -86,12 +86,13 @@ class _HubCard {
   const _HubCard(this.title, this.icon, this.page);
 }
 
-/// Opens canonical A3 chat (presentation CTA only).
-/// [initialDraft] populates the composer only — never auto-sends.
+/// Opens canonical existing A3 chat (presentation CTA only).
+/// Pops nested Lifestyle routes back to root A3 and seeds the composer draft.
+/// Never pushes a second [Gate3InteractivePage]; never auto-sends.
 void openLifestyleChat(BuildContext context, {String? initialDraft}) {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => Gate3InteractivePage(initialDraft: initialDraft),
-    ),
-  );
+  final draft = initialDraft?.trim();
+  if (draft != null && draft.isNotEmpty) {
+    Gate3ComposerDraftBus.instance.publish(draft);
+  }
+  Navigator.of(context).popUntil((route) => route.isFirst);
 }

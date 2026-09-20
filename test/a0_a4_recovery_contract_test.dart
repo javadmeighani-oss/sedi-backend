@@ -13,6 +13,7 @@ import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localizat
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 
 String _read(String path) => File(path).readAsStringSync();
 
@@ -79,6 +80,31 @@ void main() {
       SediFrequencyRingPainter.phaseSpeed(Gate3InteractionState.speaking),
       0.85,
     );
+    final idle =
+        SediFrequencyRingPainter.targetAmplitude(Gate3InteractionState.idle);
+    final listening = SediFrequencyRingPainter.targetAmplitude(
+        Gate3InteractionState.listening);
+    final thinking = SediFrequencyRingPainter.targetAmplitude(
+        Gate3InteractionState.thinking);
+    final speaking = SediFrequencyRingPainter.targetAmplitude(
+        Gate3InteractionState.speaking);
+    expect(idle < listening && listening < thinking && thinking < speaking,
+        isTrue);
+  });
+
+  test('A3 horizontal resonance visualizer restored; lifestyle uses draft bus',
+      () {
+    final page = _read(
+      'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
+    );
+    expect(page.contains('SediHorizontalResonanceVisualizer'), isTrue);
+    expect(page.contains('Gate3ComposerDraftBus'), isTrue);
+    final lifestyle = _read(
+      'lib/features/lifestyle/presentation/pages/lifestyle_page.dart',
+    );
+    expect(lifestyle.contains('popUntil'), isTrue);
+    expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
+    expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
   });
 
   test('ChatController speaking lifecycle is SSE-delta only', () {
@@ -88,6 +114,8 @@ void main() {
     expect(src.contains('isSpeaking = true;\n            messages.add'), isTrue);
     expect(src.contains('isSpeaking = false'), isTrue);
     expect(src.contains('initialize({String? initialMessage'), isTrue);
+    expect(src.contains('onDelta:'), isTrue);
+    expect(src.contains('messages[idx].text + delta'), isTrue);
   });
 
   testWidgets('Gate3Composer has plus-only left action and required fonts',

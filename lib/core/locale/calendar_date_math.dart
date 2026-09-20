@@ -174,6 +174,49 @@ class CalendarDateMath {
     }
   }
 
+  /// Profile DOB presentation: calendar conversion + script digits for fa/ar.
+  static String formatIsoForProfileDisplay(String iso, String languageCode) {
+    return localizeDigitsForLanguage(
+      formatIsoForLanguage(iso, languageCode),
+      languageCode,
+    );
+  }
+
+  /// Latin digits → Persian (fa) or Arabic-Indic (ar). en unchanged.
+  static String localizeDigitsForLanguage(String input, String languageCode) {
+    if (languageCode == 'fa') {
+      const map = {
+        '0': '۰',
+        '1': '۱',
+        '2': '۲',
+        '3': '۳',
+        '4': '۴',
+        '5': '۵',
+        '6': '۶',
+        '7': '۷',
+        '8': '۸',
+        '9': '۹',
+      };
+      return input.split('').map((c) => map[c] ?? c).join();
+    }
+    if (languageCode == 'ar') {
+      const map = {
+        '0': '٠',
+        '1': '١',
+        '2': '٢',
+        '3': '٣',
+        '4': '٤',
+        '5': '٥',
+        '6': '٦',
+        '7': '٧',
+        '8': '٨',
+        '9': '٩',
+      };
+      return input.split('').map((c) => map[c] ?? c).join();
+    }
+    return input;
+  }
+
   /// ISO weekday 1=Mon … 7=Sun from backend local_date (UTC date components).
   static int? weekdayFromIso(String iso) {
     final dt = parseIsoLocalDate(iso);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/auth/auth_otp_service.dart';
 import '../../../../core/auth/auth_profile_service.dart';
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -229,7 +230,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                     _sectionTitle(l10n.userInformationSection),
                     _field(l10n.profileNameLabel, _me?.name ?? '—'),
                     _field(l10n.profileDobLabel, _formatDob(_me)),
-                    _field(l10n.profileSexLabel, _me?.sex ?? '—'),
+                    _field(l10n.profileSexLabel, l10n.profileSexValue(_me?.sex)),
                     _field(
                       l10n.profileLanguageLabel,
                       _formatLanguage(_me?.preferredLanguage),
@@ -413,11 +414,19 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
 
   String _formatDob(MeProfileDto? me) {
     if (me == null) return '—';
+    final lang = SediLocaleController.instance.languageCode;
     if (me.dateOfBirth != null && me.dateOfBirth!.isNotEmpty) {
-      return me.dateOfBirth!;
+      return CalendarDateMath.formatIsoForProfileDisplay(
+        me.dateOfBirth!,
+        lang,
+      );
     }
-    if (me.birthYear != null) {
-      return '${me.birthYear}-${me.birthMonth ?? '?'}-${me.birthDay ?? '?'}';
+    if (me.birthYear != null && me.birthMonth != null && me.birthDay != null) {
+      final iso =
+          '${me.birthYear!.toString().padLeft(4, '0')}-'
+          '${me.birthMonth!.toString().padLeft(2, '0')}-'
+          '${me.birthDay!.toString().padLeft(2, '0')}';
+      return CalendarDateMath.formatIsoForProfileDisplay(iso, lang);
     }
     return '—';
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:sedi_app/core/locale/calendar_date_math.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
@@ -29,6 +30,27 @@ void main() {
     expect(l10n.profileSexLabel, isNotEmpty);
     expect(l10n.profileLanguageLabel.toLowerCase(), contains('language'));
     expect(l10n.profilePhoneLabel, isNotEmpty);
+  });
+
+  test('profile DOB/sex presentation localization EN/FA/AR', () {
+    expect(
+      CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'en'),
+      '1990-05-15',
+    );
+    final fa = CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'fa');
+    expect(RegExp(r'[۰-۹]').hasMatch(fa), isTrue);
+    expect(RegExp(r'[0-9]').hasMatch(fa), isFalse);
+    final ar = CalendarDateMath.formatIsoForProfileDisplay('1990-05-15', 'ar');
+    expect(RegExp(r'[٠-٩]').hasMatch(ar), isTrue);
+    expect(Gate3Localization('en').profileSexValue('male'), 'Male');
+    expect(Gate3Localization('fa').profileSexValue('female'), 'زن');
+    expect(Gate3Localization('fa').profileSexValue('other'), 'سایر');
+    expect(Gate3Localization('ar').profileSexValue('male'), 'ذكر');
+    final profile = File(
+      'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
+    ).readAsStringSync();
+    expect(profile.contains('formatIsoForProfileDisplay'), isTrue);
+    expect(profile.contains('profileSexValue'), isTrue);
   });
 
   test('4 phone OTP strings preserved', () {

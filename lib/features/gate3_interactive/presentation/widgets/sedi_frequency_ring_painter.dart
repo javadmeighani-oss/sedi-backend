@@ -26,26 +26,26 @@ class SediFrequencyRingPainter extends CustomPainter {
   static double targetAmplitude(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.14;
+        return 0.12;
       case Gate3InteractionState.listening:
-        return 0.22;
+        return 0.24;
       case Gate3InteractionState.thinking:
-        return 0.38;
+        return 0.40;
       case Gate3InteractionState.speaking:
-        return 0.34;
+        return 0.62;
     }
   }
 
   static double targetGlow(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.18;
+        return 0.16;
       case Gate3InteractionState.listening:
         return 0.28;
       case Gate3InteractionState.thinking:
         return 0.42;
       case Gate3InteractionState.speaking:
-        return 0.38;
+        return 0.58;
     }
   }
 

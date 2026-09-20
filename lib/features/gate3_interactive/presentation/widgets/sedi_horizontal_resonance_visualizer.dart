@@ -1,0 +1,177 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../models/gate3_interaction_state.dart';
+
+/// Horizontal anti-aliased bar-column resonance visualizer under the orb.
+///
+/// Deterministic clustered motion — no per-frame random noise.
+/// State authority is [Gate3InteractionState] (same as circular ring).
+class SediHorizontalResonanceVisualizer extends StatefulWidget {
+  final Gate3InteractionState state;
+
+  static const double height = 36;
+  static const int barCount = 28;
+  static const double phaseSpeed = 0.85;
+
+  const SediHorizontalResonanceVisualizer({
+    super.key,
+    required this.state,
+  });
+
+  @override
+  State<SediHorizontalResonanceVisualizer> createState() =>
+      _SediHorizontalResonanceVisualizerState();
+}
+
+class _SediHorizontalResonanceVisualizerState
+    extends State<SediHorizontalResonanceVisualizer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  double _energy = _targetEnergy(Gate3InteractionState.idle);
+
+  static double _targetEnergy(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.08;
+      case Gate3InteractionState.listening:
+        return 0.28;
+      case Gate3InteractionState.thinking:
+        return 0.52;
+      case Gate3InteractionState.speaking:
+        return 0.92;
+    }
+  }
+
+  static double _density(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.25;
+      case Gate3InteractionState.listening:
+        return 0.45;
+      case Gate3InteractionState.thinking:
+        return 0.70;
+      case Gate3InteractionState.speaking:
+        return 1.0;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..addListener(_tick)
+      ..repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant SediHorizontalResonanceVisualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      _tick();
+    }
+  }
+
+  void _tick() {
+    final target = _targetEnergy(widget.state);
+    final next = _energy + (target - _energy) * 0.12;
+    if ((next - _energy).abs() > 0.0005) {
+      setState(() => _energy = next);
+    } else if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_tick);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: SediHorizontalResonanceVisualizer.height,
+      child: CustomPaint(
+        painter: _HorizontalResonancePainter(
+          phase: _controller.value,
+          energy: _energy,
+          density: _density(widget.state),
+          state: widget.state,
+        ),
+      ),
+    );
+  }
+}
+
+class _HorizontalResonancePainter extends CustomPainter {
+  final double phase;
+  final double energy;
+  final double density;
+  final Gate3InteractionState state;
+
+  static const _olive = Color(0xFF8A9A6B);
+  static const _cream = Color(0xFFE8E4C8);
+
+  const _HorizontalResonancePainter({
+    required this.phase,
+    required this.energy,
+    required this.density,
+    required this.state,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final count = SediHorizontalResonanceVisualizer.barCount;
+    final gap = size.width / (count * 1.35);
+    final barWidth = gap * 0.55;
+    final midY = size.height / 2;
+    final maxHalf = size.height * 0.46;
+    final animated =
+        phase * SediHorizontalResonanceVisualizer.phaseSpeed * math.pi * 2;
+
+    final paint = Paint()
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = barWidth.clamp(1.6, 3.2);
+
+    for (var i = 0; i < count; i++) {
+      final t = i / (count - 1);
+      // Smooth cluster envelopes (deterministic).
+      final clusterA = math.sin((t * 3.2 + animated) * math.pi);
+      final clusterB = math.sin((t * 7.1 - animated * 0.7) * math.pi) * 0.55;
+      final clusterC = math.cos((t * 2.0 + animated * 0.45) * math.pi) * 0.35;
+      final envelope = ((clusterA + clusterB + clusterC) / 2.0 + 1) / 2.0;
+
+      // Idle stays near-flat; speaking gets largest controlled variation.
+      final variation = 0.12 + density * 0.88;
+      final heightFactor =
+          (0.08 + energy * (0.35 + envelope * variation)).clamp(0.06, 1.0);
+      final half = maxHalf * heightFactor;
+
+      final x = gap * 0.7 + i * (barWidth + gap * 0.55);
+      final opacity = (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92);
+      paint.color = Color.lerp(_cream, _olive, 0.35 + energy * 0.45)!
+          .withOpacity(opacity);
+
+      canvas.drawLine(
+        Offset(x, midY - half),
+        Offset(x, midY + half),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HorizontalResonancePainter oldDelegate) =>
+      oldDelegate.phase != phase ||
+      oldDelegate.energy != energy ||
+      oldDelegate.density != density ||
+      oldDelegate.state != state;
+}

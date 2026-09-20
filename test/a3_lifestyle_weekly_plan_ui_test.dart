@@ -172,7 +172,8 @@ void main() {
       ).readAsStringSync();
 
       expect(page.contains('initialDraft'), isTrue);
-      expect(page.contains('initialText: widget.initialDraft'), isTrue);
+      expect(page.contains('_composerDraftSeed'), isTrue);
+      expect(page.contains('Gate3ComposerDraftBus'), isTrue);
       expect(page.contains('initialMessage'), isTrue);
       expect(page.contains('initialMessage: widget.initialMessage'), isTrue);
       expect(composer.contains('initialText'), isTrue);
@@ -186,6 +187,8 @@ void main() {
       expect(init.contains('_send'), isFalse);
 
       expect(lifestyle.contains('initialDraft'), isTrue);
+      expect(lifestyle.contains('popUntil'), isTrue);
+      expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
       expect(
         LifestyleL10n('en').reviewNutritionDraft,
         'Review my nutrition plan with Sedi',

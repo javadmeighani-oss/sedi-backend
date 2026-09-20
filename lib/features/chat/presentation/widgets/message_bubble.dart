@@ -34,27 +34,73 @@ class _MessageBubbleState extends State<MessageBubble> {
     final alignment = widget.isSedi
         ? AlignmentDirectional.centerStart
         : AlignmentDirectional.centerEnd;
-
-    final backgroundColor = widget.isSedi
-        ? AppTheme.backgroundWhite
-        : AppTheme.metalGrey.withOpacity(0.15);
-
-    final borderColor = widget.isSedi
-        ? AppTheme.metalGrey.withOpacity(0.25)
-        : AppTheme.metalGrey.withOpacity(0.35);
-
-    final borderRadius = BorderRadius.only(
-      topLeft: Radius.circular(AppTheme.radiusLarge),
-      topRight: Radius.circular(AppTheme.radiusLarge),
-      bottomLeft: Radius.circular(
-        widget.isSedi ? AppTheme.radiusSmall : AppTheme.radiusLarge,
-      ),
-      bottomRight: Radius.circular(
-        widget.isSedi ? AppTheme.radiusLarge : AppTheme.radiusSmall,
-      ),
-    );
     final shouldCollapse = _canCollapseUserMessage && !_expanded;
 
+    final text = widget.showTyping
+        ? const _TypingDots()
+        : Text(
+            widget.message,
+            maxLines: shouldCollapse ? 2 : null,
+            overflow: shouldCollapse ? TextOverflow.ellipsis : null,
+            textAlign: TextAlign.start,
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 15,
+              height: 1.45,
+            ),
+          );
+
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        text,
+        if (_canCollapseUserMessage) ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Text(
+              _expanded ? 'Read less' : 'Read more',
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+        if (widget.isFailed && widget.onRetry != null) ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: widget.onRetry,
+            child: const Text(
+              'Tap to retry',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    // Assistant: plain text in chat space — no bubble/card/container.
+    if (widget.isSedi) {
+      return Align(
+        alignment: alignment,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: body,
+          ),
+        ),
+      );
+    }
+
+    // User only: visual container/bubble with collapse + retry.
     return Align(
       alignment: alignment,
       child: Container(
@@ -67,61 +113,20 @@ class _MessageBubbleState extends State<MessageBubble> {
           maxWidth: 300,
         ),
         decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: borderRadius,
+          color: AppTheme.metalGrey.withOpacity(0.15),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppTheme.radiusLarge),
+            topRight: Radius.circular(AppTheme.radiusLarge),
+            bottomLeft: Radius.circular(AppTheme.radiusLarge),
+            bottomRight: Radius.circular(AppTheme.radiusSmall),
+          ),
           border: Border.all(
-            color: borderColor,
+            color: AppTheme.metalGrey.withOpacity(0.35),
             width: 1,
           ),
           boxShadow: AppTheme.softShadow,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.showTyping)
-              const _TypingDots()
-            else
-              Text(
-                widget.message,
-                maxLines: shouldCollapse ? 2 : null,
-                overflow: shouldCollapse ? TextOverflow.ellipsis : null,
-                textAlign: TextAlign.start,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                  height: 1.45,
-                ),
-              ),
-            if (_canCollapseUserMessage) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Text(
-                  _expanded ? 'Read less' : 'Read more',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-            if (widget.isFailed && widget.onRetry != null) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: widget.onRetry,
-                child: const Text(
-                  'Tap to retry',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+        child: body,
       ),
     );
   }

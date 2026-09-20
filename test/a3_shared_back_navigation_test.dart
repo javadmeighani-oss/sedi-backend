@@ -110,7 +110,8 @@ void main() {
     expect(page.contains('_handleBackPress'), isTrue);
     expect(page.contains('SystemNavigator.pop'), isTrue);
     expect(page.contains('initialDraft'), isTrue);
-    expect(page.contains('initialText: widget.initialDraft'), isTrue);
+    expect(page.contains('_composerDraftSeed'), isTrue);
+    expect(page.contains('Gate3ComposerDraftBus'), isTrue);
     expect(page.contains('sendUserMessage(widget.initialDraft'), isFalse);
     expect(page.contains('A3PageAppBar'), isFalse);
 
@@ -118,7 +119,9 @@ void main() {
       'lib/features/lifestyle/presentation/pages/lifestyle_page.dart',
     );
     expect(lifestyle.contains('openLifestyleChat'), isTrue);
-    expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isTrue);
+    expect(lifestyle.contains('popUntil'), isTrue);
+    expect(lifestyle.contains('Gate3ComposerDraftBus'), isTrue);
+    expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
 
     final composer = _read(
       'lib/features/gate3_interactive/presentation/widgets/gate3_composer.dart',
@@ -278,14 +281,13 @@ void main() {
   });
 
   testWidgets(
-      '11 Lifestyle→Chat return policy: pushed route pops; openLifestyleChat uses Gate3',
+      '11 Lifestyle→Chat return policy: pop to root A3; draft bus seeds composer',
       (tester) async {
-    // Prove openLifestyleChat still targets canonical Gate3InteractivePage.
-    expect(
-      _read('lib/features/lifestyle/presentation/pages/lifestyle_page.dart')
-          .contains('Gate3InteractivePage(initialDraft:'),
-      isTrue,
-    );
+    final lifestyle =
+        _read('lib/features/lifestyle/presentation/pages/lifestyle_page.dart');
+    expect(lifestyle.contains('popUntil'), isTrue);
+    expect(lifestyle.contains('Gate3ComposerDraftBus'), isTrue);
+    expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
 
     // Prove routeCanPop policy with the same PopScope contract Gate3 uses.
     await tester.pumpWidget(

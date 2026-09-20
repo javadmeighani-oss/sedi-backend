@@ -18,11 +18,13 @@ import '../../../notifications/presentation/pages/notification_inbox_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
+import '../gate3_composer_draft_bus.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/sedi_brain_orb.dart';
+import '../widgets/sedi_horizontal_resonance_visualizer.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
@@ -53,9 +55,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   int _subjectGenSeen = -1;
 
   bool _composerListening = false;
+  String? _composerDraftSeed;
+  int _composerDraftToken = 0;
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
+  StreamSubscription<String>? _draftSub;
 
   /// Backend canonical unread SENT-history count; null = not loaded yet.
   int? _unreadNotificationCount;
@@ -71,6 +76,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _subjects.addListener(_onSubjectChanged);
     _inboxRefreshSub = InboxRefreshBus.instance.stream.listen((_) {
       _refreshUnreadBadge();
+    });
+    final seed = widget.initialDraft?.trim();
+    if (seed != null && seed.isNotEmpty) {
+      _composerDraftSeed = seed;
+    }
+    _draftSub = Gate3ComposerDraftBus.instance.stream.listen((draft) {
+      if (!mounted) return;
+      setState(() {
+        _composerDraftSeed = draft;
+        _composerDraftToken++;
+      });
     });
     _refreshUnreadBadge();
     _subjects.loadAccessibleSubjects().then((_) {
@@ -130,6 +146,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _inboxRefreshSub?.cancel();
+    _draftSub?.cancel();
     _backPressTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);
@@ -254,6 +271,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   state: _orbState(),
                   lang: _controller.currentLanguage,
                 ),
+                const SizedBox(height: 6),
+                SediHorizontalResonanceVisualizer(state: _orbState()),
                 const SizedBox(height: 8),
                 Expanded(
                   child: Padding(
@@ -305,15 +324,21 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                               ),
                             ),
                             Gate3Composer(
+                              key: ValueKey('gate3-composer-$_composerDraftToken'),
                               placeholder: l10n.composerPlaceholder,
                               lang: _controller.currentLanguage,
                               isRtl: isRtl,
-                              initialText: widget.initialDraft,
+                              initialText:
+                                  _composerDraftSeed ?? widget.initialDraft,
                               onListeningChanged: (listening) {
-                                if (_composerListening != listening) {
+                                if (!mounted) return;
+                                if (_composerListening == listening) return;
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (!mounted) return;
+                                  if (_composerListening == listening) return;
                                   setState(
                                       () => _composerListening = listening);
-                                }
+                                });
                               },
                               onSendText: _handleSendText,
                               onStartRecording: () {
