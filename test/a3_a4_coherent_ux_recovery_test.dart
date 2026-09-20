@@ -154,16 +154,17 @@ void main() {
       );
 
       expect(find.text('Read more'), findsOneWidget);
-      // Assistant shows full three lines immediately (no collapse).
-      expect(find.text(long), findsOneWidget);
-      final assistantDecorated = find.descendant(
-        of: find.byWidgetPredicate(
-          (w) => w is MessageBubble && w.isSedi,
-        ),
-        matching: find.byType(DecoratedBox),
-      );
-      // Unboxed assistant should not wrap content in DecoratedBox/Container decoration.
-      expect(assistantDecorated, findsNothing);
+      // User collapses (maxLines=2); assistant has no maxLines.
+      final texts = tester.widgetList<Text>(find.text(long)).toList();
+      expect(texts.length, 2);
+      expect(texts.any((t) => t.maxLines == 2), isTrue);
+      expect(texts.any((t) => t.maxLines == null), isTrue);
+      // Only user message uses a decorated Container bubble.
+      final decorated = tester
+          .widgetList<Container>(find.byType(Container))
+          .where((c) => c.decoration is BoxDecoration)
+          .length;
+      expect(decorated, 1);
     });
 
     test('speaking is strongest energy; IDLE < LISTENING < THINKING < SPEAKING',

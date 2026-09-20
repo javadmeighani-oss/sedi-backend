@@ -222,7 +222,8 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_composer.dart',
     ).readAsStringSync();
     expect(page.contains('initialDraft'), isTrue);
-    expect(page.contains('initialText: widget.initialDraft'), isTrue);
+    expect(page.contains('_composerDraftSeed'), isTrue);
+    expect(page.contains('Gate3ComposerDraftBus'), isTrue);
     expect(page.contains('initialMessage: widget.initialMessage'), isTrue);
     final init = RegExp(r'void initState\(\)[\s\S]*?_onTextChanged\(\);')
         .firstMatch(composer)
