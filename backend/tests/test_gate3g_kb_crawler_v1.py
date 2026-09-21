@@ -93,8 +93,8 @@ def _admin_headers(monkeypatch) -> dict:
 def _token(client, db, monkeypatch, phone: str) -> str:
     monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
     with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"}).json()["data"]["access_token"]
+        svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456", "purpose": "REGISTRATION"}).json()["data"]["access_token"]
 
 
 def _seed_fetch_source(db, slug: str, **kwargs):

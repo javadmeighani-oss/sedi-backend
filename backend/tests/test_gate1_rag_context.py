@@ -16,8 +16,8 @@ from backend.app.schemas.gate1 import CaregiverCreateIn
 def _user_id(client, db, monkeypatch, phone: str) -> int:
     monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
     with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    r = client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"})
+        svc.request_otp(db, phone, purpose=svc.OTP_PURPOSE_REGISTRATION)
+    r = client.post("/auth/verify_otp", json={"phone": phone, "code": "123456", "purpose": "REGISTRATION"})
     return r.json()["data"]["user_id"]
 
 

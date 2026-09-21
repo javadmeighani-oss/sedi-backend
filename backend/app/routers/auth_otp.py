@@ -54,7 +54,12 @@ def _handle_request_otp(
 ) -> ApiResponseV1:
     """Internal: request OTP logic (shared by /request_otp and /otp/request)."""
     accept_language = request.headers.get("Accept-Language")
-    ok, err, dev_code = svc.request_otp(db, body.phone, accept_language=accept_language)
+    ok, err, dev_code = svc.request_otp(
+        db,
+        body.phone,
+        accept_language=accept_language,
+        purpose=body.purpose,
+    )
     if not ok:
         return APIResponse(ok=False, error=ErrorInfo(code="OTP_REQUEST_FAILED", message=err))
     data: dict = {"ok": True, "next": "verify_otp"}
@@ -90,10 +95,14 @@ def _handle_verify_otp(
     db: Session,
 ) -> ApiResponseV1:
     """Internal: verify OTP logic (shared by /verify_otp and /otp/verify)."""
-    user, err = svc.verify_otp(db, body.phone, body.code)
+    user, err = svc.verify_otp(db, body.phone, body.code, purpose=body.purpose)
     if err:
         code = "OTP_INVALID"
-        if "expired" in err.lower():
+        if err == "ACCOUNT_NOT_FOUND":
+            code = "ACCOUNT_NOT_FOUND"
+        elif err == "ACCOUNT_EXISTS":
+            code = "ACCOUNT_EXISTS"
+        elif "expired" in err.lower():
             code = "OTP_EXPIRED"
         elif "attempts" in err.lower():
             code = "TOO_MANY_ATTEMPTS"

@@ -5853,6 +5853,11 @@
           "phone": {
             "title": "Phone",
             "type": "string"
+          },
+          "purpose": {
+            "default": "LOGIN",
+            "title": "Purpose",
+            "type": "string"
           }
         },
         "required": [
@@ -5869,6 +5874,11 @@
           },
           "phone": {
             "title": "Phone",
+            "type": "string"
+          },
+          "purpose": {
+            "default": "LOGIN",
+            "title": "Purpose",
             "type": "string"
           }
         },

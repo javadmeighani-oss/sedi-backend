@@ -12,10 +12,20 @@ ADDRESSING_PREFERENCE_MAX_LENGTH = 64
 BIRTH_YEAR_MIN = 1900
 CALENDAR_TYPES = frozenset({"jalali", "gregorian", "hijri"})
 SEX_VALUES = frozenset({"male", "female", "other"})
+OTP_PUBLIC_PURPOSES = frozenset({"LOGIN", "REGISTRATION"})
 
 
 class OtpRequestIn(BaseModel):
     phone: str
+    purpose: str = "LOGIN"
+
+    @field_validator("purpose")
+    @classmethod
+    def validate_purpose(cls, value: str) -> str:
+        purpose = (value or "LOGIN").strip().upper()
+        if purpose not in OTP_PUBLIC_PURPOSES:
+            raise ValueError("purpose must be LOGIN or REGISTRATION")
+        return purpose
 
 
 class OtpRequestOut(BaseModel):
@@ -26,6 +36,15 @@ class OtpRequestOut(BaseModel):
 class OtpVerifyIn(BaseModel):
     phone: str
     code: str
+    purpose: str = "LOGIN"
+
+    @field_validator("purpose")
+    @classmethod
+    def validate_purpose(cls, value: str) -> str:
+        purpose = (value or "LOGIN").strip().upper()
+        if purpose not in OTP_PUBLIC_PURPOSES:
+            raise ValueError("purpose must be LOGIN or REGISTRATION")
+        return purpose
 
 
 class PhoneChangeRequestIn(BaseModel):

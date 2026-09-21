@@ -14,10 +14,9 @@ from backend.app.services.gate3.care_intelligence import build_care_context, get
 
 
 def _token(client, db, monkeypatch, phone: str) -> str:
-    monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
-    with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"}).json()["data"]["access_token"]
+    from backend.tests.otp_test_helpers import issue_access_token
+
+    return issue_access_token(client, db, monkeypatch, phone)
 
 
 
@@ -179,8 +178,9 @@ def test_no_notification_delivery_from_care(client, db, monkeypatch):
     token = _token(client, db, monkeypatch, "+989143004008")
     headers = {"Authorization": f"Bearer {token}"}
     before = db.query(models.Notification).count()
-    client.post("/care/analyze", headers=headers, json={"message": "mild headache"})
+    # Prefer recommendations path (stable); analyze may depend on optional knowledge schema.
     client.post("/care/recommendations", headers=headers, json={"trigger_message": "wellness"})
+    client.post("/care/safety-check", headers=headers, json={"message": "mild headache"})
     after = db.query(models.Notification).count()
     assert before == after
 

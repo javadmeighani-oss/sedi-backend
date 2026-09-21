@@ -1,7 +1,7 @@
 """A3 Smart Notifications sent-history projection (G1).
 
-Canonical user Inbox = successfully sent notifications within the visible
-retention window. Queued/future/failed rows remain in DB but are excluded.
+Canonical user Inbox = successfully FCM-sent notifications within the visible
+retention window. Queued/future/failed/db-only rows remain in DB but are excluded.
 """
 
 from __future__ import annotations
@@ -64,10 +64,12 @@ def apply_sent_history_filters(
     *,
     now: Optional[datetime] = None,
 ) -> Query:
-    """Filter to normal A3 user history: sent + sent_at present + within window."""
+    """Filter to normal A3 user history: FCM sent + sent_at present + within window."""
     cutoff = visible_cutoff(now)
     return query.filter(
         Notification.is_sent.is_(True),
+        Notification.status == "sent",
+        Notification.provider == "fcm",
         Notification.sent_at.isnot(None),
         Notification.sent_at >= cutoff,
     )

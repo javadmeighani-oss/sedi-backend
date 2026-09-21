@@ -25,12 +25,17 @@ def _token(user_id: int) -> dict:
 
 def test_login_otp_still_works(client, db):
     phone = "+15550001111"
+    existing = User(name="Login", secret_key="t", preferred_language="en", phone=phone)
+    db.add(existing)
+    db.commit()
+    db.refresh(existing)
     ok, err, code = svc.request_otp(db, phone)
     assert ok and not err and code
     user, verr = svc.verify_otp(db, phone, code)
     assert verr == ""
     assert user is not None
     assert user.phone == phone
+    assert user.id == existing.id
     row = (
         db.query(OtpCode)
         .filter(OtpCode.phone == phone, OtpCode.purpose == svc.OTP_PURPOSE_LOGIN)

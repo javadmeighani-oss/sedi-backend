@@ -25,8 +25,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 OTP_PURPOSE_LOGIN = "LOGIN"
+OTP_PURPOSE_REGISTRATION = "REGISTRATION"
 OTP_PURPOSE_PHONE_CHANGE = "PHONE_CHANGE"
-_OTP_PURPOSES = frozenset({OTP_PURPOSE_LOGIN, OTP_PURPOSE_PHONE_CHANGE})
+_OTP_PURPOSES = frozenset({OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTRATION, OTP_PURPOSE_PHONE_CHANGE})
 
 # Fail-safe SMS: if SMS_DISABLED=true do not call provider; log [OTP_DEV] and return success (Stage 25 Step 2.2)
 SMS_DISABLED = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
@@ -118,7 +119,7 @@ def request_otp(
     """
     Create or update OTP for phone+purpose; rate-limit; send SMS (or dev log).
     Returns (success, error_message, dev_code). On success error_message is "".
-    LOGIN: purpose=LOGIN, user_id=None.
+    LOGIN/REGISTRATION: purpose-bound public OTP, user_id=None.
     PHONE_CHANGE: purpose=PHONE_CHANGE, user_id=authenticated account id.
     """
     purpose = (purpose or OTP_PURPOSE_LOGIN).strip().upper()
@@ -126,7 +127,7 @@ def request_otp(
         return False, "Invalid OTP purpose", None
     if purpose == OTP_PURPOSE_PHONE_CHANGE and user_id is None:
         return False, "Authenticated account required", None
-    if purpose == OTP_PURPOSE_LOGIN:
+    if purpose in {OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTRATION}:
         user_id = None
 
     phone = normalize_phone(phone)
@@ -168,10 +169,16 @@ def request_otp(
         q = q.filter(models.OtpCode.user_id.is_(None))
     row = q.first()
     if row:
+        # New rate window: prior created_at outside window must not carry
+        # historical sent_count into the fresh window (relogin counter bug).
+        outside_window = row.created_at is None or row.created_at < window_start
         row.code_hash = code_hash
         row.expires_at = expires_at
         row.attempts = 0
-        row.sent_count += 1
+        if outside_window:
+            row.sent_count = 1
+        else:
+            row.sent_count += 1
         row.created_at = now
         row.purpose = purpose
         row.user_id = user_id
@@ -215,11 +222,19 @@ def request_otp(
     return True, "", None
 
 
-def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User], str]:
+def verify_otp(
+    db: Session,
+    phone: str,
+    code: str,
+    purpose: str = OTP_PURPOSE_LOGIN,
+) -> Tuple[Optional[models.User], str]:
     """
-    Verify LOGIN OTP; increment attempts; create user if missing.
+    Verify LOGIN or REGISTRATION OTP; increment attempts; preserve purpose isolation.
     Never consumes PHONE_CHANGE challenges.
     """
+    purpose = (purpose or OTP_PURPOSE_LOGIN).strip().upper()
+    if purpose not in {OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTRATION}:
+        return None, "Invalid OTP purpose"
     phone = normalize_phone(phone)
     if not phone:
         return None, "Invalid phone number"
@@ -231,21 +246,11 @@ def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User
         db.query(models.OtpCode)
         .filter(
             models.OtpCode.phone == phone,
-            models.OtpCode.purpose == OTP_PURPOSE_LOGIN,
+            models.OtpCode.purpose == purpose,
+            models.OtpCode.user_id.is_(None),
         )
         .first()
     )
-    # Backward-compat: legacy rows may lack purpose filter if purpose default not applied
-    if not row:
-        row = (
-            db.query(models.OtpCode)
-            .filter(
-                models.OtpCode.phone == phone,
-                models.OtpCode.purpose == OTP_PURPOSE_LOGIN,
-                models.OtpCode.user_id.is_(None),
-            )
-            .first()
-        )
     if not row:
         return None, "OTP not requested or expired"
 
@@ -266,9 +271,16 @@ def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User
     row.expires_at = now()
     db.commit()
 
-    # Get or create user by phone (LOGIN only)
     user = db.query(models.User).filter(models.User.phone == phone).first()
-    if not user:
+    if purpose == OTP_PURPOSE_LOGIN:
+        if not user:
+            return None, "ACCOUNT_NOT_FOUND"
+        return user, ""
+
+    if user:
+        return None, "ACCOUNT_EXISTS"
+
+    if purpose == OTP_PURPOSE_REGISTRATION:
         user = models.User(
             phone=phone,
             name=None,
@@ -279,8 +291,9 @@ def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User
         db.add(user)
         db.commit()
         db.refresh(user)
+        return user, ""
 
-    return user, ""
+    return None, "Invalid OTP purpose"
 
 
 def request_phone_change_otp(

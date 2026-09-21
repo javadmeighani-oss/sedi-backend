@@ -23,10 +23,9 @@ VITAL_META_KEYS = frozenset({"value", "unit", "recorded_at", "received_at", "sou
 
 
 def _token(client, db, monkeypatch, phone: str) -> str:
-    monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
-    with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"}).json()["data"]["access_token"]
+    from backend.tests.otp_test_helpers import issue_access_token
+
+    return issue_access_token(client, db, monkeypatch, phone)
 
 
 def _assert_vitals_v1_shape(out: dict) -> None:
