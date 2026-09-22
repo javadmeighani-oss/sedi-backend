@@ -10,7 +10,9 @@ import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_orb_presence.dart';
 import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.dart';
 
 void main() {
@@ -287,6 +289,83 @@ void main() {
       expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
       expect(page.contains('updateMessage'), isFalse);
       expect(page.contains('patchMessage'), isFalse);
+    });
+  });
+
+  group('R1 orb resonance center', () {
+    testWidgets('resonance centerline crosses orb center for all four states',
+        (tester) async {
+      for (final state in Gate3InteractionState.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SediOrbPresence(state: state, lang: 'en'),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final orb = tester.getRect(find.byType(SediBrainOrb));
+        final resonance =
+            tester.getRect(find.byType(SediHorizontalResonanceVisualizer));
+        expect(resonance.center.dy, closeTo(orb.center.dy, 0.01));
+        expect(resonance.center.dx, closeTo(orb.center.dx, 0.01));
+        expect(resonance.top, greaterThanOrEqualTo(orb.top - 0.01));
+        expect(resonance.bottom, lessThanOrEqualTo(orb.bottom + 0.01));
+        expect(find.text('Sedi.'), findsOneWidget);
+        expect(
+          tester.getSize(find.byType(SediBrainOrb)),
+          const Size(SediBrainOrb.size, SediBrainOrb.size),
+        );
+        expect(
+          resonance.height,
+          closeTo(SediHorizontalResonanceVisualizer.height, 0.01),
+        );
+      }
+    });
+
+    testWidgets('presence size is unchanged when the keyboard inset opens',
+        (tester) async {
+      Size measure() {
+        return tester.getSize(find.byType(SediOrbPresence));
+      }
+
+      Future<void> pumpWith(EdgeInsets viewInsets) {
+        return tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) {
+              final data = MediaQuery.of(context);
+              return MediaQuery(
+                data: data.copyWith(viewInsets: viewInsets),
+                child: child!,
+              );
+            },
+            home: const Scaffold(
+              body: Center(
+                child: SediOrbPresence(
+                  state: Gate3InteractionState.speaking,
+                  lang: 'fa',
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await pumpWith(EdgeInsets.zero);
+      await tester.pump();
+      final closed = measure();
+
+      await pumpWith(const EdgeInsets.only(bottom: 320));
+      await tester.pump();
+      final open = measure();
+
+      expect(closed, open);
+      expect(closed.width, closeTo(SediOrbPresence.presenceWidth, 0.01));
+      expect(closed.height, closeTo(SediBrainOrb.size, 0.01));
+      expect(closed.width, lessThan(360));
     });
   });
 }

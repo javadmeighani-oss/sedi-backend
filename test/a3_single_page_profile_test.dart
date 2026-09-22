@@ -78,6 +78,35 @@ void main() {
     expect(l10n.summaryStatusLabel('in_progress'), isNotEmpty);
   });
 
+  test('profile summary shows empty state, not status rows', () {
+    const payload = {
+      'rows': [
+        {'key': 'memory_consent', 'status': 'granted'},
+        {'key': 'memory_write', 'status': 'allowed'},
+        {'key': 'memory_read', 'status': 'allowed'},
+        {'key': 'daily_plan', 'status': 'active'},
+        {'key': 'plan_actions', 'status': 'in_progress'},
+      ],
+    };
+    expect(canonicalProfileSummaryText(payload), isEmpty);
+    expect(canonicalProfileSummaryText(null), isEmpty);
+    expect(canonicalProfileSummaryText(<String, Object>{}), isEmpty);
+
+    final src = File(
+      'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
+    ).readAsStringSync();
+    expect(src.contains('userSummaryEmpty'), isTrue);
+    expect(src.contains('summaryRowLabel'), isFalse);
+    expect(src.contains('summaryStatusLabel'), isFalse);
+    expect(src.contains('_summaryRow'), isFalse);
+    expect(
+      Gate3Localization('fa').userSummaryEmpty,
+      'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
+    );
+    expect(Gate3Localization('en').userSummaryEmpty, isNotEmpty);
+    expect(Gate3Localization('ar').userSummaryEmpty, isNotEmpty);
+  });
+
   test('7 no technical IDs / Sedi ID / I9 in profile l10n surface', () {
     final l10n = Gate3Localization('en');
     final blob = [

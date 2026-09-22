@@ -12,7 +12,7 @@ import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../gate3_localization.dart';
 import '../widgets/a3_page_app_bar.dart';
 
-/// A3 Profile — exactly 3 sections: User info, I6/I8 summary, Log out.
+/// A3 Profile — exactly 3 sections: User info, user summary, Log out.
 class Gate3ProfilePage extends StatefulWidget {
   const Gate3ProfilePage({super.key});
 
@@ -28,7 +28,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   final _otpCtrl = TextEditingController();
 
   MeProfileDto? _me;
-  List<Map<String, String>> _summaryRows = [];
+  String _canonicalSummary = '';
   bool _loading = true;
   String? _error;
   String? _phoneFlowError;
@@ -38,17 +38,6 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   bool _phoneBusy = false;
   String? _pendingNewPhone;
   A2CountryDialCode _dial = A2PhoneE164.defaultDialCode;
-
-  /// Permission/internal implementation rows are not the primary user summary.
-  static const _internalSummaryKeys = {
-    'memory_consent',
-    'memory_write',
-    'memory_read',
-  };
-
-  List<Map<String, String>> get _userFacingSummaryRows => _summaryRows
-      .where((row) => !_internalSummaryKeys.contains(row['key']))
-      .toList();
 
   Gate3Localization get _l10n =>
       Gate3Localization(SediLocaleController.instance.languageCode);
@@ -72,23 +61,9 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       _error = null;
     });
     final meRes = await _profile.fetchMe(recoverSessionOn401: true);
-    final summaryRes = await _api.get<List<Map<String, String>>>(
+    final summaryRes = await _api.get<String>(
       '/auth/me/profile-summary',
-      parser: (data) {
-        if (data is! Map) return <Map<String, String>>[];
-        final raw = data['rows'];
-        if (raw is! List) return <Map<String, String>>[];
-        return raw
-            .whereType<Map>()
-            .map(
-              (e) => {
-                'key': e['key']?.toString() ?? '',
-                'status': e['status']?.toString() ?? '',
-              },
-            )
-            .where((e) => e['key']!.isNotEmpty && e['status']!.isNotEmpty)
-            .toList();
-      },
+      parser: canonicalProfileSummaryText,
     );
 
     if (!mounted) return;
@@ -104,9 +79,9 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         }
       }
       if (summaryRes.ok && summaryRes.data != null) {
-        _summaryRows = summaryRes.data!;
+        _canonicalSummary = summaryRes.data!;
       } else {
-        _summaryRows = [];
+        _canonicalSummary = '';
       }
     });
   }
@@ -503,10 +478,11 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       );
 
   Widget _buildSummaryCard(Gate3Localization l10n) {
-    final rows = _userFacingSummaryRows;
+    final text = _canonicalSummary.trim();
+    final body = text.isEmpty ? l10n.userSummaryEmpty : text;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         color: AppTheme.gate3PaleOliveBackground.withOpacity(0.55),
         borderRadius: BorderRadius.circular(16),
@@ -514,57 +490,29 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
           color: AppTheme.borderInactive.withOpacity(0.28),
         ),
       ),
-      child: rows.isEmpty
-          ? Text(
-              l10n.userSummaryEmpty,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: rows
-                  .map(
-                    (row) => _summaryRow(
-                      l10n.summaryRowLabel(row['key']!),
-                      l10n.summaryStatusLabel(row['status']!),
-                    ),
-                  )
-                  .toList(),
-            ),
+      child: Text(
+        body,
+        style: const TextStyle(
+          color: AppTheme.textSecondary,
+          fontSize: 14,
+          height: 1.45,
+        ),
+      ),
     );
   }
-
-  Widget _summaryRow(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 5,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 4,
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
 }
+
+/// Canonical user-facing summary prose from `/auth/me/profile-summary` data.
+///
+/// The live contract is `{rows:[{key,status}]}` only. Those rows are
+/// capability and plan-status codes, not a human-readable user summary.
+/// This does not turn them into prose. An empty result means the profile
+/// card shows only the localized empty state.
+String canonicalProfileSummaryText(Object? data) {
+  if (data is! Map) return '';
+  // Status rows are capability/plan codes. They are not summary prose.
+  final rows = data['rows'];
+  if (rows is List || rows == null) return '';
+  return '';
+}
+

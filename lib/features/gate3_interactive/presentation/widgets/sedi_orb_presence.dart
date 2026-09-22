@@ -6,13 +6,15 @@ import 'sedi_horizontal_resonance_visualizer.dart';
 
 /// Orb + horizontal resonance as one centered presence unit.
 ///
-/// Resonance width is locked to the orb column so bars are not a full-bleed
-/// strip detached below the circular identity.
+/// The resonance band shares the orb's vertical center. It stays inside the
+/// orb column (not screen-width). The orb is painted above the band so the
+/// fixed Latin brand stays readable.
 class SediOrbPresence extends StatelessWidget {
   final Gate3InteractionState state;
   final String lang;
 
-  /// Slightly wider than the orb so bars read as a base under the sphere.
+  /// Slightly wider than the orb so the centerline flanks the sphere
+  /// without becoming a screen-width strip.
   static const double presenceWidth = SediBrainOrb.size * 1.12;
 
   const SediOrbPresence({
@@ -25,15 +27,16 @@ class SediOrbPresence extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: presenceWidth,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      height: SediBrainOrb.size,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          SediBrainOrb(state: state, lang: lang),
           SizedBox(
             width: presenceWidth,
             height: SediHorizontalResonanceVisualizer.height,
             child: SediHorizontalResonanceVisualizer(state: state),
           ),
+          SediBrainOrb(state: state, lang: lang),
         ],
       ),
     );
