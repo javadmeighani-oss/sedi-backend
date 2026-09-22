@@ -68,6 +68,7 @@ class OtpDigitInputFormatter extends TextInputFormatter {
 ///
 /// Uses one [TextEditingController] as the source of truth so OS one-time-code
 /// autofill, paste, and manual typing all populate every box consistently.
+/// Digit slots are tappable to re-focus and edit from that position.
 class Gate2OtpInput extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -91,6 +92,7 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
   void initState() {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
+    widget.focusNode.addListener(_handleFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.enabled) return;
       if (!widget.focusNode.hasFocus) {
@@ -106,12 +108,21 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
       oldWidget.controller.removeListener(_handleControllerChanged);
       widget.controller.addListener(_handleControllerChanged);
     }
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_handleFocusChanged);
+      widget.focusNode.addListener(_handleFocusChanged);
+    }
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_handleControllerChanged);
+    widget.focusNode.removeListener(_handleFocusChanged);
     super.dispose();
+  }
+
+  void _handleFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   void _handleControllerChanged() {
@@ -146,6 +157,24 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
     }
   }
 
+  /// Tap a slot to re-focus; truncate so that slot becomes the active caret.
+  void _onSlotTap(int index) {
+    if (!widget.enabled) return;
+    _ensureFocus();
+    final code = OtpInputHelper.sanitize(widget.controller.text);
+    final next = index <= 0
+        ? ''
+        : (code.length > index ? code.substring(0, index) : code);
+    if (next != code) {
+      widget.controller.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
+      );
+    } else if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -168,61 +197,64 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    IgnorePointer(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(
-                          OtpInputHelper.codeLength,
-                          (index) => _OtpDigitBox(
-                            digit: OtpInputHelper.digitAt(code, index),
-                            size: layout.boxSize,
-                            gap: layout.gap,
-                            isLast: index == OtpInputHelper.codeLength - 1,
-                            active: widget.enabled &&
-                                widget.focusNode.hasFocus &&
-                                (code.length == index ||
-                                    (code.length ==
-                                            OtpInputHelper.codeLength &&
-                                        index ==
-                                            OtpInputHelper.codeLength - 1)),
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: TextField(
+                          controller: widget.controller,
+                          focusNode: widget.focusNode,
+                          enabled: widget.enabled,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.oneTimeCode],
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          showCursor: false,
+                          style: const TextStyle(
+                            color: Colors.transparent,
+                            fontSize: 1,
+                            height: 1,
                           ),
+                          strutStyle: const StrutStyle(height: 1, fontSize: 1),
+                          inputFormatters: [
+                            // Must NOT use digitsOnly — that strips Persian/Arabic
+                            // digits before normalization can run.
+                            OtpDigitInputFormatter(),
+                          ],
+                          decoration: const InputDecoration(
+                            counterText: '',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          onChanged: _applyInput,
                         ),
                       ),
                     ),
-                    Positioned.fill(
-                      child: TextField(
-                        controller: widget.controller,
-                        focusNode: widget.focusNode,
-                        enabled: widget.enabled,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.oneTimeCode],
-                        enableSuggestions: false,
-                        autocorrect: false,
-                        showCursor: true,
-                        cursorColor: AppTheme.gate2ButtonOlive,
-                        style: const TextStyle(
-                          color: Colors.transparent,
-                          fontSize: 1,
-                          height: 1,
-                        ),
-                        strutStyle: const StrutStyle(height: 1, fontSize: 1),
-                        inputFormatters: [
-                          // Must NOT use digitsOnly — that strips Persian/Arabic
-                          // digits before normalization can run.
-                          OtpDigitInputFormatter(),
-                        ],
-                        decoration: const InputDecoration(
-                          counterText: '',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          isDense: true,
-                        ),
-                        onChanged: _applyInput,
-                        onTap: _ensureFocus,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(
+                        OtpInputHelper.codeLength,
+                        (index) {
+                          final active = widget.enabled &&
+                              widget.focusNode.hasFocus &&
+                              (code.length == index ||
+                                  (code.length == OtpInputHelper.codeLength &&
+                                      index == OtpInputHelper.codeLength - 1));
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _onSlotTap(index),
+                            child: _OtpDigitBox(
+                              digit: OtpInputHelper.digitAt(code, index),
+                              size: layout.boxSize,
+                              gap: layout.gap,
+                              isLast: index == OtpInputHelper.codeLength - 1,
+                              active: active,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -302,14 +334,20 @@ class _OtpDigitBox extends StatelessWidget {
           width: active ? 1.2 : 0.8,
         ),
       ),
-      child: Text(
-        digit,
-        style: TextStyle(
-          color: AppTheme.gate2TextPrimary,
-          fontSize: (size * 0.42).clamp(14, 20),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: digit.isEmpty && active
+          ? Container(
+              width: 1.5,
+              height: (size * 0.42).clamp(14, 20),
+              color: AppTheme.gate2ButtonOlive,
+            )
+          : Text(
+              digit,
+              style: TextStyle(
+                color: AppTheme.gate2TextPrimary,
+                fontSize: (size * 0.42).clamp(14, 20),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
     );
   }
 }

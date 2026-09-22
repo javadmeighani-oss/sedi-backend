@@ -284,7 +284,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   child: Gate3SubjectSelector(l10n: l10n),
                 ),
                 const SizedBox(height: 4),
-                Center(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SediOrbPresence.horizontalInset,
+                  ),
                   child: SediOrbPresence(
                     state: _orbState(),
                     lang: _controller.currentLanguage,

@@ -53,14 +53,17 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byType(TextField));
+    await tester.tap(find.byType(Gate2OtpInput));
     await tester.pump();
     expect(focusNode.hasFocus, isTrue);
 
     await tester.enterText(find.byType(TextField), '1');
     await tester.pump();
     expect(controller.text, '1');
-    expect(find.text('1'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Text && w.data == '1'),
+      findsOneWidget,
+    );
 
     await tester.enterText(find.byType(TextField), '12');
     await tester.pump();
@@ -70,7 +73,10 @@ void main() {
     await tester.pump();
     expect(controller.text, '123456');
     expect(OtpInputHelper.isComplete(controller.text), isTrue);
-    expect(find.text('6'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Text && w.data == '6'),
+      findsOneWidget,
+    );
 
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.autofillHints, contains(AutofillHints.oneTimeCode));
@@ -236,5 +242,35 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('6'), findsOneWidget);
+  });
+
+  testWidgets('tapping a filled slot re-focuses and truncates for edit',
+      (tester) async {
+    final controller = TextEditingController(text: '123456');
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    focusNode.unfocus();
+    await tester.pump();
+    expect(focusNode.hasFocus, isFalse);
+
+    await tester.tap(find.text('3'));
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isTrue);
+    expect(controller.text, '12');
+    expect(find.text('3'), findsNothing);
   });
 }

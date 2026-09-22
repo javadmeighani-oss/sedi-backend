@@ -4,12 +4,27 @@ import 'package:flutter/material.dart';
 
 import '../../models/gate3_interaction_state.dart';
 
-/// Horizontal anti-aliased bar-column resonance visualizer under the orb.
+/// Horizontal anti-aliased bar-column resonance visualizer.
 ///
 /// Deterministic clustered motion — no per-frame random noise.
 /// State authority is [Gate3InteractionState] (same as circular ring).
+///
+/// When [phaseListenable] is provided, phase advances from that shared
+/// listenable so left/right segments stay synchronized.
 class SediHorizontalResonanceVisualizer extends StatefulWidget {
   final Gate3InteractionState state;
+
+  /// Optional shared phase source (0..1). When null, owns a local controller.
+  final Animation<double>? phaseListenable;
+
+  /// Bars drawn in this segment. Defaults to [barCount].
+  final int? segmentBarCount;
+
+  /// Global bar index of the first bar in this segment (keeps envelope continuous).
+  final int globalBarOffset;
+
+  /// Total bars across the full presence (used with [globalBarOffset]).
+  final int? globalBarTotal;
 
   static const double height = 36;
   static const int barCount = 28;
@@ -18,6 +33,10 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   const SediHorizontalResonanceVisualizer({
     super.key,
     required this.state,
+    this.phaseListenable,
+    this.segmentBarCount,
+    this.globalBarOffset = 0,
+    this.globalBarTotal,
   });
 
   @override
@@ -28,8 +47,11 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
 class _SediHorizontalResonanceVisualizerState
     extends State<SediHorizontalResonanceVisualizer>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  AnimationController? _ownedController;
   double _energy = _targetEnergy(Gate3InteractionState.idle);
+
+  Animation<double> get _phase =>
+      widget.phaseListenable ?? _ownedController!;
 
   static double _targetEnergy(Gate3InteractionState state) {
     switch (state) {
@@ -60,16 +82,35 @@ class _SediHorizontalResonanceVisualizerState
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..addListener(_tick)
-      ..repeat();
+    if (widget.phaseListenable == null) {
+      _ownedController = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 10),
+      )..addListener(_tick)
+        ..repeat();
+    } else {
+      widget.phaseListenable!.addListener(_tick);
+    }
   }
 
   @override
   void didUpdateWidget(covariant SediHorizontalResonanceVisualizer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.phaseListenable != widget.phaseListenable) {
+      oldWidget.phaseListenable?.removeListener(_tick);
+      if (widget.phaseListenable == null && _ownedController == null) {
+        _ownedController = AnimationController(
+          vsync: this,
+          duration: const Duration(seconds: 10),
+        )..addListener(_tick)
+          ..repeat();
+      } else if (widget.phaseListenable != null) {
+        _ownedController?.removeListener(_tick);
+        _ownedController?.dispose();
+        _ownedController = null;
+        widget.phaseListenable!.addListener(_tick);
+      }
+    }
     if (oldWidget.state != widget.state) {
       _tick();
     }
@@ -87,22 +128,29 @@ class _SediHorizontalResonanceVisualizerState
 
   @override
   void dispose() {
-    _controller.removeListener(_tick);
-    _controller.dispose();
+    widget.phaseListenable?.removeListener(_tick);
+    _ownedController?.removeListener(_tick);
+    _ownedController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final count =
+        widget.segmentBarCount ?? SediHorizontalResonanceVisualizer.barCount;
     return SizedBox(
       width: double.infinity,
       height: SediHorizontalResonanceVisualizer.height,
       child: CustomPaint(
         painter: _HorizontalResonancePainter(
-          phase: _controller.value,
+          phase: _phase.value,
           energy: _energy,
           density: _density(widget.state),
           state: widget.state,
+          segmentBarCount: count,
+          globalBarOffset: widget.globalBarOffset,
+          globalBarTotal:
+              widget.globalBarTotal ?? SediHorizontalResonanceVisualizer.barCount,
         ),
       ),
     );
@@ -114,6 +162,9 @@ class _HorizontalResonancePainter extends CustomPainter {
   final double energy;
   final double density;
   final Gate3InteractionState state;
+  final int segmentBarCount;
+  final int globalBarOffset;
+  final int globalBarTotal;
 
   static const _olive = Color(0xFF8A9A6B);
   static const _cream = Color(0xFFE8E4C8);
@@ -123,17 +174,23 @@ class _HorizontalResonancePainter extends CustomPainter {
     required this.energy,
     required this.density,
     required this.state,
+    required this.segmentBarCount,
+    required this.globalBarOffset,
+    required this.globalBarTotal,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final count = SediHorizontalResonanceVisualizer.barCount;
+    if (segmentBarCount <= 0 || size.width <= 0) return;
+
+    final count = segmentBarCount;
     final gap = size.width / (count * 1.35);
     final barWidth = gap * 0.55;
     final midY = size.height / 2;
     final maxHalf = size.height * 0.46;
     final animated =
         phase * SediHorizontalResonanceVisualizer.phaseSpeed * math.pi * 2;
+    final total = math.max(globalBarTotal, 1);
 
     final paint = Paint()
       ..isAntiAlias = true
@@ -142,7 +199,8 @@ class _HorizontalResonancePainter extends CustomPainter {
       ..strokeWidth = barWidth.clamp(1.6, 3.2);
 
     for (var i = 0; i < count; i++) {
-      final t = i / (count - 1);
+      final globalIndex = globalBarOffset + i;
+      final t = total <= 1 ? 0.0 : globalIndex / (total - 1);
       // Smooth cluster envelopes (deterministic).
       final clusterA = math.sin((t * 3.2 + animated) * math.pi);
       final clusterB = math.sin((t * 7.1 - animated * 0.7) * math.pi) * 0.55;
@@ -173,5 +231,8 @@ class _HorizontalResonancePainter extends CustomPainter {
       oldDelegate.phase != phase ||
       oldDelegate.energy != energy ||
       oldDelegate.density != density ||
-      oldDelegate.state != state;
+      oldDelegate.state != state ||
+      oldDelegate.segmentBarCount != segmentBarCount ||
+      oldDelegate.globalBarOffset != globalBarOffset ||
+      oldDelegate.globalBarTotal != globalBarTotal;
 }

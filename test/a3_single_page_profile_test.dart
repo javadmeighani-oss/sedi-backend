@@ -71,6 +71,19 @@ void main() {
     expect(src.contains('AuthHelper.performLogout'), isTrue);
   });
 
+  test('profile phone card keeps Change Phone and Gate2OtpInput inside', () {
+    final src = File(
+      'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
+    ).readAsStringSync();
+    expect(src.contains('Gate2OtpInput'), isTrue);
+    expect(src.contains('_phoneCard'), isTrue);
+    expect(src.contains('changePhone'), isTrue);
+    final phoneCardIdx = src.indexOf('Widget _phoneCard');
+    final changeIdx = src.indexOf('l10n.changePhone', phoneCardIdx);
+    expect(phoneCardIdx, greaterThan(0));
+    expect(changeIdx, greaterThan(phoneCardIdx));
+  });
+
   test('6 summary table maps backend projection keys/status', () {
     final l10n = Gate3Localization('en');
     expect(l10n.summaryRowLabel('memory_consent'), isNotEmpty);

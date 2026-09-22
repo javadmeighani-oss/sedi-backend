@@ -293,14 +293,20 @@ void main() {
   });
 
   group('R1 orb resonance center', () {
-    testWidgets('resonance centerline crosses orb center for all four states',
+    testWidgets('full-width resonance flanks orb with shared centerline gap',
         (tester) async {
       for (final state in Gate3InteractionState.values) {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: Center(
-                child: SediOrbPresence(state: state, lang: 'en'),
+              body: SizedBox(
+                width: 390,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SediOrbPresence.horizontalInset,
+                  ),
+                  child: SediOrbPresence(state: state, lang: 'en'),
+                ),
               ),
             ),
           ),
@@ -308,25 +314,38 @@ void main() {
         await tester.pump();
 
         final orb = tester.getRect(find.byType(SediBrainOrb));
-        final resonance =
-            tester.getRect(find.byType(SediHorizontalResonanceVisualizer));
-        expect(resonance.center.dy, closeTo(orb.center.dy, 0.01));
-        expect(resonance.center.dx, closeTo(orb.center.dx, 0.01));
-        expect(resonance.top, greaterThanOrEqualTo(orb.top - 0.01));
-        expect(resonance.bottom, lessThanOrEqualTo(orb.bottom + 0.01));
+        final segments = tester
+            .widgetList(find.byType(SediHorizontalResonanceVisualizer))
+            .length;
+        expect(segments, 2);
+        final left = tester.getRect(
+          find.byType(SediHorizontalResonanceVisualizer).at(0),
+        );
+        final right = tester.getRect(
+          find.byType(SediHorizontalResonanceVisualizer).at(1),
+        );
+        expect(left.center.dy, closeTo(orb.center.dy, 0.5));
+        expect(right.center.dy, closeTo(orb.center.dy, 0.5));
+        expect(left.right, lessThanOrEqualTo(orb.left + 0.01));
+        expect(right.left, greaterThanOrEqualTo(orb.right - 0.01));
+        expect(orb.left - left.right, closeTo(SediOrbPresence.orbBreathingGap, 0.5));
+        expect(right.left - orb.right, closeTo(SediOrbPresence.orbBreathingGap, 0.5));
         expect(find.text('Sedi.'), findsOneWidget);
         expect(
           tester.getSize(find.byType(SediBrainOrb)),
           const Size(SediBrainOrb.size, SediBrainOrb.size),
         );
+        expect(left.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
+        expect(right.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
         expect(
-          resonance.height,
-          closeTo(SediHorizontalResonanceVisualizer.height, 0.01),
+          left.width + right.width + SediBrainOrb.size +
+              2 * SediOrbPresence.orbBreathingGap,
+          closeTo(390 - 2 * SediOrbPresence.horizontalInset, 1.0),
         );
       }
     });
 
-    testWidgets('presence size is unchanged when the keyboard inset opens',
+    testWidgets('presence height is unchanged when the keyboard inset opens',
         (tester) async {
       Size measure() {
         return tester.getSize(find.byType(SediOrbPresence));
@@ -342,11 +361,17 @@ void main() {
                 child: child!,
               );
             },
-            home: const Scaffold(
-              body: Center(
-                child: SediOrbPresence(
-                  state: Gate3InteractionState.speaking,
-                  lang: 'fa',
+            home: Scaffold(
+              body: SizedBox(
+                width: 390,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SediOrbPresence.horizontalInset,
+                  ),
+                  child: const SediOrbPresence(
+                    state: Gate3InteractionState.speaking,
+                    lang: 'fa',
+                  ),
                 ),
               ),
             ),
@@ -362,10 +387,10 @@ void main() {
       await tester.pump();
       final open = measure();
 
-      expect(closed, open);
-      expect(closed.width, closeTo(SediOrbPresence.presenceWidth, 0.01));
+      expect(closed.height, closeTo(open.height, 0.01));
+      expect(closed.width, closeTo(open.width, 0.01));
       expect(closed.height, closeTo(SediBrainOrb.size, 0.01));
-      expect(closed.width, lessThan(360));
+      expect(closed.width, greaterThan(SediBrainOrb.size + 40));
     });
   });
 }

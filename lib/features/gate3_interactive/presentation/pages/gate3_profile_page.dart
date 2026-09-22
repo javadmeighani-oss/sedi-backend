@@ -9,6 +9,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
+import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../gate3_localization.dart';
 import '../widgets/a3_page_app_bar.dart';
 
@@ -26,6 +27,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   final _api = ApiClient();
   final _phoneCtrl = TextEditingController();
   final _otpCtrl = TextEditingController();
+  final _otpFocus = FocusNode();
 
   MeProfileDto? _me;
   String _canonicalSummary = '';
@@ -52,6 +54,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   void dispose() {
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
+    _otpFocus.dispose();
     super.dispose();
   }
 
@@ -202,17 +205,16 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
             : RefreshIndicator(
                 onRefresh: _load,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
                   children: [
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
                           _error!,
                           style: const TextStyle(color: AppTheme.dangerRed),
                         ),
                       ),
-                    // --- Section 1: User information ---
                     _sectionTitle(l10n.userInformationSection),
                     _field(l10n.profileNameLabel, _me?.name ?? '—'),
                     _field(l10n.profileDobLabel, _formatDob(_me)),
@@ -221,40 +223,12 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                       l10n.profileLanguageLabel,
                       _formatLanguage(_me?.preferredLanguage),
                     ),
-                    _field(
-                      l10n.profilePhoneLabel,
-                      _me?.phone ?? '—',
-                      valueDirection: TextDirection.ltr,
-                    ),
-                    const SizedBox(height: 8),
-                    if (!_changingPhone)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => setState(() {
-                            _changingPhone = true;
-                            _phoneFlowError = null;
-                            _phoneFlowSuccess = null;
-                            _otpSent = false;
-                          }),
-                          child: Text(l10n.changePhone),
-                        ),
-                      ),
-                    if (_changingPhone) ..._phoneChangeWidgets(l10n),
-                    if (!_changingPhone && _phoneFlowSuccess != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          _phoneFlowSuccess!,
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                        ),
-                      ),
-                    const SizedBox(height: 28),
-                    // --- Section 2: User summary ---
+                    _phoneCard(l10n),
+                    const SizedBox(height: 20),
                     _sectionTitle(l10n.userSummarySection),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     _buildSummaryCard(l10n),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 28),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -271,14 +245,86 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     );
   }
 
+  Widget _phoneCard(Gate3Localization l10n) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderInactive.withOpacity(0.35)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.profilePhoneLabel,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  _me?.phone ?? '—',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+            if (!_changingPhone) ...[
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => setState(() {
+                    _changingPhone = true;
+                    _phoneFlowError = null;
+                    _phoneFlowSuccess = null;
+                    _otpSent = false;
+                  }),
+                  child: Text(l10n.changePhone),
+                ),
+              ),
+              if (_phoneFlowSuccess != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _phoneFlowSuccess!,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+            if (_changingPhone) ..._phoneChangeWidgets(l10n),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> _phoneChangeWidgets(Gate3Localization l10n) {
     return [
-      const SizedBox(height: 8),
+      const SizedBox(height: 6),
       Text(
         l10n.newPhoneLabel,
-        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
       ),
-      const SizedBox(height: 6),
+      const SizedBox(height: 4),
       Row(
         children: [
           DropdownButton<A2CountryDialCode>(
@@ -306,47 +352,42 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               decoration: const InputDecoration(
                 isDense: true,
                 border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ),
         ],
       ),
       if (_otpSent) ...[
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Text(
           l10n.otpCodeLabel,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
         ),
-        const SizedBox(height: 6),
-        TextField(
+        const SizedBox(height: 4),
+        Gate2OtpInput(
           controller: _otpCtrl,
+          focusNode: _otpFocus,
           enabled: !_phoneBusy,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            isDense: true,
-            border: OutlineInputBorder(),
-            counterText: '',
-          ),
         ),
       ],
       if (_phoneFlowError != null)
         Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: 6),
           child: Text(
             _phoneFlowError!,
-            style: const TextStyle(color: AppTheme.dangerRed),
+            style: const TextStyle(color: AppTheme.dangerRed, fontSize: 13),
           ),
         ),
       if (_phoneFlowSuccess != null)
         Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: 6),
           child: Text(
             _phoneFlowSuccess!,
-            style: const TextStyle(color: AppTheme.textPrimary),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
           ),
         ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 8),
       Row(
         children: [
           if (!_otpSent)
@@ -421,11 +462,11 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   }
 
   Widget _sectionTitle(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Text(
           t,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: AppTheme.textPrimary,
           ),
@@ -438,42 +479,41 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     TextDirection? valueDirection,
   }) =>
       Container(
-        padding: const EdgeInsets.only(bottom: 10),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 6),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppTheme.borderInactive.withOpacity(0.35)),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 11,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Directionality(
-              textDirection:
-                  valueDirection ?? Directionality.of(context),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.textPrimary,
+              const SizedBox(height: 1),
+              Directionality(
+                textDirection:
+                    valueDirection ?? Directionality.of(context),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       );
 
@@ -482,10 +522,10 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     final body = text.isEmpty ? l10n.userSummaryEmpty : text;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: AppTheme.gate3PaleOliveBackground.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppTheme.borderInactive.withOpacity(0.28),
         ),
@@ -494,8 +534,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         body,
         style: const TextStyle(
           color: AppTheme.textSecondary,
-          fontSize: 14,
-          height: 1.45,
+          fontSize: 13,
+          height: 1.4,
         ),
       ),
     );
@@ -515,4 +555,3 @@ String canonicalProfileSummaryText(Object? data) {
   if (rows is List || rows == null) return '';
   return '';
 }
-
