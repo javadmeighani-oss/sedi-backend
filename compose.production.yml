@@ -7,6 +7,11 @@ services:
       - /etc/sedi/sedi-backend.env
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      # Host-held Firebase SA; path must match FCM_SERVICE_ACCOUNT_JSON.
+      # Staged only until controlled FCM canary — do not recreate with live
+      # deliver_pending until SEDI-V1-N1-CONTROLLED-REAL-FCM-CANARY-01.
+      - /var/www/sedi/backend/secrets/fcm-service-account.json:/run/secrets/fcm-service-account.json:ro
     depends_on:
       sedi-postgres:
         condition: service_healthy
