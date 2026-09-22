@@ -120,7 +120,7 @@ void main() {
     );
     expect(lifestyle.contains('openLifestyleChat'), isTrue);
     expect(lifestyle.contains('popUntil'), isTrue);
-    expect(lifestyle.contains('Gate3ComposerDraftBus'), isTrue);
+    expect(lifestyle.contains('Gate3AssistantStarterBus'), isTrue);
     expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
 
     final composer = _read(
@@ -281,12 +281,12 @@ void main() {
   });
 
   testWidgets(
-      '11 Lifestyle→Chat return policy: pop to root A3; draft bus seeds composer',
+      '11 Lifestyle→Chat return policy: pop to root A3; starter bus inserts assistant',
       (tester) async {
     final lifestyle =
         _read('lib/features/lifestyle/presentation/pages/lifestyle_page.dart');
     expect(lifestyle.contains('popUntil'), isTrue);
-    expect(lifestyle.contains('Gate3ComposerDraftBus'), isTrue);
+    expect(lifestyle.contains('Gate3AssistantStarterBus'), isTrue);
     expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
 
     // Prove routeCanPop policy with the same PopScope contract Gate3 uses.

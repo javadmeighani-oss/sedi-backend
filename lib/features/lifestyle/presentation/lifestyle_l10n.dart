@@ -157,15 +157,22 @@ class LifestyleL10n {
         fa: 'موردی برای این روز نیست.',
         ar: 'لا عناصر لهذا اليوم.',
       );
-  String get reviewNutritionDraft => _t(
-        en: 'Review my nutrition plan with Sedi',
-        fa: 'بازبینی برنامه تغذیه من با صدی',
-        ar: 'مراجعة خطة التغذية مع سدي',
+  /// Contextual assistant starter (not composer draft; not auto-submitted).
+  String get nutritionChatStarter => _t(
+        en:
+            'If you like, we can review your nutrition plan together and improve it for your goals. Where would you like to start?',
+        fa:
+            'اگر بخواهی، می‌توانیم برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. دوست داری از کجا شروع کنیم؟',
+        ar:
+            'إذا رغبت، يمكننا مراجعة خطة تغذيتك معًا وتحسينها بما يناسب هدفك. من أين تحب أن نبدأ؟',
       );
-  String get reviewExerciseDraft => _t(
-        en: 'Review my exercise plan with Sedi',
-        fa: 'بازبینی برنامه ورزش من با صدی',
-        ar: 'مراجعة خطة التمرين مع سدي',
+  String get exerciseChatStarter => _t(
+        en:
+            'If you like, we can review your exercise plan together and adjust it to your situation and goals. Where would you like to start?',
+        fa:
+            'اگر بخواهی، می‌توانیم برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. دوست داری از کجا شروع کنیم؟',
+        ar:
+            'إذا رغبت، يمكننا مراجعة خطة تمرينك معًا وتعديلها بما يناسب وضعك وهدفك. من أين تحب أن نبدأ؟',
       );
 
   String cycleRangeLabel(String start, String end) {

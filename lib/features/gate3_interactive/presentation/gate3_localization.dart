@@ -46,9 +46,12 @@ class Gate3Localization {
       );
 
   String get userSummaryEmpty => _t(
-        en: 'Summary unavailable right now.',
-        fa: 'خلاصه در حال حاضر در دسترس نیست.',
-        ar: 'الملخص غير متاح الآن.',
+        en:
+            'There is not enough information about you in Sedi memory yet. As you continue chatting and using Sedi, this section will gradually become more complete.',
+        fa:
+            'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
+        ar:
+            'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة سدي. مع مواصلة المحادثة واستخدام سدي، سيكتمل هذا القسم تدريجيًا.',
       );
 
   String get profileLanguageLabel =>

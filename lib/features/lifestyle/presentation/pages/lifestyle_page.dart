@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../gate3_interactive/presentation/gate3_composer_draft_bus.dart';
+import '../../../gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
@@ -87,12 +87,12 @@ class _HubCard {
 }
 
 /// Opens canonical existing A3 chat (presentation CTA only).
-/// Pops nested Lifestyle routes back to root A3 and seeds the composer draft.
-/// Never pushes a second [Gate3InteractivePage]; never auto-sends.
-void openLifestyleChat(BuildContext context, {String? initialDraft}) {
-  final draft = initialDraft?.trim();
-  if (draft != null && draft.isNotEmpty) {
-    Gate3ComposerDraftBus.instance.publish(draft);
+/// Pops nested Lifestyle routes back to root A3 and inserts an assistant
+/// starter message (composer stays empty). Never nested A3; never auto-sends.
+void openLifestyleChat(BuildContext context, {String? starterMessage}) {
+  final starter = starterMessage?.trim();
+  if (starter != null && starter.isNotEmpty) {
+    Gate3AssistantStarterBus.instance.publish(starter);
   }
   Navigator.of(context).popUntil((route) => route.isFirst);
 }

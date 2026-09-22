@@ -39,6 +39,17 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   String? _pendingNewPhone;
   A2CountryDialCode _dial = A2PhoneE164.defaultDialCode;
 
+  /// Permission/internal implementation rows are not the primary user summary.
+  static const _internalSummaryKeys = {
+    'memory_consent',
+    'memory_write',
+    'memory_read',
+  };
+
+  List<Map<String, String>> get _userFacingSummaryRows => _summaryRows
+      .where((row) => !_internalSummaryKeys.contains(row['key']))
+      .toList();
+
   Gate3Localization get _l10n =>
       Gate3Localization(SediLocaleController.instance.languageCode);
 
@@ -266,18 +277,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                     const SizedBox(height: 28),
                     // --- Section 2: User summary ---
                     _sectionTitle(l10n.userSummarySection),
-                    if (_summaryRows.isEmpty)
-                      Text(
-                        l10n.userSummaryEmpty,
-                        style: const TextStyle(color: AppTheme.textSecondary),
-                      )
-                    else
-                      ..._summaryRows.map(
-                        (row) => _summaryRow(
-                          l10n.summaryRowLabel(row['key']!),
-                          l10n.summaryStatusLabel(row['status']!),
-                        ),
-                      ),
+                    const SizedBox(height: 8),
+                    _buildSummaryCard(l10n),
                     const SizedBox(height: 36),
                     SizedBox(
                       width: double.infinity,
@@ -500,6 +501,41 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
         ),
         ),
       );
+
+  Widget _buildSummaryCard(Gate3Localization l10n) {
+    final rows = _userFacingSummaryRows;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: BoxDecoration(
+        color: AppTheme.gate3PaleOliveBackground.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.borderInactive.withOpacity(0.28),
+        ),
+      ),
+      child: rows.isEmpty
+          ? Text(
+              l10n.userSummaryEmpty,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: rows
+                  .map(
+                    (row) => _summaryRow(
+                      l10n.summaryRowLabel(row['key']!),
+                      l10n.summaryStatusLabel(row['status']!),
+                    ),
+                  )
+                  .toList(),
+            ),
+    );
+  }
 
   Widget _summaryRow(String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 10),

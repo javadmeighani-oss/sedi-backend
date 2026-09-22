@@ -115,8 +115,9 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     final l10n = _l10n;
     final isNutrition = widget.domain == LifestyleWeeklyDomain.nutrition;
     final title = isNutrition ? l10n.nutritionPlan : l10n.exercisePlan;
-    final draft =
-        isNutrition ? l10n.reviewNutritionDraft : l10n.reviewExerciseDraft;
+    final starter = isNutrition
+        ? l10n.nutritionChatStarter
+        : l10n.exerciseChatStarter;
 
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
@@ -144,7 +145,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () =>
-                      openLifestyleChat(context, initialDraft: draft),
+                      openLifestyleChat(context, starterMessage: starter),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.gate2ButtonOlive,
                     foregroundColor: AppTheme.backgroundWhite,

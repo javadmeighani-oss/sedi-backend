@@ -39,8 +39,12 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
     if (mounted) setState(() {});
   }
 
-  bool get _visible =>
-      widget.scrollController.hasClients && widget.scrollController.offset > 72;
+  /// Top-anchored list: latest is at maxScrollExtent; show when scrolled up.
+  bool get _visible {
+    if (!widget.scrollController.hasClients) return false;
+    final pos = widget.scrollController.position;
+    return (pos.maxScrollExtent - pos.pixels) > 72;
+  }
 
   @override
   Widget build(BuildContext context) {

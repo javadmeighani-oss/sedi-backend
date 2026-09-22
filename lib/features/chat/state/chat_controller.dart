@@ -343,6 +343,16 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Presentation-only Lifestyle/context starter. Never SPEAKING; never auto-send.
+  void insertPresentationAssistantMessage(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    isThinking = false;
+    isSpeaking = false;
+    messages.add(ChatMessage.assistant(text: trimmed));
+    notifyListeners();
+  }
+
   // ===============================
   // Voice Recording (Stage 24: MVP local file; no voice-to-text yet)
   // ===============================

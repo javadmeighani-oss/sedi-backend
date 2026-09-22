@@ -159,7 +159,7 @@ void main() {
     });
   });
 
-  group('chat initialDraft composer-only', () {
+  group('chat lifestyle starter handoff', () {
     test('Gate3 page/composer wire draft without auto-send', () {
       final page = File(
         'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
@@ -174,6 +174,8 @@ void main() {
       expect(page.contains('initialDraft'), isTrue);
       expect(page.contains('_composerDraftSeed'), isTrue);
       expect(page.contains('Gate3ComposerDraftBus'), isTrue);
+      expect(page.contains('Gate3AssistantStarterBus'), isTrue);
+      expect(page.contains('insertPresentationAssistantMessage'), isTrue);
       expect(page.contains('initialMessage'), isTrue);
       expect(page.contains('initialMessage: widget.initialMessage'), isTrue);
       expect(composer.contains('initialText'), isTrue);
@@ -186,17 +188,13 @@ void main() {
       expect(init!.contains('onSendText'), isFalse);
       expect(init.contains('_send'), isFalse);
 
-      expect(lifestyle.contains('initialDraft'), isTrue);
+      expect(lifestyle.contains('starterMessage'), isTrue);
       expect(lifestyle.contains('popUntil'), isTrue);
+      expect(lifestyle.contains('Gate3AssistantStarterBus'), isTrue);
       expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
-      expect(
-        LifestyleL10n('en').reviewNutritionDraft,
-        'Review my nutrition plan with Sedi',
-      );
-      expect(
-        LifestyleL10n('en').reviewExerciseDraft,
-        'Review my exercise plan with Sedi',
-      );
+      expect(LifestyleL10n('en').nutritionChatStarter.isNotEmpty, isTrue);
+      expect(LifestyleL10n('en').exerciseChatStarter.isNotEmpty, isTrue);
+      expect(LifestyleL10n('fa').nutritionChatStarter.contains('تغذیه'), isTrue);
     });
   });
 

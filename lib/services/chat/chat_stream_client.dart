@@ -104,7 +104,12 @@ class ChatStreamClient {
         switch (event) {
           case 'delta':
             final text = map['text']?.toString() ?? '';
-            if (text.isNotEmpty) onDelta(text);
+            if (text.isNotEmpty) {
+              onDelta(text);
+              // Yield so Flutter can paint progressive SPEAKING updates when
+              // multiple SSE events arrive in one network read / microtask batch.
+              await Future<void>.delayed(Duration.zero);
+            }
             break;
           case 'metadata':
             onMetadata?.call(map);

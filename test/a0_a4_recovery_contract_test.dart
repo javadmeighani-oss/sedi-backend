@@ -92,17 +92,19 @@ void main() {
         isTrue);
   });
 
-  test('A3 horizontal resonance visualizer restored; lifestyle uses draft bus',
+  test('A3 orb presence integrates resonance; lifestyle uses starter bus',
       () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(page.contains('SediHorizontalResonanceVisualizer'), isTrue);
+    expect(page.contains('SediOrbPresence'), isTrue);
     expect(page.contains('Gate3ComposerDraftBus'), isTrue);
+    expect(page.contains('Gate3AssistantStarterBus'), isTrue);
     final lifestyle = _read(
       'lib/features/lifestyle/presentation/pages/lifestyle_page.dart',
     );
     expect(lifestyle.contains('popUntil'), isTrue);
+    expect(lifestyle.contains('Gate3AssistantStarterBus'), isTrue);
     expect(lifestyle.contains('Gate3InteractivePage(initialDraft:'), isFalse);
     expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
   });

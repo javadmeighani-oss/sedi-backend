@@ -5,7 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/calendar_date_math.dart';
 import 'package:sedi_app/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_state.dart';
-import 'package:sedi_app/features/gate3_interactive/presentation/gate3_composer_draft_bus.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
+import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
@@ -13,6 +14,15 @@ import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_ho
 import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.dart';
 
 void main() {
+  group('Profile summary empty copy', () {
+    test('FA empty-state copy matches approved wording', () {
+      expect(
+        Gate3Localization('fa').userSummaryEmpty,
+        'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
+      );
+    });
+  });
+
   group('A3 profile DOB/sex localization', () {
     test('EN Gregorian Latin digits + sex labels', () {
       expect(
@@ -47,7 +57,7 @@ void main() {
   });
 
   group('Lifestyle → canonical A3 chat', () {
-    testWidgets('nutrition/exercise draft handoff pops to root without nested A3',
+    testWidgets('nutrition/exercise starter handoff pops to root without nested A3',
         (tester) async {
       var nestedGate3Pushed = false;
       await tester.pumpWidget(
@@ -67,8 +77,8 @@ void main() {
                                 onPressed: () {
                                   openLifestyleChat(
                                     context,
-                                    initialDraft:
-                                        'Review my nutrition plan with Sedi',
+                                    starterMessage:
+                                        LifestyleL10n('en').nutritionChatStarter,
                                   );
                                 },
                                 child: const Text('talk-nutrition'),
@@ -88,7 +98,7 @@ void main() {
       );
 
       String? received;
-      final sub = Gate3ComposerDraftBus.instance.stream.listen((d) {
+      final sub = Gate3AssistantStarterBus.instance.stream.listen((d) {
         received = d;
       });
       addTearDown(sub.cancel);
@@ -102,11 +112,11 @@ void main() {
 
       expect(find.text('root-a3'), findsOneWidget);
       expect(find.text('talk-nutrition'), findsNothing);
-      expect(received, 'Review my nutrition plan with Sedi');
+      expect(received, LifestyleL10n('en').nutritionChatStarter);
       expect(nestedGate3Pushed, isFalse);
     });
 
-    testWidgets('initialDraft seeds composer without auto-send / build error',
+    testWidgets('composer stays empty without auto-send / build error',
         (tester) async {
       FlutterErrorDetails? error;
       final old = FlutterError.onError;
@@ -123,7 +133,7 @@ void main() {
               isRtl: false,
               isRecording: false,
               recordingTime: '00:00',
-              initialText: 'Review my exercise plan with Sedi',
+              initialText: null,
               onListeningChanged: (_) {},
               onSendText: (_) => sent++,
               onStartRecording: () {},
@@ -136,8 +146,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(error, isNull);
-      expect(find.text('Review my exercise plan with Sedi'), findsOneWidget);
       expect(sent, 0);
+    });
+
+    test('FA/EN/AR lifestyle starters localized', () {
+      expect(
+        LifestyleL10n('fa').nutritionChatStarter.contains('تغذیه'),
+        isTrue,
+      );
+      expect(
+        LifestyleL10n('fa').exerciseChatStarter.contains('ورزشی'),
+        isTrue,
+      );
+      expect(LifestyleL10n('en').nutritionChatStarter.isNotEmpty, isTrue);
+      expect(LifestyleL10n('ar').exerciseChatStarter.isNotEmpty, isTrue);
     });
   });
 

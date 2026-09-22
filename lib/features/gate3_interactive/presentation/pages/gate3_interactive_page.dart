@@ -18,13 +18,13 @@ import '../../../notifications/presentation/pages/notification_inbox_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
+import '../gate3_assistant_starter_bus.dart';
 import '../gate3_composer_draft_bus.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
-import '../widgets/sedi_brain_orb.dart';
-import '../widgets/sedi_horizontal_resonance_visualizer.dart';
+import '../widgets/sedi_orb_presence.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
@@ -61,6 +61,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
   StreamSubscription<String>? _draftSub;
+  StreamSubscription<String>? _starterSub;
 
   /// Backend canonical unread SENT-history count; null = not loaded yet.
   int? _unreadNotificationCount;
@@ -87,6 +88,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         _composerDraftSeed = draft;
         _composerDraftToken++;
       });
+    });
+    _starterSub = Gate3AssistantStarterBus.instance.stream.listen((text) {
+      if (!mounted) return;
+      _controller.insertPresentationAssistantMessage(text);
     });
     _refreshUnreadBadge();
     _subjects.loadAccessibleSubjects().then((_) {
@@ -147,6 +152,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     WidgetsBinding.instance.removeObserver(this);
     _inboxRefreshSub?.cancel();
     _draftSub?.cancel();
+    _starterSub?.cancel();
     _backPressTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);
@@ -173,7 +179,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        0,
+        _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
@@ -278,13 +284,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   child: Gate3SubjectSelector(l10n: l10n),
                 ),
                 const SizedBox(height: 4),
-                SediBrainOrb(
-                  state: _orbState(),
-                  lang: _controller.currentLanguage,
+                Center(
+                  child: SediOrbPresence(
+                    state: _orbState(),
+                    lang: _controller.currentLanguage,
+                  ),
                 ),
-                const SizedBox(height: 6),
-                SediHorizontalResonanceVisualizer(state: _orbState()),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -406,13 +412,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   Widget _buildMessages(Gate3Localization l10n) {
     if (_controller.messages.isEmpty) {
-      // Non-transcript empty presentation — never invent assistant/user dialogue.
+      // Non-transcript empty presentation — top-aligned, no artificial gap.
       return ListView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         children: [
-          const SizedBox(height: 48),
           Text(
             l10n.emptyConversationHint,
             textAlign: TextAlign.center,
@@ -429,23 +434,21 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
     return ListView.builder(
       controller: _scrollController,
-      reverse: true,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 6, bottom: 8),
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
       itemCount: _controller.messages.length + (_controller.isThinking ? 1 : 0),
       itemBuilder: (context, index) {
-        if (_controller.isThinking && index == 0) {
+        if (_controller.isThinking &&
+            index == _controller.messages.length) {
           return const MessageBubble(
             message: '...',
             isSedi: true,
             showTyping: true,
           );
         }
-        final effectiveIndex = _controller.isThinking ? index - 1 : index;
-        final reverseIndex =
-            _controller.messages.length - 1 - effectiveIndex;
-        final msg = _controller.messages[reverseIndex];
+        final msg = _controller.messages[index];
         return MessageBubble(
+          key: ValueKey(msg.localId),
           message: msg.text,
           isSedi: msg.isSedi,
           isFailed: msg.isUser && msg.status == ChatMessageStatus.failed,
