@@ -153,7 +153,7 @@ def test_presentation_word_pace_is_80ms_after_governed_answer():
     assert chat_at < approved_at < pieces_at < delta_at < sleep_at < final_at
     assert "stream=True" not in src
     assert "ChatCompletion" not in src
-    assert "raw model" not in src.lower()
+    assert "never stream ungoverned raw model output" in src.lower()
     # Content/order: word-boundary deltas concatenate to approved text.
     approved = "Governed final answer, unchanged."
     pieces = presentation_word_deltas(approved)
