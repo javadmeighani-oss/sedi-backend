@@ -222,6 +222,16 @@ class FCMAdapter:
 
 # -------------------- DeliveryService --------------------
 
+_PROVIDER_DELIVERY_ENV = "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED"
+
+
+def provider_delivery_enabled() -> bool:
+    """Fail-closed I10 provider-delivery gate. Unset/empty/false => disabled."""
+    raw = os.getenv(_PROVIDER_DELIVERY_ENV)
+    if raw is None:
+        return False
+    return raw.strip().lower() in ("true", "1", "yes")
+
 
 def _fcm_timeout_sec() -> int:
     """Stage 16.6.2: FCM_TIMEOUT_SECONDS env (default 5)."""
@@ -245,7 +255,13 @@ class DeliveryService:
 
     def __init__(self, db: Session, adapter: Optional[DeliveryAdapter] = None):
         self.db = db
-        self.adapter = adapter if adapter is not None else _default_adapter(db)
+        self._adapter = adapter
+
+    @property
+    def adapter(self) -> DeliveryAdapter:
+        if self._adapter is None:
+            self._adapter = _default_adapter(self.db)
+        return self._adapter
 
     def deliver_pending(self, limit: Optional[int] = None) -> int:
         """
@@ -253,7 +269,11 @@ class DeliveryService:
         send each via adapter (with in-process retries), mark is_sent=True on success.
         Stage 16.6.2: Uses DELIVER_BATCH_SIZE; in-process retry with backoff up to FCM_MAX_RETRIES.
         V1: In-process lock prevents overlap (scheduler + HTTP); skip if already running.
+        Fail-closed: SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED default false.
         """
+        if not provider_delivery_enabled():
+            logger.info("[NOTIF] deliver_pending skipped: provider delivery disabled")
+            return 0
         if not _deliver_pending_lock.acquire(blocking=False):
             logger.info("[NOTIF] deliver_pending skipped: lock held (previous run in progress)")
             return 0

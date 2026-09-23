@@ -62,6 +62,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       # Required at import by app.core.conversation.prompts; Release D tests do not call GPT
       OPENAI_API_KEY: "sk-ci-placeholder-not-used"
+      # Existing delivery tests preserve pre-gate path; focused fail-closed tests monkeypatch this off.
+      SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED: "true"
 
     steps:
       - name: Checkout
@@ -120,6 +122,7 @@ jobs:
             backend/tests/test_interact_greeting_auth_v1.py \
             backend/tests/test_notifications_auth_v1.py \
             backend/tests/test_push_device_install_upsert_v1.py \
+            backend/tests/test_provider_delivery_fail_closed_v1.py \
             backend/tests/test_lifestyle_auth_v1.py \
             backend/tests/test_health_auth_v1.py \
             backend/tests/test_memory_auth_v1.py \
