@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/device/mobile_install_id_store.dart';
 import '../../core/network/api_response.dart';
 import '../../core/utils/user_profile_manager.dart';
 import '../../data/repositories/notification_repository.dart';
@@ -23,7 +24,11 @@ String _maskToken(String t) {
 /// Register the given FCM token with the backend (POST /notifications/push/register).
 /// Requires a logged-in user (userId from UserProfileManager). Uses existing API client.
 /// Returns ApiResponse for caller to log statusCode (Stage 19); ok indicates success.
-Future<ApiResponse<Map<String, dynamic>?>> registerFcmTokenToBackend(String token) async {
+Future<ApiResponse<Map<String, dynamic>?>> registerFcmTokenToBackend(
+  String token, {
+  NotificationRepository? repository,
+  MobileInstallIdStore? installIdStore,
+}) async {
   debugPrint('[FCM] registerFcmTokenToBackend enter');
   debugPrint('[FCM] baseUrl=${AppConfig.baseUrl}');
   if (token.isEmpty) {
@@ -38,11 +43,18 @@ Future<ApiResponse<Map<String, dynamic>?>> registerFcmTokenToBackend(String toke
       return ApiResponse(ok: false, statusCode: null);
     }
 
+    final installId = await (installIdStore ?? MobileInstallIdStore()).getOrCreate();
+    if (installId.isEmpty) {
+      debugPrint('[FCM] install id empty -> SKIP backend register');
+      return ApiResponse(ok: false, statusCode: null);
+    }
+
     debugPrint('[FCM] calling NotificationRepository.registerToken(userId=$userId, platform=android, app_version=1.0.0)');
-    final repo = NotificationRepository();
+    final repo = repository ?? NotificationRepository();
     final response = await repo.registerToken(
       userId: userId,
       fcmToken: token,
+      deviceId: installId,
       appVersion: '1.0.0',
     );
     debugPrint('[FCM] repo.registerToken result: status=${response.statusCode ?? '?'} ok=${response.ok} error=${response.error?.message}');

@@ -175,11 +175,17 @@ void main() {
     });
 
     test('gateway install id uses flutter_secure_storage', () {
+      final core = File(
+        'lib/core/device/mobile_install_id_store.dart',
+      ).readAsStringSync();
       final src = File(
         'lib/features/devices/gateway/gateway_install_id_store.dart',
       ).readAsStringSync();
-      expect(src.contains('FlutterSecureStorage'), isTrue);
-      expect(src.contains('sedi_gateway_install_id_v1'), isTrue);
+      expect(core.contains('FlutterSecureStorage'), isTrue);
+      expect(core.contains('sedi_gateway_install_id_v1'), isTrue);
+      expect(src.contains('MobileInstallIdStore'), isTrue);
+      expect(src.contains('sedi_gateway_install_id_v1') ||
+          src.contains('MobileInstallIdStore.storageKey'), isTrue);
     });
   });
 

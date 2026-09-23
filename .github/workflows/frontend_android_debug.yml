@@ -188,6 +188,9 @@ jobs:
             test/devices_controller_actions_test.dart \
             test/devices_g2_contract_test.dart
 
+      - name: Targeted PushDevice install-id registration tests
+        run: flutter test test/mobile_install_id_and_push_register_test.dart
+
       - name: Build debug APK
         run: flutter build apk --debug
 
