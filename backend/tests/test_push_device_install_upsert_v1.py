@@ -94,6 +94,89 @@ def test_legacy_token_row_acquires_device_id(client, db):
     assert db.query(PushDevice).filter(PushDevice.id == row_id).one().device_id == "install-attached"
 
 
+def _row_state(row: PushDevice) -> dict:
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "platform": row.platform,
+        "device_id": row.device_id,
+        "fcm_token": row.fcm_token,
+        "is_active": row.is_active,
+        "last_seen_at": row.last_seen_at,
+        "updated_at": row.updated_at,
+    }
+
+
+def _assert_conflict_unchanged(client, db, user: User, *, keep_id: int, other_id: int, stolen_token: str, keep_install: str):
+    db.expire_all()
+    before = {
+        keep_id: _row_state(db.query(PushDevice).filter(PushDevice.id == keep_id).one()),
+        other_id: _row_state(db.query(PushDevice).filter(PushDevice.id == other_id).one()),
+    }
+
+    conflict = _register(client, user.id, stolen_token, keep_install)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"] == "fcm_token is already registered to another installation"
+
+    db.expire_all()
+    after = {
+        keep_id: _row_state(db.query(PushDevice).filter(PushDevice.id == keep_id).one()),
+        other_id: _row_state(db.query(PushDevice).filter(PushDevice.id == other_id).one()),
+    }
+    assert after == before
+    assert db.query(PushDevice).filter(PushDevice.user_id == user.id).count() == 2
+
+
+def test_same_user_other_install_token_conflict_fail_closed(client, db):
+    u = _user(db, "ConflictPeer")
+    keep = _register(client, u.id, _tok(9), "install-keep")
+    other = _register(client, u.id, _tok(10), "install-other")
+    assert keep.status_code == 200 and other.status_code == 200
+    _assert_conflict_unchanged(
+        client,
+        db,
+        u,
+        keep_id=keep.json()["data"]["device_id"],
+        other_id=other.json()["data"]["device_id"],
+        stolen_token=_tok(10),
+        keep_install="install-keep",
+    )
+
+
+def test_legacy_token_conflicts_with_existing_install_fail_closed(client, db):
+    u = _user(db, "ConflictLegacy")
+    legacy = _register(client, u.id, _tok(11), None)
+    keep = _register(client, u.id, _tok(12), "install-keep")
+    assert legacy.status_code == 200 and keep.status_code == 200
+    _assert_conflict_unchanged(
+        client,
+        db,
+        u,
+        keep_id=keep.json()["data"]["device_id"],
+        other_id=legacy.json()["data"]["device_id"],
+        stolen_token=_tok(11),
+        keep_install="install-keep",
+    )
+
+
+def test_cross_user_token_forbidden(client, db):
+    owner = _user(db, "TokenOwner")
+    other = _user(db, "TokenThief")
+    first = _register(client, owner.id, _tok(13), "install-owner")
+    assert first.status_code == 200
+    owner_id = first.json()["data"]["device_id"]
+    db.expire_all()
+    before = _row_state(db.query(PushDevice).filter(PushDevice.id == owner_id).one())
+
+    stolen = _register(client, other.id, _tok(13), "install-thief")
+    assert stolen.status_code == 403
+    assert stolen.json()["detail"] == "fcm_token does not belong to authenticated user"
+
+    db.expire_all()
+    assert _row_state(db.query(PushDevice).filter(PushDevice.id == owner_id).one()) == before
+    assert db.query(PushDevice).filter(PushDevice.user_id == other.id).count() == 0
+
+
 def test_push_register_jwt_ownership(client, db):
     owner = _user(db, "OwnerJwt")
     other = _user(db, "OtherJwt")

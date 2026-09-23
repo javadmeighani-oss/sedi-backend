@@ -1127,11 +1127,12 @@ def push_register(
         raise HTTPException(status_code=403, detail="fcm_token does not belong to authenticated user")
 
     if install_id and install_row is not None:
-        if token_row is None or token_row.id == install_row.id:
-            return _ok(_touch(install_row, fcm=token, device_id=install_id), updated=True)
-        # Token lives on another same-user row: do not collide unique fcm_token.
-        _touch(install_row, device_id=install_id)
-        return _ok(_touch(token_row, device_id=token_row.device_id or install_id), updated=True)
+        if token_row is not None and token_row.id != install_row.id:
+            raise HTTPException(
+                status_code=409,
+                detail="fcm_token is already registered to another installation",
+            )
+        return _ok(_touch(install_row, fcm=token, device_id=install_id), updated=True)
 
     if token_row is not None:
         return _ok(_touch(token_row, device_id=install_id or token_row.device_id), updated=True)
