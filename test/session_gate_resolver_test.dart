@@ -170,7 +170,8 @@ void main() {
       expect(UserIdentityService.debugCachedUserId(), isNull);
     });
 
-    test('/auth/me 401 + refresh timeout keeps tokens', () async {
+    test('/auth/me 401 + refresh timeout keeps tokens and stays on A1',
+        () async {
       await AuthService.setTokens(
         accessToken: 'expired',
         refreshToken: 'refresh',
@@ -183,12 +184,16 @@ void main() {
       );
 
       expect(result.status, SessionResolveStatus.backendUnavailable);
-      expect(result.nextGate, SediAppGate.login);
+      expect(result.stayOnStartup, isTrue);
+      expect(result.nextGate, SediAppGate.splash);
+      expect(result.nextGate, isNot(SediAppGate.login));
+      expect(result.nextGate, isNot(SediAppGate.heart));
       expect(await AuthService.hasToken(), isTrue);
       expect(UserIdentityService.debugCachedUserId(), 42);
     });
 
-    test('backend unavailable keeps tokens and routes A2', () async {
+    test('backend unavailable keeps tokens and does not route A2/A3',
+        () async {
       await AuthService.setTokens(
         accessToken: 'access',
         refreshToken: 'refresh',
@@ -200,9 +205,34 @@ void main() {
       );
 
       expect(result.status, SessionResolveStatus.backendUnavailable);
-      expect(result.nextGate, SediAppGate.login);
+      expect(result.stayOnStartup, isTrue);
+      expect(result.nextGate, SediAppGate.splash);
+      expect(result.nextGate, isNot(SediAppGate.login));
+      expect(result.nextGate, isNot(SediAppGate.heart));
       expect(await AuthService.hasToken(), isTrue);
       expect(UserIdentityService.debugCachedUserId(), 42);
+    });
+
+    test('transient then recovered backend revalidates to A3', () async {
+      await AuthService.setTokens(
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      );
+      final fake = _FakeAuthProfileService([_network(), _ok()]);
+      final first = await SessionGateResolver.resolveColdStart(
+        profileService: fake,
+      );
+      expect(first.stayOnStartup, isTrue);
+      expect(first.nextGate, isNot(SediAppGate.login));
+      expect(await AuthService.hasToken(), isTrue);
+
+      final recovered = await SessionGateResolver.resolveColdStart(
+        profileService: fake,
+      );
+      expect(recovered.status, SessionResolveStatus.authenticated);
+      expect(recovered.nextGate, SediAppGate.heart);
+      expect(fake.cacheCount, 1);
+      expect(await AuthService.hasToken(), isTrue);
     });
   });
 
@@ -218,6 +248,7 @@ void main() {
         IntroPage.kHorizonAsset,
         'assets/images/cosmic_sunrise_background.png',
       );
+      expect(IntroPage.kReconnectRetryDelay, const Duration(seconds: 2));
     });
 
     test('horizon asset recovered on disk and wired in IntroPage source', () {
@@ -227,6 +258,9 @@ void main() {
       expect(src.contains('cosmic_sunrise_background.png'), isTrue);
       expect(src.contains('kMotionKeyframes'), isTrue);
       expect(src.contains('sampleMotion'), isTrue);
+      expect(src.contains('kReconnectRetryDelay'), isTrue);
+      expect(src.contains('session.stayOnStartup'), isTrue);
+      expect(src.contains('while (session.stayOnStartup)'), isTrue);
       expect(
         File('assets/images/cosmic_sunrise_background.png').existsSync(),
         isTrue,

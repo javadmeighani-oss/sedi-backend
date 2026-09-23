@@ -17,6 +17,9 @@ class IntroPage extends StatefulWidget {
   /// Approved A1 intro duration (~3 seconds).
   static const Duration kIntroDuration = Duration(milliseconds: 3000);
 
+  /// Delay between cold-start revalidation attempts while backend is unavailable.
+  static const Duration kReconnectRetryDelay = Duration(seconds: 2);
+
   /// Canonical horizon / cosmic sunrise background asset.
   static const String kHorizonAsset =
       'assets/images/cosmic_sunrise_background.png';
@@ -82,26 +85,32 @@ class _IntroPageState extends State<IntroPage>
 
   Future<void> _awaitIntroThenRoute() async {
     await Future<void>.delayed(IntroPage.kIntroDuration);
-    final session = await _sessionFuture;
-    final healthy = await _healthFuture;
+    var session = await _sessionFuture;
+    var healthy = await _healthFuture;
 
     if (!mounted) return;
 
-    setState(() {
-      _backendAvailable = healthy;
-      _showAvailabilityHint = !healthy ||
-          session.status == SessionResolveStatus.backendUnavailable;
-    });
-
-    if (_showAvailabilityHint) {
-      await Future<void>.delayed(const Duration(milliseconds: 450));
+    while (session.stayOnStartup) {
+      setState(() {
+        _backendAvailable = healthy;
+        _showAvailabilityHint = true;
+      });
+      await Future<void>.delayed(IntroPage.kReconnectRetryDelay);
       if (!mounted) return;
+      session = await SessionGateResolver.resolveColdStart();
+      healthy = await BackendAvailability.probeHealthz();
     }
 
+    if (!mounted) return;
+    setState(() => _showAvailabilityHint = false);
     await _navigateToNextGate(session);
   }
 
   Future<void> _navigateToNextGate(SessionResolveResult session) async {
+    if (session.stayOnStartup || session.nextGate == SediAppGate.splash) {
+      return;
+    }
+
     final nextGate = session.nextGate;
 
     if (nextGate == SediAppGate.heart) {

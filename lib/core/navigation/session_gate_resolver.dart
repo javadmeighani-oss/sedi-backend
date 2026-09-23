@@ -19,7 +19,7 @@ enum SessionResolveStatus {
   /// Auth rejected after refresh attempt → cleared → A2.
   authInvalid,
 
-  /// Network / backend unavailable; tokens preserved; controlled UX → A2.
+  /// Network / backend unavailable; tokens preserved; stay on A1 retry.
   backendUnavailable,
 }
 
@@ -33,6 +33,9 @@ class SessionResolveResult {
   final SediAppGate nextGate;
 
   bool get isAuthenticated => status == SessionResolveStatus.authenticated;
+
+  /// Cached session exists but backend did not confirm — do not go to A2 or A3.
+  bool get stayOnStartup => status == SessionResolveStatus.backendUnavailable;
 }
 
 /// Single decision point: which gate should open after splash (A1 / Gate 1).
@@ -42,7 +45,8 @@ class SessionResolveResult {
 class SessionGateResolver {
   SessionGateResolver._();
 
-  /// Returns Gate 3 only when backend confirms session; otherwise Gate 2.
+  /// Returns Gate 3 only when backend confirms session.
+  /// Transient unavailability returns Gate 1 (stay). Invalid/no session → Gate 2.
   static Future<SediAppGate> resolveAfterSplash() async {
     final result = await resolveColdStart();
     return result.nextGate;
@@ -57,8 +61,8 @@ class SessionGateResolver {
   ///   - 401 → POST /auth/refresh → retry /auth/me
   ///     - success → A3
   ///     - authoritative invalid refresh → clear session → A2
-  ///     - timeout/network/in-flight ambiguity → keep tokens → A2
-  ///   - network/5xx → backendUnavailable → A2 (tokens kept)
+  ///     - timeout/network/in-flight ambiguity → keep tokens → stay on A1
+  ///   - network/5xx → backendUnavailable → stay on A1 (tokens kept)
   static Future<SessionResolveResult> resolveColdStart({
     AuthProfileService? profileService,
     Future<bool> Function()? tryRefresh,
@@ -99,7 +103,7 @@ class SessionGateResolver {
       if (outcome == AuthRefreshOutcome.transientFailure) {
         return const SessionResolveResult(
           status: SessionResolveStatus.backendUnavailable,
-          nextGate: SediAppGate.login,
+          nextGate: SediAppGate.splash,
         );
       }
       if (outcome != AuthRefreshOutcome.success) {
@@ -130,10 +134,11 @@ class SessionGateResolver {
       }
     }
 
-    // Network / timeout / 5xx — do not clear tokens; do not admit to A3.
+    // Network / timeout / 5xx — do not clear tokens; do not admit to A3;
+    // do not send a cached session to Login/OTP.
     return const SessionResolveResult(
       status: SessionResolveStatus.backendUnavailable,
-      nextGate: SediAppGate.login,
+      nextGate: SediAppGate.splash,
     );
   }
 

@@ -139,6 +139,9 @@ void main() {
       );
 
       expect(result.status, SessionResolveStatus.backendUnavailable);
+      expect(result.stayOnStartup, isTrue);
+      expect(result.nextGate, isNot(SediAppGate.login));
+      expect(result.nextGate, isNot(SediAppGate.heart));
       expect(await AuthService.hasToken(), isTrue);
       expect(UserIdentityService.debugCachedUserId(), 42);
       expect(SediHealthSubjectController.instance.activeSubject?.id, 7);

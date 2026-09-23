@@ -197,6 +197,7 @@ jobs:
             test/auth_refresh_single_flight_test.dart \
             test/frontend_known_issues_closure_test.dart \
             test/session_gate_resolver_test.dart \
+            test/g1_b1_transient_coldstart_routing_test.dart \
             test/a3_a4_coherent_ux_recovery_test.dart \
             test/a0_a4_recovery_contract_test.dart \
             test/gate3_localization_test.dart \
