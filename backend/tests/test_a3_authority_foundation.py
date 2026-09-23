@@ -133,16 +133,32 @@ def test_stream_chunks_match_governed_final_text():
         assert all(p for p in pieces)
 
 
-def test_presentation_word_pace_is_35ms_after_governed_answer():
-    from backend.app.routers.interact import _PRESENTATION_WORD_PACE_S, chat_stream
+def test_presentation_word_pace_is_80ms_after_governed_answer():
+    from backend.app.routers.interact import (
+        _PRESENTATION_WORD_PACE_S,
+        chat_stream,
+        presentation_word_deltas,
+    )
     import inspect
 
-    assert _PRESENTATION_WORD_PACE_S == 0.035
+    assert _PRESENTATION_WORD_PACE_S == 0.080
     src = inspect.getsource(chat_stream)
+    chat_at = src.index("result = await chat(")
     approved_at = src.index("approved = result.message")
     pieces_at = src.index("presentation_word_deltas(approved)")
+    delta_at = src.index("event: delta")
     sleep_at = src.index("asyncio.sleep(_PRESENTATION_WORD_PACE_S)")
-    assert approved_at < pieces_at < sleep_at
+    final_at = src.index("event: final")
+    # Governed answer is complete before any presentation delta.
+    assert chat_at < approved_at < pieces_at < delta_at < sleep_at < final_at
+    assert "stream=True" not in src
+    assert "ChatCompletion" not in src
+    assert "raw model" not in src.lower()
+    # Content/order: word-boundary deltas concatenate to approved text.
+    approved = "Governed final answer, unchanged."
+    pieces = presentation_word_deltas(approved)
+    assert "".join(pieces) == approved
+    assert pieces == presentation_word_deltas(approved)
 
 
 def test_presentation_word_deltas_en_fa_ar_and_whitespace():
