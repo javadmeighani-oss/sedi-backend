@@ -29,11 +29,7 @@ class _SediAppState extends State<SediApp> {
   void initState() {
     super.initState();
     _locale.addListener(_onLocaleChanged);
-    _bootstrapLocale();
-  }
-
-  Future<void> _bootstrapLocale() async {
-    await _locale.bootstrapFromCache();
+    // Locale is resolved in main() before runApp to avoid an async EN flash.
   }
 
   void _onLocaleChanged() {

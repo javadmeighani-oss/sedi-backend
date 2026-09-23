@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/locale/sedi_locale_controller.dart';
 import 'core/notifications/notification_bootstrap.dart';
 
 /// App entry — shared bootstrap only.
@@ -10,6 +13,16 @@ import 'core/notifications/notification_bootstrap.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Resolve cached locale before the first frame so A1 does not flash EN→FA/AR.
+  // Do not wait for Firebase / NotificationBootstrap here.
+  await SediLocaleController.instance.bootstrapFromCache();
+
+  runApp(const SediApp());
+
+  unawaited(_bootstrapFirebaseAfterUi());
+}
+
+Future<void> _bootstrapFirebaseAfterUi() async {
   try {
     await Firebase.initializeApp();
     debugPrint('[FCM] Firebase initialized ok');
@@ -18,6 +31,4 @@ void main() async {
     // Graceful if google-services.json missing / Firebase unavailable.
     debugPrint('[main] Firebase/FCM setup skipped: $e');
   }
-
-  runApp(const SediApp());
 }

@@ -63,8 +63,12 @@ class ApiClient {
       return response;
     }
 
-    final refreshed = await AuthRefreshService.tryRefresh();
-    if (!refreshed) {
+    final outcome = await AuthRefreshService.refreshOnce();
+    if (outcome == AuthRefreshOutcome.transientFailure) {
+      // Timeout / network / in-flight ambiguity — do not force logout.
+      return response;
+    }
+    if (outcome != AuthRefreshOutcome.success) {
       if (recoverSessionOn401) {
         await AuthSessionManager.forceLogoutAndNavigate();
       }

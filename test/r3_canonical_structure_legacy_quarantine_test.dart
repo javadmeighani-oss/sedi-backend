@@ -23,6 +23,8 @@ const _canonicalProductSurfaces = <String>[
   'lib/features/auth_otp/presentation/pages/otp_login_page.dart',
   'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
   'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
+  'lib/features/gate3_interactive/presentation/pages/gate3_memory_privacy_page.dart',
+  'lib/features/gate3_interactive/presentation/widgets/gate3_settings_menu.dart',
   'lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart',
   'lib/features/lifestyle/presentation/pages/lifestyle_page.dart',
   'lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart',

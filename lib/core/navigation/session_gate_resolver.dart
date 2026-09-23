@@ -56,11 +56,13 @@ class SessionGateResolver {
   ///   - 200 + profile ok → A3
   ///   - 401 → POST /auth/refresh → retry /auth/me
   ///     - success → A3
-  ///     - fail → clear session → A2
+  ///     - authoritative invalid refresh → clear session → A2
+  ///     - timeout/network/in-flight ambiguity → keep tokens → A2
   ///   - network/5xx → backendUnavailable → A2 (tokens kept)
   static Future<SessionResolveResult> resolveColdStart({
     AuthProfileService? profileService,
     Future<bool> Function()? tryRefresh,
+    Future<AuthRefreshOutcome> Function()? refreshOnce,
   }) async {
     final hasToken = await AuthService.hasToken();
     if (!hasToken) {
@@ -71,7 +73,6 @@ class SessionGateResolver {
     }
 
     final service = profileService ?? AuthProfileService();
-    final refresh = tryRefresh ?? AuthRefreshService.tryRefresh;
 
     // First /auth/me — do not force-logout via ApiClient during splash.
     var me = await service.fetchMe(recoverSessionOn401: false);
@@ -91,8 +92,17 @@ class SessionGateResolver {
     }
 
     if (_isUnauthorized(me)) {
-      final refreshed = await refresh();
-      if (!refreshed) {
+      final outcome = await _resolveRefreshOutcome(
+        tryRefresh: tryRefresh,
+        refreshOnce: refreshOnce,
+      );
+      if (outcome == AuthRefreshOutcome.transientFailure) {
+        return const SessionResolveResult(
+          status: SessionResolveStatus.backendUnavailable,
+          nextGate: SediAppGate.login,
+        );
+      }
+      if (outcome != AuthRefreshOutcome.success) {
         await _clearInvalidSession();
         return const SessionResolveResult(
           status: SessionResolveStatus.authInvalid,
@@ -131,12 +141,29 @@ class SessionGateResolver {
   static Future<bool> hasValidSession({
     AuthProfileService? profileService,
     Future<bool> Function()? tryRefresh,
+    Future<AuthRefreshOutcome> Function()? refreshOnce,
   }) async {
     final result = await resolveColdStart(
       profileService: profileService,
       tryRefresh: tryRefresh,
+      refreshOnce: refreshOnce,
     );
     return result.isAuthenticated;
+  }
+
+  /// Injected `tryRefresh: false` stays authoritative-invalid for existing tests.
+  /// Production uses [AuthRefreshService.refreshOnce] so timeout/network keep tokens.
+  static Future<AuthRefreshOutcome> _resolveRefreshOutcome({
+    Future<bool> Function()? tryRefresh,
+    Future<AuthRefreshOutcome> Function()? refreshOnce,
+  }) async {
+    if (refreshOnce != null) return refreshOnce();
+    if (tryRefresh != null) {
+      return (await tryRefresh())
+          ? AuthRefreshOutcome.success
+          : AuthRefreshOutcome.invalidSession;
+    }
+    return AuthRefreshService.refreshOnce();
   }
 
   static bool _isUnauthorized(ApiResponse<MeProfileDto> me) {

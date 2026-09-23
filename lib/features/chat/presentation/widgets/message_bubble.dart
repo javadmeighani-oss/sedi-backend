@@ -92,26 +92,15 @@ class _MessageBubbleState extends State<MessageBubble> {
             widget.onEdit != null &&
             widget.message.trim().isNotEmpty) ...[
           const SizedBox(height: 6),
-          GestureDetector(
-            onTap: widget.onEdit,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.edit_outlined,
-                  size: 14,
-                  color: AppTheme.textSecondary.withOpacity(0.9),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  widget.editLabel ?? 'Edit',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          Tooltip(
+            message: widget.editLabel ?? 'Edit',
+            child: GestureDetector(
+              onTap: widget.onEdit,
+              child: Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: AppTheme.textSecondary.withOpacity(0.9),
+              ),
             ),
           ),
         ],
@@ -164,30 +153,64 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 }
 
-class _TypingDots extends StatelessWidget {
+class _TypingDots extends StatefulWidget {
   const _TypingDots();
 
   @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _dot(),
-        const SizedBox(width: 4),
-        _dot(),
-        const SizedBox(width: 4),
-        _dot(),
-      ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _dot(0),
+            const SizedBox(width: 4),
+            _dot(1),
+            const SizedBox(width: 4),
+            _dot(2),
+          ],
+        );
+      },
     );
   }
 
-  Widget _dot() {
-    return Container(
-      width: 6,
-      height: 6,
-      decoration: const BoxDecoration(
-        color: AppTheme.iconInactive,
-        shape: BoxShape.circle,
+  Widget _dot(int index) {
+    final phase = (_controller.value + (index * 0.2)) % 1.0;
+    final pulse = 1 - ((phase - 0.5).abs() * 2);
+    final opacity = 0.35 + (0.65 * pulse.clamp(0.0, 1.0));
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: AppTheme.iconInactive,
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }

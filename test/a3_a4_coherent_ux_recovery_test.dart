@@ -276,9 +276,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Edit'), findsNothing);
       expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
-      await tester.tap(find.text('Edit'));
+      await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pump();
       expect(editTaps, 1);
       expect(sent, 0);

@@ -24,6 +24,45 @@ class Gate3Localization {
 
   String get settings => _t(en: 'Settings', fa: 'تنظیمات', ar: 'الإعدادات');
 
+  String get memoryAndPrivacy => _t(
+        en: 'Memory & Privacy',
+        fa: 'حافظه و حریم خصوصی',
+        ar: 'الذاكرة والخصوصية',
+      );
+
+  String get memoryConsentInvitation => _t(
+        en: 'Sedi can remember helpful details across conversations if you allow Memory.',
+        fa: 'اگر اجازه حافظه را بدهید، صدی می‌تواند جزئیات مفید را در گفتگوها به خاطر بسپارد.',
+        ar: 'يمكن لسدي تذكّر التفاصيل المفيدة عبر المحادثات إذا سمحت بالذاكرة.',
+      );
+
+  String get memoryConsentGrant =>
+      _t(en: 'Allow Memory', fa: 'اجازه حافظه', ar: 'السماح بالذاكرة');
+
+  String get memoryConsentRevoke =>
+      _t(en: 'Revoke Memory', fa: 'لغو حافظه', ar: 'إلغاء الذاكرة');
+
+  String get memoryConsentNotNow =>
+      _t(en: 'Not now', fa: 'بعداً', ar: 'ليس الآن');
+
+  String get memoryConsentStatusLabel =>
+      _t(en: 'Current status', fa: 'وضعیت فعلی', ar: 'الحالة الحالية');
+
+  String get memoryConsentBusy =>
+      _t(en: 'Updating…', fa: 'در حال به‌روزرسانی…', ar: 'جارٍ التحديث…');
+
+  String get memoryConsentLoadError => _t(
+        en: 'Could not load Memory status. Try again.',
+        fa: 'وضعیت حافظه بارگذاری نشد. دوباره تلاش کنید.',
+        ar: 'تعذر تحميل حالة الذاكرة. حاول مرة أخرى.',
+      );
+
+  String get memoryConsentActionError => _t(
+        en: 'Could not update Memory consent. Try again.',
+        fa: 'به‌روزرسانی رضایت حافظه انجام نشد. دوباره تلاش کنید.',
+        ar: 'تعذر تحديث موافقة الذاكرة. حاول مرة أخرى.',
+      );
+
   String get editProfile => _t(
         en: 'Edit profile',
         fa: 'ویرایش پروفایل',
