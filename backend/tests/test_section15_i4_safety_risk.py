@@ -354,15 +354,20 @@ def test_emergency_before_notification_event_write(
 def test_normal_reminder_and_settings_unchanged(
     mock_cmd, mock_reminder, mock_process, db, user, mock_request
 ):
+    """I4 does not intercept normal reminder; I3 owns incomplete reminder; settings still run."""
     mock_process.return_value = {"message": "normal-ok", "language": "en"}
     from backend.app.routers.interact import chat
 
     payload = ChatRequest(message="remind me nothing urgent hello")
     resp = asyncio.run(chat(mock_request, payload, db, user))
-    assert resp.message == "normal-ok"
-    mock_reminder.assert_called_once()
+    lowered = (resp.message or "").lower()
+    assert resp.message
+    assert "emergency" not in lowered
+    assert "115" not in resp.message
+    assert "timezone" in lowered or "date" in lowered or "time" in lowered
     mock_cmd.assert_called_once()
-    mock_process.assert_called_once()
+    mock_reminder.assert_not_called()
+    mock_process.assert_not_called()
 
 
 @patch(

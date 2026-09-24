@@ -87,11 +87,63 @@ def _last_user_message_at(db: Session, user_id: int) -> Optional[datetime]:
     return row[0] if row else None
 
 
+def _safe_continuity_snippet(text: Optional[str], *, max_len: int = 80) -> Optional[str]:
+    cleaned = " ".join((text or "").split()).strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > max_len:
+        cleaned = cleaned[: max_len - 1].rstrip() + "…"
+    return cleaned
+
+
+def authorized_last_eligible_turn(db: Session, user_id: int) -> Optional[models.Memory]:
+    """I6/I7 read boundary: user-owned, retention-eligible raw only when memory.read is active."""
+    try:
+        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+        from backend.app.services.i7.retention import query_eligible_raw
+
+        if not has_permission(db, user_id, PERM_READ):
+            return None
+        rows = query_eligible_raw(db, user_id, limit=1)
+        if not rows:
+            return None
+        row = rows[0]
+        if int(getattr(row, "user_id", 0) or 0) != int(user_id):
+            return None
+        return row
+    except Exception:
+        return None
+
+
+def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
+    templates = {
+        "en": (
+            "Welcome back{name_part}. Last time we talked about {snippet}. "
+            "Would you like to continue that?"
+        ),
+        "fa": (
+            "خوش آمدید{name_part}. دفعهٔ قبل دربارهٔ {snippet} صحبت کردیم. "
+            "مایلید همان را ادامه دهیم؟"
+        ),
+        "ar": (
+            "مرحبًا بعودتك{name_part}. تحدثنا آخر مرة عن {snippet}. "
+            "هل تريد المتابعة؟"
+        ),
+    }
+    template = templates.get(lang, templates["en"])
+    return template.format(name_part=name_part, snippet=snippet)
+
+
 def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
-    """Bounded opener: cooldown + not spam; no clinical inference."""
+    """Bounded opener: authorized continuity when eligible; else generic/cooldown."""
     if user.sedi_intro_completed_at is None:
         return None
     lang = _lang(user)
+    name_part = _name_part(user, lang)
+    turn = authorized_last_eligible_turn(db, user.id)
+    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
+    if snippet:
+        return _continuity_opener(lang, snippet, name_part)
     last = _last_user_message_at(db, user.id)
     now = datetime.now(timezone.utc)
     if last is not None:
@@ -101,7 +153,7 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
     options = _OPENERS.get(lang, _OPENERS["en"])
     # Deterministic pick by user id (stable, not random spam).
     pick = options[user.id % len(options)]
-    return pick.format(name_part=_name_part(user, lang))
+    return pick.format(name_part=name_part)
 
 
 def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:

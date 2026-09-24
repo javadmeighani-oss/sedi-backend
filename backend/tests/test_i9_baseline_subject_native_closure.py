@@ -113,7 +113,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "080_i9_device_reported_vital_status (head)" in result.stdout
+    assert "086_i9_vital_observation_context_authority (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):

@@ -821,15 +821,22 @@ def test_ucs_two_users_do_not_share_pack_cache(db, user_a, user_b):
 
 
 def test_concurrent_users_isolated_snapshots(db, user_a, user_b):
+    # Production isolates concurrent users with per-request Sessions.
+    from backend.tests.conftest import _TestSession
+
     barrier = threading.Barrier(2)
     out = {}
 
     def worker(uid):
-        barrier.wait(timeout=5)
-        snap = AuthorizedContextAssembler().assemble(
-            db, authenticated_user_id=uid, request_id=f"r-{uid}"
-        )
-        out[uid] = snap
+        session = _TestSession()
+        try:
+            barrier.wait(timeout=5)
+            snap = AuthorizedContextAssembler().assemble(
+                session, authenticated_user_id=uid, request_id=f"r-{uid}"
+            )
+            out[uid] = snap
+        finally:
+            session.close()
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         f1 = pool.submit(worker, user_a.id)

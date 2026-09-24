@@ -33,9 +33,13 @@ class ConversationMemory:
         return None
     
     def get_recent_messages(self, user_id: int, limit: int = 10) -> List[Memory]:
-        """Get recent eligible governed conversation messages (retention-aware)."""
+        """Get recent eligible governed conversation messages (retention + I6 read)."""
+        from backend.app.services.i6.consent_service import PERM_READ, has_permission
         from backend.app.services.i7.retention import query_eligible_raw
 
+        if not has_permission(self.db, user_id, PERM_READ):
+            print(f"[MEMORY DEBUG] Loaded 0 recent eligible messages for user_id={user_id} (no memory.read)")
+            return []
         memories = query_eligible_raw(self.db, user_id, limit=limit)
         print(f"[MEMORY DEBUG] Loaded {len(memories)} recent eligible messages for user_id={user_id}")
         return memories

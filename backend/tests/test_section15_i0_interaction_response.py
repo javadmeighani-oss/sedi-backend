@@ -35,27 +35,34 @@ def user(db):
     return_value={
         "created": False,
         "reason": "needs_clarification",
-        "clarification_message": "Please include a date and time for your reminder.",
+        "clarification_message": "legacy-must-not-surface",
     },
 )
 @patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
 def test_reminder_clarification_uses_message_not_reply(
     mock_cmd, mock_reminder, mock_process, db, user, mock_request
 ):
+    """I3 clarification is returned on InteractionResponse.message (not reply)."""
+    from backend.app.models import UserProfileCore
     from backend.app.routers.interact import chat
     import asyncio
+
+    if db.query(UserProfileCore).filter(UserProfileCore.user_id == user.id).first() is None:
+        db.add(UserProfileCore(user_id=user.id, timezone="UTC"))
+        db.commit()
 
     payload = ChatRequest(message="remind me to call the doctor")
     resp = asyncio.run(chat(mock_request, payload, db, user))
 
     assert isinstance(resp, InteractionResponse)
-    assert resp.message == "Please include a date and time for your reminder."
+    assert "date" in resp.message.lower() or "time" in resp.message.lower()
+    assert "legacy-must-not-surface" not in resp.message
     assert not hasattr(resp, "reply") or getattr(resp, "reply", None) is None
     assert resp.user_id == user.id
     assert resp.language
     assert isinstance(resp.timestamp, datetime)
     mock_process.assert_not_called()
-    mock_reminder.assert_called_once()
+    mock_reminder.assert_not_called()
 
 
 def test_interaction_response_rejects_reply_kwarg():

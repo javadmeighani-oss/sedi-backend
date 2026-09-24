@@ -74,7 +74,9 @@ def test_alembic_head_is_071():
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["080_i9_device_reported_vital_status"]
+    assert script.get_heads() == ["086_i9_vital_observation_context_authority"]
+    rev086 = script.get_revision("086_i9_vital_observation_context_authority")
+    assert rev086.down_revision == "085_i9_absolute_vital_policy_schema_scaffold"
     rev080 = script.get_revision("080_i9_device_reported_vital_status")
     assert rev080.down_revision == "079_i10_cni_owner_provenance_nullable"
     rev079 = script.get_revision("079_i10_cni_owner_provenance_nullable")

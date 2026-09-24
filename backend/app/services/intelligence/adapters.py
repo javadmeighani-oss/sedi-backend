@@ -402,6 +402,28 @@ class LifestyleContextAdapter:
                         )
                     )
 
+        from backend.app.services.i6.memory_writes import list_facts_or_empty
+
+        for row in list_facts_or_empty(db, authenticated_user_id, domain="lifestyle")[:6]:
+            key = str(getattr(row, "key", "") or "").strip()
+            raw = str(getattr(row, "value_json", "") or "").strip()
+            if not key or not raw:
+                continue
+            items.append(
+                _item(
+                    canonical_key=f"lifestyle.fact.{_slug(key)}",
+                    section="lifestyle",
+                    source=ContextSource.LIFESTYLE,
+                    value=raw[:200],
+                    display_text=f"{key}={raw[:120]}",
+                    owner_user_id=authenticated_user_id,
+                    query_label="I6.list_facts_or_empty",
+                    observed_at=getattr(row, "updated_at", None),
+                    sensitivity="medium",
+                    may_send_to_llm=True,
+                )
+            )
+
         items.extend(
             self._load_gate2_lifestyle(db, authenticated_user_id=authenticated_user_id)
         )
@@ -583,6 +605,11 @@ class CurrentMemoryContextAdapter:
     ) -> list[ContextItem]:
         budgets = budgets or DEFAULT_CONTEXT_BUDGETS
         items: list[ContextItem] = []
+
+        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+
+        if not has_permission(db, authenticated_user_id, PERM_READ):
+            return items
 
         # Assembler always passes pack (object or None). Only standalone adapter
         # calls omit it (UNSET) and may load UCS once themselves.

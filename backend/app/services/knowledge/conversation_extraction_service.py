@@ -101,11 +101,23 @@ def process_message(
                 metadata_json=json.dumps(meta, ensure_ascii=False),
             )
             created_candidates_count += 1
-            fact = accept_candidate(db=db, candidate_id=cand.id, verified_by="system")
+            from backend.app.services.i6.legacy_fact_freeze import LegacyFactStackFrozen
+            from backend.app.services.candidate_promotion_service import (
+                promote_after_accept,
+                promote_kc_candidate,
+            )
+
+            try:
+                fact = accept_candidate(db=db, candidate_id=cand.id, verified_by="system")
+            except LegacyFactStackFrozen:
+                # Frozen KcUserFact is not I6. Auto-accept keys still promote to UserMemoryFact.
+                result = promote_kc_candidate(db, cand)
+                if result.get("target") == "user_memory_facts":
+                    auto_accepted_count += 1
+                fact = None
             if fact:
                 auto_accepted_count += 1
                 try:
-                    from backend.app.services.candidate_promotion_service import promote_after_accept
                     promote_after_accept(db, cand.id)
                 except Exception as e:
                     logger.debug("KC auto promote failed: %s", e)

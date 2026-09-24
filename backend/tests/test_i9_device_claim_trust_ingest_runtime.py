@@ -526,7 +526,7 @@ def test_t21_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["084_device_category_setup_code_authority"]
+    assert heads == ["086_i9_vital_observation_context_authority"]
 
 def _g4_bt_payload(*, client_packet_id: str, gateway_install_id: str | None = None):
     body = {

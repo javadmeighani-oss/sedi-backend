@@ -59,7 +59,8 @@ def test_i8_planner_is_ephemeral_and_uses_retrieval_service():
     assert "generate_operational_action" in src
     assert "persist=False" in src
     assert "knowledge_chunk_embeddings" not in src
-    assert '"persistence": "NONE"' in src or "'persistence': 'NONE'" in src
+    assert 'persistence = "I8_OPERATIONAL" if (persist and result.action_id is not None) else "NONE"' in src
+    assert '"persistence": persistence' in src
 
 
 def test_medical_inference_tokens_blocked_and_rag_markers_frozen():
