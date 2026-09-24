@@ -73,7 +73,7 @@ void main() {
       (tester) async {
     var taps = 0;
     const long =
-        'This user message is long enough to collapse because it exceeds one hundred and twenty characters easily.';
+        'This user message is long enough to collapse because it exceeds one hundred and twenty characters easily and must stay collapsed.';
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

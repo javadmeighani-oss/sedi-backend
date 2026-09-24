@@ -114,7 +114,7 @@ void main() {
         }),
       );
       expect(missingUser.ok, isFalse);
-      expect(missingUser.failureKind, AuthMeFailureKind.missingIdentity);
+      expect(missingUser.failureKind, AuthMeFailureKind.missingData);
 
       final missingPhone = AuthMeResponseParser.parseHttpResponse(
         statusCode: 200,

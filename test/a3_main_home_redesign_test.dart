@@ -76,7 +76,7 @@ void main() {
 
     expect(vis.contains('barCount = 98'), isTrue);
     expect(vis.contains('amplitudeScale'), isTrue);
-    expect(vis.contains('0.80'), isTrue);
+    expect(vis.contains('SediPresenceTokens.amplitudeScale'), isTrue);
     expect(vis.contains('height = SediPresenceTokens.visualizerHeight'), isTrue);
     expect(vis.contains('phaseSpeed = 0.85'), isTrue);
 

@@ -121,7 +121,13 @@ void main() {
     for (final subtitle in l10n.sectionSubtitles) {
       expect(find.text(subtitle), findsOneWidget);
     }
-    expect(find.byType(InkWell), findsNWidgets(5));
+    expect(
+      find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(InkWell),
+      ),
+      findsNWidgets(5),
+    );
     expect(find.byIcon(Icons.favorite_border), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
     expect(find.byIcon(Icons.event_note_outlined), findsOneWidget);

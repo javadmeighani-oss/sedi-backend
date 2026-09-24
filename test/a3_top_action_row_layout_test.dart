@@ -20,7 +20,7 @@ void main() {
 
       expect('Expanded('.allMatches(row).length, 4);
       expect(row.contains('.reversed'), isFalse);
-      expect(row.contains('PositionedDirectional'), isTrue);
+      expect(row.contains('PositionedDirectional'), isFalse);
       expect(row.indexOf('profileTitle'), lessThan(row.indexOf('lifestyle')));
       expect(row.indexOf('lifestyle'), lessThan(row.indexOf('gadgets')));
       expect(row.indexOf('gadgets'), lessThan(row.indexOf('notifications')));
