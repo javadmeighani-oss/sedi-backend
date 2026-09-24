@@ -845,7 +845,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       child: Directionality(
         textDirection: direction,
         child: Scaffold(
-          backgroundColor: AppTheme.gate2WarmBackground,
+          backgroundColor: AppTheme.a2PageBackground,
           resizeToAvoidBottomInset: true,
           body: Gate2Widgets.pageShell(
             isLoading: _isLoading,

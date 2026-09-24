@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import 'a2_layout.dart';
 import 'a2_phone_e164.dart';
 import 'birth_calendar_helper.dart';
 import 'gate2_otp_input.dart';
@@ -21,7 +22,7 @@ class Gate2Widgets {
         child,
         if (isLoading)
           Container(
-            color: AppTheme.gate2WarmBackground.withOpacity(0.5),
+            color: AppTheme.a2PageBackground.withOpacity(0.5),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -101,30 +102,33 @@ class Gate2Widgets {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Material(
-        color: selected
-            ? AppTheme.gate2ButtonActive
-            : AppTheme.gate2InputFill,
-        borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
-        child: InkWell(
-          onTap: onTap,
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: Material(
+          color: selected
+              ? AppTheme.gate2ButtonActive
+              : AppTheme.gate2InputFill,
           borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: selected
-                    ? AppTheme.gate2CardWhite
-                    : AppTheme.gate2TextPrimary,
-                fontSize: 16,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: selected
+                      ? AppTheme.gate2CardWhite
+                      : AppTheme.gate2TextPrimary,
+                  fontSize: A2Layout.controlFontSize,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
               ),
             ),
           ),
@@ -140,7 +144,9 @@ class Gate2Widgets {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return AnimatedContainer(
+    return A2Layout.band(
+      maxWidth: A2Layout.readableContentMax,
+      child: AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -179,7 +185,7 @@ class Gate2Widgets {
                         title,
                         style: TextStyle(
                           color: AppTheme.gate2TextPrimary,
-                          fontSize: 16,
+                          fontSize: A2Layout.controlFontSize,
                           fontWeight:
                               selected ? FontWeight.w600 : FontWeight.w500,
                         ),
@@ -200,6 +206,7 @@ class Gate2Widgets {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -267,7 +274,9 @@ class Gate2Widgets {
     required String secondaryLabel,
     required VoidCallback onSecondary,
   }) {
-    return Column(
+    return A2Layout.band(
+      maxWidth: A2Layout.readableContentMax,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
@@ -300,6 +309,7 @@ class Gate2Widgets {
           onPressed: onSecondary,
         ),
       ],
+      ),
     );
   }
 
@@ -330,27 +340,33 @@ class Gate2Widgets {
     required VoidCallback onPressed,
     bool fullWidth = true,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: fullWidth ? double.infinity : null,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: enabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
-          disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-          foregroundColor: AppTheme.gate2CardWhite,
-          disabledForegroundColor: AppTheme.gate2TextDisabled,
-          elevation: enabled ? 1 : 0,
-          shadowColor: Colors.black26,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
+    return A2Layout.band(
+      maxWidth: A2Layout.primaryCtaMax,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: double.infinity,
+        height: A2Layout.primaryCtaHeight,
+        child: ElevatedButton(
+          onPressed: enabled ? onPressed : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
+            disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
+            foregroundColor: AppTheme.gate2CardWhite,
+            disabledForegroundColor: AppTheme.gate2TextDisabled,
+            elevation: enabled ? 1 : 0,
+            shadowColor: Colors.black26,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: A2Layout.primaryCtaFontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -366,19 +382,22 @@ class Gate2Widgets {
     ValueChanged<String>? onChanged,
     bool readOnly = false,
   }) {
-    return TextFormField(
-      controller: controller,
-      validator: validator,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      onChanged: onChanged,
-      readOnly: readOnly,
-      enableInteractiveSelection: !readOnly,
-      style: const TextStyle(
-        color: AppTheme.gate2TextPrimary,
-        fontSize: 16,
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        onChanged: onChanged,
+        readOnly: readOnly,
+        enableInteractiveSelection: !readOnly,
+        style: const TextStyle(
+          color: AppTheme.gate2TextPrimary,
+          fontSize: A2Layout.controlFontSize,
+        ),
+        decoration: _inputDecoration(hint, icon),
       ),
-      decoration: _inputDecoration(hint, icon),
     );
   }
 
@@ -393,7 +412,9 @@ class Gate2Widgets {
     bool readOnly = false,
     bool dialCodeEnabled = true,
   }) {
-    return TextFormField(
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: TextFormField(
       controller: controller,
       validator: validator,
       keyboardType: TextInputType.phone,
@@ -405,7 +426,7 @@ class Gate2Widgets {
       enableInteractiveSelection: !readOnly,
       style: const TextStyle(
         color: AppTheme.gate2TextPrimary,
-        fontSize: 16,
+        fontSize: A2Layout.controlFontSize,
       ),
       decoration: _inputDecoration(hint, Icons.phone_outlined).copyWith(
         prefixIcon: null,
@@ -418,6 +439,7 @@ class Gate2Widgets {
             onChanged: onDialCodeChanged,
           ),
         ),
+      ),
       ),
     );
   }
@@ -461,7 +483,9 @@ class Gate2Widgets {
     String? errorText,
   }) {
     final hasValue = value.isNotEmpty;
-    return Column(
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
@@ -486,7 +510,7 @@ class Gate2Widgets {
                 color: hasValue
                     ? AppTheme.gate2TextPrimary
                     : AppTheme.gate2Placeholder,
-                fontSize: 16,
+                fontSize: A2Layout.controlFontSize,
               ),
             ),
           ),
@@ -500,6 +524,7 @@ class Gate2Widgets {
             ),
           ),
       ],
+      ),
     );
   }
 
@@ -525,7 +550,9 @@ class Gate2Widgets {
     final years = BirthCalendarHelper.yearRange(calendarType);
     final safeDay = day.clamp(1, days.last);
 
-    return Container(
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: Container(
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
         color: AppTheme.gate2InputFill,
@@ -602,6 +629,7 @@ class Gate2Widgets {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -663,7 +691,9 @@ class Gate2Widgets {
     ValueChanged<String>? onChanged,
   }) {
     final title = active ? l10n.sentCode : (helperText ?? l10n.otpEnterAfterSend);
-    return Column(
+    return A2Layout.band(
+      maxWidth: A2Layout.compactControlMax,
+      child: Column(
       children: [
         if (showTitle) ...[
           Text(
@@ -693,6 +723,7 @@ class Gate2Widgets {
           ),
         ),
       ],
+      ),
     );
   }
 }

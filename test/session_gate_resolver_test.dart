@@ -261,6 +261,9 @@ void main() {
       expect(src.contains('kReconnectRetryDelay'), isTrue);
       expect(src.contains('session.stayOnStartup'), isTrue);
       expect(src.contains('while (session.stayOnStartup)'), isTrue);
+      expect(src.contains('Reconnecting'), isFalse);
+      expect(src.contains('temporarily unreachable'), isFalse);
+      expect(src.contains('AuthService.clearUserData'), isFalse);
       expect(
         File('assets/images/cosmic_sunrise_background.png').existsSync(),
         isTrue,

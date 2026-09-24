@@ -23,17 +23,21 @@ class OtpInputHelper {
     return null;
   }
 
-  /// Normalize Unicode decimal digits → ASCII, drop non-digits, cap at [codeLength].
-  static String sanitize(String raw) {
+  /// Normalize Unicode decimal digits → ASCII, drop non-digits.
+  /// When [cap] is set (default [codeLength]), truncate to that many digits.
+  static String extractDigits(String raw, {int? cap = codeLength}) {
     final out = StringBuffer();
     for (final rune in raw.runes) {
       final digit = asciiDigitFromRune(rune);
       if (digit == null) continue;
       out.write(digit);
-      if (out.length >= codeLength) break;
+      if (cap != null && out.length >= cap) break;
     }
     return out.toString();
   }
+
+  /// Normalize Unicode decimal digits → ASCII, drop non-digits, cap at [codeLength].
+  static String sanitize(String raw) => extractDigits(raw);
 
   static bool isComplete(String code) => sanitize(code).length == codeLength;
 
@@ -42,24 +46,206 @@ class OtpInputHelper {
     if (index < 0 || index >= sanitized.length) return '';
     return sanitized[index];
   }
+
+  static String replaceDigit(String code, int index, String digit) {
+    final sanitized = sanitize(code);
+    final incoming = sanitize(digit);
+    if (incoming.isEmpty || index < 0 || index >= codeLength) {
+      return sanitized;
+    }
+    final ch = incoming[0];
+    if (index < sanitized.length) {
+      return sanitized.substring(0, index) + ch + sanitized.substring(index + 1);
+    }
+    if (index == sanitized.length && sanitized.length < codeLength) {
+      return sanitized + ch;
+    }
+    return sanitized;
+  }
+
+  static String deleteAt(String code, int index) {
+    final sanitized = sanitize(code);
+    if (index < 0 || index >= sanitized.length) return sanitized;
+    return sanitized.substring(0, index) + sanitized.substring(index + 1);
+  }
+
+  /// Slot that owns the caret / selection. Tapping never truncates the code.
+  static int activeSlotFromSelection(String code, TextSelection selection) {
+    final sanitized = sanitize(code);
+    if (!selection.isValid) {
+      return sanitized.length.clamp(0, codeLength - 1);
+    }
+    final start = selection.start < selection.end
+        ? selection.start
+        : selection.end;
+    return start.clamp(0, codeLength - 1);
+  }
+
+  /// Select the digit in [slot] so the next key replaces only that digit.
+  /// Empty / beyond-end slots collapse at the first empty position.
+  static TextSelection selectionForSlot(String code, int slot) {
+    final sanitized = sanitize(code);
+    final i = slot.clamp(0, codeLength - 1);
+    if (i < sanitized.length) {
+      return TextSelection(baseOffset: i, extentOffset: i + 1);
+    }
+    return TextSelection.collapsed(offset: sanitized.length);
+  }
+
+  /// Selection-aware edit: replace one slot, backspace, or paste/autofill.
+  static TextEditingValue applyEdit({
+    required TextEditingValue oldValue,
+    required TextEditingValue newValue,
+  }) {
+    final oldSan = sanitize(oldValue.text);
+    final newAll = extractDigits(newValue.text, cap: null);
+    final newSan = newAll.length > codeLength
+        ? newAll.substring(0, codeLength)
+        : newAll;
+
+    var start = oldSan.length;
+    var end = oldSan.length;
+    if (oldValue.selection.isValid) {
+      start = oldValue.selection.start.clamp(0, oldSan.length);
+      end = oldValue.selection.end.clamp(0, oldSan.length);
+      if (end < start) {
+        final tmp = start;
+        start = end;
+        end = tmp;
+      }
+    }
+
+    final inserted = _insertedDigits(oldSan, newAll, start, end);
+
+    if (inserted.length > 1) {
+      final text = sanitize(oldSan.substring(0, start) + inserted + oldSan.substring(end));
+      return _collapsed(text, text.length);
+    }
+
+    if (oldSan.isEmpty && newSan.length > 1) {
+      return _collapsed(newSan, newSan.length);
+    }
+
+    if (inserted.isEmpty && newSan.length < oldSan.length) {
+      if (end > start) {
+        final text = oldSan.substring(0, start) + oldSan.substring(end);
+        return _collapsed(text, start);
+      }
+      if (start > 0) {
+        final delAt = start - 1;
+        return _collapsed(deleteAt(oldSan, delAt), delAt);
+      }
+      return _collapsed(oldSan, 0);
+    }
+
+    if (inserted.isEmpty) {
+      if (newSan == oldSan) {
+        final sel = oldValue.selection.isValid
+            ? TextSelection(
+                baseOffset: oldValue.selection.start.clamp(0, oldSan.length),
+                extentOffset: oldValue.selection.end.clamp(0, oldSan.length),
+              )
+            : TextSelection.collapsed(offset: oldSan.length);
+        return TextEditingValue(
+          text: oldSan,
+          selection: sel,
+          composing: TextRange.empty,
+        );
+      }
+      return _collapsed(newSan, newSan.length);
+    }
+
+    final digit = inserted[0];
+    if (end > start) {
+      final text =
+          sanitize(oldSan.substring(0, start) + digit + oldSan.substring(end));
+      return TextEditingValue(
+        text: text,
+        selection: selectionForSlot(text, (start + 1).clamp(0, codeLength - 1)),
+        composing: TextRange.empty,
+      );
+    }
+    if (start < oldSan.length) {
+      final text = replaceDigit(oldSan, start, digit);
+      return TextEditingValue(
+        text: text,
+        selection: selectionForSlot(text, (start + 1).clamp(0, codeLength - 1)),
+        composing: TextRange.empty,
+      );
+    }
+    if (oldSan.length < codeLength) {
+      final text = oldSan + digit;
+      final next = text.length < codeLength ? text.length : codeLength - 1;
+      return TextEditingValue(
+        text: text,
+        selection: selectionForSlot(text, next),
+        composing: TextRange.empty,
+      );
+    }
+    return TextEditingValue(
+      text: oldSan,
+      selection: selectionForSlot(oldSan, codeLength - 1),
+      composing: TextRange.empty,
+    );
+  }
+
+  static TextEditingValue _collapsed(String text, int caret) {
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: caret.clamp(0, text.length)),
+      composing: TextRange.empty,
+    );
+  }
+
+  static String _insertedDigits(
+    String oldSan,
+    String newAll,
+    int start,
+    int end,
+  ) {
+    final prefix = oldSan.substring(0, start);
+    final suffix = oldSan.substring(end);
+    if (newAll.startsWith(prefix)) {
+      if (suffix.isEmpty) {
+        return newAll.substring(prefix.length);
+      }
+      if (newAll.endsWith(suffix) &&
+          newAll.length >= prefix.length + suffix.length) {
+        return newAll.substring(prefix.length, newAll.length - suffix.length);
+      }
+    }
+    if (oldSan.isEmpty) return newAll;
+    if (newAll.length >= codeLength && newAll != oldSan) {
+      return newAll.substring(0, codeLength);
+    }
+    return '';
+  }
 }
 
 /// Accepts ASCII / Persian / Arabic-Indic digits; stores ASCII only.
+/// Selection-aware: a filled slot replaces only that digit; paste fills all six.
 class OtpDigitInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final sanitized = OtpInputHelper.sanitize(newValue.text);
-    if (sanitized == newValue.text &&
-        sanitized.length == newValue.selection.baseOffset) {
-      return newValue;
-    }
-    return TextEditingValue(
-      text: sanitized,
-      selection: TextSelection.collapsed(offset: sanitized.length),
-      composing: TextRange.empty,
+    return OtpInputHelper.applyEdit(oldValue: oldValue, newValue: newValue);
+  }
+}
+
+/// Visible olive caret for the active OTP slot (empty or filled).
+class OtpSlotCaret extends StatelessWidget {
+  final double height;
+
+  const OtpSlotCaret({super.key, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1.5,
+      height: height,
+      color: AppTheme.gate2ButtonOlive,
     );
   }
 }
@@ -68,7 +254,7 @@ class OtpDigitInputFormatter extends TextInputFormatter {
 ///
 /// Uses one [TextEditingController] as the source of truth so OS one-time-code
 /// autofill, paste, and manual typing all populate every box consistently.
-/// Digit slots are tappable to re-focus and edit from that position.
+/// Digit slots are tappable; the tapped slot becomes active without truncating.
 class Gate2OtpInput extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -128,26 +314,14 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
   void _handleControllerChanged() {
     final sanitized = OtpInputHelper.sanitize(widget.controller.text);
     if (sanitized != widget.controller.text) {
-      widget.controller.value = TextEditingValue(
-        text: sanitized,
-        selection: TextSelection.collapsed(offset: sanitized.length),
+      widget.controller.value = OtpInputHelper.applyEdit(
+        oldValue: widget.controller.value,
+        newValue: widget.controller.value.copyWith(text: sanitized),
       );
       return;
     }
     if (mounted) setState(() {});
     widget.onChanged?.call(sanitized);
-  }
-
-  void _applyInput(String raw) {
-    final sanitized = OtpInputHelper.sanitize(raw);
-    if (sanitized == widget.controller.text) {
-      widget.onChanged?.call(sanitized);
-      return;
-    }
-    widget.controller.value = TextEditingValue(
-      text: sanitized,
-      selection: TextSelection.collapsed(offset: sanitized.length),
-    );
   }
 
   void _ensureFocus() {
@@ -157,19 +331,14 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
     }
   }
 
-  /// Tap a slot to re-focus; truncate so that slot becomes the active caret.
+  /// Tap a slot to activate it. Never truncates later digits.
   void _onSlotTap(int index) {
     if (!widget.enabled) return;
     _ensureFocus();
     final code = OtpInputHelper.sanitize(widget.controller.text);
-    final next = index <= 0
-        ? ''
-        : (code.length > index ? code.substring(0, index) : code);
-    if (next != code) {
-      widget.controller.value = TextEditingValue(
-        text: next,
-        selection: TextSelection.collapsed(offset: next.length),
-      );
+    final next = OtpInputHelper.selectionForSlot(code, index);
+    if (widget.controller.selection != next) {
+      widget.controller.selection = next;
     } else if (mounted) {
       setState(() {});
     }
@@ -184,6 +353,12 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
             : MediaQuery.sizeOf(context).width;
         final layout = _OtpBoxLayout.compute(maxWidth);
         final code = OtpInputHelper.sanitize(widget.controller.text);
+        final activeSlot = widget.enabled && widget.focusNode.hasFocus
+            ? OtpInputHelper.activeSlotFromSelection(
+                code,
+                widget.controller.selection,
+              )
+            : -1;
 
         return AutofillGroup(
           child: Directionality(
@@ -228,7 +403,9 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
                             contentPadding: EdgeInsets.zero,
                             isDense: true,
                           ),
-                          onChanged: _applyInput,
+                          onChanged: (raw) {
+                            widget.onChanged?.call(OtpInputHelper.sanitize(raw));
+                          },
                         ),
                       ),
                     ),
@@ -238,12 +415,8 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
                       children: List.generate(
                         OtpInputHelper.codeLength,
                         (index) {
-                          final active = widget.enabled &&
-                              widget.focusNode.hasFocus &&
-                              (code.length == index ||
-                                  (code.length == OtpInputHelper.codeLength &&
-                                      index == OtpInputHelper.codeLength - 1));
                           return GestureDetector(
+                            key: ValueKey('a2-otp-slot-$index'),
                             behavior: HitTestBehavior.opaque,
                             onTap: () => _onSlotTap(index),
                             child: _OtpDigitBox(
@@ -251,7 +424,7 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
                               size: layout.boxSize,
                               gap: layout.gap,
                               isLast: index == OtpInputHelper.codeLength - 1,
-                              active: active,
+                              active: index == activeSlot,
                             ),
                           );
                         },
@@ -321,6 +494,7 @@ class _OtpDigitBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final caretHeight = (size * 0.42).clamp(14, 20);
     return Container(
       width: size,
       height: size + 4,
@@ -334,13 +508,11 @@ class _OtpDigitBox extends StatelessWidget {
           width: active ? 1.2 : 0.8,
         ),
       ),
-      child: digit.isEmpty && active
-          ? Container(
-              width: 1.5,
-              height: (size * 0.42).clamp(14, 20),
-              color: AppTheme.gate2ButtonOlive,
-            )
-          : Text(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (digit.isNotEmpty)
+            Text(
               digit,
               style: TextStyle(
                 color: AppTheme.gate2TextPrimary,
@@ -348,6 +520,10 @@ class _OtpDigitBox extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+          if (active)
+            OtpSlotCaret(height: caretHeight.toDouble()),
+        ],
+      ),
     );
   }
 }

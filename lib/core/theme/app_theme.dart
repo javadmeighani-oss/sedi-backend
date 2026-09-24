@@ -60,7 +60,9 @@ class AppTheme {
   // ===============================
   // Gate 2 Luxury Palette
   // ===============================
-  static const Color gate2WarmBackground = Color(0xFFFAFAF8);
+  static const Color gate2WarmBackground = Color(0xFFFFFFFF);
+  /// A2 page canvas — pure white.
+  static const Color a2PageBackground = Color(0xFFFFFFFF);
   static const Color gate2CardWhite = Color(0xFFFFFFFF);
   static const Color gate2InputFill = Color(0xFFF4F4F2);
   static const Color gate2ButtonActive = Color(0xFF050505);
@@ -102,6 +104,14 @@ class AppTheme {
 
   static const double gate2RadiusCard = 22;
   static const double gate2RadiusInput = 14;
+
+  /// Shared A2 control / CTA widths (dp). Narrow screens use available width.
+  static const double a2CompactControlMax = 300;
+  static const double a2PrimaryCtaMax = 360;
+  static const double a2ReadableContentMax = 360;
+  static const double a2PrimaryCtaHeight = 52;
+  static const double a2PrimaryCtaFontSize = 18;
+  static const double a2ControlFontSize = 16;
 
   // ===============================
   // Gate 3 Premium Palette

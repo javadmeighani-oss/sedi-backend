@@ -244,7 +244,7 @@ void main() {
     expect(find.text('6'), findsOneWidget);
   });
 
-  testWidgets('tapping a filled slot re-focuses and truncates for edit',
+  testWidgets('tapping a filled slot activates it without truncating later digits',
       (tester) async {
     final controller = TextEditingController(text: '123456');
     final focusNode = FocusNode();
@@ -266,11 +266,41 @@ void main() {
     await tester.pump();
     expect(focusNode.hasFocus, isFalse);
 
-    await tester.tap(find.text('3'));
+    await tester.tap(find.byKey(const ValueKey('a2-otp-slot-2')));
     await tester.pump();
 
     expect(focusNode.hasFocus, isTrue);
+    expect(controller.text, '123456');
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
+    expect(controller.selection.start, 2);
+    expect(controller.selection.end, 3);
+    expect(find.byType(OtpSlotCaret), findsOneWidget);
+  });
+
+  testWidgets('active filled slot shows olive caret', (tester) async {
+    final controller = TextEditingController(text: '12');
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate2OtpInput(
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('a2-otp-slot-0')));
+    await tester.pump();
+
+    expect(find.byType(OtpSlotCaret), findsOneWidget);
     expect(controller.text, '12');
-    expect(find.text('3'), findsNothing);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 }

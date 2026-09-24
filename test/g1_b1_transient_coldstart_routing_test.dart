@@ -138,5 +138,7 @@ void main() {
     expect(intro.contains('kReconnectRetryDelay'), isTrue);
     expect(intro.contains('session.nextGate == SediAppGate.splash'), isTrue);
     expect(intro.contains('resolveColdStart()'), isTrue);
+    expect(intro.contains('Reconnecting'), isFalse);
+    expect(intro.contains('temporarily unreachable'), isFalse);
   });
 }

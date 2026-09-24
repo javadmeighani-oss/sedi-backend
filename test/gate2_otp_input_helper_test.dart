@@ -80,4 +80,90 @@ void main() {
       expect(apply('123456').text, '123456');
     });
   });
+
+  group('OtpInputHelper.applyEdit selection-aware', () {
+    TextEditingValue edit({
+      required String oldText,
+      required String newText,
+      required TextSelection oldSel,
+      TextSelection? newSel,
+    }) {
+      return OtpInputHelper.applyEdit(
+        oldValue: TextEditingValue(text: oldText, selection: oldSel),
+        newValue: TextEditingValue(
+          text: newText,
+          selection: newSel ?? TextSelection.collapsed(offset: newText.length),
+        ),
+      );
+    }
+
+    test('replace only the selected filled digit', () {
+      final v = edit(
+        oldText: '123456',
+        newText: '129456',
+        oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
+      );
+      expect(v.text, '129456');
+      expect(OtpInputHelper.isComplete(v.text), isTrue);
+    });
+
+    test('insert on a filled collapsed caret replaces that digit only', () {
+      final v = edit(
+        oldText: '123456',
+        newText: '1293456',
+        oldSel: const TextSelection.collapsed(offset: 2),
+      );
+      expect(v.text, '129456');
+    });
+
+    test('empty next slot appends without changing earlier digits', () {
+      final v = edit(
+        oldText: '12',
+        newText: '123',
+        oldSel: const TextSelection.collapsed(offset: 2),
+      );
+      expect(v.text, '123');
+    });
+
+    test('backspace on selected digit shifts later digits and keeps prefix', () {
+      final v = edit(
+        oldText: '123456',
+        newText: '12456',
+        oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
+      );
+      expect(v.text, '12456');
+    });
+
+    test('backspace at end deletes last digit only', () {
+      final v = edit(
+        oldText: '123',
+        newText: '12',
+        oldSel: const TextSelection.collapsed(offset: 3),
+      );
+      expect(v.text, '12');
+    });
+
+    test('six-digit paste/autofill fills all boxes', () {
+      final v = edit(
+        oldText: '',
+        newText: '12۳٤5۶',
+        oldSel: const TextSelection.collapsed(offset: 0),
+      );
+      expect(v.text, '123456');
+      expect(OtpInputHelper.isComplete(v.text), isTrue);
+    });
+
+    test('replaceDigit leaves other slots unchanged', () {
+      expect(OtpInputHelper.replaceDigit('123456', 2, '9'), '129456');
+      expect(OtpInputHelper.replaceDigit('12', 0, '۸'), '82');
+    });
+
+    test('selectionForSlot does not change the code', () {
+      const code = '123456';
+      final sel = OtpInputHelper.selectionForSlot(code, 3);
+      expect(sel.start, 3);
+      expect(sel.end, 4);
+      expect(OtpInputHelper.sanitize(code), '123456');
+    });
+  });
 }

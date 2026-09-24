@@ -46,9 +46,6 @@ class _IntroPageState extends State<IntroPage>
   late final Future<SessionResolveResult> _sessionFuture;
   late final Future<bool> _healthFuture;
 
-  bool _backendAvailable = true;
-  bool _showAvailabilityHint = false;
-
   @override
   void initState() {
     super.initState();
@@ -86,23 +83,18 @@ class _IntroPageState extends State<IntroPage>
   Future<void> _awaitIntroThenRoute() async {
     await Future<void>.delayed(IntroPage.kIntroDuration);
     var session = await _sessionFuture;
-    var healthy = await _healthFuture;
+    await _healthFuture;
 
     if (!mounted) return;
 
     while (session.stayOnStartup) {
-      setState(() {
-        _backendAvailable = healthy;
-        _showAvailabilityHint = true;
-      });
       await Future<void>.delayed(IntroPage.kReconnectRetryDelay);
       if (!mounted) return;
       session = await SessionGateResolver.resolveColdStart();
-      healthy = await BackendAvailability.probeHealthz();
+      await BackendAvailability.probeHealthz();
     }
 
     if (!mounted) return;
-    setState(() => _showAvailabilityHint = false);
     await _navigateToNextGate(session);
   }
 
@@ -193,31 +185,6 @@ class _IntroPageState extends State<IntroPage>
                   ),
                 ),
               ),
-              if (_showAvailabilityHint)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      color: AppTheme.introOverlaySubtle,
-                      child: Text(
-                        _backendAvailable
-                            ? 'Reconnecting…'
-                            : 'Sedi is temporarily unreachable',
-                        textAlign: TextAlign.center,
-                        style: AppTheme.caption.copyWith(
-                          color: AppTheme.introStatusText,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           );
         },
