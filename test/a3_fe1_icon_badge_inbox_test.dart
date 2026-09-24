@@ -88,7 +88,7 @@ void main() {
     final en = NotificationInboxL10n('en');
     final fa = NotificationInboxL10n('fa');
     final ar = NotificationInboxL10n('ar');
-    expect(en.continueInChat, contains('chat'));
+    expect(en.continueInChat, 'Continue with Sedi');
     expect(fa.continueInChat, isNot(en.continueInChat));
     expect(ar.continueInChat, isNot(en.continueInChat));
     expect(en.dislikeReasonTooFrequent, 'Too frequent');
