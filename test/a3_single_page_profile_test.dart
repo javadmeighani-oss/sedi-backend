@@ -140,9 +140,12 @@ void main() {
     final src = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
     ).readAsStringSync();
-    final logoutIdx = src.indexOf('AuthHelper.performLogout');
-    final summaryIdx = src.indexOf('userSummarySection');
-    expect(logoutIdx, greaterThan(summaryIdx));
+    final summaryCallIdx = src.indexOf('_buildSummaryCard(l10n)');
+    final logoutCallIdx =
+        src.indexOf('AuthHelper.performLogout(context: context)');
+    expect(summaryCallIdx, greaterThanOrEqualTo(0));
+    expect(logoutCallIdx, greaterThanOrEqualTo(0));
+    expect(logoutCallIdx, greaterThan(summaryCallIdx));
 
     await tester.pumpWidget(
       MaterialApp(
