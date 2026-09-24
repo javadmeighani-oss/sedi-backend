@@ -26,11 +26,13 @@ void main() {
     expect(src.contains('canonicalProfileSummaryText'), isTrue);
 
     final infoIdx = src.indexOf('userInformationSection');
-    final phoneIdx = src.indexOf('Widget _phoneCard');
-    final summaryIdx = src.indexOf('userSummarySection');
-    final logoutIdx = src.indexOf('AuthHelper.performLogout');
+    final phoneCallIdx = src.indexOf('_phoneCard(l10n)');
+    final summaryCallIdx = src.indexOf('_buildSummaryCard(l10n)');
+    final logoutCallIdx =
+        src.indexOf('AuthHelper.performLogout(context: context)');
     expect(infoIdx, greaterThan(0));
-    expect(phoneIdx, greaterThan(infoIdx));
-    expect(logoutIdx, greaterThan(summaryIdx));
+    expect(phoneCallIdx, greaterThan(infoIdx));
+    expect(summaryCallIdx, greaterThan(phoneCallIdx));
+    expect(logoutCallIdx, greaterThan(summaryCallIdx));
   });
 }

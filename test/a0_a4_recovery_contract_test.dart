@@ -12,6 +12,7 @@ import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_sta
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 
 String _read(String path) => File(path).readAsStringSync();
@@ -186,7 +187,8 @@ void main() {
     );
     expect(profile.contains('logoutSection'), isFalse);
     expect(profile.contains('TextDirection.ltr'), isTrue);
-    expect(profile.contains('backgroundColor: Colors.white'), isTrue);
+    expect(profile.contains('A3DestinationSurface.canvas'), isTrue);
+    expect(A3DestinationSurface.canvas, const Color(0xFFFFFFFF));
 
     final notifications = _read('lib/services/notifications/notifications_service.dart');
     expect(notifications.contains("const path = '/notifications/'"), isTrue);
