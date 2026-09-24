@@ -21,9 +21,14 @@ void main() {
       expect('Expanded('.allMatches(row).length, 4);
       expect(row.contains('.reversed'), isFalse);
       expect(row.contains('PositionedDirectional'), isFalse);
-      expect(row.indexOf('profileTitle'), lessThan(row.indexOf('lifestyle')));
-      expect(row.indexOf('lifestyle'), lessThan(row.indexOf('gadgets')));
-      expect(row.indexOf('gadgets'), lessThan(row.indexOf('notifications')));
+      final profileCall = row.indexOf('l10n.profileTitle');
+      final lifestyleCall = row.indexOf('l10n.lifestyle');
+      final gadgetsCall = row.indexOf('l10n.gadgets');
+      final notificationsCall = row.indexOf('l10n.notifications');
+      expect(profileCall, greaterThan(0));
+      expect(lifestyleCall, greaterThan(profileCall));
+      expect(gadgetsCall, greaterThan(lifestyleCall));
+      expect(notificationsCall, greaterThan(gadgetsCall));
 
       expect(button.contains('plainIcon ? 56 : 72'), isFalse);
       expect(button.contains('width: 56'), isFalse);
