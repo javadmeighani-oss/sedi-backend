@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../models/gate3_interaction_state.dart';
+import 'sedi_presence_tokens.dart';
 
 /// Horizontal anti-aliased bar-column resonance visualizer.
 ///
@@ -26,9 +27,23 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   /// Total bars across the full presence (used with [globalBarOffset]).
   final int? globalBarTotal;
 
-  static const double height = 36;
-  static const int barCount = 28;
+  static const double height = SediPresenceTokens.visualizerHeight;
+  static const int barCount = 98;
   static const double phaseSpeed = 0.85;
+  static const double amplitudeScale = SediPresenceTokens.amplitudeScale;
+
+  static double targetEnergy(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.08;
+      case Gate3InteractionState.listening:
+        return 0.28;
+      case Gate3InteractionState.thinking:
+        return 0.52;
+      case Gate3InteractionState.speaking:
+        return 0.92;
+    }
+  }
 
   const SediHorizontalResonanceVisualizer({
     super.key,
@@ -48,23 +63,11 @@ class _SediHorizontalResonanceVisualizerState
     extends State<SediHorizontalResonanceVisualizer>
     with SingleTickerProviderStateMixin {
   AnimationController? _ownedController;
-  double _energy = _targetEnergy(Gate3InteractionState.idle);
+  double _energy =
+      SediHorizontalResonanceVisualizer.targetEnergy(Gate3InteractionState.idle);
 
   Animation<double> get _phase =>
       widget.phaseListenable ?? _ownedController!;
-
-  static double _targetEnergy(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.08;
-      case Gate3InteractionState.listening:
-        return 0.28;
-      case Gate3InteractionState.thinking:
-        return 0.52;
-      case Gate3InteractionState.speaking:
-        return 0.92;
-    }
-  }
 
   static double _density(Gate3InteractionState state) {
     switch (state) {
@@ -117,7 +120,7 @@ class _SediHorizontalResonanceVisualizerState
   }
 
   void _tick() {
-    final target = _targetEnergy(widget.state);
+    final target = SediHorizontalResonanceVisualizer.targetEnergy(widget.state);
     final next = _energy + (target - _energy) * 0.12;
     if ((next - _energy).abs() > 0.0005) {
       setState(() => _energy = next);
@@ -166,8 +169,7 @@ class _HorizontalResonancePainter extends CustomPainter {
   final int globalBarOffset;
   final int globalBarTotal;
 
-  static const _olive = Color(0xFF8A9A6B);
-  static const _cream = Color(0xFFE8E4C8);
+  static const _presence = SediPresenceTokens.presenceGreen;
 
   const _HorizontalResonancePainter({
     required this.phase,
@@ -184,8 +186,8 @@ class _HorizontalResonancePainter extends CustomPainter {
     if (segmentBarCount <= 0 || size.width <= 0) return;
 
     final count = segmentBarCount;
-    final gap = size.width / (count * 1.35);
-    final barWidth = gap * 0.55;
+    final pitch = size.width / count;
+    final barWidth = (pitch * 0.38).clamp(1.0, 1.8);
     final midY = size.height / 2;
     final maxHalf = size.height * 0.46;
     final animated =
@@ -196,7 +198,7 @@ class _HorizontalResonancePainter extends CustomPainter {
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke
-      ..strokeWidth = barWidth.clamp(1.6, 3.2);
+      ..strokeWidth = barWidth;
 
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
@@ -211,12 +213,13 @@ class _HorizontalResonancePainter extends CustomPainter {
       final variation = 0.12 + density * 0.88;
       final heightFactor =
           (0.08 + energy * (0.35 + envelope * variation)).clamp(0.06, 1.0);
-      final half = maxHalf * heightFactor;
+      final half = maxHalf *
+          heightFactor *
+          SediHorizontalResonanceVisualizer.amplitudeScale;
 
-      final x = gap * 0.7 + i * (barWidth + gap * 0.55);
+      final x = pitch * (i + 0.5);
       final opacity = (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92);
-      paint.color = Color.lerp(_cream, _olive, 0.35 + energy * 0.45)!
-          .withOpacity(opacity);
+      paint.color = _presence.withOpacity(opacity);
 
       canvas.drawLine(
         Offset(x, midY - half),

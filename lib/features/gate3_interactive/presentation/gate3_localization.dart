@@ -69,6 +69,18 @@ class Gate3Localization {
         ar: 'تعديل الملف الشخصي',
       );
 
+  String get expandDestinations => _t(
+        en: 'Show destinations',
+        fa: 'نمایش مقصدها',
+        ar: 'إظهار الوجهات',
+      );
+
+  String get collapseDestinations => _t(
+        en: 'Hide destinations',
+        fa: 'پنهان کردن مقصدها',
+        ar: 'إخفاء الوجهات',
+      );
+
   String get profileTitle =>
       _t(en: 'Profile', fa: 'پروفایل', ar: 'الملف الشخصي');
 

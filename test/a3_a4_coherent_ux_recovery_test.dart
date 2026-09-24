@@ -9,7 +9,6 @@ import 'package:sedi_app/features/gate3_interactive/presentation/gate3_assistant
 import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
-import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_orb_presence.dart';
@@ -195,21 +194,18 @@ void main() {
 
     test('speaking is strongest energy; IDLE < LISTENING < THINKING < SPEAKING',
         () {
-      final idle =
-          SediFrequencyRingPainter.targetAmplitude(Gate3InteractionState.idle);
-      final listening = SediFrequencyRingPainter.targetAmplitude(
+      final idle = SediHorizontalResonanceVisualizer.targetEnergy(
+          Gate3InteractionState.idle);
+      final listening = SediHorizontalResonanceVisualizer.targetEnergy(
           Gate3InteractionState.listening);
-      final thinking = SediFrequencyRingPainter.targetAmplitude(
+      final thinking = SediHorizontalResonanceVisualizer.targetEnergy(
           Gate3InteractionState.thinking);
-      final speaking = SediFrequencyRingPainter.targetAmplitude(
+      final speaking = SediHorizontalResonanceVisualizer.targetEnergy(
           Gate3InteractionState.speaking);
       expect(idle < listening, isTrue);
       expect(listening < thinking, isTrue);
       expect(thinking < speaking, isTrue);
-      expect(
-        SediFrequencyRingPainter.phaseSpeed(Gate3InteractionState.speaking),
-        0.85,
-      );
+      expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
       expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
       expect(SediHorizontalResonanceVisualizer.height, 36);
     });
@@ -293,7 +289,7 @@ void main() {
   });
 
   group('R1 orb resonance center', () {
-    testWidgets('full-width resonance flanks orb with shared centerline gap',
+    testWidgets('one full-width visualizer shares the orb centerline',
         (tester) async {
       for (final state in Gate3InteractionState.values) {
         await tester.pumpWidget(
@@ -314,34 +310,18 @@ void main() {
         await tester.pump();
 
         final orb = tester.getRect(find.byType(SediBrainOrb));
-        final segments = tester
-            .widgetList(find.byType(SediHorizontalResonanceVisualizer))
-            .length;
-        expect(segments, 2);
-        final left = tester.getRect(
-          find.byType(SediHorizontalResonanceVisualizer).at(0),
+        expect(find.byType(SediHorizontalResonanceVisualizer), findsOneWidget);
+        final bars = tester.getRect(
+          find.byType(SediHorizontalResonanceVisualizer),
         );
-        final right = tester.getRect(
-          find.byType(SediHorizontalResonanceVisualizer).at(1),
-        );
-        expect(left.center.dy, closeTo(orb.center.dy, 0.5));
-        expect(right.center.dy, closeTo(orb.center.dy, 0.5));
-        expect(left.right, lessThanOrEqualTo(orb.left + 0.01));
-        expect(right.left, greaterThanOrEqualTo(orb.right - 0.01));
-        expect(orb.left - left.right, closeTo(SediOrbPresence.orbBreathingGap, 0.5));
-        expect(right.left - orb.right, closeTo(SediOrbPresence.orbBreathingGap, 0.5));
+        expect(bars.center.dy, closeTo(orb.center.dy, 0.5));
+        expect(bars.center.dx, closeTo(orb.center.dx, 1.0));
         expect(find.text('Sedi.'), findsOneWidget);
-        expect(
-          tester.getSize(find.byType(SediBrainOrb)),
-          const Size(SediBrainOrb.size, SediBrainOrb.size),
-        );
-        expect(left.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
-        expect(right.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
-        expect(
-          left.width + right.width + SediBrainOrb.size +
-              2 * SediOrbPresence.orbBreathingGap,
-          closeTo(390 - 2 * SediOrbPresence.horizontalInset, 1.0),
-        );
+        final usable = 390 - 2 * SediOrbPresence.horizontalInset;
+        final expected = SediBrainOrb.diameterFor(usable.toDouble());
+        expect(tester.getSize(find.byType(SediBrainOrb)).width,
+            closeTo(expected, 0.5));
+        expect(bars.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
       }
     });
 
@@ -389,8 +369,12 @@ void main() {
 
       expect(closed.height, closeTo(open.height, 0.01));
       expect(closed.width, closeTo(open.width, 0.01));
-      expect(closed.height, closeTo(SediBrainOrb.size, 0.01));
-      expect(closed.width, greaterThan(SediBrainOrb.size + 40));
+      final usable = 390 - 2 * SediOrbPresence.horizontalInset;
+      expect(
+        closed.height,
+        closeTo(SediBrainOrb.diameterFor(usable.toDouble()), 0.5),
+      );
+      expect(closed.width, greaterThan(SediBrainOrb.minDiameter));
     });
   });
 }

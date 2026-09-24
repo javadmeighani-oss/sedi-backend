@@ -26,6 +26,7 @@ import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_memory_consent_invitation.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
+import '../widgets/gate3_top_navigation_tray.dart';
 import '../widgets/sedi_orb_presence.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -73,6 +74,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   bool _memoryConsentGranted = true;
   bool _memoryInviteDismissed = false;
   bool _memoryConsentBusy = false;
+  bool _topTrayExpanded = false;
 
   @override
   void initState() {
@@ -293,8 +295,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                Gate3TopNavigationTray(
+                  expanded: _topTrayExpanded,
+                  onToggle: () {
+                    setState(() => _topTrayExpanded = !_topTrayExpanded);
+                  },
+                  expandLabel: l10n.expandDestinations,
+                  collapseLabel: l10n.collapseDestinations,
                   child: Gate3MainIconRow(
                     lang: presentationLang,
                     unreadNotificationCount: _unreadNotificationCount,
