@@ -143,6 +143,43 @@ void main() {
       expect(v.text, '12');
     });
 
+    test('empty + paste 654321 replaces entire OTP', () {
+      final v = edit(
+        oldText: '',
+        newText: '654321',
+        oldSel: const TextSelection.collapsed(offset: 0),
+      );
+      expect(v.text, '654321');
+      expect(v.selection.isCollapsed, isTrue);
+      expect(v.selection.extentOffset, 6);
+    });
+
+    test('partial 12 + paste 654321 replaces entire OTP', () {
+      final v = edit(
+        oldText: '12',
+        newText: '12654321',
+        oldSel: const TextSelection.collapsed(offset: 2),
+      );
+      expect(v.text, '654321');
+    });
+
+    test('full 123456 + middle slot + paste 654321 replaces entire OTP', () {
+      final spliced = edit(
+        oldText: '123456',
+        newText: '12654321456',
+        oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
+      );
+      expect(spliced.text, '654321');
+      expect(spliced.text, isNot('126543'));
+
+      final wholesale = edit(
+        oldText: '123456',
+        newText: '654321',
+        oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
+      );
+      expect(wholesale.text, '654321');
+    });
+
     test('six-digit paste/autofill fills all boxes', () {
       final v = edit(
         oldText: '',
@@ -151,6 +188,25 @@ void main() {
       );
       expect(v.text, '123456');
       expect(OtpInputHelper.isComplete(v.text), isTrue);
+    });
+
+    test('Persian/Arabic six-digit paste normalizes and replaces entire OTP', () {
+      expect(
+        edit(
+          oldText: '123456',
+          newText: '۶۵۴۳۲۱',
+          oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
+        ).text,
+        '654321',
+      );
+      expect(
+        edit(
+          oldText: '12',
+          newText: '٦٥٤٣٢١',
+          oldSel: const TextSelection.collapsed(offset: 2),
+        ).text,
+        '654321',
+      );
     });
 
     test('replaceDigit leaves other slots unchanged', () {

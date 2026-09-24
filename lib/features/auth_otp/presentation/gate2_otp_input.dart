@@ -117,6 +117,20 @@ class OtpInputHelper {
 
     final inserted = _insertedDigits(oldSan, newAll, start, end);
 
+    // A 6-digit paste/autofill always replaces the entire OTP, even if a
+    // middle slot is selected. Never splice (123456 + paste 654321 ≠ 126543).
+    if (inserted.length >= codeLength) {
+      final text = sanitize(inserted);
+      return _collapsed(text, text.length);
+    }
+
+    if (newSan.length == codeLength &&
+        oldSan != newSan &&
+        inserted.length != 1 &&
+        (oldSan.isEmpty || newAll.length >= codeLength)) {
+      return _collapsed(newSan, newSan.length);
+    }
+
     if (inserted.length > 1) {
       final text = sanitize(oldSan.substring(0, start) + inserted + oldSan.substring(end));
       return _collapsed(text, text.length);
@@ -234,18 +248,34 @@ class OtpDigitInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Visible olive caret for the active OTP slot (empty or filled).
-class OtpSlotCaret extends StatelessWidget {
-  final double height;
+/// Where the olive caret sits inside an OTP slot.
+enum OtpCaretPlacement {
+  /// Empty active slot — centered, subtle.
+  emptyCenter,
 
-  const OtpSlotCaret({super.key, required this.height});
+  /// User-tapped filled slot — thin bar beside the digit, never overlapping.
+  filledBeside,
+}
+
+/// Subtle ~1px olive caret for the active edit position only.
+class OtpSlotCaret extends StatelessWidget {
+  static const double thickness = 1;
+
+  final double height;
+  final OtpCaretPlacement placement;
+
+  const OtpSlotCaret({
+    super.key,
+    required this.height,
+    required this.placement,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 1.5,
+      width: thickness,
       height: height,
-      color: AppTheme.gate2ButtonOlive,
+      color: AppTheme.gate2ButtonOlive.withOpacity(0.45),
     );
   }
 }
@@ -274,11 +304,16 @@ class Gate2OtpInput extends StatefulWidget {
 }
 
 class _Gate2OtpInputState extends State<Gate2OtpInput> {
+  /// True only after an explicit slot tap, until the next text mutation.
+  bool _slotTapped = false;
+  String _lastCode = '';
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
     widget.focusNode.addListener(_handleFocusChanged);
+    _lastCode = OtpInputHelper.sanitize(widget.controller.text);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.enabled) return;
       if (!widget.focusNode.hasFocus) {
@@ -293,6 +328,8 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_handleControllerChanged);
       widget.controller.addListener(_handleControllerChanged);
+      _lastCode = OtpInputHelper.sanitize(widget.controller.text);
+      _slotTapped = false;
     }
     if (oldWidget.focusNode != widget.focusNode) {
       oldWidget.focusNode.removeListener(_handleFocusChanged);
@@ -320,6 +357,10 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
       );
       return;
     }
+    if (sanitized != _lastCode) {
+      _slotTapped = false;
+      _lastCode = sanitized;
+    }
     if (mounted) setState(() {});
     widget.onChanged?.call(sanitized);
   }
@@ -335,6 +376,7 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
   void _onSlotTap(int index) {
     if (!widget.enabled) return;
     _ensureFocus();
+    _slotTapped = true;
     final code = OtpInputHelper.sanitize(widget.controller.text);
     final next = OtpInputHelper.selectionForSlot(code, index);
     if (widget.controller.selection != next) {
@@ -353,11 +395,15 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
             : MediaQuery.sizeOf(context).width;
         final layout = _OtpBoxLayout.compute(maxWidth);
         final code = OtpInputHelper.sanitize(widget.controller.text);
-        final activeSlot = widget.enabled && widget.focusNode.hasFocus
-            ? OtpInputHelper.activeSlotFromSelection(
-                code,
-                widget.controller.selection,
-              )
+        final selection = widget.controller.selection;
+        final completeIdle = code.length == OtpInputHelper.codeLength &&
+            selection.isCollapsed &&
+            selection.extentOffset >= code.length &&
+            !_slotTapped;
+        final activeSlot = widget.enabled &&
+                widget.focusNode.hasFocus &&
+                !completeIdle
+            ? OtpInputHelper.activeSlotFromSelection(code, selection)
             : -1;
 
         return AutofillGroup(
@@ -425,6 +471,9 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
                               gap: layout.gap,
                               isLast: index == OtpInputHelper.codeLength - 1,
                               active: index == activeSlot,
+                              showCaret: index == activeSlot &&
+                                  (OtpInputHelper.digitAt(code, index).isEmpty ||
+                                      _slotTapped),
                             ),
                           );
                         },
@@ -483,6 +532,7 @@ class _OtpDigitBox extends StatelessWidget {
   final double gap;
   final bool isLast;
   final bool active;
+  final bool showCaret;
 
   const _OtpDigitBox({
     required this.digit,
@@ -490,11 +540,21 @@ class _OtpDigitBox extends StatelessWidget {
     required this.gap,
     required this.isLast,
     required this.active,
+    required this.showCaret,
   });
 
   @override
   Widget build(BuildContext context) {
-    final caretHeight = (size * 0.42).clamp(14, 20);
+    final caretHeight = (size * 0.42).clamp(14, 20).toDouble();
+    final placement = digit.isEmpty
+        ? OtpCaretPlacement.emptyCenter
+        : OtpCaretPlacement.filledBeside;
+    final digitStyle = TextStyle(
+      color: AppTheme.gate2TextPrimary,
+      fontSize: (size * 0.42).clamp(14, 20),
+      fontWeight: FontWeight.w600,
+    );
+
     return Container(
       width: size,
       height: size + 4,
@@ -508,22 +568,19 @@ class _OtpDigitBox extends StatelessWidget {
           width: active ? 1.2 : 0.8,
         ),
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (digit.isNotEmpty)
-            Text(
-              digit,
-              style: TextStyle(
-                color: AppTheme.gate2TextPrimary,
-                fontSize: (size * 0.42).clamp(14, 20),
-                fontWeight: FontWeight.w600,
-              ),
+      child: showCaret && digit.isEmpty
+          ? OtpSlotCaret(height: caretHeight, placement: placement)
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (digit.isNotEmpty) Text(digit, style: digitStyle),
+                if (showCaret && digit.isNotEmpty) ...[
+                  const SizedBox(width: 1),
+                  OtpSlotCaret(height: caretHeight, placement: placement),
+                ],
+              ],
             ),
-          if (active)
-            OtpSlotCaret(height: caretHeight.toDouble()),
-        ],
-      ),
     );
   }
 }
