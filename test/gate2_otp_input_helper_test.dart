@@ -107,13 +107,26 @@ void main() {
       expect(OtpInputHelper.isComplete(v.text), isTrue);
     });
 
-    test('insert on a filled collapsed caret replaces that digit only', () {
-      final v = edit(
+    test('delete middle digit then retype inserts at collapsed caret', () {
+      final afterDelete = edit(
         oldText: '123456',
-        newText: '1293456',
-        oldSel: const TextSelection.collapsed(offset: 2),
+        newText: '12456',
+        oldSel: const TextSelection(baseOffset: 2, extentOffset: 3),
       );
-      expect(v.text, '129456');
+      expect(afterDelete.text, '12456');
+      expect(afterDelete.selection.isCollapsed, isTrue);
+      expect(afterDelete.selection.extentOffset, 2);
+
+      final afterType = OtpInputHelper.applyEdit(
+        oldValue: afterDelete,
+        newValue: const TextEditingValue(
+          text: '129456',
+          selection: TextSelection.collapsed(offset: 3),
+        ),
+      );
+      expect(afterType.text, '129456');
+      expect(afterType.text, isNot('19456'));
+      expect(afterType.text, isNot('12956'));
     });
 
     test('empty next slot appends without changing earlier digits', () {

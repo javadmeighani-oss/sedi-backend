@@ -180,12 +180,12 @@ class OtpInputHelper {
       );
     }
     if (start < oldSan.length) {
-      final text = replaceDigit(oldSan, start, digit);
-      return TextEditingValue(
-        text: text,
-        selection: selectionForSlot(text, (start + 1).clamp(0, codeLength - 1)),
-        composing: TextRange.empty,
+      // Collapsed caret (e.g. after deleting a middle digit): INSERT, shift later
+      // digits right. Do not replace the following digit.
+      final text = sanitize(
+        oldSan.substring(0, start) + digit + oldSan.substring(start),
       );
+      return _collapsed(text, (start + 1).clamp(0, text.length));
     }
     if (oldSan.length < codeLength) {
       final text = oldSan + digit;
