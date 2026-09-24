@@ -148,6 +148,13 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
     name_part = _name_part(user, lang)
     turn = authorized_last_eligible_turn(db, user.id)
     snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
+    if not snippet:
+        try:
+            from backend.app.services.i7.derived_continuity import get_bounded_continuity_topic
+
+            snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+        except Exception:
+            snippet = None
     if snippet:
         return _continuity_opener(lang, snippet, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])
@@ -201,6 +208,14 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
         proactive = maybe_proactive_opener(db, user)
         if proactive:
             message = proactive
+
+    try:
+        from backend.app.services.auth_session_policy import record_session_open_presence
+
+        record_session_open_presence(db, user.id)
+        db.commit()
+    except Exception:
+        pass
 
     return {
         "message": message,

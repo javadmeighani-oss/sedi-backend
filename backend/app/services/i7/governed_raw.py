@@ -123,6 +123,13 @@ def try_durable_raw_write(
         durable_write=True,
     )
     db.add(row)
+    db.flush()
+    try:
+        from backend.app.services.i7.derived_continuity import refresh_bounded_continuity
+
+        refresh_bounded_continuity(db, user_id=user_id, memory=row)
+    except Exception:
+        pass
     if commit:
         db.commit()
         db.refresh(row)

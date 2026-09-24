@@ -659,6 +659,26 @@ class CurrentMemoryContextAdapter:
                             sensitivity="medium",
                         )
                     )
+        try:
+            from backend.app.services.i7.derived_continuity import get_bounded_continuity_topic
+
+            topic = get_bounded_continuity_topic(db, authenticated_user_id)
+            if topic:
+                items.append(
+                    _item(
+                        canonical_key="memory.derived_continuity",
+                        section="memory",
+                        source=ContextSource.MEMORY,
+                        value=topic[:150],
+                        display_text=f"continuity={topic[:150]}",
+                        owner_user_id=authenticated_user_id,
+                        query_label="UserPeriodSummary.DAILY.bounded_continuity",
+                        observed_at=None,
+                        sensitivity="medium",
+                    )
+                )
+        except Exception:
+            pass
 
         from backend.app.core.conversation.memory import ConversationMemory
 

@@ -144,6 +144,8 @@ jobs:
             backend/tests/test_sms_gateway_dummy.py \
             backend/tests/test_sms_gateway_basic.py \
             backend/tests/test_auth_otp_v1.py \
+            backend/tests/test_auth_refresh_rotation.py \
+            backend/tests/test_sedi_session_identity_long_term_continuity_v1.py \
             backend/tests/test_auth_me_patch_v1.py \
             backend/tests/test_user_profile_core_v1.py \
             backend/tests/test_user_medications_v1.py \
@@ -228,6 +230,7 @@ jobs:
             backend/tests/test_i7_section44_design_contracts.py \
             backend/tests/test_i7_section45_memory_foundation.py \
             backend/tests/test_sedi_conversation_memory_continuity_v1.py \
+            backend/tests/test_sedi_session_identity_long_term_continuity_v1.py \
             --tb=short
 
       - name: I9 longitudinal baseline closure (PostgreSQL)

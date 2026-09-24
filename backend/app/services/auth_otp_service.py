@@ -425,6 +425,12 @@ def issue_tokens(
         ip=ip,
     )
     db.add(rt)
+    try:
+        from backend.app.services.auth_session_policy import record_auth_login_presence
+
+        record_auth_login_presence(db, user.id)
+    except Exception:
+        logger.exception("[AUTH] login presence record failed user=%s", user.id)
     db.commit()
 
     return access_token, refresh_plain, ACCESS_TOKEN_EXPIRE_MINUTES * 60
@@ -466,6 +472,10 @@ def rotate_refresh_token(
     """
     row = get_refresh_token_row(db, refresh_token_plain)
     if not row:
+        return None, None, None
+    from backend.app.services.auth_session_policy import refresh_allowed_for_presence
+
+    if not refresh_allowed_for_presence(db, row.user_id):
         return None, None, None
     row.revoked_at = now()
     db.commit()

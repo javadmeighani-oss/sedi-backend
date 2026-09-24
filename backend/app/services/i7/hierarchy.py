@@ -130,6 +130,14 @@ def build_daily_from_raw(
     integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, "DAILY", start)
+    try:
+        from backend.app.services.i7.derived_continuity import parse_bounded_continuity
+
+        prior_bc = parse_bounded_continuity(prior)
+        if prior_bc:
+            payload["bounded_continuity"] = prior_bc
+    except Exception:
+        prior_bc = {}
     if (
         prior is not None
         and prior.integrity_sha256 == integrity
