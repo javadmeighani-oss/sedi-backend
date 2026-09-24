@@ -23,14 +23,12 @@ from backend.app.services.i10.interaction_vocabulary import (
 
 _log = logging.getLogger(__name__)
 
-# Notification presence evidence only — NOT I7 personal-memory authority.
+# Explicit user responses only. READ/seen is not security-session presence.
+# Derived from CanonicalInteractionVerb — AUTH consumes this set; I10 owns it.
 NOTIFICATION_PRESENCE_EVENT_TYPES = frozenset(
-    {
-        "notification_like",
-        "notification_dislike",
-        "notification_dislike_reason",
-        "notification_open_chat",
-    }
+    event_type_for_verb(verb)
+    for verb in CanonicalInteractionVerb
+    if verb is not CanonicalInteractionVerb.READ
 )
 
 
@@ -256,7 +254,7 @@ def get_last_user_presence_at(db: Session, user_id: int) -> Optional[datetime]:
 
     Uses only existing persisted evidence:
     - chat Memory timestamps
-    - notification LIKE / DISLIKE / OPEN_CHAT InteractionEvent timestamps
+    - explicit CanonicalInteractionVerb notification responses except READ
 
     Does not invent baselines, does not promote presence into I7 memory authority,
     and does not treat account creation alone as meaningful presence.

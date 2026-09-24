@@ -82,10 +82,17 @@ def refresh_bounded_continuity(
     user_id: int,
     memory: models.Memory,
 ) -> Optional[models.UserPeriodSummary]:
-    """Upsert today's DAILY bounded_continuity from a governed durable raw turn."""
+    """Write today's DAILY bounded_continuity via I7 version/supersede, never mutate finalized."""
     topic = _safe_topic(getattr(memory, "user_message", None))
     if not topic:
         return None
+    from backend.app.services.i7.hierarchy import (
+        _active_for_period,
+        _canonical_json,
+        _integrity,
+        _next_version,
+    )
+
     tz_name = resolve_validated_user_timezone(db, user_id)
     user = db.query(models.User).filter(models.User.id == user_id).first()
     week_start = resolve_week_start(getattr(user, "preferred_language", None) if user else None)
@@ -94,64 +101,71 @@ def refresh_bounded_continuity(
     zone = pytz.timezone(tz_name)
     start, end = period_bounds("DAILY", now=_utcnow(), week_start=week_start, tz=zone)
     consent = _active_consent(db, user_id=user_id)
-    row = (
-        db.query(models.UserPeriodSummary)
-        .filter(
-            models.UserPeriodSummary.user_id == user_id,
-            models.UserPeriodSummary.summary_type == "DAILY",
-            models.UserPeriodSummary.period_start == start,
-            models.UserPeriodSummary.status == "active",
-        )
-        .order_by(models.UserPeriodSummary.version.desc())
-        .first()
-    )
-    payload = {
-        "authority": "UserPeriodSummary.DAILY",
-        "source": "ELIGIBLE_GOVERNED_RAW",
-        "generator": GENERATOR,
+    prior = _active_for_period(db, user_id, "DAILY", start)
+    bc = {
+        "topic": topic,
+        "source_memory_id": int(memory.id),
         "not_transcript": True,
-        "bounded_continuity": {
-            "topic": topic,
-            "source_memory_id": int(memory.id),
-            "not_transcript": True,
-            "not_i9": True,
-            "not_i6_fact": True,
-            "written_at": _utcnow().isoformat(),
-        },
+        "not_i9": True,
+        "not_i6_fact": True,
     }
-    if row is None:
-        row = models.UserPeriodSummary(
-            user_id=user_id,
-            summary_type="DAILY",
-            period_start=start,
-            period_end=end,
-            version=1,
-            structured_summary_json=json.dumps(payload, sort_keys=True),
-            narrative_summary=topic,
-            evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
-            generated_at=_utcnow(),
-            status="active",
-            period_timezone=tz_name,
-            period_week_start=week_start,
-            consent_id=consent.id if consent else None,
-            provenance_json=json.dumps(
-                {"generator": GENERATOR, "layer": "DAILY", "source_memory_id": memory.id},
-                sort_keys=True,
-            ),
-        )
-        db.add(row)
-    else:
-        try:
-            existing = json.loads(row.structured_summary_json or "{}")
-            if not isinstance(existing, dict):
-                existing = {}
-        except Exception:
+    try:
+        existing = json.loads(prior.structured_summary_json or "{}") if prior else {}
+        if not isinstance(existing, dict):
             existing = {}
-        existing["bounded_continuity"] = payload["bounded_continuity"]
-        existing["not_transcript"] = True
-        row.structured_summary_json = json.dumps(existing, sort_keys=True)
-        row.narrative_summary = topic
-        if consent is not None:
-            row.consent_id = consent.id
+    except Exception:
+        existing = {}
+    payload = dict(existing)
+    payload.setdefault("authority", "UserPeriodSummary.DAILY")
+    payload.setdefault("source", "ELIGIBLE_GOVERNED_RAW")
+    payload.setdefault("generator", GENERATOR)
+    payload["not_transcript"] = True
+    payload["bounded_continuity"] = bc
+    structured = _canonical_json(payload)
+    integrity = _integrity(payload)
+    if (
+        prior is not None
+        and prior.status == "active"
+        and prior.integrity_sha256 == integrity
+        and prior.structured_summary_json == structured
+    ):
+        return prior
+    lineage = {"raw_memory_ids": [int(memory.id)]}
+    if prior is not None and prior.lineage_json:
+        try:
+            old_lineage = json.loads(prior.lineage_json)
+            if isinstance(old_lineage, dict):
+                ids = [int(x) for x in (old_lineage.get("raw_memory_ids") or [])]
+                if int(memory.id) not in ids:
+                    ids.append(int(memory.id))
+                if ids:
+                    lineage = {"raw_memory_ids": ids}
+        except Exception:
+            pass
+    version = _next_version(db, user_id, "DAILY", start, prior)
+    row = models.UserPeriodSummary(
+        user_id=user_id,
+        summary_type="DAILY",
+        period_start=start,
+        period_end=end,
+        version=version,
+        structured_summary_json=structured,
+        narrative_summary=topic,
+        evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
+        generated_at=_utcnow(),
+        status="active",
+        finalized_at=None,
+        source_complete=False,
+        integrity_sha256=integrity,
+        lineage_json=json.dumps(lineage),
+        period_timezone=tz_name,
+        period_week_start=week_start,
+        consent_id=consent.id if consent else None,
+        provenance_json=json.dumps(
+            {"generator": GENERATOR, "layer": "DAILY", "source_memory_id": memory.id},
+            sort_keys=True,
+        ),
+    )
+    db.add(row)
     db.flush()
     return row

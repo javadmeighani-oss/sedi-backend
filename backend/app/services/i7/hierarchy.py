@@ -34,9 +34,13 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _canonical_json(payload: dict) -> str:
+    """Exact stored JSON; integrity_sha256 is SHA-256 of this string."""
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
 def _integrity(payload: dict) -> str:
-    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
 def _user_period_ctx(db: Session, user_id: int) -> tuple[str, int]:
@@ -127,7 +131,6 @@ def build_daily_from_raw(
         "turn_ids": [t.id for t in turns],
         "not_transcript": True,
     }
-    integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, "DAILY", start)
     try:
@@ -138,9 +141,12 @@ def build_daily_from_raw(
             payload["bounded_continuity"] = prior_bc
     except Exception:
         prior_bc = {}
+    structured = _canonical_json(payload)
+    integrity = _integrity(payload)
     if (
         prior is not None
         and prior.integrity_sha256 == integrity
+        and prior.structured_summary_json == structured
         and bool(prior.source_complete) == bool(turns)
         and (prior.finalized_at is not None) == finalize
     ):
@@ -152,7 +158,7 @@ def build_daily_from_raw(
         period_start=start,
         period_end=end,
         version=version,
-        structured_summary_json=json.dumps(payload, sort_keys=True),
+        structured_summary_json=structured,
         narrative_summary=f"DAILY summary over {len(turns)} eligible raw turns; not a transcript.",
         evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
         generated_at=_utcnow(),
@@ -216,12 +222,14 @@ def build_higher_from_lower(
         "parent_count": len(parents),
         "parent_ids": [p.id for p in parents],
     }
+    structured = _canonical_json(payload)
     integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, summary_type, start)
     if (
         prior is not None
         and prior.integrity_sha256 == integrity
+        and prior.structured_summary_json == structured
         and bool(prior.source_complete) == bool(parents)
         and (prior.finalized_at is not None) == (finalize and bool(parents))
     ):
@@ -233,7 +241,7 @@ def build_higher_from_lower(
         period_start=start,
         period_end=end,
         version=version,
-        structured_summary_json=json.dumps(payload, sort_keys=True),
+        structured_summary_json=structured,
         narrative_summary=f"{summary_type} from {len(parents)} finalized {parent_type} summaries.",
         evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
         generated_at=_utcnow(),
