@@ -204,6 +204,33 @@ jobs:
             test/sedi_locale_foundation_test.dart \
             test/mobile_install_id_and_push_register_test.dart
 
+      - name: Final frontend closure regression tests
+        run: |
+          flutter test \
+            test/a1_a2_ux_closure_test.dart \
+            test/a3_destination_local_timestamp_test.dart \
+            test/a3_destinations_ux_coherence_test.dart \
+            test/a3_entry_bootstrap_visual_test.dart \
+            test/a3_gadgets_ux_g_test.dart \
+            test/a3_lifestyle_health_l2_ux_test.dart \
+            test/a3_lifestyle_history_l3_ux_test.dart \
+            test/a3_lifestyle_hub_l1_test.dart \
+            test/a3_lifestyle_schedule_l4_ux_test.dart \
+            test/a3_lifestyle_weekly_plan_l5_ux_test.dart \
+            test/a3_lifestyle_weekly_plan_ui_test.dart \
+            test/a3_main_home_redesign_test.dart \
+            test/a3_notifications_ux_n_test.dart \
+            test/a3_profile_ux_p_test.dart \
+            test/a3_top_action_row_layout_test.dart \
+            test/a3_user_edit_icon_outside_bubble_test.dart \
+            test/gadgets_g9_a3_visual_permission_test.dart \
+            test/gate2_auth_me_profile_parser_test.dart \
+            test/gate2_otp_input_widget_test.dart \
+            test/gate2_otp_paste_and_slot_edit_test.dart \
+            test/gate2_post_otp_auth_me_runtime_test.dart \
+            test/gate2_post_otp_profile_load_test.dart \
+            test/gate2_post_otp_router_test.dart
+
       - name: Build debug APK
         run: flutter build apk --debug
 

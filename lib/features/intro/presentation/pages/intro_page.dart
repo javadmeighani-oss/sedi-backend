@@ -64,13 +64,13 @@ class _IntroPageState extends State<IntroPage>
   /// Deterministic piecewise-linear interpolation across the 3 keyframes.
   static (double cy, double bw) sampleMotion(double t) {
     final frames = IntroPage.kMotionKeyframes;
-    final clamped = t.clamp(0.0, 1.0);
+    final clamped = t.clamp(0.0, 1.0).toDouble();
     for (var i = 0; i < frames.length - 1; i++) {
       final a = frames[i];
       final b = frames[i + 1];
       if (clamped <= b.$1 || i == frames.length - 2) {
-        final span = (b.$1 - a.$1).clamp(1e-9, 1.0);
-        final u = ((clamped - a.$1) / span).clamp(0.0, 1.0);
+        final span = (b.$1 - a.$1).clamp(1e-9, 1.0).toDouble();
+        final u = ((clamped - a.$1) / span).clamp(0.0, 1.0).toDouble();
         return (
           a.$2 + (b.$2 - a.$2) * u,
           a.$3 + (b.$3 - a.$3) * u,

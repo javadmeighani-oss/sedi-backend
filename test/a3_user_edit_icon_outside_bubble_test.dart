@@ -12,6 +12,15 @@ Finder _decoratedUserBubble() {
   );
 }
 
+Finder _editHitTarget(Finder icon) {
+  return find.ancestor(
+    of: icon,
+    matching: find.byWidgetPredicate(
+      (w) => w is SizedBox && w.width == 44 && w.height == 44,
+    ),
+  );
+}
+
 void main() {
   test('edit icon is outside the decorated user bubble in source', () {
     final bubble = _read(
@@ -22,21 +31,27 @@ void main() {
     expect(bubble.contains("editLabel ?? 'Edit'"), isTrue);
     expect(bubble.contains('widget.onEdit'), isTrue);
     expect(bubble.contains('Edit icon sits outside'), isTrue);
+    expect(bubble.contains('No standalone 44dp row'), isTrue);
+    expect(bubble.contains('logical START side'), isTrue);
+    expect(bubble.contains('CrossAxisAlignment.end'), isTrue);
     expect(bubble.contains('Read more'), isTrue);
     expect(bubble.contains('Read less'), isTrue);
     expect(bubble.contains('Tap to retry'), isTrue);
     expect(bubble.contains('AlignmentDirectional.centerEnd'), isTrue);
     expect(bubble.contains('AlignmentDirectional.centerStart'), isTrue);
+    expect(bubble.contains('maxWidth: 300'), isFalse);
+    expect(bubble.contains('clamp(0.0, 300.0)'), isTrue);
 
     final bubbleBlock = RegExp(
       r'decoration: BoxDecoration\([\s\S]*?child: body,',
     ).firstMatch(bubble)?.group(0);
     expect(bubbleBlock, isNotNull);
     expect(bubbleBlock!.contains('Icons.edit_outlined'), isFalse);
-    expect(bubble.contains('if (editAction != null)'), isTrue);
+    expect(bubble.contains('if (!hasEdit) return bubble;'), isTrue);
     expect(bubble.contains('width: 44'), isTrue);
     expect(bubble.contains('height: 44'), isTrue);
     expect(bubble.contains('size: 16'), isTrue);
+    expect(bubble.contains('child: editAction'), isFalse);
 
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
@@ -104,14 +119,23 @@ void main() {
     await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pump();
     expect(taps, 1);
-    final editHit = find.ancestor(
-      of: find.byIcon(Icons.edit_outlined).first,
-      matching: find.byWidgetPredicate(
-        (w) => w is SizedBox && w.width == 44 && w.height == 44,
-      ),
-    );
+
+    final shortIcon = find.byIcon(Icons.edit_outlined).first;
+    final editHit = _editHitTarget(shortIcon);
     expect(editHit, findsOneWidget);
     expect(tester.getSize(editHit), const Size(44, 44));
+    expect(tester.getSize(shortIcon), const Size(16, 16));
+
+    final shortBubble = find.byType(MessageBubble).first;
+    final totalH = tester.getSize(shortBubble).height;
+    final decH = tester.getSize(_decoratedUserBubble().first).height;
+    expect(totalH, lessThan(decH + 44));
+
+    final hitRect = tester.getRect(editHit);
+    final bubbleRect = tester.getRect(_decoratedUserBubble().first);
+    expect(hitRect.bottom, closeTo(bubbleRect.bottom, 1.0));
+    expect(hitRect.right, lessThanOrEqualTo(bubbleRect.left + 0.5));
+    expect(bubbleRect.contains(hitRect.center), isFalse);
 
     final assistant = find.ancestor(
       of: find.text('Assistant reply'),
@@ -154,6 +178,12 @@ void main() {
     );
     expect(ltrBubble.alignment, AlignmentDirectional.centerEnd);
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    final ltrHit = tester.getRect(
+      _editHitTarget(find.byIcon(Icons.edit_outlined)),
+    );
+    final ltrDec = tester.getRect(_decoratedUserBubble());
+    expect(ltrHit.right, lessThanOrEqualTo(ltrDec.left + 0.5));
+    expect(ltrHit.bottom, closeTo(ltrDec.bottom, 1.0));
 
     await pumpDir(TextDirection.rtl);
     await tester.pump();
@@ -166,5 +196,11 @@ void main() {
     expect(rtlBubble.alignment, AlignmentDirectional.centerEnd);
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     expect(find.text('Edit'), findsNothing);
+    final rtlHit = tester.getRect(
+      _editHitTarget(find.byIcon(Icons.edit_outlined)),
+    );
+    final rtlDec = tester.getRect(_decoratedUserBubble());
+    expect(rtlHit.left, greaterThanOrEqualTo(rtlDec.right - 0.5));
+    expect(rtlHit.bottom, closeTo(rtlDec.bottom, 1.0));
   });
 }

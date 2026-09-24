@@ -73,19 +73,19 @@ class OtpInputHelper {
   static int activeSlotFromSelection(String code, TextSelection selection) {
     final sanitized = sanitize(code);
     if (!selection.isValid) {
-      return sanitized.length.clamp(0, codeLength - 1);
+      return sanitized.length.clamp(0, codeLength - 1).toInt();
     }
     final start = selection.start < selection.end
         ? selection.start
         : selection.end;
-    return start.clamp(0, codeLength - 1);
+    return start.clamp(0, codeLength - 1).toInt();
   }
 
   /// Select the digit in [slot] so the next key replaces only that digit.
   /// Empty / beyond-end slots collapse at the first empty position.
   static TextSelection selectionForSlot(String code, int slot) {
     final sanitized = sanitize(code);
-    final i = slot.clamp(0, codeLength - 1);
+    final i = slot.clamp(0, codeLength - 1).toInt();
     if (i < sanitized.length) {
       return TextSelection(baseOffset: i, extentOffset: i + 1);
     }
@@ -106,8 +106,8 @@ class OtpInputHelper {
     var start = oldSan.length;
     var end = oldSan.length;
     if (oldValue.selection.isValid) {
-      start = oldValue.selection.start.clamp(0, oldSan.length);
-      end = oldValue.selection.end.clamp(0, oldSan.length);
+      start = oldValue.selection.start.clamp(0, oldSan.length).toInt();
+      end = oldValue.selection.end.clamp(0, oldSan.length).toInt();
       if (end < start) {
         final tmp = start;
         start = end;
@@ -156,8 +156,8 @@ class OtpInputHelper {
       if (newSan == oldSan) {
         final sel = oldValue.selection.isValid
             ? TextSelection(
-                baseOffset: oldValue.selection.start.clamp(0, oldSan.length),
-                extentOffset: oldValue.selection.end.clamp(0, oldSan.length),
+                baseOffset: oldValue.selection.start.clamp(0, oldSan.length).toInt(),
+                extentOffset: oldValue.selection.end.clamp(0, oldSan.length).toInt(),
               )
             : TextSelection.collapsed(offset: oldSan.length);
         return TextEditingValue(
@@ -175,7 +175,7 @@ class OtpInputHelper {
           sanitize(oldSan.substring(0, start) + digit + oldSan.substring(end));
       return TextEditingValue(
         text: text,
-        selection: selectionForSlot(text, (start + 1).clamp(0, codeLength - 1)),
+        selection: selectionForSlot(text, (start + 1).clamp(0, codeLength - 1).toInt()),
         composing: TextRange.empty,
       );
     }
@@ -185,7 +185,7 @@ class OtpInputHelper {
       final text = sanitize(
         oldSan.substring(0, start) + digit + oldSan.substring(start),
       );
-      return _collapsed(text, (start + 1).clamp(0, text.length));
+      return _collapsed(text, (start + 1).clamp(0, text.length).toInt());
     }
     if (oldSan.length < codeLength) {
       final text = oldSan + digit;
@@ -206,7 +206,7 @@ class OtpInputHelper {
   static TextEditingValue _collapsed(String text, int caret) {
     return TextEditingValue(
       text: text,
-      selection: TextSelection.collapsed(offset: caret.clamp(0, text.length)),
+      selection: TextSelection.collapsed(offset: caret.clamp(0, text.length).toInt()),
       composing: TextRange.empty,
     );
   }
@@ -551,7 +551,7 @@ class _OtpDigitBox extends StatelessWidget {
         : OtpCaretPlacement.filledBeside;
     final digitStyle = TextStyle(
       color: AppTheme.gate2TextPrimary,
-      fontSize: (size * 0.42).clamp(14, 20),
+      fontSize: (size * 0.42).clamp(14, 20).toDouble(),
       fontWeight: FontWeight.w600,
     );
 

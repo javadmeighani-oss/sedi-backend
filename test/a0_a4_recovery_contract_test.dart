@@ -12,7 +12,6 @@ import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_sta
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
-import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_frequency_ring_painter.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 
 String _read(String path) => File(path).readAsStringSync();
@@ -76,17 +75,15 @@ void main() {
     );
     expect(find.text('Sedi.'), findsOneWidget);
     expect(find.text('صدی'), findsNothing);
-    expect(
-      SediFrequencyRingPainter.phaseSpeed(Gate3InteractionState.speaking),
-      0.85,
-    );
-    final idle =
-        SediFrequencyRingPainter.targetAmplitude(Gate3InteractionState.idle);
-    final listening = SediFrequencyRingPainter.targetAmplitude(
+    expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
+    expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
+    final idle = SediHorizontalResonanceVisualizer.targetEnergy(
+        Gate3InteractionState.idle);
+    final listening = SediHorizontalResonanceVisualizer.targetEnergy(
         Gate3InteractionState.listening);
-    final thinking = SediFrequencyRingPainter.targetAmplitude(
+    final thinking = SediHorizontalResonanceVisualizer.targetEnergy(
         Gate3InteractionState.thinking);
-    final speaking = SediFrequencyRingPainter.targetAmplitude(
+    final speaking = SediHorizontalResonanceVisualizer.targetEnergy(
         Gate3InteractionState.speaking);
     expect(idle < listening && listening < thinking && thinking < speaking,
         isTrue);

@@ -28,6 +28,7 @@ class SediPresenceTokens {
   static int barCountFor(double availableWidth) {
     return (availableWidth / barPitch)
         .round()
-        .clamp(barCountMin, barCountMax);
+        .clamp(barCountMin, barCountMax)
+        .toInt();
   }
 }

@@ -187,7 +187,7 @@ class _HorizontalResonancePainter extends CustomPainter {
 
     final count = segmentBarCount;
     final pitch = size.width / count;
-    final barWidth = (pitch * 0.38).clamp(1.0, 1.8);
+    final barWidth = (pitch * 0.38).clamp(1.0, 1.8).toDouble();
     final midY = size.height / 2;
     final maxHalf = size.height * 0.46;
     final animated =
@@ -212,13 +212,13 @@ class _HorizontalResonancePainter extends CustomPainter {
       // Idle stays near-flat; speaking gets largest controlled variation.
       final variation = 0.12 + density * 0.88;
       final heightFactor =
-          (0.08 + energy * (0.35 + envelope * variation)).clamp(0.06, 1.0);
+          (0.08 + energy * (0.35 + envelope * variation)).clamp(0.06, 1.0).toDouble();
       final half = maxHalf *
           heightFactor *
           SediHorizontalResonanceVisualizer.amplitudeScale;
 
       final x = pitch * (i + 0.5);
-      final opacity = (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92);
+      final opacity = (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92).toDouble();
       paint.color = _presence.withOpacity(opacity);
 
       canvas.drawLine(

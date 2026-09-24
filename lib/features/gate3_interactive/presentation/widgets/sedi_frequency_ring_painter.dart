@@ -97,7 +97,8 @@ class SediFrequencyRingPainter extends CustomPainter {
 
       final opacity = 0.18 + normalized * 0.55;
       barPaint
-        ..color = _oliveStroke.withOpacity(opacity * glowOpacity.clamp(0.2, 1.0))
+        ..color = _oliveStroke.withOpacity(
+            (opacity * glowOpacity.clamp(0.2, 1.0)).toDouble())
         ..strokeWidth = 1.4 + normalized * 0.8;
       canvas.drawLine(inner, outer, barPaint);
     }

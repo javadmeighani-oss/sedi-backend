@@ -131,47 +131,61 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
 
     // User only: visual container/bubble with collapse + retry.
-    // Edit icon sits outside/below the decorated bubble.
+    // Edit icon sits outside the decorated bubble, adjacent on the
+    // logical START side and bottom-aligned. No standalone 44dp row.
     return Align(
       alignment: alignment,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300),
-          child: IntrinsicWidth(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.metalGrey.withOpacity(0.15),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(AppTheme.radiusLarge),
-                    topRight: Radius.circular(AppTheme.radiusLarge),
-                    bottomLeft: Radius.circular(AppTheme.radiusLarge),
-                    bottomRight: Radius.circular(AppTheme.radiusSmall),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final hasEdit = editAction != null;
+            final actionW = hasEdit ? 44.0 : 0.0;
+            final available = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : 300 + actionW;
+            final bubbleMax = hasEdit
+                ? (available - actionW).clamp(0.0, 300.0).toDouble()
+                : available.clamp(0.0, 300.0).toDouble();
+
+            final bubble = ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: bubbleMax),
+              child: IntrinsicWidth(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
                   ),
-                  border: Border.all(
-                    color: AppTheme.metalGrey.withOpacity(0.35),
-                    width: 1,
+                  decoration: BoxDecoration(
+                    color: AppTheme.metalGrey.withOpacity(0.15),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppTheme.radiusLarge),
+                      topRight: Radius.circular(AppTheme.radiusLarge),
+                      bottomLeft: Radius.circular(AppTheme.radiusLarge),
+                      bottomRight: Radius.circular(AppTheme.radiusSmall),
+                    ),
+                    border: Border.all(
+                      color: AppTheme.metalGrey.withOpacity(0.35),
+                      width: 1,
+                    ),
+                    boxShadow: AppTheme.softShadow,
                   ),
-                  boxShadow: AppTheme.softShadow,
+                  child: body,
                 ),
-                child: body,
               ),
-              if (editAction != null)
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: editAction,
-                ),
+            );
+
+            if (!hasEdit) return bubble;
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                editAction!,
+                bubble,
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -226,7 +240,7 @@ class _TypingDotsState extends State<_TypingDots>
   Widget _dot(int index) {
     final phase = (_controller.value + (index * 0.2)) % 1.0;
     final pulse = 1 - ((phase - 0.5).abs() * 2);
-    final opacity = 0.35 + (0.65 * pulse.clamp(0.0, 1.0));
+    final opacity = 0.35 + (0.65 * pulse.clamp(0.0, 1.0).toDouble());
     return Opacity(
       opacity: opacity,
       child: Container(

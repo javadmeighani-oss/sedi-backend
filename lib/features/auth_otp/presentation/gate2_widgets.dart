@@ -548,7 +548,7 @@ class Gate2Widgets {
     );
     final months = List<int>.generate(12, (i) => i + 1);
     final years = BirthCalendarHelper.yearRange(calendarType);
-    final safeDay = day.clamp(1, days.last);
+    final safeDay = day.clamp(1, days.last).toInt();
 
     return A2Layout.band(
       maxWidth: A2Layout.compactControlMax,
@@ -658,7 +658,7 @@ class Gate2Widgets {
       diameterRatio: 1.5,
       physics: const FixedExtentScrollPhysics(),
       controller: FixedExtentScrollController(
-        initialItem: items.indexOf(selected).clamp(0, items.length - 1),
+        initialItem: items.indexOf(selected).clamp(0, items.length - 1).toInt(),
       ),
       onSelectedItemChanged: (index) => onSelected(items[index]),
       childDelegate: ListWheelChildBuilderDelegate(
