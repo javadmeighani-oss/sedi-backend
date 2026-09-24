@@ -34,7 +34,9 @@ void main() {
     expect(bubbleBlock, isNotNull);
     expect(bubbleBlock!.contains('Icons.edit_outlined'), isFalse);
     expect(bubble.contains('if (editAction != null)'), isTrue);
-    expect(bubble.indexOf('child: body,'), lessThan(bubble.indexOf('editAction')));
+    expect(bubble.contains('width: 44'), isTrue);
+    expect(bubble.contains('height: 44'), isTrue);
+    expect(bubble.contains('size: 16'), isTrue);
 
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
@@ -102,6 +104,14 @@ void main() {
     await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pump();
     expect(taps, 1);
+    final editHit = find.ancestor(
+      of: find.byIcon(Icons.edit_outlined).first,
+      matching: find.byWidgetPredicate(
+        (w) => w is SizedBox && w.width == 44 && w.height == 44,
+      ),
+    );
+    expect(editHit, findsOneWidget);
+    expect(tester.getSize(editHit), const Size(44, 44));
 
     final assistant = find.ancestor(
       of: find.text('Assistant reply'),

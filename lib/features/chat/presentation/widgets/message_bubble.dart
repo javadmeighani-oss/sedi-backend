@@ -101,12 +101,15 @@ class _MessageBubbleState extends State<MessageBubble> {
         message: widget.editLabel ?? 'Edit',
         child: GestureDetector(
           onTap: widget.onEdit,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              Icons.edit_outlined,
-              size: 16,
-              color: AppTheme.textSecondary.withOpacity(0.9),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: AppTheme.textSecondary.withOpacity(0.9),
+              ),
             ),
           ),
         ),
