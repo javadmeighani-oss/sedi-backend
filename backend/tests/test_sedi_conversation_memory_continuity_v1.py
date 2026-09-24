@@ -292,15 +292,16 @@ def test_b6_returning_contextual_and_generic(client, db):
 
 
 def test_b7_i6_fact_continuity(client, db):
-    user = _user(db, "MemFact", lang="fa")
+    user = _user(db, "MemFact", lang="en")
     grant_memory_consent(db, user.id, commit=True)
-    with _patch_gpt("متوجه شدم خوابت خوب بوده."):
+    with _patch_gpt("I heard you. We can keep going from here."):
         resp = client.post(
             "/interact/chat",
-            json={"message": "خوابم خوب بود"},
-            headers={**_auth(user.id), "Accept-Language": "fa"},
+            json={"message": "I slept well last night."},
+            headers=_auth(user.id),
         )
     assert resp.status_code == 200, resp.text
+    # Same extraction/candidate path ConversationBrain invokes after a governed turn.
     kc_process_message(
         db=db,
         user_id=user.id,
