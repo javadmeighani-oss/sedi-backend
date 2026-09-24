@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
 
 import pytest
 from sqlalchemy import inspect
 
 from backend.app import models
 from backend.app.core.device_auth import generate_device_token, hash_device_token
-from backend.app.services import auth_otp_service as svc
+from backend.app.core.security import create_access_token
 from backend.app.services.i9.device_binding_service import bind_device_to_subject, rebind_device
 from backend.app.services.i9.device_packet_service import DevicePacketIngestInput, PacketObservationIn, ingest_device_packet
 from backend.app.services.i9.health_subject_service import (
@@ -21,10 +20,19 @@ from backend.app.services.i9.health_subject_service import (
 
 
 def _token(client, db, monkeypatch, phone: str) -> str:
-    monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
-    with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"}).json()["data"]["access_token"]
+    # I9 identity only. LOGIN OTP no longer auto-creates accounts.
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    if user is None:
+        user = models.User(
+            name=f"i9-{phone[-4:]}",
+            secret_key=f"k-{phone[-4:]}",
+            preferred_language="en",
+            phone=phone,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return create_access_token({"user_id": user.id})
 
 
 def _register_device(client, headers, device_id: str, **extra):

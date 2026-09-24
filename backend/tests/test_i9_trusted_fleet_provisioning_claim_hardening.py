@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import pytest
 
 from backend.app import models
-from backend.app.services import auth_otp_service as svc
+from backend.app.core.security import create_access_token
 from backend.app.services.i9.device_claim_service import (
     DeviceClaimError,
     claim_device_to_health_subject,
@@ -32,10 +31,19 @@ _TEST_ADMIN_TOKEN = "test-fleet-provision-admin"
 
 
 def _user_token(client, db, monkeypatch, phone: str) -> str:
-    monkeypatch.setenv("OTP_SECRET", f"test_otp_{phone[-4:]}")
-    with patch.object(svc, "generate_otp_code", return_value="123456"):
-        svc.request_otp(db, phone)
-    return client.post("/auth/verify_otp", json={"phone": phone, "code": "123456"}).json()["data"]["access_token"]
+    # I9 identity only. LOGIN OTP no longer auto-creates accounts.
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    if user is None:
+        user = models.User(
+            name=f"i9-{phone[-4:]}",
+            secret_key=f"k-{phone[-4:]}",
+            preferred_language="en",
+            phone=phone,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return create_access_token({"user_id": user.id})
 
 
 def _admin_headers(monkeypatch, token: str = _TEST_ADMIN_TOKEN) -> dict[str, str]:
