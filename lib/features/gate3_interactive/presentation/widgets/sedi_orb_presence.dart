@@ -49,9 +49,8 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
-        final usable = (maxW - SediOrbPresence.horizontalInset * 2)
-            .clamp(SediPresenceTokens.orbMinDiameter, maxW)
-            .toDouble();
+        final usable =
+            maxW.clamp(SediPresenceTokens.orbMinDiameter, maxW).toDouble();
         final orbD = SediBrainOrb.diameterFor(usable);
         final bars = SediPresenceTokens.barCountFor(usable);
         final height = orbD < SediPresenceTokens.visualizerHeight

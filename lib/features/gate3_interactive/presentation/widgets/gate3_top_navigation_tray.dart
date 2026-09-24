@@ -12,7 +12,7 @@ class Gate3TopNavigationTray extends StatelessWidget {
 
   static const Duration toggleDuration = Duration(milliseconds: 240);
   static const Curve toggleCurve = Curves.easeInOutCubic;
-  static const double handleHeight = 36;
+  static const double handleHeight = 44;
 
   const Gate3TopNavigationTray({
     super.key,

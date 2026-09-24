@@ -36,6 +36,7 @@ void main() {
     expect(page.contains('Gate3TopNavigationTray'), isTrue);
     expect(page.contains('Gate3MainIconRow'), isTrue);
     expect(page.contains('SediOrbPresence'), isTrue);
+    expect(page.contains('horizontal: SediOrbPresence.horizontalInset'), isTrue);
     expect(page.contains('Expanded('), isTrue);
     expect(page.contains('Gate3Composer'), isTrue);
     expect(page.contains('Gate3ReturnToLatestButton'), isTrue);
@@ -56,7 +57,16 @@ void main() {
     expect(orb.contains('SediFrequencyRingPainter'), isFalse);
     expect(orb.contains('SediOrbTexturePainter'), isFalse);
     expect(orb.contains('sediOrbBrandLatin'), isTrue);
-    expect(orb.contains('0.255'), isTrue);
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.255, 0.0001));
+    expect(presence.contains('horizontalInset * 2'), isFalse);
+    expect(presence.contains('maxW - SediOrbPresence.horizontalInset'), isFalse);
+
+    final tray = _read(
+      'lib/features/gate3_interactive/presentation/widgets/gate3_top_navigation_tray.dart',
+    );
+    expect(tray.contains('handleHeight = 44'), isTrue);
+    expect(tray.contains('size: 18'), isTrue);
+    expect(Gate3TopNavigationTray.handleHeight, greaterThanOrEqualTo(44));
 
     expect(
       'SediHorizontalResonanceVisualizer'.allMatches(presence).length,
@@ -223,9 +233,14 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 390,
-            child: SediOrbPresence(
-              state: Gate3InteractionState.speaking,
-              lang: 'fa',
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: SediOrbPresence.horizontalInset,
+              ),
+              child: SediOrbPresence(
+                state: Gate3InteractionState.speaking,
+                lang: 'fa',
+              ),
             ),
           ),
         ),
@@ -235,11 +250,34 @@ void main() {
     expect(find.byType(SediHorizontalResonanceVisualizer), findsOneWidget);
     expect(find.text('Sedi.'), findsOneWidget);
     expect(find.text('صدی'), findsNothing);
-    final orb = tester.getSize(find.byType(SediBrainOrb));
-    expect(orb.width, inInclusiveRange(92, 104));
+    final presenceRect = tester.getRect(find.byType(SediOrbPresence));
+    final orbRect = tester.getRect(find.byType(SediBrainOrb));
+    expect(presenceRect.width, closeTo(366, 0.5));
+    expect(orbRect.center.dx, closeTo(presenceRect.center.dx, 0.5));
+    expect(orbRect.width, inInclusiveRange(92, 104));
     expect(
       tester.getSize(find.byType(SediHorizontalResonanceVisualizer)).height,
       36,
     );
+  });
+
+  testWidgets('handle tap target is at least 44dp with a compact arrow',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Gate3TopNavigationTray(
+            expanded: false,
+            onToggle: () {},
+            expandLabel: 'Show destinations',
+            collapseLabel: 'Hide destinations',
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.getSize(find.byType(InkWell)).height, greaterThanOrEqualTo(44));
+    expect(tester.widget<Icon>(find.byType(Icon)).size, 18);
   });
 }
