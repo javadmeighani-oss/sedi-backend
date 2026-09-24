@@ -29,8 +29,42 @@ class LifestyleL10n {
   String get exercisePlan =>
       _t(en: 'Exercise Plan', fa: 'برنامه ورزش', ar: 'خطة التمرين');
 
+  String get healthSubtitle => _t(
+        en: 'Health trends and recent measurements',
+        fa: 'روندها و اندازه‌گیری‌های اخیر سلامت',
+        ar: 'اتجاهات الصحة والقياسات الأخيرة',
+      );
+  String get historySubtitle => _t(
+        en: 'Summaries and previous conversations',
+        fa: 'خلاصه‌ها و گفتگوهای گذشته',
+        ar: 'الملخصات والمحادثات السابقة',
+      );
+  String get scheduleSubtitle => _t(
+        en: 'Events, plans and reminders',
+        fa: 'رویدادها، برنامه‌ها و یادآورها',
+        ar: 'الأحداث والخطط والتذكيرات',
+      );
+  String get nutritionSubtitle => _t(
+        en: 'Your weekly nutrition plan',
+        fa: 'برنامه هفتگی تغذیه شما',
+        ar: 'خطتك الأسبوعية للتغذية',
+      );
+  String get exerciseSubtitle => _t(
+        en: 'Your weekly exercise plan',
+        fa: 'برنامه هفتگی ورزش شما',
+        ar: 'خطتك الأسبوعية للتمرين',
+      );
+
   List<String> get sectionTitles =>
       [health, myHistory, mySchedule, nutritionPlan, exercisePlan];
+
+  List<String> get sectionSubtitles => [
+        healthSubtitle,
+        historySubtitle,
+        scheduleSubtitle,
+        nutritionSubtitle,
+        exerciseSubtitle,
+      ];
 
   String get hrStable =>
       _t(en: 'Stable pattern', fa: 'الگوی پایدار', ar: 'نمط مستقر');

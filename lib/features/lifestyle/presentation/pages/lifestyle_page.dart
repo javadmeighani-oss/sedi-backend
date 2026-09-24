@@ -15,64 +15,132 @@ import 'lifestyle_schedule_page.dart';
 class LifestylePage extends StatelessWidget {
   const LifestylePage({super.key});
 
+  static const Color _canvas = Color(0xFFFFFFFF);
+
   @override
   Widget build(BuildContext context) {
     final l10n = LifestyleL10n(SediLocaleController.instance.languageCode);
     final cards = <_HubCard>[
-      _HubCard(l10n.health, Icons.favorite_border, const LifestyleHealthPage()),
-      _HubCard(l10n.myHistory, Icons.history, const LifestyleHistoryPage()),
       _HubCard(
-          l10n.mySchedule, Icons.event_note_outlined, const LifestyleSchedulePage()),
-      _HubCard(l10n.nutritionPlan, Icons.restaurant_outlined,
-          const LifestyleNutritionPage()),
-      _HubCard(l10n.exercisePlan, Icons.directions_run_outlined,
-          const LifestyleExercisePage()),
+        l10n.health,
+        l10n.healthSubtitle,
+        Icons.favorite_border,
+        const LifestyleHealthPage(),
+      ),
+      _HubCard(
+        l10n.myHistory,
+        l10n.historySubtitle,
+        Icons.history,
+        const LifestyleHistoryPage(),
+      ),
+      _HubCard(
+        l10n.mySchedule,
+        l10n.scheduleSubtitle,
+        Icons.event_note_outlined,
+        const LifestyleSchedulePage(),
+      ),
+      _HubCard(
+        l10n.nutritionPlan,
+        l10n.nutritionSubtitle,
+        Icons.restaurant_outlined,
+        const LifestyleNutritionPage(),
+      ),
+      _HubCard(
+        l10n.exercisePlan,
+        l10n.exerciseSubtitle,
+        Icons.directions_run_outlined,
+        const LifestyleExercisePage(),
+      ),
     ];
 
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: _canvas,
         appBar: A3PageAppBar(
           title: Text(l10n.title),
+          backgroundColor: _canvas,
         ),
         body: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
           itemCount: cards.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
             final c = cards[i];
-            return Material(
-              color: AppTheme.gate2CardWhite,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => c.page),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                  child: Row(
+            return _LifestyleHubDestinationCard(card: c);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LifestyleHubDestinationCard extends StatelessWidget {
+  final _HubCard card;
+
+  const _LifestyleHubDestinationCard({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.gate2CardWhite,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => card.page),
+        ),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppTheme.gate2CardWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            border: Border.all(color: AppTheme.gate2BorderSubtle, width: 0.8),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(card.icon, color: AppTheme.gate2ButtonOlive, size: 24),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(c.icon, color: AppTheme.gate2ButtonOlive),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          c.title,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
+                      Text(
+                        card.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      const SizedBox(height: 4),
+                      Text(
+                        card.subtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          fontWeight: FontWeight.w400,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            );
-          },
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -81,9 +149,10 @@ class LifestylePage extends StatelessWidget {
 
 class _HubCard {
   final String title;
+  final String subtitle;
   final IconData icon;
   final Widget page;
-  const _HubCard(this.title, this.icon, this.page);
+  const _HubCard(this.title, this.subtitle, this.icon, this.page);
 }
 
 /// Opens canonical existing A3 chat (presentation CTA only).
