@@ -119,8 +119,9 @@ def build_event_reminder_payload(
     occurrence_key: str,
     offset_min: int,
 ) -> NotificationPayload:
-    medical = is_medical_remindable_event(event)
-    title, body, template_key = _reminder_copy(event, medical=medical)
+    if not is_medical_remindable_event(event):
+        raise ValueError("B10 payload is medical-event only")
+    title, body, template_key = _reminder_copy(event, medical=True)
     context = sanitize_notification_context(
         {
             "template_key": template_key,
@@ -130,7 +131,7 @@ def build_event_reminder_payload(
     )
     return NotificationPayload(
         user_id=user_id,
-        type="health_alert" if medical else "reminder",
+        type="health_alert",
         title=title,
         body=body,
         priority="normal",
@@ -149,11 +150,7 @@ def build_event_reminder_payload(
         risk_level=NotificationRiskLevel.NORMAL.value,
         template_key=template_key,
         context=context,
-        privacy_class=(
-            I10PrivacyClass.HEALTH_SENSITIVE.value
-            if medical
-            else I10PrivacyClass.PRIVATE.value
-        ),
+        privacy_class=I10PrivacyClass.HEALTH_SENSITIVE.value,
     )
 
 
@@ -179,7 +176,9 @@ def enqueue_event_reminder_notification(
     occurrence_key: str,
     offset_min: int,
 ) -> Optional[models.Notification]:
-    medical = is_medical_remindable_event(event)
+    if not is_medical_remindable_event(event):
+        return None
+    medical = True
     health_subject_id = resolve_or_ensure_self_health_subject_id(db, user_id)
     payload = build_event_reminder_payload(
         event, user_id=user_id, occurrence_key=occurrence_key, offset_min=offset_min

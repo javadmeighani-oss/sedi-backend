@@ -60,6 +60,20 @@ def _memory_keys(items) -> set[str]:
     return {getattr(i, "canonical_key", "") for i in items}
 
 
+def _age_last_memory(db, user_id: int, *, hours: int) -> Memory:
+    row = (
+        db.query(Memory)
+        .filter(Memory.user_id == user_id)
+        .order_by(Memory.created_at.desc())
+        .first()
+    )
+    assert row is not None
+    row.created_at = datetime.now(timezone.utc) - timedelta(hours=hours)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def _projection_text(db, user_id: int) -> str:
     snap = AuthorizedContextAssembler().assemble(
         db, authenticated_user_id=user_id, request_id=f"mem-{user_id}"
@@ -278,6 +292,7 @@ def test_b6_returning_contextual_and_generic(client, db):
         actor_user_id=contextual.id,
         commit=True,
     )
+    _age_last_memory(db, contextual.id, hours=13)
     yes = client.post("/interact/session/open", headers=_auth(contextual.id))
     assert yes.status_code == 200, yes.text
     yes_msg = yes.json()["message"] or ""
@@ -374,3 +389,108 @@ def test_b8_revoke_blocks_write_and_read(client, db):
     yes = client.post("/interact/session/open", headers=_auth(user.id))
     assert yes.status_code == 200, yes.text
     assert "walking 30 minutes" not in (yes.json().get("message") or "").lower()
+
+
+def test_opener_cooldown_blocks_contextual_within_12h(client, db):
+    user = _user(db, "MemCoolIn")
+    grant_memory_consent(db, user.id, commit=True)
+    user.sedi_intro_completed_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db.commit()
+    try_durable_raw_write(
+        db,
+        user_id=user.id,
+        user_message=WALK_TOPIC,
+        sedi_response="Noted, evening walks.",
+        actor_user_id=user.id,
+        commit=True,
+    )
+    resp = client.post("/interact/session/open", headers=_auth(user.id))
+    assert resp.status_code == 200, resp.text
+    msg = (resp.json().get("message") or "").lower()
+    assert "walking" not in msg
+    assert resp.json().get("proactive_opener") in (None, "")
+
+
+def test_opener_after_cooldown_uses_authorized_memory(client, db):
+    user = _user(db, "MemCoolOut")
+    grant_memory_consent(db, user.id, commit=True)
+    user.sedi_intro_completed_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db.commit()
+    try_durable_raw_write(
+        db,
+        user_id=user.id,
+        user_message=WALK_TOPIC,
+        sedi_response="Noted, evening walks.",
+        actor_user_id=user.id,
+        commit=True,
+    )
+    _age_last_memory(db, user.id, hours=13)
+    resp = client.post("/interact/session/open", headers=_auth(user.id))
+    assert resp.status_code == 200, resp.text
+    msg = (resp.json().get("message") or "").lower()
+    assert "walking" in msg
+    assert "continue" in msg
+
+
+def test_opener_after_cooldown_revoked_no_memory(client, db):
+    user = _user(db, "MemCoolRevoke")
+    grant_memory_consent(db, user.id, commit=True)
+    user.sedi_intro_completed_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db.commit()
+    try_durable_raw_write(
+        db,
+        user_id=user.id,
+        user_message=WALK_TOPIC,
+        sedi_response="Noted, evening walks.",
+        actor_user_id=user.id,
+        commit=True,
+    )
+    _age_last_memory(db, user.id, hours=13)
+    revoke_memory_consent(db, user.id, commit=True)
+    resp = client.post("/interact/session/open", headers=_auth(user.id))
+    assert resp.status_code == 200, resp.text
+    assert "walking" not in (resp.json().get("message") or "").lower()
+
+
+def test_opener_after_cooldown_expired_no_memory(client, db):
+    user = _user(db, "MemCoolExpired")
+    grant_memory_consent(db, user.id, commit=True)
+    user.sedi_intro_completed_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db.commit()
+    written = try_durable_raw_write(
+        db,
+        user_id=user.id,
+        user_message=WALK_TOPIC,
+        sedi_response="Noted, evening walks.",
+        actor_user_id=user.id,
+        commit=True,
+    )
+    written.memory.retain_until = datetime.now(timezone.utc) - timedelta(days=1)
+    db.commit()
+    _age_last_memory(db, user.id, hours=13)
+    resp = client.post("/interact/session/open", headers=_auth(user.id))
+    assert resp.status_code == 200, resp.text
+    assert "walking" not in (resp.json().get("message") or "").lower()
+
+
+def test_opener_after_cooldown_cross_user_no_memory(client, db):
+    owner = _user(db, "MemCoolOwner")
+    other = _user(db, "MemCoolOther")
+    grant_memory_consent(db, owner.id, commit=True)
+    grant_memory_consent(db, other.id, commit=True)
+    now = datetime.now(timezone.utc)
+    owner.sedi_intro_completed_at = now - timedelta(days=2)
+    other.sedi_intro_completed_at = now - timedelta(days=2)
+    db.commit()
+    try_durable_raw_write(
+        db,
+        user_id=owner.id,
+        user_message=WALK_TOPIC,
+        sedi_response="Noted, evening walks.",
+        actor_user_id=owner.id,
+        commit=True,
+    )
+    _age_last_memory(db, owner.id, hours=13)
+    resp = client.post("/interact/session/open", headers=_auth(other.id))
+    assert resp.status_code == 200, resp.text
+    assert "walking" not in (resp.json().get("message") or "").lower()

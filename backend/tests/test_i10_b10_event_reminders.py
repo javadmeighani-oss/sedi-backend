@@ -98,6 +98,7 @@ def test_non_medical_event_skipped(gate4_patch, db):
     user = _user(db)
     _event(db, user, event_type="birthday", event_domain="personal", title="Party")
     assert process_event_reminders(db) == 0
+    assert db.query(models.Notification).count() == 0
 
 
 def test_doctor_reminder_routes_i10(gate4_patch, db):

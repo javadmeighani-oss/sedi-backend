@@ -135,21 +135,21 @@ def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
 
 
 def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
-    """Bounded opener: authorized continuity when eligible; else generic/cooldown."""
+    """Bounded opener: cooldown first, then authorized continuity or generic."""
     if user.sedi_intro_completed_at is None:
         return None
-    lang = _lang(user)
-    name_part = _name_part(user, lang)
-    turn = authorized_last_eligible_turn(db, user.id)
-    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
-    if snippet:
-        return _continuity_opener(lang, snippet, name_part)
     last = _last_user_message_at(db, user.id)
     now = datetime.now(timezone.utc)
     if last is not None:
         last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
         if now - last_aware < _OPENER_COOLDOWN:
             return None
+    lang = _lang(user)
+    name_part = _name_part(user, lang)
+    turn = authorized_last_eligible_turn(db, user.id)
+    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
+    if snippet:
+        return _continuity_opener(lang, snippet, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])
     # Deterministic pick by user id (stable, not random spam).
     pick = options[user.id % len(options)]
