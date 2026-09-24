@@ -273,6 +273,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final presentationLang = SediLocaleController.instance.languageCode;
     final isRtl = l10n.isRtl;
     // When pushed (e.g. Lifestyle → Chat), allow one-route pop back.
     // Root A3 (no previous route) keeps the existing double-back exit policy.
@@ -295,7 +296,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
-                    lang: _controller.currentLanguage,
+                    lang: presentationLang,
                     unreadNotificationCount: _unreadNotificationCount,
                     onLifestyle: () {
                       if (!_subjects.isActiveSelf) {
@@ -321,7 +322,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   ),
                   child: SediOrbPresence(
                     state: _orbState(),
-                    lang: _controller.currentLanguage,
+                    lang: presentationLang,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -388,7 +389,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                             Gate3Composer(
                               key: ValueKey('gate3-composer-$_composerDraftToken'),
                               placeholder: l10n.composerPlaceholder,
-                              lang: _controller.currentLanguage,
+                              lang: presentationLang,
                               isRtl: isRtl,
                               initialText:
                                   _composerDraftSeed ?? widget.initialDraft,
@@ -456,6 +457,14 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   Widget _buildMessages(Gate3Localization l10n) {
+    if (_controller.messages.isEmpty &&
+        _controller.conversationState == ConversationState.initializing) {
+      return const ColoredBox(
+        color: Color(0xFFFFFFFF),
+        child: SizedBox.expand(),
+      );
+    }
+
     if (_controller.messages.isEmpty) {
       // Non-transcript empty presentation — top-aligned, no artificial gap.
       return ListView(
