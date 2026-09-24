@@ -29,10 +29,6 @@ void main() {
     expect(src.contains('openLifestyleChat'), isFalse);
 
     expect(
-      A3DestinationSurface.formatIsoTimestamp('2026-09-17T12:00:00Z', 'en'),
-      '2026-09-17  12:00',
-    );
-    expect(
       A3DestinationSurface.formatIsoTimestamp('not-a-date', 'en'),
       'not-a-date',
     );

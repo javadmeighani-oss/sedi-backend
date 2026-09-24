@@ -31,16 +31,24 @@ class A3DestinationSurface {
   }
 
   /// Formats an ISO date or timestamp for display.
-  /// Unparseable values are returned unchanged — never invented.
+  /// Date-only values keep their calendar date. Timezone-bearing values
+  /// convert with [DateTime.toLocal]. Unparseable values are unchanged.
   static String formatIsoTimestamp(String? raw, String languageCode) {
     if (raw == null || raw.trim().isEmpty) return '—';
     final s = raw.trim();
-    final m = RegExp(r'^(\d{4}-\d{2}-\d{2})').firstMatch(s);
-    if (m == null) return s;
-    final date = CalendarDateMath.formatIsoForLanguage(m.group(1)!, languageCode);
-    final time = RegExp(r'T(\d{2}:\d{2})').firstMatch(s);
-    if (time != null) return '$date  ${time.group(1)}';
-    return date;
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) {
+      return CalendarDateMath.formatIsoForLanguage(s, languageCode);
+    }
+    final parsed = DateTime.tryParse(s);
+    if (parsed == null) return s;
+    final local = parsed.toLocal();
+    final y = local.year.toString().padLeft(4, '0');
+    final mo = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final date = CalendarDateMath.formatIsoForLanguage('$y-$mo-$d', languageCode);
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$date  $hh:$mm';
   }
 }
 
