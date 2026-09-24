@@ -143,12 +143,14 @@ def build_daily_from_raw(
         prior_bc = {}
     structured = _canonical_json(payload)
     integrity = _integrity(payload)
+    would_finalize = bool(finalize)
+    would_source_complete = bool(turns) if would_finalize else False
     if (
         prior is not None
         and prior.integrity_sha256 == integrity
         and prior.structured_summary_json == structured
-        and bool(prior.source_complete) == bool(turns)
-        and (prior.finalized_at is not None) == finalize
+        and bool(prior.source_complete) == would_source_complete
+        and (prior.finalized_at is not None) == would_finalize
     ):
         return prior
     version = _next_version(db, user_id, "DAILY", start, prior)
@@ -226,12 +228,14 @@ def build_higher_from_lower(
     integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, summary_type, start)
+    would_finalize = bool(finalize and parents)
+    would_source_complete = bool(parents) if finalize else False
     if (
         prior is not None
         and prior.integrity_sha256 == integrity
         and prior.structured_summary_json == structured
-        and bool(prior.source_complete) == bool(parents)
-        and (prior.finalized_at is not None) == (finalize and bool(parents))
+        and bool(prior.source_complete) == would_source_complete
+        and (prior.finalized_at is not None) == would_finalize
     ):
         return prior
     version = _next_version(db, user_id, summary_type, start, prior)
