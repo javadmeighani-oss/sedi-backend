@@ -53,36 +53,43 @@ class Gate3MainIconRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = _l10n;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Gate3MainIconButton(
-          icon: Icons.person_outline,
-          label: l10n.profileTitle,
-          plainIcon: true,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const Gate3ProfilePage(),
-              ),
-            );
-          },
+        Expanded(
+          child: Gate3MainIconButton(
+            icon: Icons.person_outline,
+            label: l10n.profileTitle,
+            plainIcon: true,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const Gate3ProfilePage(),
+                ),
+              );
+            },
+          ),
         ),
-        Gate3MainIconButton(
-          icon: Icons.self_improvement_outlined,
-          label: l10n.lifestyle,
-          onTap: onLifestyle,
+        Expanded(
+          child: Gate3MainIconButton(
+            icon: Icons.self_improvement_outlined,
+            label: l10n.lifestyle,
+            onTap: onLifestyle,
+          ),
         ),
-        Gate3MainIconButton(
-          icon: Icons.devices_other_outlined,
-          label: l10n.gadgets,
-          onTap: onGadgets,
+        Expanded(
+          child: Gate3MainIconButton(
+            icon: Icons.devices_other_outlined,
+            label: l10n.gadgets,
+            onTap: onGadgets,
+          ),
         ),
-        Gate3MainIconButton(
-          icon: Icons.notifications_none_outlined,
-          label: l10n.notifications,
-          plainIcon: true,
-          badge: _notificationsBadge(),
-          onTap: onNotifications,
+        Expanded(
+          child: Gate3MainIconButton(
+            icon: Icons.notifications_none_outlined,
+            label: l10n.notifications,
+            plainIcon: true,
+            badge: _notificationsBadge(),
+            onTap: onNotifications,
+          ),
         ),
       ],
     );

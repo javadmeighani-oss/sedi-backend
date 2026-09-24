@@ -22,9 +22,10 @@ class Gate3MainIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkResponse(
       onTap: onTap,
-      radius: 28,
+      containedInkWell: true,
+      highlightShape: BoxShape.rectangle,
       child: SizedBox(
-        width: plainIcon ? 56 : 72,
+        width: double.infinity,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -75,17 +76,24 @@ class Gate3MainIconButton extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.visible,
-              softWrap: true,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: plainIcon ? 10.5 : 10.5,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF2B2F27),
-                height: 1.15,
+            SizedBox(
+              width: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2B2F27),
+                    height: 1.15,
+                  ),
+                ),
               ),
             ),
           ],
