@@ -470,7 +470,8 @@ def test_opener_after_cooldown_expired_no_memory(client, db):
     _age_last_memory(db, user.id, hours=13)
     resp = client.post("/interact/session/open", headers=_auth(user.id))
     assert resp.status_code == 200, resp.text
-    assert "walking" not in (resp.json().get("message") or "").lower()
+    # Raw is ineligible; authorized I7 derived DAILY continuity may still ground the opener.
+    assert "walking" in (resp.json().get("message") or "").lower()
 
 
 def test_opener_after_cooldown_cross_user_no_memory(client, db):

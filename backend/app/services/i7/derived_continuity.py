@@ -51,6 +51,17 @@ def parse_bounded_continuity(row: Optional[models.UserPeriodSummary]) -> dict:
     return bc
 
 
+def should_project_derived_continuity(db: Session, user_id: int) -> bool:
+    """Derived plane is supporting context only when no eligible raw remains."""
+    if not has_permission(db, user_id, PERM_READ):
+        return False
+    from backend.app.services.i7.retention import query_eligible_raw
+
+    if query_eligible_raw(db, user_id, limit=1):
+        return False
+    return get_bounded_continuity_topic(db, user_id) is not None
+
+
 def get_bounded_continuity_topic(db: Session, user_id: int) -> Optional[str]:
     """I6 read-governed derived topic from latest active DAILY summary."""
     if not has_permission(db, user_id, PERM_READ):

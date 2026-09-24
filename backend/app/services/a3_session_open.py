@@ -150,9 +150,13 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
     snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
     if not snippet:
         try:
-            from backend.app.services.i7.derived_continuity import get_bounded_continuity_topic
+            from backend.app.services.i7.derived_continuity import (
+                get_bounded_continuity_topic,
+                should_project_derived_continuity,
+            )
 
-            snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+            if should_project_derived_continuity(db, user.id):
+                snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
         except Exception:
             snippet = None
     if snippet:

@@ -619,11 +619,19 @@ class CurrentMemoryContextAdapter:
 
             pack = UserContextService(db).get_user_context(authenticated_user_id)
 
+        from backend.app.services.i7.derived_continuity import should_project_derived_continuity
+
+        project_derived = False
+        try:
+            project_derived = should_project_derived_continuity(db, authenticated_user_id)
+        except Exception:
+            project_derived = False
+
         daily_text = None
         daily_observed = None
-        if pack is not None:
+        if project_derived and pack is not None:
             daily_text = getattr(pack, "daily_memory_summary", None)
-        if daily_text and str(daily_text).strip():
+        if project_derived and daily_text and str(daily_text).strip():
             summary = str(daily_text).strip()[:150]
             items.append(
                 _item(
@@ -638,7 +646,7 @@ class CurrentMemoryContextAdapter:
                     sensitivity="medium",
                 )
             )
-        else:
+        elif project_derived:
             from backend.app.services.i7.hierarchy import get_canonical_daily
 
             ups = get_canonical_daily(db, authenticated_user_id)
@@ -659,26 +667,27 @@ class CurrentMemoryContextAdapter:
                             sensitivity="medium",
                         )
                     )
-        try:
-            from backend.app.services.i7.derived_continuity import get_bounded_continuity_topic
+        if project_derived:
+            try:
+                from backend.app.services.i7.derived_continuity import get_bounded_continuity_topic
 
-            topic = get_bounded_continuity_topic(db, authenticated_user_id)
-            if topic:
-                items.append(
-                    _item(
-                        canonical_key="memory.derived_continuity",
-                        section="memory",
-                        source=ContextSource.MEMORY,
-                        value=topic[:150],
-                        display_text=f"continuity={topic[:150]}",
-                        owner_user_id=authenticated_user_id,
-                        query_label="UserPeriodSummary.DAILY.bounded_continuity",
-                        observed_at=None,
-                        sensitivity="medium",
+                topic = get_bounded_continuity_topic(db, authenticated_user_id)
+                if topic:
+                    items.append(
+                        _item(
+                            canonical_key="memory.derived_continuity",
+                            section="memory",
+                            source=ContextSource.MEMORY,
+                            value=topic[:150],
+                            display_text=f"continuity={topic[:150]}",
+                            owner_user_id=authenticated_user_id,
+                            query_label="UserPeriodSummary.DAILY.bounded_continuity",
+                            observed_at=None,
+                            sensitivity="medium",
+                        )
                     )
-                )
-        except Exception:
-            pass
+            except Exception:
+                pass
 
         from backend.app.core.conversation.memory import ConversationMemory
 
