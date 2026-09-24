@@ -87,25 +87,31 @@ class _MessageBubbleState extends State<MessageBubble> {
             ),
           ),
         ],
-        if (!widget.isSedi &&
-            !widget.showTyping &&
-            widget.onEdit != null &&
-            widget.message.trim().isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Tooltip(
-            message: widget.editLabel ?? 'Edit',
-            child: GestureDetector(
-              onTap: widget.onEdit,
-              child: Icon(
-                Icons.edit_outlined,
-                size: 16,
-                color: AppTheme.textSecondary.withOpacity(0.9),
-              ),
-            ),
-          ),
-        ],
       ],
     );
+
+    final showEdit = !widget.isSedi &&
+        !widget.showTyping &&
+        widget.onEdit != null &&
+        widget.message.trim().isNotEmpty;
+
+    Widget? editAction;
+    if (showEdit) {
+      editAction = Tooltip(
+        message: widget.editLabel ?? 'Edit',
+        child: GestureDetector(
+          onTap: widget.onEdit,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: AppTheme.textSecondary.withOpacity(0.9),
+            ),
+          ),
+        ),
+      );
+    }
 
     // Assistant: plain text in chat space — no bubble/card/container.
     if (widget.isSedi) {
@@ -122,32 +128,48 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
 
     // User only: visual container/bubble with collapse + retry.
+    // Edit icon sits outside/below the decorated bubble.
     return Align(
       alignment: alignment,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 10,
-        ),
-        constraints: const BoxConstraints(
-          maxWidth: 300,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.metalGrey.withOpacity(0.15),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(AppTheme.radiusLarge),
-            topRight: Radius.circular(AppTheme.radiusLarge),
-            bottomLeft: Radius.circular(AppTheme.radiusLarge),
-            bottomRight: Radius.circular(AppTheme.radiusSmall),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: IntrinsicWidth(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.metalGrey.withOpacity(0.15),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppTheme.radiusLarge),
+                    topRight: Radius.circular(AppTheme.radiusLarge),
+                    bottomLeft: Radius.circular(AppTheme.radiusLarge),
+                    bottomRight: Radius.circular(AppTheme.radiusSmall),
+                  ),
+                  border: Border.all(
+                    color: AppTheme.metalGrey.withOpacity(0.35),
+                    width: 1,
+                  ),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: body,
+              ),
+              if (editAction != null)
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: editAction,
+                ),
+              ],
+            ),
           ),
-          border: Border.all(
-            color: AppTheme.metalGrey.withOpacity(0.35),
-            width: 1,
-          ),
-          boxShadow: AppTheme.softShadow,
         ),
-        child: body,
       ),
     );
   }
