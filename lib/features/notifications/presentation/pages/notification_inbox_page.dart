@@ -12,6 +12,7 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../notification_inbox_l10n.dart';
 
@@ -326,14 +327,16 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 const SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton(
                     onPressed: () async {
                       Navigator.of(context).pop();
                       await _continueToChat(item);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlack,
+                      backgroundColor: AppTheme.gate2ButtonOlive,
                       foregroundColor: AppTheme.backgroundWhite,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(AppTheme.radiusMedium),
@@ -342,72 +345,61 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     child: Text(l10n.continueInChat),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: item.isRead
+                        ? null
+                        : () async {
+                            Navigator.of(context).pop();
+                            await _markReadOptimistic(item);
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textSecondary,
+                    ),
+                    child: Text(l10n.markAsRead),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.wasThisUseful,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: item.isRead
-                            ? null
-                            : () async {
-                                Navigator.of(context).pop();
-                                await _markReadOptimistic(item);
-                              },
-                        style: OutlinedButton.styleFrom(
-                          side:
-                              const BorderSide(color: AppTheme.borderInactive),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: Text(
-                          l10n.markAsRead,
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                        ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _sendFeedback(item, liked: true);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.gate2ButtonOlive,
                       ),
+                      icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
+                      label: Text(l10n.like),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _sendFeedback(item, liked: true);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlack,
-                          foregroundColor: AppTheme.backgroundWhite,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: Text(l10n.like),
+                    TextButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        final reason = await _pickDislikeReason(l10n);
+                        if (!mounted) return;
+                        await _sendFeedback(
+                          item,
+                          liked: false,
+                          reason: reason,
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.textSecondary,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          final reason = await _pickDislikeReason(l10n);
-                          if (!mounted) return;
-                          await _sendFeedback(
-                            item,
-                            liked: false,
-                            reason: reason,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.metalGrey,
-                          foregroundColor: AppTheme.backgroundWhite,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: Text(l10n.dislike),
-                      ),
+                      icon: const Icon(Icons.thumb_down_alt_outlined, size: 18),
+                      label: Text(l10n.dislike),
                     ),
                   ],
                 ),
@@ -456,10 +448,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   Widget build(BuildContext context) {
     final l10n = _l10n;
     Widget page = Scaffold(
-      backgroundColor: AppTheme.gate3PaleOliveBackground,
+      backgroundColor: A3DestinationSurface.canvas,
       appBar: A3PageAppBar(
         title: Text(l10n.title),
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: A3DestinationSurface.canvas,
         foregroundColor: AppTheme.textPrimary,
       ),
       body: Column(
@@ -513,16 +505,20 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primaryBlack : AppTheme.backgroundWhite,
+          color: selected
+              ? AppTheme.gate2ButtonOlive.withOpacity(0.14)
+              : AppTheme.gate2CardWhite,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? AppTheme.primaryBlack : AppTheme.borderInactive,
+            color: selected
+                ? AppTheme.gate2ButtonOlive
+                : AppTheme.gate2BorderSubtle,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppTheme.backgroundWhite : AppTheme.textPrimary,
+            color: selected ? AppTheme.gate2ButtonOlive : AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -576,90 +572,66 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           final item = _items[index];
           final displayUnread =
               !item.isRead && !_pendingReadIds.contains(item.id);
-          return GestureDetector(
-            onTap: () async {
-              await _markReadOptimistic(item);
-              await _openDetails(item, l10n);
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              decoration: BoxDecoration(
-                color: AppTheme.backgroundWhite,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border:
-                    Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _channelPill(item.channel),
-                      const Spacer(),
-                      if (displayUnread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.pistachioGreen,
-                            shape: BoxShape.circle,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: A3DestinationCard(
+              onTap: () async {
+                await _markReadOptimistic(item);
+                await _openDetails(item, l10n);
+              },
+              child: Opacity(
+                opacity: displayUnread ? 1 : 0.72,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _channelPill(item.channel),
+                        const Spacer(),
+                        if (displayUnread)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.gate2ButtonOlive,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    item.title.isEmpty ? l10n.fallbackTitle : item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _displayBody(item, l10n),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
+                    const SizedBox(height: 10),
+                    Text(
+                      item.title.isEmpty ? l10n.fallbackTitle : item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight:
+                            displayUnread ? FontWeight.w700 : FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Text(
-                        l10n.relativeTime(item.sentAt ?? item.createdAt),
-                        style: TextStyle(
-                          color: AppTheme.textSecondary.withOpacity(0.85),
-                          fontSize: 12,
-                        ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _displayBody(item, l10n),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                        height: 1.4,
                       ),
-                      const Spacer(),
-                      Icon(
-                        Icons.thumb_up_alt_outlined,
-                        size: 18,
-                        color: _likedIds.contains(item.id)
-                            ? AppTheme.primaryBlack
-                            : AppTheme.iconInactive,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      l10n.relativeTime(item.sentAt ?? item.createdAt),
+                      style: TextStyle(
+                        color: AppTheme.textSecondary.withOpacity(0.85),
+                        fontSize: 12,
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.thumb_down_alt_outlined,
-                        size: 18,
-                        color: _dislikedIds.contains(item.id)
-                            ? AppTheme.primaryBlack
-                            : AppTheme.iconInactive,
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );

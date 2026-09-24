@@ -17,6 +17,7 @@ import 'package:sedi_app/features/devices/logic/devices_controller.dart';
 import 'package:sedi_app/features/devices/logic/gadgets_connect_controller.dart';
 import 'package:sedi_app/features/devices/presentation/devices_l10n.dart';
 import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -136,11 +137,11 @@ void main() {
       'android/app/src/main/kotlin/com/sedi/app/MainActivity.kt',
     );
     expect(theme.contains('gate3PaleOliveBackground'), isTrue);
-    expect(page.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
-    expect(page.contains('backgroundColor: AppTheme.backgroundWhite'), isFalse);
+    expect(page.contains('A3DestinationSurface.canvas'), isTrue);
+    expect(page.contains('AppTheme.gate3PaleOliveBackground'), isFalse);
     expect(page.contains('A3PageAppBar('), isTrue);
     expect(page.contains('AppTheme.gate2ButtonOlive'), isTrue);
-    expect(page.contains('AppTheme.radiusLarge'), isTrue);
+    expect(page.contains('A3DestinationCard'), isTrue);
     expect(page.contains('AppTheme.gate2CardWhite'), isTrue);
     expect(page.contains('health score'), isFalse);
     expect(page.contains('dangerRed'), isFalse);
@@ -267,7 +268,7 @@ void main() {
     c.dispose();
   });
 
-  testWidgets('G9 DevicesPage pale olive + A3PageAppBar + Connect CTA',
+  testWidgets('G9 DevicesPage white canvas + A3PageAppBar + Connect CTA',
       (tester) async {
     await SediLocaleController.instance.setRuntimeLocale(
       'en',
@@ -282,10 +283,10 @@ void main() {
 
     expect(find.byType(A3PageAppBar), findsOneWidget);
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-    expect(scaffold.backgroundColor, AppTheme.gate3PaleOliveBackground);
+    expect(scaffold.backgroundColor, A3DestinationSurface.canvas);
 
     final appBar = tester.widget<AppBar>(find.byType(AppBar));
-    expect(appBar.backgroundColor, AppTheme.gate3PaleOliveBackground);
+    expect(appBar.backgroundColor, A3DestinationSurface.canvas);
 
     expect(find.text('Connect'), findsOneWidget);
     expect(find.textContaining('Last sync'), findsWidgets);

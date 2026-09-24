@@ -11,6 +11,7 @@ import 'package:sedi_app/data/repositories/devices_repository.dart';
 import 'package:sedi_app/features/devices/logic/devices_controller.dart';
 import 'package:sedi_app/features/devices/presentation/devices_l10n.dart';
 import 'package:sedi_app/features/devices/presentation/pages/devices_page.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sedi_app/features/devices/gateway/durable_packet_outbox.dart';
@@ -77,7 +78,8 @@ void main() {
     expect(src.contains('UserPreferences'), isFalse);
     expect(src.contains('SediLocaleController'), isTrue);
     expect(src.contains('A3PageAppBar'), isTrue);
-    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
+    expect(src.contains('A3DestinationSurface.canvas'), isTrue);
+    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isFalse);
     expect(src.contains('selfDevices'), isTrue);
     expect(src.contains('otherDevices'), isTrue);
     expect(src.contains('unclassifiedDevices'), isTrue);
@@ -135,10 +137,11 @@ void main() {
     final native = _read(
       'android/app/src/main/kotlin/com/sedi/app/MainActivity.kt',
     );
-    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
+    expect(src.contains('A3DestinationSurface.canvas'), isTrue);
+    expect(src.contains('AppTheme.gate3PaleOliveBackground'), isFalse);
     expect(src.contains('AppTheme.gate2ButtonOlive'), isTrue);
     expect(src.contains('AppTheme.gate2CardWhite'), isTrue);
-    expect(src.contains('AppTheme.radiusLarge'), isTrue);
+    expect(src.contains('A3DestinationCard'), isTrue);
     expect(src.contains('toIso8601String'), isFalse);
     expect(src.contains('AppTheme.dangerRed'), isFalse);
     expect(src.contains('SediBlePermissions.request'), isTrue);
@@ -157,7 +160,7 @@ void main() {
     expect(DevicesL10n('ar').isRtl, isTrue);
   });
 
-  testWidgets('G9 DevicesPage pale olive scaffold + olive Connect CTA',
+  testWidgets('G9 DevicesPage white scaffold + olive Connect CTA',
       (tester) async {
     await SediLocaleController.instance.setRuntimeLocale(
       'en',
@@ -170,7 +173,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-    expect(scaffold.backgroundColor, AppTheme.gate3PaleOliveBackground);
+    expect(scaffold.backgroundColor, A3DestinationSurface.canvas);
     expect(find.text('Connect'), findsOneWidget);
     expect(find.textContaining('Last sync'), findsWidgets);
   });

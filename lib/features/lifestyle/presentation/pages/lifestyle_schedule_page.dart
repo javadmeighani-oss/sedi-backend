@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/lifestyle/lifestyle_schedule_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 
@@ -119,52 +120,87 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: A3DestinationSurface.canvas,
         appBar: A3PageAppBar(
           title: Text(l10n.mySchedule),
+          backgroundColor: A3DestinationSurface.canvas,
         ),
         body: RefreshIndicator(
+          color: AppTheme.gate2ButtonOlive,
           onRefresh: _load,
           child: _loading
               ? ListView(children: const [
                   SizedBox(height: 80),
-                  Center(child: CircularProgressIndicator())
+                  Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.gate2ButtonOlive,
+                    ),
+                  ),
                 ])
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                   children: [
                     if (_error != null)
-                      Text(_error!,
-                          style: const TextStyle(color: AppTheme.dangerRed)),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: A3DestinationCard(
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(color: AppTheme.dangerRed),
+                          ),
+                        ),
+                      ),
                     _section(l10n.today, grouped['today']!, l10n),
                     _section(l10n.tomorrow, grouped['tomorrow']!, l10n),
                     _section(l10n.thisWeek, grouped['week']!, l10n),
                     _section(l10n.later, grouped['later']!, l10n),
-                    const SizedBox(height: 20),
-                    Text(l10n.governedActions,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary)),
                     const SizedBox(height: 8),
+                    Text(
+                      l10n.governedActions,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     if (_actions.isEmpty)
-                      Text(l10n.noEvents,
-                          style: const TextStyle(color: AppTheme.textSecondary))
+                      A3DestinationCard(
+                        child: Text(
+                          l10n.noEvents,
+                          style: const TextStyle(color: AppTheme.textSecondary),
+                        ),
+                      )
                     else
-                      ..._actions.map((a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
+                      ..._actions.map(
+                        (a) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: A3DestinationCard(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: Text(a.title,
-                                      style: const TextStyle(
-                                          color: AppTheme.textPrimary)),
-                                ),
-                                Text(l10n.scheduleStatusLabel(a.status),
+                                  child: Text(
+                                    a.title,
                                     style: const TextStyle(
-                                        color: AppTheme.textSecondary)),
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  l10n.scheduleStatusLabel(a.status),
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
-                          )),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
         ),
@@ -175,17 +211,26 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   Widget _section(
       String title, List<LifestyleUserEventDto> items, LifestyleL10n l10n) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 12),
           if (items.isEmpty)
-            Text(l10n.noEvents,
-                style: const TextStyle(color: AppTheme.textSecondary))
+            A3DestinationCard(
+              child: Text(
+                l10n.noEvents,
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
           else
             ...items.map((e) => _eventTile(e, l10n)),
         ],
@@ -197,44 +242,80 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     final current = !e.reminderEnabled
         ? null
         : (e.reminderOffsets.isEmpty ? 0 : e.reminderOffsets.first);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.gate2CardWhite,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(e.title,
+    final when = A3DestinationSurface.formatIsoTimestamp(e.startsAt, l10n.lang);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: A3DestinationCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              e.title,
               style: const TextStyle(
-                  fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-          const SizedBox(height: 4),
-          Text(
-            [
-              e.startsAt ?? '—',
-              if (e.location != null && e.location!.isNotEmpty) e.location!,
-              if (e.eventType != null) e.eventType!,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              when,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            if (e.location != null && e.location!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                e.location!,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            if (e.eventType != null && e.eventType!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                e.eventType!,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Text(
               l10n.scheduleStatusLabel(e.status),
-            ].join(' · '),
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          Text(l10n.reminder,
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-          DropdownButton<int?>(
-            value: _presets.contains(current) ? current : null,
-            isExpanded: true,
-            items: _presets
-                .map((m) => DropdownMenuItem(
-                      value: m,
-                      child: Text(_presetLabel(l10n, m)),
-                    ))
-                .toList(),
-            onChanged: (v) => _setReminder(e, v),
-          ),
-        ],
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.reminder,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            DropdownButton<int?>(
+              value: _presets.contains(current) ? current : null,
+              isExpanded: true,
+              underline: const SizedBox.shrink(),
+              items: _presets
+                  .map((m) => DropdownMenuItem(
+                        value: m,
+                        child: Text(_presetLabel(l10n, m)),
+                      ))
+                  .toList(),
+              onChanged: (v) => _setReminder(e, v),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -99,9 +99,14 @@ class LifestyleL10n {
   String get sediSummaries =>
       _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات سدي');
   String get historyExplain => _t(
-        en: 'Recent raw conversations are available here for the retained period. For older topics, ask Sedi in Chat.',
-        fa: 'گفتگوهای خام اخیر در دوره نگهداری اینجا هستند. برای موضوعات قدیمی‌تر در چت از صدی بپرسید.',
-        ar: 'المحادثات الخام الحديثة متاحة لفترة الاحتفاظ. للمواضيع الأقدم اسأل سدي في الدردشة.',
+        en: 'This is a read-only archive of retained conversations and Sedi summaries.',
+        fa: 'این بایگانی فقط‌خواندنی گفتگوهای نگهداری‌شده و خلاصه‌های صدی است.',
+        ar: 'هذا أرشيف للقراءة فقط للمحادثات المحتفظ بها وملخصات سدي.',
+      );
+  String get noConversations => _t(
+        en: 'No conversations in this period.',
+        fa: 'گفتگویی در این بازه نیست.',
+        ar: 'لا محادثات في هذه الفترة.',
       );
   String get daily => _t(en: 'Daily', fa: 'روزانه', ar: 'يومي');
   String get weekly => _t(en: 'Weekly', fa: 'هفتگی', ar: 'أسبوعي');

@@ -7,6 +7,7 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../../../data/repositories/devices_repository.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../ble/sedi_ble_models.dart';
 import '../../ble/sedi_ble_permissions.dart';
@@ -106,7 +107,7 @@ class _DevicesPageState extends State<DevicesPage> {
       onRefresh: _load,
       color: AppTheme.gate2ButtonOlive,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
           if (_loading)
             const Padding(
@@ -117,10 +118,12 @@ class _DevicesPageState extends State<DevicesPage> {
             )
           else if (_controller.devices.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Text(
-                l10n.noGadgets,
-                style: const TextStyle(color: AppTheme.textSecondary),
+              padding: const EdgeInsets.only(bottom: 16),
+              child: A3DestinationCard(
+                child: Text(
+                  l10n.noGadgets,
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
               ),
             )
           else
@@ -139,9 +142,11 @@ class _DevicesPageState extends State<DevicesPage> {
               if (g.devices.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    l10n.noGadgets,
-                    style: const TextStyle(color: AppTheme.textSecondary),
+                  child: A3DestinationCard(
+                    child: Text(
+                      l10n.noGadgets,
+                      style: const TextStyle(color: AppTheme.textSecondary),
+                    ),
                   ),
                 )
               else
@@ -153,26 +158,34 @@ class _DevicesPageState extends State<DevicesPage> {
           if (_controller.errorMessage != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                _controller.errorMessage!,
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              child: A3DestinationCard(
+                child: Text(
+                  _controller.errorMessage!,
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                ),
               ),
             ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FilledButton(
-              onPressed: _connecting ? null : () => _onConnectPressed(l10n),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.gate2ButtonOlive,
-                disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-                foregroundColor: AppTheme.backgroundWhite,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          A3DestinationCard(
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: _connecting ? 0.72 : 1,
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: _connecting ? null : () => _onConnectPressed(l10n),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.gate2ButtonOlive,
+                    disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
+                    foregroundColor: AppTheme.backgroundWhite,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    ),
+                  ),
+                  child: Text(_connecting ? l10n.scanning : l10n.connect),
                 ),
               ),
-              child: Text(_connecting ? l10n.scanning : l10n.connect),
             ),
           ),
         ],
@@ -180,9 +193,10 @@ class _DevicesPageState extends State<DevicesPage> {
     );
 
     Widget page = Scaffold(
-      backgroundColor: AppTheme.gate3PaleOliveBackground,
+      backgroundColor: A3DestinationSurface.canvas,
       appBar: A3PageAppBar(
         title: Text(l10n.title),
+        backgroundColor: A3DestinationSurface.canvas,
       ),
       body: body,
     );
@@ -204,86 +218,103 @@ class _DevicesPageState extends State<DevicesPage> {
         _connect?.connectedDeviceId == d.deviceId;
 
     // Transport shown once (colored); no fake health/clinical fields.
-    final facts = <String>[
-      d.deviceType,
-      l10n.statusLabel(d.status),
-      l10n.formatLastSync(d.lastSeenAt),
-      if (isBleConnected && status?.batteryPercent != null)
-        l10n.batteryLabel(status!.batteryPercent!),
-      if (isBleConnected && status?.contactOk != null)
-        l10n.contactLabel(status!.contactOk!),
-    ];
-
-    return Material(
-      color: AppTheme.gate2CardWhite,
-      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    d.displayName,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-                if (bleLabel != null)
-                  Text(
-                    bleLabel,
-                    style: TextStyle(
-                      color: _transportColor(ble),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
+    return A3DestinationCard(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            d.displayName,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
             ),
-            const SizedBox(height: 8),
+          ),
+          if (bleLabel != null) ...[
+            const SizedBox(height: 6),
             Text(
-              facts.join(' · '),
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                height: 1.35,
+              bleLabel,
+              style: TextStyle(
+                color: _transportColor(ble),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (isBleConnected)
-                  TextButton(
-                    onPressed: _connecting
-                        ? null
-                        : () async {
-                            setState(() => _connecting = true);
-                            await _connect?.manualDisconnect(d.deviceId);
-                            if (mounted) setState(() => _connecting = false);
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.textSecondary,
-                    ),
-                    child: Text(l10n.disconnect),
-                  ),
-                TextButton(
-                  onPressed: _controller.isActionInProgress
-                      ? null
-                      : () => _openPresentationEditor(d, l10n),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.gate2ButtonOlive,
-                  ),
-                  child: Text(l10n.rename),
-                ),
-              ],
+          ],
+          const SizedBox(height: 8),
+          Text(
+            d.deviceType,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.statusLabel(d.status),
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.formatLastSync(d.lastSeenAt),
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          if (isBleConnected && status?.batteryPercent != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.batteryLabel(status!.batteryPercent!),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ],
-        ),
+          if (isBleConnected && status?.contactOk != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.contactLabel(status!.contactOk!),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton(
+                onPressed: _controller.isActionInProgress
+                    ? null
+                    : () => _openPresentationEditor(d, l10n),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.gate2ButtonOlive,
+                ),
+                child: Text(l10n.rename),
+              ),
+              if (isBleConnected)
+                TextButton(
+                  onPressed: _connecting
+                      ? null
+                      : () async {
+                          setState(() => _connecting = true);
+                          await _connect?.manualDisconnect(d.deviceId);
+                          if (mounted) setState(() => _connecting = false);
+                        },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                  ),
+                  child: Text(l10n.disconnect),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

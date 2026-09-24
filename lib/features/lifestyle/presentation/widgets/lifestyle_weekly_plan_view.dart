@@ -5,6 +5,7 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/lifestyle/lifestyle_weekly_plan_dto.dart';
 import '../../../../services/lifestyle/lifestyle_weekly_plan_service.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import '../pages/lifestyle_page.dart';
@@ -84,31 +85,8 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     }
   }
 
-  String _actionLine(LifestyleWeeklyActionDto a, LifestyleL10n l10n) {
-    final parts = <String>[];
-    final title = a.title ?? a.activityTitle;
-    if (title != null && title.isNotEmpty) parts.add(title);
-    if (a.localTime != null && a.localTime!.isNotEmpty) {
-      parts.add(a.localTime!);
-    }
-    if (widget.domain == LifestyleWeeklyDomain.nutrition &&
-        a.mealSlot != null &&
-        a.mealSlot!.isNotEmpty) {
-      parts.add(l10n.mealSlotLabel(a.mealSlot!));
-    }
-    if (widget.domain == LifestyleWeeklyDomain.exercise) {
-      if (a.activityType != null && a.activityType!.isNotEmpty) {
-        parts.add(a.activityType!);
-      }
-      if (a.durationMinutes != null) {
-        parts.add(l10n.durationMinutes(a.durationMinutes!));
-      }
-    }
-    if (a.status != null && a.status!.isNotEmpty) {
-      parts.add(l10n.scheduleStatusLabel(a.status!));
-    }
-    return parts.isEmpty ? '•' : '• ${parts.join(' · ')}';
-  }
+  bool get _ctaProminent =>
+      _effectiveState == 'empty' || _effectiveState == 'review_due';
 
   @override
   Widget build(BuildContext context) {
@@ -122,14 +100,16 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: AppTheme.gate3PaleOliveBackground,
+        backgroundColor: A3DestinationSurface.canvas,
         appBar: A3PageAppBar(
           title: Text(title),
+          backgroundColor: A3DestinationSurface.canvas,
         ),
         body: RefreshIndicator(
+          color: AppTheme.gate2ButtonOlive,
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
             children: [
               if (_loading)
                 const Padding(
@@ -143,18 +123,10 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
               else ...[
                 _buildStateHeader(l10n),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      openLifestyleChat(context, starterMessage: starter),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.gate2ButtonOlive,
-                    foregroundColor: AppTheme.backgroundWhite,
-                  ),
-                  child: Text(l10n.openChat),
-                ),
+                _talkToSediCard(l10n, starter),
                 if (_effectiveState == 'active' ||
                     _effectiveState == 'review_due') ...[
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
                   ..._buildDays(l10n),
                 ],
               ],
@@ -165,99 +137,96 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     );
   }
 
+  Widget _talkToSediCard(LifestyleL10n l10n, String starter) {
+    return A3DestinationCard(
+      child: SizedBox(
+        width: double.infinity,
+        height: _ctaProminent ? 52 : 48,
+        child: ElevatedButton(
+          onPressed: () =>
+              openLifestyleChat(context, starterMessage: starter),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.gate2ButtonOlive,
+            foregroundColor: AppTheme.backgroundWhite,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            ),
+          ),
+          child: Text(
+            l10n.openChat,
+            style: TextStyle(
+              fontSize: _ctaProminent ? 16 : 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStateHeader(LifestyleL10n l10n) {
     final isNutrition = widget.domain == LifestyleWeeklyDomain.nutrition;
+    late final String title;
+    late final String? body;
     switch (_effectiveState) {
       case 'empty':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isNutrition ? l10n.noNutrition : l10n.noExercise,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.talkToCreate,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-          ],
-        );
+        title = isNutrition ? l10n.noNutrition : l10n.noExercise;
+        body = l10n.talkToCreate;
+        break;
       case 'review_due':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.reviewDueTitle,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.reviewDueBody,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-          ],
-        );
+        title = l10n.reviewDueTitle;
+        body = l10n.reviewDueBody;
+        break;
       case 'unavailable':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.planUnavailable,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
+        title = l10n.planUnavailable;
+        body = l10n.planUnavailableBody;
+        break;
+      default: // active
+        title = isNutrition ? l10n.nutritionActive : l10n.exerciseActive;
+        if (_plan?.cycleStart != null && _plan!.cycleStart!.isNotEmpty) {
+          body = l10n.cycleRangeLabel(
+            CalendarDateMath.formatIsoForLanguage(
+              _plan!.cycleStart!,
+              l10n.lang,
             ),
+            _plan!.cycleEnd != null && _plan!.cycleEnd!.isNotEmpty
+                ? CalendarDateMath.formatIsoForLanguage(
+                    _plan!.cycleEnd!,
+                    l10n.lang,
+                  )
+                : '',
+          );
+        } else {
+          body = null;
+        }
+    }
+
+    return A3DestinationCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          if (body != null) ...[
             const SizedBox(height: 8),
             Text(
-              l10n.planUnavailableBody,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-          ],
-        );
-      default: // active
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isNutrition ? l10n.nutritionActive : l10n.exerciseActive,
+              body,
               style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.textSecondary,
+                height: 1.4,
               ),
             ),
-            if (_plan?.cycleStart != null && _plan!.cycleStart!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.cycleRangeLabel(
-                  CalendarDateMath.formatIsoForLanguage(
-                    _plan!.cycleStart!,
-                    l10n.lang,
-                  ),
-                  _plan!.cycleEnd != null && _plan!.cycleEnd!.isNotEmpty
-                      ? CalendarDateMath.formatIsoForLanguage(
-                          _plan!.cycleEnd!,
-                          l10n.lang,
-                        )
-                      : '',
-                ),
-                style: const TextStyle(color: AppTheme.textSecondary),
-              ),
-            ],
           ],
-        );
-    }
+        ],
+      ),
+    );
   }
 
   List<Widget> _buildDays(LifestyleL10n l10n) {
@@ -270,52 +239,110 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
       final dateLabel = day.localDate.isEmpty
           ? ''
           : CalendarDateMath.formatIsoForLanguage(day.localDate, l10n.lang);
-      final header = [
-        if (weekdayLabel.isNotEmpty) weekdayLabel,
-        if (dateLabel.isNotEmpty) dateLabel,
-      ].join(' · ');
       final actions = _actionsFor(day);
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
-        child: Material(
-          color: AppTheme.gate2CardWhite,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (header.isNotEmpty)
-                  Text(
-                    header,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
+        child: A3DestinationCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (weekdayLabel.isNotEmpty)
+                Text(
+                  weekdayLabel,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                    fontSize: 16,
                   ),
-                if (actions.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      l10n.noActionsThisDay,
-                      style: const TextStyle(color: AppTheme.textSecondary),
-                    ),
-                  )
-                else
-                  ...actions.map(
-                    (a) => Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        _actionLine(a, l10n),
-                        style: const TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
+                ),
+              if (dateLabel.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
                   ),
+                ),
               ],
-            ),
+              if (actions.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    l10n.noActionsThisDay,
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
+                )
+              else
+                ...actions.map((a) => _actionBlock(a, l10n)),
+            ],
           ),
         ),
       );
     }).toList();
   }
+
+  Widget _actionBlock(LifestyleWeeklyActionDto a, LifestyleL10n l10n) {
+    final title = a.title ?? a.activityTitle;
+    final rows = <Widget>[];
+    if (widget.domain == LifestyleWeeklyDomain.nutrition) {
+      if (a.mealSlot != null && a.mealSlot!.isNotEmpty) {
+        rows.add(_metaLine(l10n.mealSlotLabel(a.mealSlot!)));
+      }
+      if (title != null && title.isNotEmpty) {
+        rows.add(_titleLine(title));
+      }
+      if (a.localTime != null && a.localTime!.isNotEmpty) {
+        rows.add(_metaLine(a.localTime!));
+      }
+      if (a.status != null && a.status!.isNotEmpty) {
+        rows.add(_metaLine(l10n.scheduleStatusLabel(a.status!)));
+      }
+    } else {
+      if (title != null && title.isNotEmpty) {
+        rows.add(_titleLine(title));
+      }
+      if (a.activityType != null && a.activityType!.isNotEmpty) {
+        rows.add(_metaLine(a.activityType!));
+      }
+      if (a.durationMinutes != null) {
+        rows.add(_metaLine(l10n.durationMinutes(a.durationMinutes!)));
+      }
+      if (a.localTime != null && a.localTime!.isNotEmpty) {
+        rows.add(_metaLine(a.localTime!));
+      }
+      if (a.status != null && a.status!.isNotEmpty) {
+        rows.add(_metaLine(l10n.scheduleStatusLabel(a.status!)));
+      }
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
+      ),
+    );
+  }
+
+  Widget _titleLine(String text) => Text(
+        text,
+        style: const TextStyle(
+          color: AppTheme.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      );
+
+  Widget _metaLine(String text) => Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+          ),
+        ),
+      );
 }

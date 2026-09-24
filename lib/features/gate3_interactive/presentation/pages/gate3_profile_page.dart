@@ -11,6 +11,7 @@ import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../gate3_localization.dart';
+import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 
 /// A3 Profile — exactly 3 sections: User info, user summary, Log out.
@@ -196,46 +197,85 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: A3DestinationSurface.canvas,
         appBar: A3PageAppBar(
           title: Text(l10n.profileTitle),
+          backgroundColor: A3DestinationSurface.canvas,
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppTheme.gate2ButtonOlive,
+                ),
+              )
             : RefreshIndicator(
+                color: AppTheme.gate2ButtonOlive,
                 onRefresh: _load,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                   children: [
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(color: AppTheme.dangerRed),
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: A3DestinationCard(
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(color: AppTheme.dangerRed),
+                          ),
                         ),
                       ),
-                    _sectionTitle(l10n.userInformationSection),
-                    _field(l10n.profileNameLabel, _me?.name ?? '—'),
-                    _field(l10n.profileDobLabel, _formatDob(_me)),
-                    _field(l10n.profileSexLabel, l10n.profileSexValue(_me?.sex)),
-                    _field(
-                      l10n.profileLanguageLabel,
-                      _formatLanguage(_me?.preferredLanguage),
+                    A3DestinationCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.userInformationSection,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          A3DestinationFact(
+                            label: l10n.profileNameLabel,
+                            value: _me?.name ?? '—',
+                          ),
+                          A3DestinationFact(
+                            label: l10n.profileDobLabel,
+                            value: _formatDob(_me),
+                          ),
+                          A3DestinationFact(
+                            label: l10n.profileSexLabel,
+                            value: l10n.profileSexValue(_me?.sex),
+                          ),
+                          A3DestinationFact(
+                            label: l10n.profileLanguageLabel,
+                            value: _formatLanguage(_me?.preferredLanguage),
+                          ),
+                          _phoneCard(l10n),
+                        ],
+                      ),
                     ),
-                    _phoneCard(l10n),
-                    const SizedBox(height: 20),
-                    _sectionTitle(l10n.userSummarySection),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 16),
                     _buildSummaryCard(l10n),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            AuthHelper.performLogout(context: context),
-                        icon: const Icon(Icons.logout_rounded),
-                        label: Text(l10n.logoutApp),
+                    const SizedBox(height: 16),
+                    A3DestinationCard(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              AuthHelper.performLogout(context: context),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: Text(l10n.logoutApp),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.textPrimary,
+                            side: const BorderSide(
+                              color: AppTheme.gate2BorderSubtle,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -246,74 +286,47 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   }
 
   Widget _phoneCard(Gate3Localization l10n) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderInactive.withOpacity(0.35)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.profilePhoneLabel,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(height: 1),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(
-                  _me?.phone ?? '—',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-            if (!_changingPhone) ...[
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () => setState(() {
-                    _changingPhone = true;
-                    _phoneFlowError = null;
-                    _phoneFlowSuccess = null;
-                    _otpSent = false;
-                  }),
-                  child: Text(l10n.changePhone),
-                ),
-              ),
-              if (_phoneFlowSuccess != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    _phoneFlowSuccess!,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-            ],
-            if (_changingPhone) ..._phoneChangeWidgets(l10n),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        A3DestinationFact(
+          label: l10n.profilePhoneLabel,
+          value: _me?.phone ?? '—',
+          valueDirection: TextDirection.ltr,
         ),
-      ),
+        if (!_changingPhone) ...[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: AppTheme.gate2ButtonOlive,
+              ),
+              onPressed: () => setState(() {
+                _changingPhone = true;
+                _phoneFlowError = null;
+                _phoneFlowSuccess = null;
+                _otpSent = false;
+              }),
+              child: Text(l10n.changePhone),
+            ),
+          ),
+          if (_phoneFlowSuccess != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                _phoneFlowSuccess!,
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
+        if (_changingPhone) ..._phoneChangeWidgets(l10n),
+      ],
     );
   }
 
@@ -461,82 +474,31 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     }
   }
 
-  Widget _sectionTitle(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          t,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-      );
-
-  Widget _field(
-    String label,
-    String value, {
-    TextDirection? valueDirection,
-  }) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.borderInactive.withOpacity(0.35)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 1),
-              Directionality(
-                textDirection:
-                    valueDirection ?? Directionality.of(context),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
   Widget _buildSummaryCard(Gate3Localization l10n) {
     final text = _canonicalSummary.trim();
     final body = text.isEmpty ? l10n.userSummaryEmpty : text;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: AppTheme.gate3PaleOliveBackground.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppTheme.borderInactive.withOpacity(0.28),
-        ),
-      ),
-      child: Text(
-        body,
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
-          fontSize: 13,
-          height: 1.4,
-        ),
+    return A3DestinationCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.userSummarySection,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            body,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }

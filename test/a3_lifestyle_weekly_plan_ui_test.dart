@@ -104,9 +104,10 @@ void main() {
       expect(view.contains("'review_due'"), isTrue);
       expect(view.contains("'unavailable'"), isTrue);
       expect(view.contains('DateTime.now()'), isFalse);
-      expect(view.contains('AppTheme.gate3PaleOliveBackground'), isTrue);
+      expect(view.contains('A3DestinationSurface.canvas'), isTrue);
+      expect(view.contains('gate3PaleOliveBackground'), isFalse);
       expect(view.contains('AppTheme.gate2ButtonOlive'), isTrue);
-      expect(view.contains('AppTheme.gate2CardWhite'), isTrue);
+      expect(view.contains('A3DestinationCard'), isTrue);
       expect(view.contains('CalendarDateMath'), isTrue);
       expect(view.contains('BirthCalendarHelper'), isFalse);
     });

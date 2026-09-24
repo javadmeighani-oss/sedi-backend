@@ -60,7 +60,10 @@ class NotificationInboxL10n {
   String get dislike => _t(en: 'Dislike', fa: 'نپسندیدن', ar: 'عدم إعجاب');
 
   String get continueInChat =>
-      _t(en: 'Continue in Sedi chat', fa: 'ادامه در گفتگوی سدی', ar: 'المتابعة في محادثة سدي');
+      _t(en: 'Continue with Sedi', fa: 'ادامه با صدی', ar: 'المتابعة مع سدي');
+
+  String get wasThisUseful =>
+      _t(en: 'Was this useful?', fa: 'آیا مفید بود؟', ar: 'هل كان هذا مفيداً؟');
 
   String get dislikeReasonTitle =>
       _t(en: 'Why was this not useful?', fa: 'چرا مفید نبود؟', ar: 'لماذا لم يكن مفيداً؟');
