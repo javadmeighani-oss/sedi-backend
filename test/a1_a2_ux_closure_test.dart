@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/theme/app_theme.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_layout.dart';
+import 'package:sedi_app/features/auth_otp/presentation/a2_phone_e164.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_widgets.dart';
 import 'package:sedi_app/features/auth_otp/presentation/otp_login_localization.dart';
@@ -226,6 +227,92 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('6'), findsOneWidget);
+    });
+
+    testWidgets('fullWidth true stays bounded; false is compact and centered',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Gate2Widgets.primaryButton(
+                      label: 'Confirm',
+                      enabled: true,
+                      onPressed: () {},
+                    ),
+                    Gate2Widgets.primaryButton(
+                      label: 'Send',
+                      enabled: true,
+                      fullWidth: false,
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final fullFinder = find.widgetWithText(ElevatedButton, 'Confirm');
+      final compactFinder = find.widgetWithText(ElevatedButton, 'Send');
+      final fullBox = tester.getSize(fullFinder);
+      final compactBox = tester.getSize(compactFinder);
+      expect(fullBox.height, A2Layout.primaryCtaHeight);
+      expect(compactBox.height, A2Layout.primaryCtaHeight);
+      expect(fullBox.width, lessThanOrEqualTo(A2Layout.primaryCtaMax));
+      expect(compactBox.width, lessThan(fullBox.width));
+      expect(compactBox.width, lessThan(A2Layout.primaryCtaMax));
+
+      final compactCenter = tester.getCenter(compactFinder);
+      final columnCenter = tester.getCenter(find.byType(Column));
+      expect((compactCenter.dx - columnCenter.dx).abs(), lessThan(1.0));
+    });
+
+    testWidgets('FA/AR page RTL keeps +98 phone digits LTR', (tester) async {
+      final controller = TextEditingController(text: '9121234567');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              body: Center(
+                child: Gate2Widgets.phoneField(
+                  controller: controller,
+                  hint: 'Mobile',
+                  dialCode: A2PhoneE164.defaultDialCode,
+                  onDialCodeChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('+98'), findsOneWidget);
+      final dial = tester.widget<Text>(find.text('+98'));
+      expect(dial.textDirection, TextDirection.ltr);
+      expect(dial.data, '+98');
+
+      final ltrAncestors = find.ancestor(
+        of: find.text('+98'),
+        matching: find.byWidgetPredicate(
+          (w) => w is Directionality && w.textDirection == TextDirection.ltr,
+        ),
+      );
+      expect(ltrAncestors, findsWidgets);
+
+      final field = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(field.textDirection, TextDirection.ltr);
     });
   });
 }

@@ -13,8 +13,9 @@ import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../gate3_localization.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
+import '../widgets/gate3_profile_memory_control.dart';
 
-/// A3 Profile — exactly 3 sections: User info, user summary, Log out.
+/// A3 Profile — user info, user summary, Memory & Privacy, Log out.
 class Gate3ProfilePage extends StatefulWidget {
   const Gate3ProfilePage({super.key});
 
@@ -259,6 +260,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                     ),
                     const SizedBox(height: 16),
                     _buildSummaryCard(l10n),
+                    const SizedBox(height: 16),
+                    const Gate3ProfileMemoryControl(),
                     const SizedBox(height: 16),
                     A3DestinationCard(
                       child: SizedBox(

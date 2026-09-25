@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/memory/memory_consent_status.dart';
 import 'package:sedi_app/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
-import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_memory_consent_invitation.dart';
 
 String _read(String path) => File(path).readAsStringSync();
 
@@ -103,15 +102,21 @@ void main() {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(page.contains('Gate3MemoryConsentInvitation'), isTrue);
-    expect(page.contains('_grantMemoryConsentFromInvitation'), isTrue);
-    expect(page.contains('_loadMemoryConsentInvitation'), isTrue);
+    expect(page.contains('Gate3MemoryConsentInvitation'), isFalse);
+    expect(page.contains('_grantMemoryConsentFromInvitation'), isFalse);
+    expect(page.contains('_loadMemoryConsentInvitation'), isFalse);
+    expect(page.contains('MemoryConsentService'), isFalse);
 
     final settings = _read(
       'lib/features/gate3_interactive/presentation/widgets/gate3_settings_menu.dart',
     );
-    expect(settings.contains('Gate3MemoryPrivacyPage'), isTrue);
-    expect(settings.contains('l10n.memoryAndPrivacy'), isTrue);
+    expect(settings.contains('Gate3MemoryPrivacyPage'), isFalse);
+    expect(settings.contains('l10n.memoryAndPrivacy'), isFalse);
+
+    final profile = _read(
+      'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
+    );
+    expect(profile.contains('Gate3ProfileMemoryControl'), isTrue);
 
     final privacy = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_memory_privacy_page.dart',
@@ -157,24 +162,18 @@ void main() {
     expect(push.contains('deviceId: installId'), isTrue);
   });
 
-  testWidgets('Memory invitation has explicit grant and no auto-grant',
-      (tester) async {
-    var grants = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Gate3MemoryConsentInvitation(
-            l10n: const Gate3Localization('en'),
-            onGrant: () => grants++,
-            onDismiss: () {},
-          ),
-        ),
-      ),
+  test('A3 Heart has no memory-consent invitation entry', () {
+    final page = _read(
+      'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(find.text(Gate3Localization('en').memoryConsentGrant), findsOneWidget);
-    expect(grants, 0);
-    await tester.tap(find.text(Gate3Localization('en').memoryConsentGrant));
-    await tester.pump();
-    expect(grants, 1);
+    expect(page.contains('Allow Memory'), isFalse);
+    expect(page.contains('memoryConsentGrant'), isFalse);
+    expect(page.contains('Gate3MemoryConsentInvitation'), isFalse);
+    expect(
+      File(
+        'lib/features/gate3_interactive/presentation/widgets/gate3_memory_consent_invitation.dart',
+      ).existsSync(),
+      isFalse,
+    );
   });
 }

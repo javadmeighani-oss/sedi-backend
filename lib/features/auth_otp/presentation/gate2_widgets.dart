@@ -340,36 +340,46 @@ class Gate2Widgets {
     required VoidCallback onPressed,
     bool fullWidth = true,
   }) {
-    return A2Layout.band(
-      maxWidth: A2Layout.primaryCtaMax,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: double.infinity,
-        height: A2Layout.primaryCtaHeight,
-        child: ElevatedButton(
-          onPressed: enabled ? onPressed : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
-            disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-            foregroundColor: AppTheme.gate2CardWhite,
-            disabledForegroundColor: AppTheme.gate2TextDisabled,
-            elevation: enabled ? 1 : 0,
-            shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
-            ),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: A2Layout.primaryCtaFontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+    final button = ElevatedButton(
+      onPressed: enabled ? onPressed : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor:
+            enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
+        disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
+        foregroundColor: AppTheme.gate2CardWhite,
+        disabledForegroundColor: AppTheme.gate2TextDisabled,
+        elevation: enabled ? 1 : 0,
+        shadowColor: Colors.black26,
+        minimumSize: Size(
+          fullWidth ? double.infinity : 0,
+          A2Layout.primaryCtaHeight,
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: A2Layout.primaryCtaFontSize,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
+    final animated = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: fullWidth ? double.infinity : null,
+      height: A2Layout.primaryCtaHeight,
+      child: button,
+    );
+    if (fullWidth) {
+      return A2Layout.band(
+        maxWidth: A2Layout.primaryCtaMax,
+        child: animated,
+      );
+    }
+    return Center(child: animated);
   }
 
   static Widget textField({
@@ -414,32 +424,36 @@ class Gate2Widgets {
   }) {
     return A2Layout.band(
       maxWidth: A2Layout.compactControlMax,
-      child: TextFormField(
-      controller: controller,
-      validator: validator,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-      ],
-      onChanged: onChanged,
-      readOnly: readOnly,
-      enableInteractiveSelection: !readOnly,
-      style: const TextStyle(
-        color: AppTheme.gate2TextPrimary,
-        fontSize: A2Layout.controlFontSize,
-      ),
-      decoration: _inputDecoration(hint, Icons.phone_outlined).copyWith(
-        prefixIcon: null,
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        prefix: Padding(
-          padding: const EdgeInsets.only(left: 4, right: 6),
-          child: _DialCodePrefix(
-            dialCode: dialCode,
-            enabled: dialCodeEnabled && !readOnly,
-            onChanged: onDialCodeChanged,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: TextFormField(
+          controller: controller,
+          validator: validator,
+          keyboardType: TextInputType.phone,
+          textDirection: TextDirection.ltr,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+          ],
+          onChanged: onChanged,
+          readOnly: readOnly,
+          enableInteractiveSelection: !readOnly,
+          style: const TextStyle(
+            color: AppTheme.gate2TextPrimary,
+            fontSize: A2Layout.controlFontSize,
+          ),
+          decoration: _inputDecoration(hint, Icons.phone_outlined).copyWith(
+            prefixIcon: null,
+            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            prefix: Padding(
+              padding: const EdgeInsets.only(left: 4, right: 6),
+              child: _DialCodePrefix(
+                dialCode: dialCode,
+                enabled: dialCodeEnabled && !readOnly,
+                onChanged: onDialCodeChanged,
+              ),
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -748,27 +762,31 @@ class _DialCodePrefix extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                dialCode.displayDial,
-                style: TextStyle(
-                  color: enabled
-                      ? AppTheme.gate2TextPrimary
-                      : AppTheme.gate2TextMuted,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  dialCode.displayDial,
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                    color: enabled
+                        ? AppTheme.gate2TextPrimary
+                        : AppTheme.gate2TextMuted,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: enabled
-                    ? AppTheme.gate2TextMuted
-                    : AppTheme.gate2TextDisabled,
-              ),
-            ],
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 18,
+                  color: enabled
+                      ? AppTheme.gate2TextMuted
+                      : AppTheme.gate2TextDisabled,
+                ),
+              ],
+            ),
           ),
         ),
       ),

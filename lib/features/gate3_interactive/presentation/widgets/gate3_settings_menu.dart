@@ -4,7 +4,6 @@ import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../gate3_localization.dart';
-import '../pages/gate3_memory_privacy_page.dart';
 import '../pages/gate3_profile_page.dart';
 
 /// Gate 3 settings sheet (profile + logout).
@@ -48,19 +47,6 @@ class Gate3SettingsMenu {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const Gate3ProfilePage(),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.privacy_tip_outlined),
-                  title: Text(l10n.memoryAndPrivacy),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const Gate3MemoryPrivacyPage(),
                       ),
                     );
                   },

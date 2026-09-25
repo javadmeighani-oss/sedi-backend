@@ -63,6 +63,39 @@ class Gate3Localization {
         ar: 'تعذر تحديث موافقة الذاكرة. حاول مرة أخرى.',
       );
 
+  String get memoryControlOn =>
+      _t(en: 'Memory on', fa: 'حافظه روشن', ar: 'الذاكرة قيد التشغيل');
+
+  String get memoryControlOff =>
+      _t(en: 'Memory off', fa: 'حافظه خاموش', ar: 'الذاكرة متوقفة');
+
+  String get memoryOffConfirmTitle => _t(
+        en: 'Turn off Sedi Memory?',
+        fa: 'خاموش کردن حافظه صدی؟',
+        ar: 'إيقاف ذاكرة سدي؟',
+      );
+
+  String get memoryOffConfirmBody => _t(
+        en:
+            'If you turn Memory off, Sedi will not store new conversation details for later use from this moment, and will not use stored memory for conversation continuity. Care continuity, personalization, and companion accuracy will decrease. Are you sure?',
+        fa:
+            'با خاموش کردن حافظه، از این لحظه صدی اطلاعات جدید گفتگو را برای استفاده در دفعات بعد ذخیره نمی‌کند و از حافظه ذخیره‌شده برای پیوستگی گفتگو استفاده نخواهد کرد. در نتیجه پیوستگی مراقبت، شخصی‌سازی و دقت همراهی صدی کاهش می‌یابد. آیا مطمئن هستید؟',
+        ar:
+            'بإيقاف الذاكرة، لن يخزّن سدي من هذه اللحظة تفاصيل المحادثة الجديدة للاستخدام لاحقًا ولن يستخدم الذاكرة المخزّنة لاستمرار المحادثة. لذلك تنخفض استمرارية الرعاية والتخصيص ودقة مرافقة سدي. هل أنت متأكد؟',
+      );
+
+  String get memoryOffConfirmKeepOn => _t(
+        en: 'No, keep Memory on',
+        fa: 'خیر، حافظه روشن بماند',
+        ar: 'لا، لتبقَ الذاكرة قيد التشغيل',
+      );
+
+  String get memoryOffConfirmTurnOff => _t(
+        en: 'Yes, turn Memory off',
+        fa: 'بله، حافظه خاموش شود',
+        ar: 'نعم، أوقف الذاكرة',
+      );
+
   String get editProfile => _t(
         en: 'Edit profile',
         fa: 'ویرایش پروفایل',

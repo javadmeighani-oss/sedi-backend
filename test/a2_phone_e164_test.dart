@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_phone_e164.dart';
 
@@ -95,6 +97,25 @@ void main() {
         A2PhoneE164.normalize(nationalInput: '2025551234', dialCode: us),
         isNot(startsWith('+98')),
       );
+    });
+
+    test('A2 phone field isolates digits and +98 as LTR; E.164 unchanged', () {
+      final widgets = File(
+        'lib/features/auth_otp/presentation/gate2_widgets.dart',
+      ).readAsStringSync();
+      final phoneStart = widgets.indexOf('static Widget phoneField');
+      final phoneEnd = widgets.indexOf('static InputDecoration _inputDecoration');
+      expect(phoneStart, greaterThan(0));
+      expect(phoneEnd, greaterThan(phoneStart));
+      final phoneField = widgets.substring(phoneStart, phoneEnd);
+      expect(phoneField.contains('Directionality('), isTrue);
+      expect(phoneField.contains('textDirection: TextDirection.ltr'), isTrue);
+
+      final e164 = File(
+        'lib/features/auth_otp/presentation/a2_phone_e164.dart',
+      ).readAsStringSync();
+      expect(e164.contains("'+98'"), isTrue);
+      expect(e164.contains(r'^\+98\d{10}$'), isTrue);
     });
   });
 }

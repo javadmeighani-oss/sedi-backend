@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/memory/memory_consent_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
@@ -23,7 +22,6 @@ import '../gate3_assistant_starter_bus.dart';
 import '../gate3_composer_draft_bus.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
-import '../widgets/gate3_memory_consent_invitation.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
@@ -70,10 +68,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   int? _unreadNotificationCount;
   StreamSubscription<void>? _inboxRefreshSub;
 
-  final MemoryConsentService _memoryConsent = MemoryConsentService();
-  bool _memoryConsentGranted = true;
-  bool _memoryInviteDismissed = false;
-  bool _memoryConsentBusy = false;
   bool _topTrayExpanded = false;
 
   @override
@@ -103,36 +97,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       _controller.insertPresentationAssistantMessage(text);
     });
     _refreshUnreadBadge();
-    _loadMemoryConsentInvitation();
     _subjects.loadAccessibleSubjects().then((_) {
       _syncChatSubject();
       _controller.initialize(
         initialMessage: widget.initialMessage,
         notificationId: widget.notificationId,
       );
-    });
-  }
-
-  Future<void> _loadMemoryConsentInvitation() async {
-    final res = await _memoryConsent.fetchStatus();
-    if (!mounted) return;
-    // Invitation only when I6 explicitly reports not granted.
-    // Fetch failure does not infer grant and does not invent consent.
-    if (res.ok && res.data != null) {
-      setState(() => _memoryConsentGranted = res.data!.granted);
-    }
-  }
-
-  Future<void> _grantMemoryConsentFromInvitation() async {
-    if (_memoryConsentBusy) return;
-    setState(() => _memoryConsentBusy = true);
-    final res = await _memoryConsent.grant();
-    if (!mounted) return;
-    setState(() {
-      _memoryConsentBusy = false;
-      if (res.ok && res.data != null && res.data!.granted) {
-        _memoryConsentGranted = true;
-      }
     });
   }
 
@@ -333,17 +303,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   ),
                 ),
                 const SizedBox(height: 4),
-                if (!_memoryConsentGranted && !_memoryInviteDismissed)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                    child: Gate3MemoryConsentInvitation(
-                      l10n: l10n,
-                      busy: _memoryConsentBusy,
-                      onGrant: _grantMemoryConsentFromInvitation,
-                      onDismiss: () =>
-                          setState(() => _memoryInviteDismissed = true),
-                    ),
-                  ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),

@@ -40,7 +40,7 @@ void main() {
     expect(page.contains('Expanded('), isTrue);
     expect(page.contains('Gate3Composer'), isTrue);
     expect(page.contains('Gate3ReturnToLatestButton'), isTrue);
-    expect(page.contains('Gate3MemoryConsentInvitation'), isTrue);
+    expect(page.contains('Gate3MemoryConsentInvitation'), isFalse);
     expect(page.contains('late final ChatController _controller'), isTrue);
     expect(page.contains('_topTrayExpanded'), isTrue);
     expect(page.contains('sendUserMessage(widget.initialDraft'), isFalse);
