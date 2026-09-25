@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import func
 
 from backend.app import models
+from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
 from backend.app.services.i10.daily_wellness_digest import (
     DailyWellnessDataStatus,
     assemble_daily_wellness_digest_facts,
@@ -18,7 +19,9 @@ from backend.app.services.i10.daily_wellness_digest import (
     enqueue_daily_wellness_digest,
     render_digest_body,
 )
-from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+from backend.app.services.i10.intake import evaluate_foundation_policy
+from backend.app.services.i10.policy_types import I10DecisionValue, I10PrivacyClass, I10SemanticFamily
+from backend.app.services.i10.provider_delivery_policy import apply_i10_provider_lifetime
 from backend.app.services.i9.health_subject_service import (
     create_managed_subject_without_account,
     ensure_self_subject_for_account,
@@ -38,6 +41,37 @@ _GATE4_PATCH = patch(
 def gate4_patch():
     with _GATE4_PATCH:
         yield
+
+
+_MORNING_WINDOW_NOW = datetime(2026, 8, 31, 4, 30, tzinfo=timezone.utc)
+
+
+def _foundation_at_morning_window(*, candidate, authorized):
+    if not authorized:
+        return evaluate_foundation_policy(candidate=candidate, authorized=authorized)
+    if candidate.expires_at is not None and candidate.expires_at <= _MORNING_WINDOW_NOW:
+        return I10DecisionValue.EXPIRE, "CANDIDATE_EXPIRED"
+    return I10DecisionValue.SEND, "FOUNDATION_SEND"
+
+
+@pytest.fixture
+def morning_window_now():
+    """Align B11 Morning compatibility creates with the canonical Gate4 window."""
+    with patch(
+        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
+        side_effect=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=_MORNING_WINDOW_NOW
+        ),
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_foundation_policy",
+        side_effect=_foundation_at_morning_window,
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_i10_canonical_policy",
+        side_effect=lambda db, **kwargs: evaluate_i10_canonical_policy(
+            db, **{**kwargs, "now_utc": _MORNING_WINDOW_NOW}
+        ),
+    ):
+        yield _MORNING_WINDOW_NOW
 
 
 def _user(db, name: str = "digest-user", *, lang: str = "en") -> models.User:
@@ -494,7 +528,7 @@ def test_managed_subject_not_substituted(db, gate4_patch):
 # --- Morning compatibility ---
 
 
-def test_morning_check_in_regression_preserved(db, gate4_patch):
+def test_morning_check_in_regression_preserved(db, gate4_patch, morning_window_now):
     user, subject = _self_setup(db)
     when = _when()
     morning = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=when)
@@ -505,7 +539,7 @@ def test_morning_check_in_regression_preserved(db, gate4_patch):
     assert decision.semantic_family == I10SemanticFamily.MORNING_CHECK_IN.value
 
 
-def test_morning_and_digest_distinct_occurrences_no_collision(db, gate4_patch):
+def test_morning_and_digest_distinct_occurrences_no_collision(db, gate4_patch, morning_window_now):
     user, subject = _self_setup(db)
     when = _when()
     _rollup(db, user, subject, when)
