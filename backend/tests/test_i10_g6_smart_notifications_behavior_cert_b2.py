@@ -55,7 +55,11 @@ from backend.app.services.i10.medication_adherence import (
     MedicationAdherenceState,
     confirm_dose_taken_by_notification,
 )
-from backend.app.services.i10.policy_types import I10NotificationScope, I10SemanticFamily
+from backend.app.services.i10.policy_types import (
+    I10DecisionValue,
+    I10NotificationScope,
+    I10SemanticFamily,
+)
 from backend.app.services.i8.local_day import resolve_local_day_window
 from backend.app.services.i8.repository import I8OperationalRepository
 from backend.app.services.i9.device_packet_service import (
@@ -368,7 +372,42 @@ def test_n56_h02_correct_self_ids(db, gate4_patch):
     notif = DecisionEngine(db).create_daily_wellness_digest(user_id=user.id, scheduled_for=when)
     assert notif.user_id == user.id and notif.health_subject_id == subject.id
     morning = DecisionEngine(db).create_morning_brief(user_id=user.id, scheduled_for=when)
-    assert morning is not None and morning.health_subject_id == subject.id
+    morning_decisions = (
+        db.query(models.I10NotificationDecision)
+        .filter(
+            models.I10NotificationDecision.recipient_user_id == user.id,
+            models.I10NotificationDecision.health_subject_id == subject.id,
+            models.I10NotificationDecision.semantic_family
+            == I10SemanticFamily.MORNING_CHECK_IN.value,
+        )
+        .order_by(models.I10NotificationDecision.id.desc())
+        .all()
+    )
+    assert morning_decisions, "I10 must persist a MORNING_CHECK_IN decision for this SELF pair"
+    morning_decision = morning_decisions[0]
+    assert morning_decision.recipient_user_id == user.id
+    assert morning_decision.health_subject_id == subject.id
+    assert (
+        db.query(models.I10NotificationDecision)
+        .filter(
+            models.I10NotificationDecision.semantic_family
+            == I10SemanticFamily.MORNING_CHECK_IN.value,
+            models.I10NotificationDecision.recipient_user_id != user.id,
+        )
+        .count()
+        == 0
+    )
+    if morning is None:
+        # Canonical I10 lifetime: apply_i10_provider_lifetime stamps expires_at to
+        # the current morning-window end using wall-clock now (not scheduled_for).
+        # Outside that window, foundation/canonical policy EXPIRE + CANDIDATE_EXPIRED.
+        assert morning_decision.decision == I10DecisionValue.EXPIRE
+        assert morning_decision.reason_code == "CANDIDATE_EXPIRED"
+        assert morning_decision.notification_id is None
+    else:
+        assert morning.user_id == user.id
+        assert morning.health_subject_id == subject.id
+        assert morning_decision.decision == I10DecisionValue.SEND
     _mark("N56-H02_CORRECT_SELF_ACCOUNT_AND_HEALTHSUBJECT")
 
 
