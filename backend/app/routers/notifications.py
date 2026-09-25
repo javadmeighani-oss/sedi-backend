@@ -181,6 +181,24 @@ def admin_test_push(
             ok=False,
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
+    from backend.app.services.notifications.delivery_service import provider_delivery_enabled
+
+    if provider_delivery_enabled():
+        _log.info(
+            "[E2E] admin test_push blocked before persist user_id=%s reason=PROVIDER_DELIVERY_ENABLED",
+            body.user_id,
+        )
+        return APIResponse(
+            ok=True,
+            data={
+                "blocked": True,
+                "reasons": ["TEST_PUSH_PROVIDER_ROW_BLOCKED"],
+                "notification_id": None,
+                "channel": body.channel,
+                "delivered": False,
+                "sent_count": 0,
+            },
+        )
     import uuid
     now = datetime.utcnow()
     lang = user.preferred_language or "en"

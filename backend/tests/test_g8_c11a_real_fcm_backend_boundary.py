@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional, Tuple
 from unittest.mock import patch
 from uuid import uuid4
@@ -113,6 +113,40 @@ def _care_notif(db, *, fam, semantic=I10SemanticFamily.CARE_STATUS_DIGEST.value)
     db.commit()
     db.refresh(n)
     return n
+
+
+def _attach_i10_provider_authority(
+    db,
+    notif: models.Notification,
+    *,
+    recipient_user_id: int,
+    family: str,
+    expires_at=None,
+) -> models.I10NotificationDecision:
+    """Test-fixture I10 link for real FCMAdapter semantics. Does not change core asserts."""
+    from datetime import timezone as _tz
+
+    row = models.I10NotificationDecision(
+        candidate_key=f"g8-i10-{notif.id}-{uuid4().hex[:8]}",
+        health_subject_id=notif.health_subject_id,
+        recipient_user_id=recipient_user_id,
+        source_owner="G8_TEST",
+        source_type="fcm_boundary",
+        source_id=str(notif.id),
+        semantic_family=family,
+        decision="SEND",
+        reason_code="POLICY_ALLOW",
+        expires_at=expires_at or (datetime.now(_tz.utc) + timedelta(hours=2)),
+        notification_id=notif.id,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    notif.i10_policy_decision_id = row.id
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+    return row
 
 
 def _self_notif(db, *, fam, semantic=I10SemanticFamily.DAILY_WELLNESS_DIGEST.value) -> models.Notification:
@@ -362,6 +396,12 @@ def test_c11a_09_invalid_unregistered_token_safe(db, monkeypatch):
     _harness_safe_db(db, monkeypatch)
     fam = seed_stage_b_family(db, commit=True)
     notif = _self_notif(db, fam=fam)
+    _attach_i10_provider_authority(
+        db,
+        notif,
+        recipient_user_id=fam.son.id,
+        family=notif.semantic_family or I10SemanticFamily.DAILY_WELLNESS_DIGEST.value,
+    )
     tok = _get_fcm_tokens_for_user(db, fam.son.id)[0]
     err_body = json.dumps(
         {

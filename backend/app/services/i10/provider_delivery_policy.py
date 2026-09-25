@@ -234,11 +234,6 @@ def apply_i10_provider_lifetime(
     )
     if expires_at is None:
         return candidate
-    if expires_at <= now:
-        # Do not persist a past I10 default. That would convert an otherwise
-        # eligible enqueue into foundation EXPIRE. Provider-time revalidation
-        # still computes the same window from created_at/valid_from.
-        return candidate
     valid_from = candidate.valid_from
     if valid_from is None:
         if _family_value(candidate.semantic_family) == _I10_OWNED_MORNING:
@@ -398,13 +393,12 @@ def evaluate_notification_provider_freshness(
 ) -> ProviderFreshnessDecision:
     decision = resolve_linked_i10_decision(db, notification)
     if not notification_is_i10_linked(notification, decision):
-        ttl = getattr(notification, "ttl_seconds", None)
         return ProviderFreshnessDecision(
-            outcome=ProviderFreshnessOutcome.ALLOW,
-            reason_code="LEGACY_UNLINKED_NO_I10_LIFETIME",
+            outcome=ProviderFreshnessOutcome.BLOCK,
+            reason_code="MISSING_I10_PROVIDER_AUTHORITY",
             expires_at=None,
             remaining_seconds=None,
-            effective_fcm_ttl=ttl if ttl is not None else None,
+            effective_fcm_ttl=None,
             i10_decision_id=None,
             original_i10_decision=None,
             invented_validity=False,
@@ -433,6 +427,27 @@ def evaluate_notification_provider_freshness(
         i10_decision_id=int(decision.id),
         original_i10_decision=decision.decision,
         allow_compute_i10_owned_from_start=True,
+    )
+
+
+def recipient_provider_block_reason(
+    db: Session,
+    notification: models.Notification,
+) -> Optional[str]:
+    """Reuse canonical AHSA/HSNG/prefs/device revalidation. SELF returns None."""
+    from backend.app.services.i10.recipient_eligibility import (
+        evaluate_provider_send_authorization,
+    )
+
+    authz = evaluate_provider_send_authorization(db, notification)
+    if authz is None:
+        return None
+    if authz.eligible and authz.delivery_ready:
+        return None
+    return (
+        authz.delivery_reason_code
+        or authz.reason_code
+        or "PROVIDER_SEND_AUTHZ_DENIED"
     )
 
 

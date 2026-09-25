@@ -24,6 +24,7 @@ on:
       - "backend/tests/test_i10_b15_*.py"
       - "backend/tests/test_i10_b16_*.py"
       - "backend/tests/test_i10_provider_freshness_authority_v1.py"
+      - "backend/tests/test_g8_c11a_real_fcm_backend_boundary.py"
       - "backend/app/services/i10/provider_delivery_policy.py"
       - ".github/workflows/stage-a-individual-i1-i10-acceptance.yml"
 
@@ -184,6 +185,15 @@ jobs:
             backend/tests/test_i10_b16_care_safety_escalation.py \
             backend/tests/test_i10_b16_a01_i4_authority_seam.py \
             | tee /tmp/stage_a_evidence/i10.txt
+      - name: G8-C11A real FCM backend boundary (PG16/086)
+        env:
+          SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED: "true"
+        run: |
+          set -euo pipefail
+          python /tmp/stage_a_fresh_migrate.py
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g8_c11a_real_fcm_backend_boundary.py \
+            | tee /tmp/stage_a_evidence/g8_c11a.txt
       - name: Upload Stage A evidence
         if: always()
         uses: actions/upload-artifact@v4

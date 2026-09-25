@@ -24,6 +24,7 @@ from backend.app.services.gate4.scheduler_timing import (
 from backend.app.services.i10.contracts import I10NotificationCandidate
 from backend.app.services.i10.intake import enqueue_i10_notification
 from backend.app.services.i10.policy_types import (
+    I10DecisionValue,
     I10NotificationScope,
     I10PrivacyClass,
     I10SemanticFamily,
@@ -42,6 +43,7 @@ from backend.app.services.i9.health_subject_service import ensure_self_subject_f
 from backend.app.services.notifications.delivery_service import (
     DeliveryService,
     FCMAdapter,
+    is_real_fcm_adapter,
     provider_delivery_enabled,
 )
 from backend.app.services.notification_runtime.templates_v1 import TEMPLATES_V1
@@ -71,6 +73,38 @@ class RecordingFCMAdapter:
         notification.sent_at = datetime.utcnow()
         notification.last_error = None
         return True
+
+
+def _android_token(db, user: models.User) -> models.PushDevice:
+    row = models.PushDevice(
+        user_id=user.id,
+        platform="android",
+        fcm_token=("fcm-auth-" + uuid4().hex + "x" * 80)[:96],
+        is_active=True,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def _deliver_via_fcm_adapter(db, monkeypatch):
+    captured: list[dict] = []
+
+    def _fake_send(**kwargs):
+        captured.append(kwargs)
+        tokens = kwargs.get("tokens") or ["tok"]
+        return (1, [(tokens[0], "mock", None)])
+
+    monkeypatch.setenv(_GATE, "true")
+    with patch(
+        "backend.app.services.notifications.fcm_client.send_push_to_tokens",
+        side_effect=_fake_send,
+    ):
+        sent = DeliveryService(db=db, adapter=FCMAdapter(db=db, timeout_sec=1)).deliver_pending(
+            limit=10
+        )
+    return sent, captured
 
 
 def _user(db, name: str, *, tz: str | None = None, lang: str = "en") -> models.User:
@@ -275,14 +309,78 @@ def test_b_morning_reuses_canonical_scheduler_window(db):
     assert local_end == datetime(2026, 9, 25, 4, 40, tzinfo=timezone.utc)
 
 
-def test_b_morning_does_not_stamp_past_window_at_enqueue(db):
+def test_b_morning_past_window_stamps_expiry_and_intake_expires(db):
     user = _user(db, "morning-past", tz="Asia/Tehran")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
     db.add(models.NotificationPrefs(user_id=user.id, daily_notification_time="08:00"))
     db.commit()
     now = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)  # after 08:10 Tehran
-    cand = _candidate(subject_id=1, recipient_id=user.id, family=I10SemanticFamily.MORNING_CHECK_IN)
+    cand = _candidate(
+        subject_id=subject.id,
+        recipient_id=user.id,
+        family=I10SemanticFamily.MORNING_CHECK_IN,
+    )
     stamped = apply_i10_provider_lifetime(db, cand, now_utc=now)
-    assert stamped.expires_at is None
+    assert stamped.expires_at is not None
+    assert stamped.expires_at <= now
+    payload = NotificationPayload(
+        user_id=user.id,
+        type="morning_brief",
+        title="T",
+        body="B",
+        priority="normal",
+        dedupe_key=f"morning-past-{uuid4().hex}",
+        health_subject_id=subject.id,
+        semantic_family=I10SemanticFamily.MORNING_CHECK_IN.value,
+    )
+    with patch(
+        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
+        wraps=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=now
+        ),
+    ):
+        result = enqueue_i10_notification(db, candidate=cand, payload=payload)
+    assert result.decision == I10DecisionValue.EXPIRE
+    assert result.notification_id is None
+    row = db.query(models.I10NotificationDecision).filter_by(id=result.decision_id).one()
+    assert row.expires_at is not None
+    assert row.decision == "EXPIRE"
+    assert db.query(models.Notification).filter_by(user_id=user.id).count() == 0
+
+
+def test_b_morning_fresh_window_remains_valid(db):
+    user = _user(db, "morning-fresh", tz="Asia/Tehran")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    db.add(models.NotificationPrefs(user_id=user.id, daily_notification_time="08:00"))
+    db.commit()
+    now = datetime(2026, 9, 25, 4, 30, tzinfo=timezone.utc)  # 08:00 Tehran
+    cand = _candidate(
+        subject_id=subject.id,
+        recipient_id=user.id,
+        family=I10SemanticFamily.MORNING_CHECK_IN,
+    )
+    payload = NotificationPayload(
+        user_id=user.id,
+        type="morning_brief",
+        title="T",
+        body="B",
+        priority="normal",
+        dedupe_key=f"morning-fresh-{uuid4().hex}",
+        health_subject_id=subject.id,
+        semantic_family=I10SemanticFamily.MORNING_CHECK_IN.value,
+    )
+    with patch(
+        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
+        wraps=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=now
+        ),
+    ):
+        result = enqueue_i10_notification(db, candidate=cand, payload=payload)
+    assert result.decision == I10DecisionValue.SEND
+    assert result.notification_id is not None
+    row = db.query(models.I10NotificationDecision).filter_by(id=result.decision_id).one()
+    assert row.expires_at is not None
+    assert row.expires_at > now
 
 
 def test_c_daily_wellness_expires_at_local_day_boundary(db):
@@ -297,15 +395,13 @@ def test_c_daily_wellness_expires_at_local_day_boundary(db):
 
 
 def test_d_missing_i8_expiry_blocks_real_fcm(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "miss-i8")
     decision = _decision(db, user, family=I10SemanticFamily.MEDICATION_DUE.value, expires_at=None)
     _queued(db, user, decision=decision, family=I10SemanticFamily.MEDICATION_DUE.value)
-    adapter = RecordingFCMAdapter()
-    sent = DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
     assert sent == 0
-    assert adapter.calls == 0
+    assert captured == []
     assert notif.status == "queued"
     assert notif.is_sent is False
     assert "MISSING_I8_SOURCE_EXPIRY" in (notif.last_error or "")
@@ -315,27 +411,25 @@ def test_d_missing_i8_expiry_blocks_real_fcm(db, monkeypatch):
 
 
 def test_d_missing_i9_validity_blocks_real_fcm(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "miss-i9")
     decision = _decision(db, user, family=I10SemanticFamily.DEVICE_STATUS.value, expires_at=None)
     _queued(db, user, decision=decision, family=I10SemanticFamily.DEVICE_STATUS.value)
-    adapter = RecordingFCMAdapter()
-    DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
-    assert adapter.calls == 0
+    assert sent == 0
+    assert captured == []
     assert "MISSING_I9_SOURCE_VALIDITY" in (notif.last_error or "")
     assert notif.status == "queued"
 
 
 def test_d_missing_i4_safety_expiry_blocks_real_fcm(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "miss-i4")
     decision = _decision(db, user, family=I10SemanticFamily.SAFETY_ESCALATION.value, expires_at=None)
     _queued(db, user, decision=decision, family=I10SemanticFamily.SAFETY_ESCALATION.value)
-    adapter = RecordingFCMAdapter()
-    DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
-    assert adapter.calls == 0
+    assert sent == 0
+    assert captured == []
     assert "MISSING_I4_SAFETY_EXPIRY" in (notif.last_error or "")
     assert notif.status == "queued"
 
@@ -354,8 +448,8 @@ def test_d_i10_does_not_fabricate_upstream_validity(db):
 
 
 def test_e_fresh_adapter_may_send(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "fresh-send")
+    _android_token(db, user)
     now = datetime.now(timezone.utc)
     decision = _decision(
         db,
@@ -364,17 +458,15 @@ def test_e_fresh_adapter_may_send(db, monkeypatch):
         expires_at=now + timedelta(hours=2),
     )
     _queued(db, user, decision=decision)
-    adapter = RecordingFCMAdapter()
-    sent = DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
     assert sent == 1
-    assert adapter.calls == 1
+    assert len(captured) == 1
     assert notif.status == "sent"
     assert notif.is_sent is True
 
 
 def test_e_expired_not_sent_and_second_run_does_not_resend(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "stale-exp")
     now = datetime.now(timezone.utc)
     decision = _decision(
@@ -387,11 +479,10 @@ def test_e_expired_not_sent_and_second_run_does_not_resend(db, monkeypatch):
     original_decision = decision.decision
     original_reason = decision.reason_code
     _queued(db, user, decision=decision)
-    adapter = RecordingFCMAdapter()
-    svc = DeliveryService(db=db, adapter=adapter)
-    assert svc.deliver_pending(limit=10) == 0
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
-    assert adapter.calls == 0
+    assert sent == 0
+    assert captured == []
     assert notif.status == "expired"
     assert notif.is_sent is False
     assert notif.sent_at is None
@@ -400,16 +491,17 @@ def test_e_expired_not_sent_and_second_run_does_not_resend(db, monkeypatch):
     refreshed = db.query(models.I10NotificationDecision).filter_by(id=decision.id).one()
     assert refreshed.decision == original_decision
     assert refreshed.reason_code == original_reason
-    assert svc.deliver_pending(limit=10) == 0
-    assert adapter.calls == 0
+    sent2, captured2 = _deliver_via_fcm_adapter(db, monkeypatch)
+    assert sent2 == 0
+    assert captured2 == []
     notif2 = db.query(models.Notification).one()
     assert notif2.status == "expired"
     assert notif2.is_sent is False
 
 
 def test_f_fresh_critical_may_preserve_quiet_hours_bypass(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "crit-fresh")
+    _android_token(db, user)
     now = datetime.now(timezone.utc)
     decision = _decision(
         db,
@@ -424,18 +516,16 @@ def test_f_fresh_critical_may_preserve_quiet_hours_bypass(db, monkeypatch):
         priority="critical",
         risk_level="critical",
     )
-    adapter = RecordingFCMAdapter()
     with patch(
         "backend.app.services.gate4.policy_resolver.evaluate_delivery_with_gate4_policy",
         return_value=(True, MagicMock()),
     ):
-        sent = DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+        sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     assert sent == 1
-    assert adapter.calls == 1
+    assert len(captured) == 1
 
 
 def test_f_stale_critical_must_not_send(db, monkeypatch):
-    monkeypatch.setenv(_GATE, "true")
     user = _user(db, "crit-stale")
     now = datetime.now(timezone.utc)
     decision = _decision(
@@ -451,15 +541,14 @@ def test_f_stale_critical_must_not_send(db, monkeypatch):
         priority="critical",
         risk_level="critical",
     )
-    adapter = RecordingFCMAdapter()
     with patch(
         "backend.app.services.gate4.policy_resolver.evaluate_delivery_with_gate4_policy",
         return_value=(True, MagicMock()),
     ):
-        sent = DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+        sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
     notif = db.query(models.Notification).one()
     assert sent == 0
-    assert adapter.calls == 0
+    assert captured == []
     assert notif.status == "expired"
     assert notif.is_sent is False
 
@@ -630,30 +719,103 @@ def test_k_templates_v1_ar_gaps_documented():
     ]
 
 
-def test_test_push_does_not_flush_backlog_when_provider_enabled(client, db, monkeypatch):
+def test_a_unlinked_real_fcm_blocks_zero_http(db, monkeypatch):
+    user = _user(db, "unlinked-real")
+    _android_token(db, user)
+    _queued(db, user)
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
+    notif = db.query(models.Notification).one()
+    assert sent == 0
+    assert captured == []
+    assert notif.is_sent is False
+    assert notif.status == "queued"
+    assert "MISSING_I10_PROVIDER_AUTHORITY" in (notif.last_error or "")
+    ev = evaluate_notification_provider_freshness(db, notif)
+    assert ev.outcome == ProviderFreshnessOutcome.BLOCK
+    assert ev.reason_code == "MISSING_I10_PROVIDER_AUTHORITY"
+
+
+def test_b_counting_adapter_channel_fcm_is_not_real_provider(db, monkeypatch):
+    monkeypatch.setenv(_GATE, "true")
+    user = _user(db, "count-false")
+    _queued(db, user)
+    adapter = RecordingFCMAdapter()
+    assert adapter.channel == "fcm"
+    assert is_real_fcm_adapter(adapter) is False
+    sent = DeliveryService(db=db, adapter=adapter).deliver_pending(limit=10)
+    notif = db.query(models.Notification).one()
+    assert sent == 1
+    assert adapter.calls == 1
+    assert notif.is_sent is True
+
+
+def test_c_fcm_adapter_direct_call_cannot_bypass_i10(db, monkeypatch):
+    monkeypatch.setenv(_GATE, "true")
+    user = _user(db, "direct-fcm")
+    _android_token(db, user)
+    notif = _queued(db, user)
+    captured = []
+
+    def _fake_send(**kwargs):
+        captured.append(kwargs)
+        return (1, [(kwargs["tokens"][0], "mock", None)])
+
+    adapter = FCMAdapter(db=db, timeout_sec=1)
+    with patch(
+        "backend.app.services.notifications.fcm_client.send_push_to_tokens",
+        side_effect=_fake_send,
+    ):
+        ok = adapter.send(notif)
+    assert ok is False
+    assert captured == []
+    assert notif.is_sent is False
+    assert "MISSING_I10_PROVIDER_AUTHORITY" in (notif.last_error or "")
+
+
+def test_test_push_provider_on_creates_no_row(client, db, monkeypatch):
     monkeypatch.setenv(_GATE, "true")
     monkeypatch.setenv("ADMIN_TOKEN", "admin-fresh")
-    user = _user(db, "flush-risk")
-    now = datetime.now(timezone.utc)
-    decision = _decision(
-        db,
-        user,
-        family=I10SemanticFamily.PRESENCE_REENGAGEMENT.value,
-        expires_at=now + timedelta(hours=1),
-    )
-    leftover = _queued(db, user, decision=decision)
+    user = _user(db, "push-on")
+    before = db.query(models.Notification).count()
     with patch.object(DeliveryService, "deliver_pending", return_value=99) as deliver:
         r = client.post(
-            f"/notifications/admin/test_push?deliver=true",
+            "/notifications/admin/test_push?deliver=true",
             headers={"X-Admin-Token": "admin-fresh"},
             json={"user_id": user.id, "channel": "engagement", "priority": "normal"},
         )
     assert r.status_code == 200
-    assert r.json()["data"]["sent_count"] == 0
+    body = r.json()["data"]
+    assert body["blocked"] is True
+    assert "TEST_PUSH_PROVIDER_ROW_BLOCKED" in body["reasons"]
+    assert body["notification_id"] is None
+    assert body["sent_count"] == 0
     assert deliver.call_count == 0
-    leftover = db.query(models.Notification).filter_by(id=leftover.id).one()
+    assert db.query(models.Notification).count() == before
+
+
+def test_test_push_legacy_row_cannot_cross_real_fcm_later(client, db, monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", "admin-fresh")
+    monkeypatch.delenv(_GATE, raising=False)
+    user = _user(db, "push-legacy")
+    _android_token(db, user)
+    r = client.post(
+        "/notifications/admin/test_push",
+        headers={"X-Admin-Token": "admin-fresh"},
+        json={"user_id": user.id, "channel": "engagement", "priority": "normal"},
+    )
+    assert r.status_code == 200
+    notif_id = r.json()["data"]["notification_id"]
+    assert notif_id is not None
+    leftover = db.query(models.Notification).filter_by(id=notif_id).one()
     assert leftover.status == "queued"
+    assert leftover.i10_policy_decision_id is None
+    sent, captured = _deliver_via_fcm_adapter(db, monkeypatch)
+    leftover = db.query(models.Notification).filter_by(id=notif_id).one()
+    assert sent == 0
+    assert captured == []
     assert leftover.is_sent is False
+    assert leftover.status != "sent"
+    assert "MISSING_I10_PROVIDER_AUTHORITY" in (leftover.last_error or "")
 
 
 def test_provider_freshness_evaluate_does_not_mark_clinical_failure(db):

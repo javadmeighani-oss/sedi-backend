@@ -55,6 +55,11 @@ class LoggingOnlyAdapter:
 default_logging_adapter = LoggingOnlyAdapter()
 
 
+def is_real_fcm_adapter(adapter: object) -> bool:
+    """Authoritative real-FCM identity. channel=='fcm' on a mock is not sufficient."""
+    return isinstance(adapter, FCMAdapter)
+
+
 # -------------------- Stage 16.6: FCM Adapter --------------------
 def _get_fcm_tokens_for_user(db: Session, user_id: int, limit: int = 10) -> list:
     """Return list of active FCM tokens for user (android)."""
@@ -87,14 +92,24 @@ class FCMAdapter:
             evaluate_notification_provider_freshness,
             persist_provider_expired,
             read_transient_fcm_ttl,
+            recipient_provider_block_reason,
         )
 
+        if not provider_delivery_enabled():
+            notification.last_error = "provider_policy_blocked:PROVIDER_DELIVERY_DISABLED"[:500]
+            return False
         freshness = evaluate_notification_provider_freshness(self.db, notification)
         if freshness.outcome == ProviderFreshnessOutcome.EXPIRE:
             persist_provider_expired(notification, reason_code=freshness.reason_code)
             return False
         if freshness.outcome == ProviderFreshnessOutcome.BLOCK:
             notification.last_error = f"provider_policy_blocked:{freshness.reason_code}"[:500]
+            return False
+        authz_reason = recipient_provider_block_reason(self.db, notification)
+        if authz_reason:
+            notification.status = "failed"
+            notification.is_sent = False
+            notification.last_error = f"provider_send_blocked:{authz_reason}"[:500]
             return False
         effective_ttl = read_transient_fcm_ttl(notification)
         if effective_ttl is None:
@@ -342,8 +357,7 @@ class DeliveryService:
 
         sent_count = 0
         for notification in pending:
-            is_real_fcm = getattr(self.adapter, "channel", None) == "fcm"
-            if is_real_fcm:
+            if is_real_fcm_adapter(self.adapter):
                 from backend.app.services.i10.provider_delivery_policy import (
                     ProviderFreshnessOutcome,
                     attach_transient_fcm_ttl,
@@ -405,19 +419,12 @@ class DeliveryService:
 
             # Provider-send care-network revalidation (AHSA/HSNG/prefs/device).
             # SELF notifications (linked_user_id == recipient) skip this check.
-            from backend.app.services.i10.recipient_eligibility import (
-                evaluate_provider_send_authorization,
+            from backend.app.services.i10.provider_delivery_policy import (
+                recipient_provider_block_reason,
             )
 
-            provider_authz = evaluate_provider_send_authorization(self.db, notification)
-            if provider_authz is not None and (
-                not provider_authz.eligible or not provider_authz.delivery_ready
-            ):
-                reason = (
-                    provider_authz.delivery_reason_code
-                    or provider_authz.reason_code
-                    or "PROVIDER_SEND_AUTHZ_DENIED"
-                )
+            reason = recipient_provider_block_reason(self.db, notification)
+            if reason:
                 notification.status = "failed"
                 notification.is_sent = False
                 notification.last_error = f"provider_send_blocked:{reason}"[:500]

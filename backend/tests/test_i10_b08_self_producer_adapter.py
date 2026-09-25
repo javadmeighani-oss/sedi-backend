@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,6 +12,7 @@ from sqlalchemy import func
 
 from backend.app import models
 from backend.app.services.i10.policy_types import I10SemanticFamily
+from backend.app.services.i10.provider_delivery_policy import apply_i10_provider_lifetime
 from backend.app.services.i9.health_subject_service import (
     create_managed_subject_without_account,
     ensure_self_subject_for_account,
@@ -32,6 +33,21 @@ def gate4_patch():
         yield
 
 
+_MORNING_WINDOW_NOW = datetime(2026, 8, 31, 4, 30, tzinfo=timezone.utc)
+
+
+@pytest.fixture
+def morning_window_now():
+    """Align B08 DecisionEngine morning creates with the canonical Gate4 window."""
+    with patch(
+        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
+        side_effect=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=_MORNING_WINDOW_NOW
+        ),
+    ):
+        yield _MORNING_WINDOW_NOW
+
+
 def _user(db, name: str, *, lang: str = "en") -> models.User:
     row = models.User(name=name, secret_key=f"sk-{name}", preferred_language=lang)
     db.add(row)
@@ -50,7 +66,7 @@ def _engine(db) -> DecisionEngine:
     return DecisionEngine(db)
 
 
-def test_morning_eligible_uses_i10_intake(db, gate4_patch):
+def test_morning_eligible_uses_i10_intake(db, gate4_patch, morning_window_now):
     user, subject = _self_setup(db)
     when = datetime(2026, 8, 31, 9, 0, 0)
     with patch.object(NotificationBuilder, "persist", wraps=NotificationBuilder(db).persist) as mock_persist:
@@ -66,7 +82,7 @@ def test_morning_eligible_uses_i10_intake(db, gate4_patch):
     assert mock_persist.call_count >= 1
 
 
-def test_morning_exactly_one_notification(db, gate4_patch):
+def test_morning_exactly_one_notification(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     when = datetime(2026, 8, 31, 9, 0, 0)
     _engine(db).create_morning_brief(user_id=user.id, scheduled_for=when)
@@ -74,7 +90,7 @@ def test_morning_exactly_one_notification(db, gate4_patch):
     assert count == 1
 
 
-def test_morning_decision_ledger_created(db, gate4_patch):
+def test_morning_decision_ledger_created(db, gate4_patch, morning_window_now):
     user, subject = _self_setup(db)
     when = datetime(2026, 8, 31, 9, 0, 0)
     notif = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=when)
@@ -85,7 +101,7 @@ def test_morning_decision_ledger_created(db, gate4_patch):
     assert row.recipient_user_id == user.id
 
 
-def test_morning_same_occurrence_duplicate_blocked(db, gate4_patch):
+def test_morning_same_occurrence_duplicate_blocked(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     when = datetime(2026, 8, 31, 9, 0, 0)
     first = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=when)
@@ -96,7 +112,7 @@ def test_morning_same_occurrence_duplicate_blocked(db, gate4_patch):
     assert count == 1
 
 
-def test_morning_next_day_allowed(db, gate4_patch):
+def test_morning_next_day_allowed(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     d1 = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 9, 0, 0))
     d2 = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=datetime(2026, 9, 1, 9, 0, 0))
@@ -104,7 +120,7 @@ def test_morning_next_day_allowed(db, gate4_patch):
     assert d1.id != d2.id
 
 
-def test_morning_no_parallel_legacy_persist(db, gate4_patch):
+def test_morning_no_parallel_legacy_persist(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     engine = _engine(db)
     with patch.object(engine.builder, "persist") as mock_legacy:
@@ -191,14 +207,14 @@ def test_engagement_per_occurrence_dedupe(db, gate4_patch):
     assert _engine(db).create_engagement_nudge(user_id=user.id, scheduled_for=when) is None
 
 
-def test_self_recipient_account(db, gate4_patch):
+def test_self_recipient_account(db, gate4_patch, morning_window_now):
     user, subject = _self_setup(db)
     notif = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 9, 0, 0))
     assert notif.user_id == user.id
     assert notif.health_subject_id == subject.id
 
 
-def test_self_subject_not_managed_substitute(db, gate4_patch):
+def test_self_subject_not_managed_substitute(db, gate4_patch, morning_window_now):
     owner = _user(db, "owner")
     managed = create_managed_subject_without_account(db, account_user_id=owner.id, display_name="Parent")
     self_subj = ensure_self_subject_for_account(db, owner.id, commit=True)
@@ -207,7 +223,7 @@ def test_self_subject_not_managed_substitute(db, gate4_patch):
     assert notif.health_subject_id != managed.id
 
 
-def test_no_caregiver_grant_required_for_self(db, gate4_patch):
+def test_no_caregiver_grant_required_for_self(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     grants = db.query(models.HealthSubjectNotificationGrant).filter(
         models.HealthSubjectNotificationGrant.recipient_user_id == user.id
@@ -216,7 +232,7 @@ def test_no_caregiver_grant_required_for_self(db, gate4_patch):
     assert _engine(db).create_morning_brief(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 9, 0, 0)) is not None
 
 
-def test_source_notification_id_compatible(db, gate4_patch):
+def test_source_notification_id_compatible(db, gate4_patch, morning_window_now):
     user, _ = _self_setup(db)
     notif = _engine(db).create_morning_brief(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 9, 0, 0))
     assert notif.id is not None
