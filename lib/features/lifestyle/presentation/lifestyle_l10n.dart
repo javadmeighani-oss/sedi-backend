@@ -121,6 +121,11 @@ class LifestyleL10n {
         fa: 'گفتگویی در این بازه نیست.',
         ar: 'لا محادثات في هذه الفترة.',
       );
+  String get archiveTemporarilyUnavailable => _t(
+        en: 'Archive temporarily unavailable.',
+        fa: 'بایگانی فعلاً در دسترس نیست.',
+        ar: 'الأرشيف غير متاح مؤقتاً.',
+      );
   String get daily => _t(en: 'Daily', fa: 'روزانه', ar: 'يومي');
   String get weekly => _t(en: 'Weekly', fa: 'هفتگی', ar: 'أسبوعي');
   String get monthly => _t(en: 'Monthly', fa: 'ماهانه', ar: 'شهري');

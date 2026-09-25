@@ -52,14 +52,29 @@ class HistoryGroupItem {
 
 class HistoryResponse {
   final String group;
+  final String? timezone;
   final String? currentGroupKey;
   final List<HistoryGroupItem> items;
 
   const HistoryResponse({
     required this.group,
     required this.items,
+    this.timezone,
     this.currentGroupKey,
   });
+
+  static HistoryResponse? tryParse(Object? data) {
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+    if (map.containsKey('items')) {
+      return HistoryResponse.fromJson(map);
+    }
+    final inner = map['data'];
+    if (inner is Map) {
+      return HistoryResponse.fromJson(Map<String, dynamic>.from(inner));
+    }
+    return null;
+  }
 
   factory HistoryResponse.fromJson(Map<String, dynamic> json) {
     final itemsList = json['items'];
@@ -69,8 +84,10 @@ class HistoryResponse {
             .toList()
         : <HistoryGroupItem>[];
     final current = json['current_group_key']?.toString().trim();
+    final tz = json['timezone']?.toString().trim();
     return HistoryResponse(
       group: json['group']?.toString() ?? 'daily',
+      timezone: (tz == null || tz.isEmpty) ? null : tz,
       currentGroupKey: (current == null || current.isEmpty) ? null : current,
       items: list,
     );

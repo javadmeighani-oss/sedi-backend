@@ -9,6 +9,20 @@ import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.d
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 
+/// Backend [HistoryResponse.currentGroupKey] is the only current-day authority.
+/// Null means fail-closed: do not reconstruct a device day.
+List<HistoryGroupItem>? archiveDaysFromHistory(HistoryResponse? history) {
+  final today = history?.currentGroupKey;
+  if (today == null || today.isEmpty) return null;
+  return history!.items.where((g) => g.key != today).toList(growable: false);
+}
+
+/// Trim is emptiness-only. Display the original stored copy unchanged.
+String? exactStoredTranscriptText(String? stored) {
+  if (stored == null || stored.trim().isEmpty) return null;
+  return stored;
+}
+
 class LifestyleHistoryPage extends StatefulWidget {
   const LifestyleHistoryPage({super.key});
 
@@ -60,14 +74,7 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
       );
       HistoryResponse? hist;
       if (histRes.ok && histRes.data != null) {
-        final d = histRes.data!;
-        if (d.containsKey('items')) {
-          hist = HistoryResponse.fromJson(d);
-        } else if (d['data'] is Map) {
-          hist = HistoryResponse.fromJson(
-            Map<String, dynamic>.from(d['data'] as Map),
-          );
-        }
+        hist = HistoryResponse.tryParse(histRes.data);
       }
       if (!mounted) return;
       setState(() {
@@ -107,20 +114,7 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     }
   }
 
-  String _todayKey() {
-    final fromBackend = _history?.currentGroupKey;
-    if (fromBackend != null && fromBackend.isNotEmpty) return fromBackend;
-    final n = DateTime.now();
-    final pad = (int v) => v.toString().padLeft(2, '0');
-    return '${n.year}-${pad(n.month)}-${pad(n.day)}';
-  }
-
-  List<HistoryGroupItem> _archiveDays() {
-    final today = _todayKey();
-    return (_history?.items ?? const [])
-        .where((g) => g.key != today)
-        .toList(growable: false);
-  }
+  List<HistoryGroupItem>? _archiveDays() => archiveDaysFromHistory(_history);
 
   String _formatDayLabel(String key, LifestyleL10n l10n) {
     final formatted = CalendarDateMath.formatIsoForProfileDisplay(key, l10n.lang);
@@ -236,6 +230,18 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     }
 
     final days = _archiveDays();
+    if (days == null) {
+      return [
+        Text(
+          l10n.archiveTemporarilyUnavailable,
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+            height: 1.35,
+          ),
+        ),
+      ];
+    }
     if (days.isEmpty) {
       return [
         Text(
@@ -377,10 +383,11 @@ class _ReadOnlyTranscript extends StatelessWidget {
       children: [
         for (var i = 0; i < turns.length; i++) ...[
           if (i > 0) const SizedBox(height: 14),
-          _HistoryUserBubble(text: turns[i].userMessage),
-          if ((turns[i].sediResponse ?? '').trim().isNotEmpty) ...[
+          if (exactStoredTranscriptText(turns[i].userMessage) != null)
+            _HistoryUserBubble(text: turns[i].userMessage),
+          if (exactStoredTranscriptText(turns[i].sediResponse) != null) ...[
             const SizedBox(height: 8),
-            _HistorySediText(text: turns[i].sediResponse!.trim()),
+            _HistorySediText(text: turns[i].sediResponse!),
           ],
         ],
       ],
@@ -395,8 +402,7 @@ class _HistoryUserBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = text.trim();
-    if (body.isEmpty) return const SizedBox.shrink();
+    if (text.trim().isEmpty) return const SizedBox.shrink();
     return Align(
       alignment: AlignmentDirectional.centerEnd,
       child: ConstrainedBox(
@@ -418,7 +424,7 @@ class _HistoryUserBubble extends StatelessWidget {
             boxShadow: AppTheme.softShadow,
           ),
           child: Text(
-            body,
+            text,
             textAlign: TextAlign.start,
             style: const TextStyle(
               color: AppTheme.textPrimary,

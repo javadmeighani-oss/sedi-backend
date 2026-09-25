@@ -27,6 +27,10 @@ void main() {
     expect(src.contains('conversationsLast30Days'), isTrue);
     expect(src.contains("'group': 'daily'"), isTrue);
     expect(src.contains('currentGroupKey'), isTrue);
+    expect(src.contains('DateTime.now()'), isFalse);
+    expect(src.contains('_todayKey'), isFalse);
+    expect(src.contains('archiveTemporarilyUnavailable'), isTrue);
+    expect(src.contains('exactStoredTranscriptText'), isTrue);
     expect(src.contains('formatIsoForProfileDisplay'), isTrue);
     expect(src.contains('AnimatedSize'), isTrue);
     expect(src.contains('_expandedKey'), isTrue);

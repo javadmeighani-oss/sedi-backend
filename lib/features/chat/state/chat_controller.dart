@@ -10,8 +10,10 @@
 /// ============================================
 
 import '../../../core/locale/sedi_locale_controller.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/user_profile_manager.dart';
 import '../../../data/dto/chat/chat_send_response.dart';
+import '../../../data/dto/history_response.dart';
 import '../../../data/dto/lifestyle_summary_response.dart';
 import '../../../data/models/chat_message.dart';
 import '../../../data/models/user_profile.dart';
@@ -20,6 +22,49 @@ import '../../../services/chat/chat_service.dart' as v1chat;
 import '../../../services/chat/chat_stream_client.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
+
+/// Current-day raw turns only. Backend [HistoryResponse.currentGroupKey] is day authority.
+List<ChatMessage> currentDayMessagesFromHistory(HistoryResponse history) {
+  final key = history.currentGroupKey;
+  if (key == null || key.isEmpty) return const [];
+  HistoryGroupItem? group;
+  for (final item in history.items) {
+    if (item.key == key) {
+      group = item;
+      break;
+    }
+  }
+  if (group == null) return const [];
+
+  final out = <ChatMessage>[];
+  for (final turn in group.turns) {
+    final created = DateTime.tryParse(turn.createdAt);
+    if (turn.userMessage.trim().isNotEmpty) {
+      out.add(
+        ChatMessage(
+          localId: 'history-${turn.id}-user',
+          text: turn.userMessage,
+          role: ChatRole.user,
+          status: ChatMessageStatus.sent,
+          createdAt: created,
+        ),
+      );
+    }
+    final sedi = turn.sediResponse;
+    if (sedi != null && sedi.trim().isNotEmpty) {
+      out.add(
+        ChatMessage(
+          localId: 'history-${turn.id}-sedi',
+          text: sedi,
+          role: ChatRole.assistant,
+          status: ChatMessageStatus.sent,
+          createdAt: created,
+        ),
+      );
+    }
+  }
+  return out;
+}
 
 enum ConversationState {
   initializing, // در حال دریافت greeting از backend
@@ -59,6 +104,7 @@ class ChatController extends ChangeNotifier {
   final List<ChatMessage> messages = [];
 
   final v1chat.ChatService _chatService = v1chat.ChatService();
+  final ApiClient _api = ApiClient();
   final ChatStreamClient _streamClient = ChatStreamClient();
   final LifestyleRepository _lifestyleRepo = LifestyleRepository();
   final AudioRecorderService _audioRecorder = AudioRecorderService();
@@ -130,6 +176,8 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.initializing;
     notifyListeners();
 
+    await _restoreCurrentDayTranscript();
+
     if (initialMessage != null) {
       conversationState = ConversationState.chatting;
       notifyListeners();
@@ -164,6 +212,30 @@ class ChatController extends ChangeNotifier {
 
     conversationState = ConversationState.chatting;
     notifyListeners();
+  }
+
+  Future<void> _restoreCurrentDayTranscript() async {
+    try {
+      final res = await _api.getRaw(
+        '/memory/history',
+        queryParams: {
+          'group': 'daily',
+          'limit': '40',
+          'offset': '0',
+        },
+      );
+      if (!res.ok || res.data == null) return;
+      final hist = HistoryResponse.tryParse(res.data);
+      if (hist == null) return;
+      final restored = currentDayMessagesFromHistory(hist);
+      if (restored.isEmpty) return;
+      messages.addAll(restored);
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[ChatController] current-day history restore failed: $e');
+      }
+    }
   }
 
   // ===============================
