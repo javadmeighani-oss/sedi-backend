@@ -16,6 +16,7 @@ from backend.app.services.gate4.notification_contract import (
     get_action_label,
     normalize_language,
 )
+from backend.app.services.gate4.policy_prefs_bridge import get_local_now
 from backend.app.services.gate4.scheduler_timing import (
     GATE4_DAILY_TOLERANCE_MINUTES,
     resolve_user_daily_notification_time_for_scheduler,
@@ -351,9 +352,11 @@ def test_b_morning_past_window_stamps_expiry_and_intake_expires(db):
 def test_b_morning_fresh_window_remains_valid(db):
     user = _user(db, "morning-fresh", tz="Asia/Tehran")
     subject = ensure_self_subject_for_account(db, user.id, commit=True)
-    db.add(models.NotificationPrefs(user_id=user.id, daily_notification_time="08:00"))
+    now = datetime.now(timezone.utc)
+    local = get_local_now(now, "Asia/Tehran")
+    daily_time = f"{local.hour:02d}:{local.minute:02d}"
+    db.add(models.NotificationPrefs(user_id=user.id, daily_notification_time=daily_time))
     db.commit()
-    now = datetime(2026, 9, 25, 4, 30, tzinfo=timezone.utc)  # 08:00 Tehran
     cand = _candidate(
         subject_id=subject.id,
         recipient_id=user.id,
@@ -369,13 +372,7 @@ def test_b_morning_fresh_window_remains_valid(db):
         health_subject_id=subject.id,
         semantic_family=I10SemanticFamily.MORNING_CHECK_IN.value,
     )
-    with patch(
-        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
-        wraps=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
-            db, candidate, now_utc=now
-        ),
-    ):
-        result = enqueue_i10_notification(db, candidate=cand, payload=payload)
+    result = enqueue_i10_notification(db, candidate=cand, payload=payload)
     assert result.decision == I10DecisionValue.SEND
     assert result.notification_id is not None
     row = db.query(models.I10NotificationDecision).filter_by(id=result.decision_id).one()
