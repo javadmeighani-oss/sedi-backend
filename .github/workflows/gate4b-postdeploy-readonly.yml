@@ -46,35 +46,9 @@ jobs:
             exit 1
           fi
           echo "WORKFLOW_MODE=${MODE}"
-          SCRIPT="$(mktemp)"
-          cat > "${SCRIPT}" <<'REMOTE'
-          set -Eeuo pipefail
-          cd "${SEDI_DEPLOY_PATH}"
-          echo "=== IMAGE ==="
-          docker inspect sedi-backend --format '{{.Config.Image}}'
-          docker inspect sedi-backend --format 'RepoDigests={{json .RepoDigests}}' || true
-          echo "=== ALEMBIC CURRENT ==="
-          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
-          echo "=== ALEMBIC HEADS ==="
-          docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
-          echo "=== LOCAL HEALTH ==="
-          curl -fsS http://127.0.0.1:8000/health
-          echo ""
-          curl -fsS http://127.0.0.1:8000/healthz
-          echo ""
-          echo "=== COUNTS ==="
-          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
-          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
-          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS notifications FROM notifications;"
-          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS interaction_events FROM interaction_events;"
-          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS push_devices FROM push_devices;"
-          echo "=== LOG SUMMARY ==="
-          docker logs --since 30m sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" | tail -80 || true
-
-          echo "=== PROVIDER-OFF DUE AUDIT ==="
-          MODE="${MODE:-audit}"
-          echo "OPS_MODE=${MODE}"
-          sed 's/^          //' <<'PY' | docker exec -i -e OPS_MODE="${MODE}" sedi-backend python -
+          python3 - <<'GEN'
+          from textwrap import dedent
+          src = r'''
           import hashlib
           import os
           import sys
@@ -311,7 +285,39 @@ jobs:
               raise
           finally:
               db.close()
-          PY
+          '''
+          open("/tmp/sedi_b4_ops.py", "w", encoding="utf-8").write(dedent(src))
+          GEN
+          SCRIPT="$(mktemp)"
+          cat > "${SCRIPT}" <<'REMOTE'
+          set -Eeuo pipefail
+          cd "${SEDI_DEPLOY_PATH}"
+          echo "=== IMAGE ==="
+          docker inspect sedi-backend --format '{{.Config.Image}}'
+          docker inspect sedi-backend --format 'RepoDigests={{json .RepoDigests}}' || true
+          echo "=== ALEMBIC CURRENT ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+          echo "=== ALEMBIC HEADS ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+          echo "=== LOCAL HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health
+          echo ""
+          curl -fsS http://127.0.0.1:8000/healthz
+          echo ""
+          echo "=== COUNTS ==="
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS notifications FROM notifications;"
+          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS interaction_events FROM interaction_events;"
+          docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS push_devices FROM push_devices;"
+          echo "=== LOG SUMMARY ==="
+          docker logs --since 30m sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" | tail -80 || true
+
+          echo "=== PROVIDER-OFF DUE AUDIT ==="
+          MODE="${MODE:-audit}"
+          echo "OPS_MODE=${MODE}"
+          docker exec -i -e OPS_MODE="${MODE}" sedi-backend python - < /tmp/sedi_b4_ops.py
+          rm -f /tmp/sedi_b4_ops.py
 
           echo "=== POST-AUDIT HEALTH ==="
           curl -fsS http://127.0.0.1:8000/health
@@ -509,8 +515,12 @@ jobs:
           echo "GHCR_CONNECTIVITY=PASS"
           echo "=== CHECK DONE ==="
           REMOTE
+          scp -i ~/.ssh/sedi_deploy_key \
+            -P "${SEDI_PORT}" \
+            /tmp/sedi_b4_ops.py \
+            "${SEDI_USER}@${SEDI_HOST}:/tmp/sedi_b4_ops.py"
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${SEDI_PORT}" \
             "${SEDI_USER}@${SEDI_HOST}" \
             "SEDI_DEPLOY_PATH=$(printf '%q' "${SEDI_DEPLOY_PATH}") MODE=$(printf '%q' "${MODE}") bash -s" < "${SCRIPT}"
-          rm -f "${SCRIPT}"
+          rm -f "${SCRIPT}" /tmp/sedi_b4_ops.py
