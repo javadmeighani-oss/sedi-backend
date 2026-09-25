@@ -77,7 +77,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["080_i9_device_reported_vital_status"], heads
+          assert heads == ["086_i9_vital_observation_context_authority"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Fresh migrate base DB (harness creates isolated DBs)

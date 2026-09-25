@@ -96,7 +96,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          assert heads == ["086_i9_vital_observation_context_authority"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head
