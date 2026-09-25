@@ -180,13 +180,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    }
+    final pos = gate3SingleReadyScrollPosition(_scrollController);
+    if (pos == null) return;
+    _scrollController.animateTo(
+      pos.maxScrollExtent,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   bool _handleBackPress() {

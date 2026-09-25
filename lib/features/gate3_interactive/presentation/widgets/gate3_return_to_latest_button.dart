@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
+/// Single attached [ScrollPosition] only after content dimensions exist.
+///
+/// `hasClients` is not enough: `.position` requires exactly one position,
+/// and `maxScrollExtent`/`pixels` are invalid before [ScrollPosition.hasContentDimensions].
+ScrollPosition? gate3SingleReadyScrollPosition(ScrollController controller) {
+  final positions = controller.positions;
+  if (positions.length != 1) return null;
+  final pos = positions.single;
+  if (!pos.hasContentDimensions) return null;
+  return pos;
+}
+
 /// Shown when the chat list is scrolled away from the latest messages.
 class Gate3ReturnToLatestButton extends StatefulWidget {
   final ScrollController scrollController;
@@ -41,8 +53,8 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
 
   /// Top-anchored list: latest is at maxScrollExtent; show when scrolled up.
   bool get _visible {
-    if (!widget.scrollController.hasClients) return false;
-    final pos = widget.scrollController.position;
+    final pos = gate3SingleReadyScrollPosition(widget.scrollController);
+    if (pos == null) return false;
     return (pos.maxScrollExtent - pos.pixels) > 72;
   }
 
