@@ -3,6 +3,15 @@ name: Gate 4-B Post-Deploy Readonly Check
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "audit (read-only) or close_backlog (provider-OFF historical closure)"
+        required: false
+        default: audit
+        type: choice
+        options:
+          - audit
+          - close_backlog
 
 permissions:
   contents: read
@@ -11,7 +20,7 @@ jobs:
   readonly-check:
     name: Post-deploy read-only safety check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Prepare SSH key
@@ -28,8 +37,15 @@ jobs:
           SEDI_HOST: ${{ secrets.SEDI_HOST }}
           SEDI_USER: ${{ secrets.SEDI_USER }}
           SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+          MODE: ${{ github.event.inputs.mode || 'audit' }}
         run: |
           set -Eeuo pipefail
+          MODE="${MODE:-audit}"
+          if [ "${MODE}" != "audit" ] && [ "${MODE}" != "close_backlog" ]; then
+            echo "invalid mode=${MODE}"
+            exit 1
+          fi
+          echo "WORKFLOW_MODE=${MODE}"
           SCRIPT="$(mktemp)"
           cat > "${SCRIPT}" <<'REMOTE'
           set -Eeuo pipefail
@@ -54,6 +70,256 @@ jobs:
           docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS push_devices FROM push_devices;"
           echo "=== LOG SUMMARY ==="
           docker logs --since 30m sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" | tail -80 || true
+
+          echo "=== PROVIDER-OFF DUE AUDIT ==="
+          MODE="${MODE:-audit}"
+          echo "OPS_MODE=${MODE}"
+          sed 's/^          //' <<'PY' | docker exec -i -e OPS_MODE="${MODE}" sedi-backend python -
+          import hashlib
+          import os
+          import sys
+          from datetime import datetime, timezone
+
+          from sqlalchemy import or_
+
+          from backend.app.database import SessionFactory
+          from backend.app.models import Notification, PushDevice
+          from backend.app.services.i10.provider_delivery_policy import (
+              ProviderFreshnessOutcome,
+              evaluate_notification_provider_freshness,
+              persist_provider_expired,
+          )
+          from backend.app.services.notifications.delivery_service import provider_delivery_enabled
+
+          CLOSABLE_BLOCK_REASONS = {
+              "MISSING_I10_PROVIDER_AUTHORITY",
+              "MISSING_I10_DECISION",
+              "MISSING_I8_SOURCE_EXPIRY",
+              "MISSING_I9_SOURCE_VALIDITY",
+              "MISSING_I4_SAFETY_EXPIRY",
+              "MISSING_PROVIDER_EXPIRY_AUTHORITY",
+          }
+
+          def env_label(raw):
+              if raw is None:
+                  return "UNSET"
+              stripped = raw.strip().lower()
+              if stripped in ("true", "1", "yes", "on"):
+                  return "true"
+              if stripped in ("false", "0", "no", "off", ""):
+                  return "false"
+              return "false"
+
+          def sha_prefix(value):
+              if not value:
+                  return ""
+              return hashlib.sha256(str(value).encode("utf-8")).hexdigest()[:12]
+
+          def iso(value):
+              if value is None:
+                  return ""
+              if getattr(value, "tzinfo", None) is None:
+                  return value.replace(tzinfo=timezone.utc).isoformat()
+              return value.astimezone(timezone.utc).isoformat()
+
+          def load_due(db, now_naive):
+              return (
+                  db.query(Notification)
+                  .filter(Notification.is_sent == False)  # noqa: E712
+                  .filter(or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now_naive))
+                  .filter(or_(Notification.status.is_(None), Notification.status == "queued"))
+                  .order_by(Notification.created_at.asc())
+                  .all()
+              )
+
+          def classify(db, notification, reference_now):
+              try:
+                  decision = evaluate_notification_provider_freshness(
+                      db, notification, now_utc=reference_now
+                  )
+              except Exception as exc:
+                  return {
+                      "bucket": "AMBIGUOUS",
+                      "outcome": "EXCEPTION",
+                      "reason": type(exc).__name__,
+                      "expires_at": None,
+                  }
+              outcome = getattr(decision.outcome, "value", str(decision.outcome))
+              reason = (decision.reason_code or "").strip()
+              expires_at = decision.expires_at
+              if outcome == ProviderFreshnessOutcome.EXPIRE.value:
+                  bucket = "CLOSABLE_EXPIRE"
+              elif outcome == ProviderFreshnessOutcome.BLOCK.value and reason in CLOSABLE_BLOCK_REASONS:
+                  bucket = "CLOSABLE_FAILED_UNSENT"
+              elif outcome == ProviderFreshnessOutcome.ALLOW.value or reason == "PROVIDER_FRESH":
+                  bucket = "SEND_FRESH_RISK"
+              else:
+                  bucket = "AMBIGUOUS"
+              return {
+                  "bucket": bucket,
+                  "outcome": outcome,
+                  "reason": reason,
+                  "expires_at": expires_at,
+              }
+
+          def print_due_row(notification, item):
+              print(
+                  "DUE_ROW"
+                  f" notification_id={notification.id}"
+                  f" user_id={notification.user_id}"
+                  f" semantic_family={notification.semantic_family or ''}"
+                  f" status={notification.status or ''}"
+                  f" scheduled_for={iso(notification.scheduled_for)}"
+                  f" i10_policy_decision_id={notification.i10_policy_decision_id or ''}"
+                  f" provider_outcome={item['outcome']}"
+                  f" reason_code={item['reason']}"
+                  f" provider_expires_at={iso(item['expires_at'])}"
+              )
+
+          mode = os.environ.get("OPS_MODE", "audit").strip() or "audit"
+          raw_env = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
+          resolved = bool(provider_delivery_enabled())
+          print(f"SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED={env_label(raw_env)}")
+          print(f"provider_delivery_enabled()={'true' if resolved else 'false'}")
+          if resolved:
+              print("HARD_STOP=PROVIDER_ON")
+              sys.exit(2)
+
+          reference_now = datetime.now(timezone.utc)
+          reference_now_naive = reference_now.replace(tzinfo=None)
+          print(f"REFERENCE_NOW={reference_now.isoformat()}")
+
+          db = SessionFactory()
+          try:
+              due_rows = load_due(db, reference_now_naive)
+              classified = []
+              counts = {
+                  "CLOSABLE_EXPIRE": 0,
+                  "CLOSABLE_FAILED_UNSENT": 0,
+                  "SEND_FRESH_RISK": 0,
+                  "AMBIGUOUS": 0,
+              }
+              for notification in due_rows:
+                  item = classify(db, notification, reference_now)
+                  counts[item["bucket"]] += 1
+                  classified.append((notification, item))
+                  print_due_row(notification, item)
+
+              devices = db.query(PushDevice).order_by(PushDevice.id.asc()).all()
+              android_active = 0
+              android_users = set()
+              for device in devices:
+                  active = bool(device.is_active)
+                  platform = (device.platform or "").strip().lower()
+                  if active and platform == "android":
+                      android_active += 1
+                      android_users.add(device.user_id)
+                  print(
+                      "PUSH_ROW"
+                      f" push_device_id={device.id}"
+                      f" user_id={device.user_id}"
+                      f" platform={device.platform or ''}"
+                      f" is_active={'true' if active else 'false'}"
+                      f" device_id_present={'true' if bool(device.device_id) else 'false'}"
+                      f" device_id_sha256_prefix={sha_prefix(device.device_id)}"
+                      f" fcm_token_sha256_prefix={sha_prefix(device.fcm_token)}"
+                      f" last_seen_at={iso(device.last_seen_at)}"
+                  )
+
+              due_before = len(due_rows)
+              send_risk = counts["SEND_FRESH_RISK"]
+              ambiguous = counts["AMBIGUOUS"]
+              safe = send_risk == 0 and ambiguous == 0
+              print(f"DUE_BEFORE={due_before}")
+              print(f"CLOSABLE_EXPIRE={counts['CLOSABLE_EXPIRE']}")
+              print(f"CLOSABLE_FAILED_UNSENT={counts['CLOSABLE_FAILED_UNSENT']}")
+              print(f"SEND_FRESH_RISK={send_risk}")
+              print(f"AMBIGUOUS={ambiguous}")
+              print(f"PUSH_DEVICE_TOTAL={len(devices)}")
+              print(f"ANDROID_ACTIVE_COUNT={android_active}")
+              print(f"ACTIVE_ANDROID_USERS={len(android_users)}")
+              print(f"AUDIT_SAFE_TO_CLOSE={'YES' if safe else 'NO'}")
+
+              if mode == "audit":
+                  print(f"GATE_RESULT={'PASS' if safe else 'BLOCKED'}")
+                  print("HISTORICAL_SENT=0")
+                  print(f"DUE_AFTER={due_before}")
+                  db.rollback()
+                  if not safe:
+                      sys.exit(3)
+                  sys.exit(0)
+
+              if mode != "close_backlog":
+                  print("HARD_STOP=INVALID_MODE")
+                  db.rollback()
+                  sys.exit(1)
+
+              print("=== CLOSE_BACKLOG PRECHECK ===")
+              due_again = load_due(db, reference_now_naive)
+              re_counts = {
+                  "CLOSABLE_EXPIRE": 0,
+                  "CLOSABLE_FAILED_UNSENT": 0,
+                  "SEND_FRESH_RISK": 0,
+                  "AMBIGUOUS": 0,
+              }
+              reclassified = []
+              for notification in due_again:
+                  item = classify(db, notification, reference_now)
+                  re_counts[item["bucket"]] += 1
+                  reclassified.append((notification, item))
+              print(f"CLOSE_PRECHECK_DUE={len(due_again)}")
+              print(f"CLOSE_PRECHECK_SEND_FRESH_RISK={re_counts['SEND_FRESH_RISK']}")
+              print(f"CLOSE_PRECHECK_AMBIGUOUS={re_counts['AMBIGUOUS']}")
+              if re_counts["SEND_FRESH_RISK"] or re_counts["AMBIGUOUS"]:
+                  print("HARD_STOP=CLOSE_PRECHECK_UNSAFE")
+                  db.rollback()
+                  sys.exit(4)
+
+              expired = 0
+              failed_unsent = 0
+              for notification, item in reclassified:
+                  if item["bucket"] == "CLOSABLE_EXPIRE":
+                      persist_provider_expired(notification, reason_code=item["reason"] or "PROVIDER_LIFETIME_ELAPSED")
+                      db.add(notification)
+                      expired += 1
+                  elif item["bucket"] == "CLOSABLE_FAILED_UNSENT":
+                      notification.status = "failed"
+                      notification.is_sent = False
+                      notification.sent_at = None
+                      notification.last_error = f"provider_policy_blocked:{item['reason']}"[:500]
+                      db.add(notification)
+                      failed_unsent += 1
+                  else:
+                      print("HARD_STOP=UNEXPECTED_BUCKET")
+                      db.rollback()
+                      sys.exit(4)
+              db.commit()
+
+              due_after_rows = load_due(db, reference_now_naive)
+              due_after = len(due_after_rows)
+              print(f"BACKLOG_EXPIRED={expired}")
+              print(f"BACKLOG_FAILED_UNSENT={failed_unsent}")
+              print("HISTORICAL_SENT=0")
+              print(f"DUE_AFTER={due_after}")
+              print("PROVIDER_GATE_AFTER=OFF")
+              if due_after != 0:
+                  print("HARD_STOP=DUE_AFTER_NOT_ZERO")
+                  sys.exit(5)
+              print("GATE_RESULT=PASS")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+
+          echo "=== POST-AUDIT HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health
+          echo ""
+          curl -fsS http://127.0.0.1:8000/healthz
+          echo ""
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+          docker inspect sedi-backend --format '{{.Config.Image}}'
 
           echo "=== GHCR TLS PATH DIAGNOSIS (read-only; no pull/recreate) ==="
           FAIL=0
@@ -246,5 +512,5 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${SEDI_PORT}" \
             "${SEDI_USER}@${SEDI_HOST}" \
-            "SEDI_DEPLOY_PATH=$(printf '%q' "${SEDI_DEPLOY_PATH}") bash -s" < "${SCRIPT}"
+            "SEDI_DEPLOY_PATH=$(printf '%q' "${SEDI_DEPLOY_PATH}") MODE=$(printf '%q' "${MODE}") bash -s" < "${SCRIPT}"
           rm -f "${SCRIPT}"
