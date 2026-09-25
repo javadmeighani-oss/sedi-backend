@@ -18,6 +18,7 @@ from backend.app.services.i10.contracts import I10NotificationCandidate
 from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
 from backend.app.services.i10.decision_ledger import link_decision_to_notification, record_notification_decision
 from backend.app.services.i10.policy_types import I10DecisionValue, I10PrivacyClass, I10RecipientKind
+from backend.app.services.i10.provider_delivery_policy import apply_i10_provider_lifetime
 from backend.app.services.notification_engine import NotificationBuilder
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,7 @@ def enqueue_i10_notification(
             recipient_kind=None,
         )
 
+    candidate = apply_i10_provider_lifetime(db, candidate)
     decision, reason = evaluate_foundation_policy(candidate=candidate, authorized=authorized)
     if decision == I10DecisionValue.SEND:
         policy_outcome = evaluate_i10_canonical_policy(

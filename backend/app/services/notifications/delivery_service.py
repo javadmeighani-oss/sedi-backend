@@ -81,6 +81,26 @@ class FCMAdapter:
         self.timeout_sec = timeout_sec
 
     def send(self, notification: Notification) -> bool:
+        from backend.app.services.i10.provider_delivery_policy import (
+            ProviderFreshnessOutcome,
+            attach_transient_fcm_ttl,
+            evaluate_notification_provider_freshness,
+            persist_provider_expired,
+            read_transient_fcm_ttl,
+        )
+
+        freshness = evaluate_notification_provider_freshness(self.db, notification)
+        if freshness.outcome == ProviderFreshnessOutcome.EXPIRE:
+            persist_provider_expired(notification, reason_code=freshness.reason_code)
+            return False
+        if freshness.outcome == ProviderFreshnessOutcome.BLOCK:
+            notification.last_error = f"provider_policy_blocked:{freshness.reason_code}"[:500]
+            return False
+        effective_ttl = read_transient_fcm_ttl(notification)
+        if effective_ttl is None:
+            effective_ttl = freshness.effective_fcm_ttl
+            attach_transient_fcm_ttl(notification, effective_ttl)
+
         tokens = _get_fcm_tokens_for_user(self.db, notification.user_id)
         if not tokens:
             logger.info(
@@ -168,7 +188,7 @@ class FCMAdapter:
             body=body,
             data=data,
             android_priority=android_priority,
-            ttl_seconds=notification.ttl_seconds,
+            ttl_seconds=effective_ttl,
             timeout_sec=self.timeout_sec,
         )
         now = datetime.utcnow()
@@ -322,6 +342,46 @@ class DeliveryService:
 
         sent_count = 0
         for notification in pending:
+            is_real_fcm = getattr(self.adapter, "channel", None) == "fcm"
+            if is_real_fcm:
+                from backend.app.services.i10.provider_delivery_policy import (
+                    ProviderFreshnessOutcome,
+                    attach_transient_fcm_ttl,
+                    evaluate_notification_provider_freshness,
+                    persist_provider_expired,
+                )
+
+                freshness = evaluate_notification_provider_freshness(
+                    self.db,
+                    notification,
+                    now_utc=now,
+                )
+                if freshness.outcome == ProviderFreshnessOutcome.EXPIRE:
+                    persist_provider_expired(notification, reason_code=freshness.reason_code)
+                    self.db.add(notification)
+                    self.db.commit()
+                    logger.info(
+                        "[NOTIF] provider_expired notification_id=%s user_id=%s reason=%s",
+                        notification.id,
+                        notification.user_id,
+                        freshness.reason_code,
+                    )
+                    continue
+                if freshness.outcome == ProviderFreshnessOutcome.BLOCK:
+                    notification.last_error = (
+                        f"provider_policy_blocked:{freshness.reason_code}"[:500]
+                    )
+                    self.db.add(notification)
+                    self.db.commit()
+                    logger.info(
+                        "[NOTIF] provider_policy_blocked notification_id=%s user_id=%s reason=%s",
+                        notification.id,
+                        notification.user_id,
+                        freshness.reason_code,
+                    )
+                    continue
+                attach_transient_fcm_ttl(notification, freshness.effective_fcm_ttl)
+
             from backend.app.services.gate4.policy_resolver import (
                 defer_notification_delivery,
                 evaluate_delivery_with_gate4_policy,
@@ -401,6 +461,11 @@ class DeliveryService:
                     else:
                         # capture adapter-provided error BEFORE rollback (rollback may expire attrs)
                         last_err = notification.last_error
+                        status_now = getattr(notification, "status", None)
+                        if status_now == "expired" or (last_err or "").startswith(
+                            "provider_policy_blocked:"
+                        ):
+                            break
                         self.db.rollback()
                         if attempt < _FCM_MAX_RETRIES:
                             time.sleep(_FCM_BACKOFF_SECONDS)
@@ -415,6 +480,14 @@ class DeliveryService:
                     if attempt < _FCM_MAX_RETRIES:
                         time.sleep(_FCM_BACKOFF_SECONDS)
             if not success:
+                status_now = getattr(notification, "status", None)
+                if status_now == "expired" or (last_err or "").startswith("provider_policy_blocked:"):
+                    try:
+                        self.db.add(notification)
+                        self.db.commit()
+                    except Exception:
+                        self.db.rollback()
+                    continue
                 try:
                     notification.status = "failed"
                     notification.last_error = (last_err or "Send failed")[:500]

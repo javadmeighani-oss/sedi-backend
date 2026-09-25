@@ -182,6 +182,16 @@ def send_push_to_tokens(
             [(t, f"mock-{i}", None) for i, t in enumerate(tokens)],
         )
 
+    # Real HTTP egress: fail-closed unless the global I10 provider gate is enabled.
+    # Duplicates the env check to avoid a delivery_service ↔ fcm_client import cycle.
+    _provider_raw = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
+    if _provider_raw is None or _provider_raw.strip().lower() not in ("true", "1", "yes"):
+        logger.info("[FCM] real send blocked: provider_delivery_disabled")
+        return (
+            0,
+            [(t, None, "provider_delivery_disabled") for t in tokens],
+        )
+
     pid = project_id or os.getenv("FCM_PROJECT_ID", "").strip()
     if not pid:
         logger.warning("[FCM] FCM_PROJECT_ID not set; skipping send.")

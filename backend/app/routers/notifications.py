@@ -240,9 +240,22 @@ def admin_test_push(
 
     sent_count = 0
     if deliver:
-        from backend.app.services.notifications.delivery_service import DeliveryService
-        service = DeliveryService(db=db)
-        sent_count = service.deliver_pending(limit=10)
+        from backend.app.services.notifications.delivery_service import (
+            DeliveryService,
+            provider_delivery_enabled,
+        )
+        # Real-provider mode must not flush unrelated queued backlog from this debug path.
+        # Controlled canary belongs to B4-B; do not invent one here.
+        if provider_delivery_enabled():
+            _log.info(
+                "[E2E] admin test_push backlog flush blocked user_id=%s notification_id=%s",
+                body.user_id,
+                notif.id,
+            )
+            sent_count = 0
+        else:
+            service = DeliveryService(db=db)
+            sent_count = service.deliver_pending(limit=10)
 
     _log.info(
         "[E2E] admin test_push user_id=%s channel=%s notification_id=%s deliver=%s sent=%s",
@@ -298,11 +311,6 @@ def admin_notif_send_now(
     _require_admin_if_set(request)
     _log.info("event=send_now channel=%s user_id=%s template_key=%s", channel, user_id, template_key)
     from backend.app.services.notifications.delivery_service import _get_fcm_tokens_for_user
-    from backend.app.services.notifications.fcm_client import (
-        send_push_to_tokens,
-        parse_fcm_error,
-        FCM_DEACTIVATE_ERROR_CODES,
-    )
     from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
 
     # Validate user exists
@@ -311,6 +319,28 @@ def admin_notif_send_now(
         return APIResponse(
             ok=False,
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
+        )
+
+    from backend.app.services.notifications.delivery_service import provider_delivery_enabled
+
+    if not provider_delivery_enabled():
+        _log.info(
+            "[NOTIF][SKIP] user_id=%s channel=%s reason=PROVIDER_DELIVERY_DISABLED force=%s",
+            user_id, channel, force,
+        )
+        return APIResponse(
+            ok=True,
+            data={
+                "user_id": user_id,
+                "channel": channel,
+                "force": force,
+                "attempted_tokens": 0,
+                "sent_success": 0,
+                "sent_fail": 0,
+                "blocked": True,
+                "reasons": ["PROVIDER_DELIVERY_DISABLED"],
+                "fcm_errors": [],
+            },
         )
 
     tokens = _get_fcm_tokens_for_user(db, user_id, limit=20)
@@ -444,47 +474,13 @@ def admin_notif_send_now(
     data = {"channel": channel, "type": channel, "notification_id": ""}
     project_id = os.getenv("FCM_PROJECT_ID", "").strip()
 
-    success_count, results = send_push_to_tokens(
-        tokens=tokens,
-        title=title,
-        body=body,
-        data=data,
-        android_priority=priority,
-        ttl_seconds=3600,
-        project_id=project_id or None,
-        timeout_sec=None,
+    # Debug send_now has no notification/I10 decision. It cannot establish
+    # canonical I10 provider authorization and must not become a real-FCM bypass.
+    # force may not skip the global gate, freshness, recipient authz, or I10 authority.
+    _log.info(
+        "[NOTIF][SKIP] user_id=%s channel=%s reason=I10_PROVIDER_AUTHORITY_REQUIRED force=%s",
+        user_id, channel, force,
     )
-
-    reasons: List[str] = []
-    fcm_errors: List[dict] = []
-    sent_fail = 0
-
-    for fcm_token, msg_id, err in results:
-        err_parsed = parse_fcm_error(err) if err else None
-        err_code = (err_parsed or {}).get("code", "OK" if not err else "UNKNOWN")
-        err_message = (err_parsed or {}).get("message", err or "")
-        status = "ok" if not err else "error"
-        _log.info(
-            "[NOTIF][FCM] user_id=%s channel=%s project_id=%s status=%s err_code=%s request_id=%s",
-            user_id, channel, project_id or "", status, err_code, msg_id or "",
-        )
-        if err:
-            sent_fail += 1
-            fcm_errors.append({"code": err_code, "message": err_message})
-            if err_parsed and err_parsed.get("code") in FCM_DEACTIVATE_ERROR_CODES:
-                dev = db.query(PushDevice).filter(
-                    PushDevice.fcm_token == fcm_token,
-                    PushDevice.user_id == user_id,
-                ).first()
-                if dev:
-                    dev.is_active = False
-                    dev.updated_at = datetime.utcnow()
-                    db.add(dev)
-                    reasons.append(f"token_deactivated:{err_code}")
-
-    db.commit()
-
-    sent_success = success_count
     return APIResponse(
         ok=True,
         data={
@@ -492,10 +488,11 @@ def admin_notif_send_now(
             "channel": channel,
             "force": force,
             "attempted_tokens": len(tokens),
-            "sent_success": sent_success,
-            "sent_fail": sent_fail,
-            "reasons": reasons if reasons else [],
-            "fcm_errors": fcm_errors,
+            "sent_success": 0,
+            "sent_fail": 0,
+            "blocked": True,
+            "reasons": ["I10_PROVIDER_AUTHORITY_REQUIRED"],
+            "fcm_errors": [],
         },
     )
 

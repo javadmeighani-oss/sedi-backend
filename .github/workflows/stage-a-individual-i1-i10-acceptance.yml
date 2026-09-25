@@ -23,6 +23,8 @@ on:
       - "backend/tests/test_i10_b14_caregiver_status_digest.py"
       - "backend/tests/test_i10_b15_*.py"
       - "backend/tests/test_i10_b16_*.py"
+      - "backend/tests/test_i10_provider_freshness_authority_v1.py"
+      - "backend/app/services/i10/provider_delivery_policy.py"
       - ".github/workflows/stage-a-individual-i1-i10-acceptance.yml"
 
 permissions:
@@ -157,6 +159,7 @@ jobs:
             backend/tests/test_i8_unified_runtime_pd_i8_03.py \
             backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py \
             backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
+            backend/tests/test_i10_provider_freshness_authority_v1.py \
             | tee /tmp/stage_a_evidence/i6_i8.txt
       - name: I9 device/HS (conftest isolation)
         run: |
