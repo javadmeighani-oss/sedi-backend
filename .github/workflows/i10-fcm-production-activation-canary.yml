@@ -63,7 +63,9 @@ jobs:
           cd "${SEDI_DEPLOY_PATH}"
           ENV_FILE="/etc/sedi/sedi-backend.env"
           STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-          BACKUP="/etc/sedi/sedi-backend.env.bak.fcm-canary-${STAMP}"
+          BACKUP_DIR="${SEDI_DEPLOY_PATH}/backups/env"
+          mkdir -p "${BACKUP_DIR}"
+          BACKUP="${BACKUP_DIR}/sedi-backend.env.fcm-canary-${STAMP}"
           REPORT="/tmp/sedi-fcm-canary-${GITHUB_RUN_ID}.report"
           : > "${REPORT}"
           ROLLBACK_NEEDED=0
@@ -73,6 +75,30 @@ jobs:
           echo "RUN_ID=${GITHUB_RUN_ID}"
           echo "MAIN_HEAD_NOTE=workflow_only_on_current_main"
           report() { printf '%s\n' "$1" | tee -a "${REPORT}"; }
+
+          # SSH user can read /etc/sedi but cannot replace the env file.
+          # Install via the already-local pinned image as root into the host bind mount.
+          install_env_file() {
+            local src="$1"
+            local dest_dir dest_base owner group mode
+            dest_dir="$(dirname "${ENV_FILE}")"
+            dest_base="$(basename "${ENV_FILE}")"
+            owner="$(stat -c '%u' "${ENV_FILE}")"
+            group="$(stat -c '%g' "${ENV_FILE}")"
+            mode="$(stat -c '%a' "${ENV_FILE}" 2>/dev/null || echo 600)"
+            if [ -w "${ENV_FILE}" ] && [ -w "${dest_dir}" ]; then
+              mv "${src}" "${ENV_FILE}"
+              chmod "${mode}" "${ENV_FILE}" || chmod 600 "${ENV_FILE}"
+              return 0
+            fi
+            docker run --rm --pull never \
+              --entrypoint sh \
+              -v "${src}:/tmp/new.env:ro" \
+              -v "${dest_dir}:/mnt/sedi_env" \
+              "${PINNED_IMAGE}" \
+              -c "cp /tmp/new.env /mnt/sedi_env/${dest_base}.fcmtmp && chown ${owner}:${group} /mnt/sedi_env/${dest_base}.fcmtmp && chmod ${mode} /mnt/sedi_env/${dest_base}.fcmtmp && mv /mnt/sedi_env/${dest_base}.fcmtmp /mnt/sedi_env/${dest_base}"
+            rm -f "${src}"
+          }
 
           env_get() {
             python3 - "$1" "$2" <<'PY'
@@ -96,9 +122,12 @@ jobs:
           }
 
           upsert_env() {
-            python3 - "$ENV_FILE" "$1" "$2" <<'PY'
+            local tmp
+            tmp="$(mktemp /tmp/sedi_env_upsert.XXXXXX)"
+            chmod 600 "${tmp}"
+            python3 - "$ENV_FILE" "$1" "$2" "$tmp" <<'PY'
           import sys
-          path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
+          path, key, value, dest = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
           lines = open(path, encoding="utf-8").read().splitlines()
           found = False
           out = []
@@ -111,24 +140,29 @@ jobs:
                   out.append(line)
           if not found:
               out.append(f"{key}={value}")
-          with open(path, "w", encoding="utf-8") as fh:
+          with open(dest, "w", encoding="utf-8") as fh:
               fh.write("\n".join(out) + "\n")
           PY
+            install_env_file "${tmp}"
           }
 
           remove_env() {
-            python3 - "$ENV_FILE" "$1" <<'PY'
+            local tmp
+            tmp="$(mktemp /tmp/sedi_env_remove.XXXXXX)"
+            chmod 600 "${tmp}"
+            python3 - "$ENV_FILE" "$1" "$tmp" <<'PY'
           import sys
-          path, key = sys.argv[1], sys.argv[2]
+          path, key, dest = sys.argv[1], sys.argv[2], sys.argv[3]
           out = []
           for line in open(path, encoding="utf-8").read().splitlines():
               raw = line[7:] if line.startswith("export ") else line
               if raw.startswith(key + "="):
                   continue
               out.append(line)
-          with open(path, "w", encoding="utf-8") as fh:
+          with open(dest, "w", encoding="utf-8") as fh:
               fh.write("\n".join(out) + "\n")
           PY
+            install_env_file "${tmp}"
           }
 
           restore_scheduler_from_backup() {
@@ -239,7 +273,10 @@ jobs:
               abort_unsent_canary
             fi
             if [ -f "${BACKUP}" ]; then
-              cp -a "${BACKUP}" "${ENV_FILE}"
+              tmp="$(mktemp /tmp/sedi_env_rollback.XXXXXX)"
+              chmod 600 "${tmp}"
+              cp -a "${BACKUP}" "${tmp}"
+              install_env_file "${tmp}"
               echo "ENV_RESTORED_FROM_BACKUP=YES"
             fi
             recreate_backend || true
