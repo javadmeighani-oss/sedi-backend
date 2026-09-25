@@ -64,6 +64,71 @@ def test_default_memory_created_only_with_no_prior_decision(db):
     assert len(_matching(db, user.id)) == 1
 
 
+def _consent_metadata(row: models.UserConsent) -> tuple:
+    return (
+        row.id,
+        row.status,
+        row.source,
+        row.provenance,
+        row.policy_version,
+        row.scope_summary,
+        row.grantee_type,
+        row.grantee_id,
+        row.granted_at,
+        row.effective_from,
+        row.effective_until,
+        row.revoked_at,
+        row.revocation_reason,
+        row.updated_at,
+    )
+
+
+def _scope_rows(db, consent_id: int) -> list[tuple]:
+    rows = (
+        db.query(models.UserConsentScope)
+        .filter(models.UserConsentScope.consent_id == consent_id)
+        .order_by(models.UserConsentScope.id)
+        .all()
+    )
+    return [(row.id, row.permission_key, row.allowed, row.metadata_json) for row in rows]
+
+
+def test_existing_active_consent_scopes_are_preserved_exactly(db):
+    user = _user(db, "i6-default-active-preserve")
+    consent = grant_memory_consent(db, user.id, commit=True)
+    write_scope = (
+        db.query(models.UserConsentScope)
+        .filter_by(consent_id=consent.id, permission_key=PERM_WRITE)
+        .one()
+    )
+    write_scope.allowed = False
+    forget_scope = (
+        db.query(models.UserConsentScope)
+        .filter_by(consent_id=consent.id, permission_key=PERM_FORGET)
+        .one()
+    )
+    db.delete(forget_scope)
+    db.commit()
+    db.refresh(consent)
+
+    before_meta = _consent_metadata(consent)
+    before_scopes = _scope_rows(db, consent.id)
+    assert {key for _, key, _, _ in before_scopes} == {PERM_READ, PERM_WRITE}
+    assert (PERM_WRITE, False) in {(key, allowed) for _, key, allowed, _ in before_scopes}
+    assert (PERM_READ, True) in {(key, allowed) for _, key, allowed, _ in before_scopes}
+
+    result = ensure_default_memory_enabled(db, user.id, commit=True)
+    db.refresh(consent)
+
+    assert result is not None
+    assert result.id == consent.id
+    assert _consent_metadata(result) == before_meta
+    assert _scope_rows(db, consent.id) == before_scopes
+    assert has_permission(db, user.id, PERM_READ) is True
+    assert has_permission(db, user.id, PERM_WRITE) is False
+    assert has_permission(db, user.id, PERM_FORGET) is False
+
+
 def test_revoked_memory_is_never_auto_reactivated(db):
     user = _user(db, "i6-default-revoked")
     grant_memory_consent(db, user.id, commit=True)
