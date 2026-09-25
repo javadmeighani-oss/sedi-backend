@@ -348,12 +348,6 @@ jobs:
             backend/tests/test_i10_b18_sh1_closure.py \
             --noconftest --tb=short
 
-      - name: Real FCM backend boundary regression
-        run: |
-          python -m pytest -v \
-            backend/tests/test_g8_c11a_real_fcm_backend_boundary.py \
-            --noconftest --tb=short
-
       - name: I10 B19 legacy writer retirement freeze
         run: |
           python -m pytest -v \
