@@ -1101,28 +1101,30 @@ def push_register(
     platform = body.platform
     install_id = (body.device_id or "").strip() or None
     try:
-        device, created = reconcile_authenticated_registration(
-            db,
-            auth_user_id=user_id,
-            platform=platform,
-            fcm_token=token,
-            device_id=install_id,
-            now=now,
-        )
+        nested = db.begin_nested()
+        try:
+            device, created = reconcile_authenticated_registration(
+                db,
+                auth_user_id=user_id,
+                platform=platform,
+                fcm_token=token,
+                device_id=install_id,
+                now=now,
+            )
+            nested.commit()
+        except Exception:
+            if nested.is_active:
+                nested.rollback()
+            raise
         db.commit()
         db.refresh(device)
     except UserNotFoundForEndpoint:
-        db.rollback()
         return APIResponse(
             ok=False,
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
     except PrimaryMobileEndpointError as exc:
-        db.rollback()
         raise HTTPException(status_code=exc.status_code, detail=exc.detail)
-    except Exception:
-        db.rollback()
-        raise
     return APIResponse(
         ok=True,
         data={
