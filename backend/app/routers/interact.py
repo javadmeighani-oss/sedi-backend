@@ -32,7 +32,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Presentation-only SSE pacing after governed final answer is complete.
-_PRESENTATION_WORD_PACE_S = 0.080
+_PRESENTATION_WORD_PACE_S = 0.133
 _WORD_DELTA_RE = re.compile(r"\S+|\s+")
 
 
