@@ -62,18 +62,17 @@ def is_real_fcm_adapter(adapter: object) -> bool:
 
 # -------------------- Stage 16.6: FCM Adapter --------------------
 def _get_fcm_tokens_for_user(db: Session, user_id: int, limit: int = 10) -> list:
-    """Return list of active FCM tokens for user (android)."""
-    rows = (
-        db.query(PushDevice.fcm_token)
-        .filter(
-            PushDevice.user_id == user_id,
-            PushDevice.is_active == True,  # noqa: E712
-            PushDevice.platform == "android",
-        )
-        .limit(limit)
-        .all()
+    """V1: at most one primary Android token. Multiple actives fail closed (empty)."""
+    from backend.app.services.i10.primary_mobile_endpoint import (
+        ALLOW_PRIMARY_ENDPOINT,
+        resolve_primary_android_endpoint,
     )
-    return [r[0] for r in rows if r[0]]
+
+    resolution = resolve_primary_android_endpoint(db, user_id)
+    if resolution.outcome != ALLOW_PRIMARY_ENDPOINT or not resolution.token:
+        return []
+    _ = limit
+    return [resolution.token]
 
 
 class FCMAdapter:
@@ -116,16 +115,31 @@ class FCMAdapter:
             effective_ttl = freshness.effective_fcm_ttl
             attach_transient_fcm_ttl(notification, effective_ttl)
 
-        tokens = _get_fcm_tokens_for_user(self.db, notification.user_id)
-        if not tokens:
+        from backend.app.services.i10.primary_mobile_endpoint import (
+            ALLOW_PRIMARY_ENDPOINT,
+            MULTIPLE_ACTIVE_PRIMARY_ENDPOINTS,
+            NO_ACTIVE_PRIMARY_ENDPOINT,
+            resolve_primary_android_endpoint,
+        )
+
+        resolution = resolve_primary_android_endpoint(self.db, notification.user_id)
+        if resolution.outcome != ALLOW_PRIMARY_ENDPOINT or not resolution.token:
+            reason = resolution.outcome or NO_ACTIVE_PRIMARY_ENDPOINT
+            if reason not in (
+                NO_ACTIVE_PRIMARY_ENDPOINT,
+                MULTIPLE_ACTIVE_PRIMARY_ENDPOINTS,
+            ):
+                reason = NO_ACTIVE_PRIMARY_ENDPOINT
             logger.info(
-                "[NOTIF] failed notification_id=%s user_id=%s error=No active FCM tokens for user",
-                notification.id, notification.user_id,
+                "[NOTIF] failed notification_id=%s user_id=%s error=%s",
+                notification.id, notification.user_id, reason,
             )
             notification.provider = "fcm"
             notification.status = "failed"
-            notification.last_error = "No active FCM tokens for user"
+            notification.is_sent = False
+            notification.last_error = reason[:500]
             return False
+        tokens = [resolution.token]
 
         title = (notification.title or notification.type or "Notification").strip() or "Sedi"
         body = (notification.body or "").strip() or "New notification"

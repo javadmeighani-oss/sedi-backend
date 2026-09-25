@@ -62,14 +62,26 @@ def test_same_install_same_token_same_row(client, db):
     assert db.query(PushDevice).filter(PushDevice.user_id == u.id).count() == 1
 
 
-def test_two_device_ids_two_active_rows(client, db):
+def test_two_device_ids_one_active_primary(client, db):
     u = _user(db, "MultiInstall")
-    a = _register(client, u.id, _tok(4), "install-one")
-    b = _register(client, u.id, _tok(5), "install-two")
+    user_id = u.id
+    a = _register(client, user_id, _tok(4), "install-one")
+    b = _register(client, user_id, _tok(5), "install-two")
     assert a.status_code == 200 and b.status_code == 200
-    assert a.json()["data"]["device_id"] != b.json()["data"]["device_id"]
-    rows = db.query(PushDevice).filter(PushDevice.user_id == u.id, PushDevice.is_active.is_(True)).all()
+    first_id = a.json()["data"]["device_id"]
+    second_id = b.json()["data"]["device_id"]
+    assert first_id != second_id
+    db.expire_all()
+    rows = db.query(PushDevice).filter(PushDevice.user_id == user_id).all()
     assert len(rows) == 2
+    by_id = {row.id: row for row in rows}
+    assert by_id[first_id].is_active is False
+    assert by_id[second_id].is_active is True
+    assert by_id[first_id].device_id == "install-one"
+    assert by_id[second_id].device_id == "install-two"
+    assert by_id[first_id].user_id == user_id
+    assert by_id[second_id].user_id == user_id
+    assert db.query(User).filter(User.id == user_id).one().id == user_id
 
 
 def test_legacy_register_without_device_id(client, db):
@@ -80,6 +92,44 @@ def test_legacy_register_without_device_id(client, db):
     assert r1.json()["data"]["device_id"] == r2.json()["data"]["device_id"]
     assert db.query(PushDevice).filter(PushDevice.user_id == u.id).count() == 1
     assert db.query(PushDevice).filter(PushDevice.user_id == u.id).one().device_id is None
+
+
+def test_reused_token_new_install_id_updates_same_row(client, db):
+    u = _user(db, "ReuseTokenNewInstall")
+    first = _register(client, u.id, _tok(14), "install-old")
+    assert first.status_code == 200
+    row_id = first.json()["data"]["device_id"]
+    second = _register(client, u.id, _tok(14), "install-new")
+    assert second.status_code == 200
+    assert second.json()["data"]["device_id"] == row_id
+    db.expire_all()
+    rows = db.query(PushDevice).filter(PushDevice.user_id == u.id).all()
+    assert len(rows) == 1
+    assert rows[0].device_id == "install-new"
+    assert rows[0].is_active is True
+    assert rows[0].user_id == u.id
+
+
+def test_legacy_active_retired_by_modern_registration(client, db):
+    u = _user(db, "LegacyRetire")
+    user_id = u.id
+    legacy = _register(client, user_id, _tok(15), None)
+    modern = _register(client, user_id, _tok(16), "install-modern")
+    assert legacy.status_code == 200 and modern.status_code == 200
+    legacy_id = legacy.json()["data"]["device_id"]
+    modern_id = modern.json()["data"]["device_id"]
+    assert legacy_id != modern_id
+    db.expire_all()
+    by_id = {
+        row.id: row
+        for row in db.query(PushDevice).filter(PushDevice.user_id == user_id).all()
+    }
+    assert len(by_id) == 2
+    assert by_id[legacy_id].device_id is None
+    assert by_id[legacy_id].is_active is False
+    assert by_id[modern_id].device_id == "install-modern"
+    assert by_id[modern_id].is_active is True
+    assert db.query(User).filter(User.id == user_id).one().id == user_id
 
 
 def test_legacy_token_row_acquires_device_id(client, db):

@@ -1091,80 +1091,48 @@ def push_register(
             status_code=422,
             detail="Invalid FCM token (placeholder/too short).",
         )
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    from backend.app.services.i10.primary_mobile_endpoint import (
+        PrimaryMobileEndpointError,
+        UserNotFoundForEndpoint,
+        reconcile_authenticated_registration,
+    )
+
+    now = datetime.utcnow()
+    platform = body.platform
+    install_id = (body.device_id or "").strip() or None
+    try:
+        device, created = reconcile_authenticated_registration(
+            db,
+            auth_user_id=user_id,
+            platform=platform,
+            fcm_token=token,
+            device_id=install_id,
+            now=now,
+        )
+        db.commit()
+        db.refresh(device)
+    except UserNotFoundForEndpoint:
+        db.rollback()
         return APIResponse(
             ok=False,
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
-    now = datetime.utcnow()
-    platform = body.platform
-    install_id = (body.device_id or "").strip() or None
-    token_row = db.query(PushDevice).filter(PushDevice.fcm_token == token).first()
-    install_row = None
-    if install_id:
-        install_row = (
-            db.query(PushDevice)
-            .filter(
-                PushDevice.user_id == user_id,
-                PushDevice.platform == platform,
-                PushDevice.device_id == install_id,
-            )
-            .first()
-        )
-
-    def _ok(device: PushDevice, *, updated: bool) -> APIResponse:
-        return APIResponse(
-            ok=True,
-            data={
-                "ok": True,
-                "device_id": device.id,
-                "updated": updated,
-                "token_len": len(token),
-                "token_hash": _token_hash(token),
-            },
-        )
-
-    def _touch(device: PushDevice, *, fcm: Optional[str] = None, device_id: Optional[str] = None) -> PushDevice:
-        if fcm is not None:
-            device.fcm_token = fcm
-        if device_id:
-            device.device_id = device_id
-        device.platform = platform
-        device.is_active = True
-        device.last_seen_at = now
-        device.updated_at = now
-        db.commit()
-        db.refresh(device)
-        return device
-
-    if token_row is not None and token_row.user_id != user_id:
-        raise HTTPException(status_code=403, detail="fcm_token does not belong to authenticated user")
-
-    if install_id and install_row is not None:
-        if token_row is not None and token_row.id != install_row.id:
-            raise HTTPException(
-                status_code=409,
-                detail="fcm_token is already registered to another installation",
-            )
-        return _ok(_touch(install_row, fcm=token, device_id=install_id), updated=True)
-
-    if token_row is not None:
-        return _ok(_touch(token_row, device_id=install_id or token_row.device_id), updated=True)
-
-    device = PushDevice(
-        user_id=user_id,
-        platform=platform,
-        fcm_token=token,
-        device_id=install_id,
-        is_active=True,
-        last_seen_at=now,
-        updated_at=now,
+    except PrimaryMobileEndpointError as exc:
+        db.rollback()
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail)
+    except Exception:
+        db.rollback()
+        raise
+    return APIResponse(
+        ok=True,
+        data={
+            "ok": True,
+            "device_id": device.id,
+            "updated": not created,
+            "token_len": len(token),
+            "token_hash": _token_hash(token),
+        },
     )
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-    return _ok(device, updated=False)
 
 
 # ------------------ POST /notifications/push/unregister (Stage 16.6) ------------------

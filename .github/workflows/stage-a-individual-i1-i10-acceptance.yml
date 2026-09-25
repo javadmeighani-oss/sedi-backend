@@ -24,8 +24,13 @@ on:
       - "backend/tests/test_i10_b15_*.py"
       - "backend/tests/test_i10_b16_*.py"
       - "backend/tests/test_i10_provider_freshness_authority_v1.py"
+      - "backend/tests/test_i10_primary_mobile_endpoint_lifecycle_v1.py"
+      - "backend/tests/test_push_device_install_upsert_v1.py"
       - "backend/tests/test_g8_c11a_real_fcm_backend_boundary.py"
       - "backend/app/services/i10/provider_delivery_policy.py"
+      - "backend/app/services/i10/primary_mobile_endpoint.py"
+      - "backend/app/services/notifications/delivery_service.py"
+      - "backend/app/routers/notifications.py"
       - ".github/workflows/stage-a-individual-i1-i10-acceptance.yml"
 
 permissions:
@@ -161,6 +166,8 @@ jobs:
             backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py \
             backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
             backend/tests/test_i10_provider_freshness_authority_v1.py \
+            backend/tests/test_push_device_install_upsert_v1.py \
+            backend/tests/test_i10_primary_mobile_endpoint_lifecycle_v1.py \
             | tee /tmp/stage_a_evidence/i6_i8.txt
       - name: I9 device/HS (conftest isolation)
         run: |
