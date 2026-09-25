@@ -209,7 +209,7 @@ def ensure_default_memory_enabled(
 ) -> Optional[models.UserConsent]:
     """Enable I6 memory as product default only when no prior decision exists.
 
-    A) Active consent is preserved; missing default scopes are ensured.
+    A) Active consent and all of its scopes are preserved exactly as-is.
     B) Any matching revoked/expired historical decision is never auto-enabled.
     C) Only when no matching historical row exists is a default record created.
     """
@@ -232,12 +232,6 @@ def ensure_default_memory_enabled(
             historical_block = True
 
     if active is not None:
-        _ensure_scopes(db, active)
-        if commit:
-            db.commit()
-            db.refresh(active)
-        else:
-            db.flush()
         return active
 
     if historical_block or rows:
