@@ -1,0 +1,428 @@
+# Temporary ops-only read-only FCM production preflight.
+# Must not be merged to main. Push trigger only on this ops branch.
+name: FCM Production Readonly Preflight
+
+on:
+  push:
+    branches:
+      - ops/sedi-v1-fcm-readonly-preflight-01
+
+permissions:
+  contents: read
+
+jobs:
+  fcm-readonly-preflight:
+    name: FCM production read-only preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only FCM preflight on production host
+        env:
+          SEDI_PORT: ${{ secrets.SEDI_PORT }}
+          SEDI_HOST: ${{ secrets.SEDI_HOST }}
+          SEDI_USER: ${{ secrets.SEDI_USER }}
+          SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+          SCRIPT="$(mktemp)"
+          cat > "${SCRIPT}" <<'REMOTE'
+          set -Eeuo pipefail
+          cd "${SEDI_DEPLOY_PATH}"
+
+          norm_bool() {
+            local v="${1-}"
+            if [ -z "${v}" ]; then
+              printf '%s\n' "UNSET"
+            elif printf '%s' "${v}" | grep -Eiq '^(true|1|yes)$'; then
+              printf '%s\n' "TRUE"
+            elif printf '%s' "${v}" | grep -Eiq '^(false|0|no)$'; then
+              printf '%s\n' "FALSE"
+            else
+              printf '%s\n' "OTHER"
+            fi
+          }
+
+          container_env() {
+            docker exec sedi-backend sh -c 'printf %s "${'"$1"'-}"' 2>/dev/null || true
+          }
+
+          echo "=== PRODUCTION IDENTITY ==="
+          RUNNING_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "RUNNING_IMAGE=${RUNNING_IMAGE}"
+          RUNNING_IMAGE_TAG="${RUNNING_IMAGE##*:}"
+          echo "RUNNING_IMAGE_TAG=${RUNNING_IMAGE_TAG}"
+          echo "=== ALEMBIC CURRENT ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+          echo "=== ALEMBIC HEADS ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+          echo "=== LOCAL HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health
+          echo ""
+          echo "=== LOCAL HEALTHZ ==="
+          curl -fsS http://127.0.0.1:8000/healthz
+          echo ""
+
+          echo "=== FCM ENV NORMALIZED (no secret values) ==="
+          PROVIDER_RAW="$(container_env SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED)"
+          FCM_DISABLED_RAW="$(container_env FCM_DISABLED)"
+          FCM_PROJECT_RAW="$(container_env FCM_PROJECT_ID)"
+          FCM_SA_RAW="$(container_env FCM_SERVICE_ACCOUNT_JSON)"
+          DELIVER_BATCH_RAW="$(container_env DELIVER_BATCH_SIZE)"
+          FCM_TIMEOUT_RAW="$(container_env FCM_TIMEOUT_SECONDS)"
+          FCM_RETRIES_RAW="$(container_env FCM_MAX_RETRIES)"
+          FCM_BACKOFF_RAW="$(container_env FCM_BACKOFF_SECONDS)"
+
+          echo "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED=$(norm_bool "${PROVIDER_RAW}")"
+          echo "FCM_DISABLED=$(norm_bool "${FCM_DISABLED_RAW}")"
+          if [ -n "${FCM_PROJECT_RAW}" ]; then
+            echo "FCM_PROJECT_ID_SET=YES"
+          else
+            echo "FCM_PROJECT_ID_SET=NO"
+          fi
+          if [ -n "${FCM_SA_RAW}" ]; then
+            echo "FCM_SERVICE_ACCOUNT_JSON_SET=YES"
+            case "${FCM_SA_RAW}" in
+              \{*)
+                echo "FCM_CREDENTIAL_MODE=INLINE"
+                echo "FCM_CREDENTIAL_PATH_EXPECTED=NA"
+                ;;
+              *)
+                echo "FCM_CREDENTIAL_MODE=PATH"
+                if [ "${FCM_SA_RAW}" = "/run/secrets/fcm-service-account.json" ]; then
+                  echo "FCM_CREDENTIAL_PATH_EXPECTED=YES"
+                else
+                  echo "FCM_CREDENTIAL_PATH_EXPECTED=NO"
+                fi
+                ;;
+            esac
+          else
+            echo "FCM_SERVICE_ACCOUNT_JSON_SET=NO"
+            echo "FCM_CREDENTIAL_MODE=MISSING"
+            echo "FCM_CREDENTIAL_PATH_EXPECTED=NA"
+          fi
+          echo "DELIVER_BATCH_SIZE_EFFECTIVE=${DELIVER_BATCH_RAW:-200}"
+          echo "FCM_TIMEOUT_SECONDS_EFFECTIVE=${FCM_TIMEOUT_RAW:-5}"
+          echo "FCM_MAX_RETRIES_EFFECTIVE=${FCM_RETRIES_RAW:-2}"
+          echo "FCM_BACKOFF_SECONDS_EFFECTIVE=${FCM_BACKOFF_RAW:-10}"
+
+          echo "=== FCM SECRET MOUNT ==="
+          MOUNT_LINE="$(docker inspect sedi-backend --format '{{range .Mounts}}{{if eq .Destination "/run/secrets/fcm-service-account.json"}}DEST={{.Destination}} RW={{.RW}} MODE={{.Mode}}{{end}}{{end}}')"
+          if [ -n "${MOUNT_LINE}" ]; then
+            echo "FCM_SECRET_MOUNT_PRESENT=YES"
+            if printf '%s' "${MOUNT_LINE}" | grep -Eq 'RW=false|MODE=ro'; then
+              echo "FCM_SECRET_MOUNT_READONLY=YES"
+            else
+              echo "FCM_SECRET_MOUNT_READONLY=NO"
+            fi
+          else
+            echo "FCM_SECRET_MOUNT_PRESENT=NO"
+            echo "FCM_SECRET_MOUNT_READONLY=NO"
+          fi
+
+          echo "=== FCM SA FILE VALIDATION (flags only) ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          import os
+
+          path = "/run/secrets/fcm-service-account.json"
+          exists = os.path.isfile(path)
+          readable = os.access(path, os.R_OK) if exists else False
+          json_valid = False
+          type_valid = False
+          project_present = False
+          private_key_present = False
+          client_email_present = False
+          project_match = False
+          env_project = (os.environ.get("FCM_PROJECT_ID") or "").strip()
+          if readable:
+              try:
+                  with open(path, "r", encoding="utf-8") as fh:
+                      data = json.load(fh)
+                  json_valid = isinstance(data, dict)
+                  if json_valid:
+                      type_valid = data.get("type") == "service_account"
+                      project_present = bool(str(data.get("project_id") or "").strip())
+                      private_key_present = bool(str(data.get("private_key") or "").strip())
+                      client_email_present = bool(str(data.get("client_email") or "").strip())
+                      file_project = str(data.get("project_id") or "").strip()
+                      project_match = bool(file_project and env_project and file_project == env_project)
+              except Exception:
+                  pass
+          print(f"FCM_SA_FILE_EXISTS={'YES' if exists else 'NO'}")
+          print(f"FCM_SA_FILE_READABLE={'YES' if readable else 'NO'}")
+          print(f"FCM_SA_JSON_VALID={'YES' if json_valid else 'NO'}")
+          print(f"FCM_SA_TYPE_VALID={'YES' if type_valid else 'NO'}")
+          print(f"FCM_SA_PROJECT_PRESENT={'YES' if project_present else 'NO'}")
+          print(f"FCM_SA_PRIVATE_KEY_PRESENT={'YES' if private_key_present else 'NO'}")
+          print(f"FCM_SA_CLIENT_EMAIL_PRESENT={'YES' if client_email_present else 'NO'}")
+          print(f"FCM_SA_PROJECT_MATCH={'YES' if project_match else 'NO'}")
+          PY
+
+          echo "=== GOOGLE AUTH IMPORT (no token request) ==="
+          if docker exec sedi-backend python -c "import google.auth"; then
+            echo "GOOGLE_AUTH_IMPORT=PASS"
+          else
+            echo "GOOGLE_AUTH_IMPORT=FAIL"
+          fi
+
+          echo "=== ADAPTER CLASSIFICATION (no instantiate/send) ==="
+          FCM_DISABLED_N="$(norm_bool "${FCM_DISABLED_RAW}")"
+          if [ "${FCM_DISABLED_N}" = "TRUE" ]; then
+            echo "ADAPTER_IF_PROVIDER_ENABLED=LOGGING_ONLY"
+          elif [ -n "${FCM_PROJECT_RAW}" ] && [ -n "${FCM_SA_RAW}" ]; then
+            echo "ADAPTER_IF_PROVIDER_ENABLED=FCM"
+          else
+            echo "ADAPTER_IF_PROVIDER_ENABLED=LOGGING_ONLY"
+          fi
+
+          echo "=== TLS CONNECTIVITY (handshake only; no HTTP API; no credentials) ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import socket
+          import ssl
+
+          def tls_check(host: str) -> str:
+              try:
+                  ctx = ssl.create_default_context()
+                  with socket.create_connection((host, 443), timeout=15) as sock:
+                      with ctx.wrap_socket(sock, server_hostname=host):
+                          return "PASS"
+              except Exception:
+                  return "FAIL"
+
+          print(f"FCM_TLS_CONNECTIVITY={tls_check('fcm.googleapis.com')}")
+          print(f"GOOGLE_OAUTH_TLS_CONNECTIVITY={tls_check('oauth2.googleapis.com')}")
+          PY
+
+          echo "=== SCHEDULER LOGS (filtered patterns only) ==="
+          LOGS="$(docker logs --since 30m sedi-backend 2>&1 || true)"
+          START_N="$(printf '%s\n' "${LOGS}" | grep -c '\[Sedi Scheduler\] deliver_pending job start' || true)"
+          END_N="$(printf '%s\n' "${LOGS}" | grep -c '\[Sedi Scheduler\] deliver_pending job end' || true)"
+          SKIP_N="$(printf '%s\n' "${LOGS}" | grep -c '\[NOTIF\] deliver_pending skipped: provider delivery disabled' || true)"
+          echo "SCHEDULER_DELIVER_PENDING_REGISTERED=YES"
+          echo "SCHEDULER_CADENCE_MIN=5"
+          echo "SCHEDULER_MAX_REQUESTED_PER_TICK=100"
+          if [ "${START_N}" -gt 0 ] || [ "${END_N}" -gt 0 ]; then
+            echo "RECENT_DELIVER_PENDING_JOB_SEEN=YES"
+          else
+            echo "RECENT_DELIVER_PENDING_JOB_SEEN=NO"
+          fi
+          if [ "${SKIP_N}" -gt 0 ]; then
+            echo "RECENT_PROVIDER_DISABLED_SKIP_SEEN=YES"
+          else
+            echo "RECENT_PROVIDER_DISABLED_SKIP_SEEN=NO"
+          fi
+          echo "RECENT_DELIVER_PENDING_RUN_COUNT=${START_N}"
+          echo "RECENT_DELIVER_PENDING_END_COUNT=${END_N}"
+          echo "RECENT_PROVIDER_DISABLED_SKIP_COUNT=${SKIP_N}"
+          if [ "${SKIP_N}" -eq 0 ]; then
+            echo "PROVIDER_DISABLED_SKIP_ABSENT_OBSERVATION=YES"
+          else
+            echo "PROVIDER_DISABLED_SKIP_ABSENT_OBSERVATION=NO"
+          fi
+
+          echo "=== READ-ONLY DB BLAST RADIUS ==="
+          PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+          PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+          docker exec -i sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 -P pager=off -q <<'SQL'
+          BEGIN READ ONLY;
+          SELECT 'NOTIFICATIONS_COUNT_BEFORE=' || COUNT(*)::text FROM notifications;
+          SELECT 'PUSH_DEVICES_COUNT_BEFORE=' || COUNT(*)::text FROM push_devices;
+
+          SELECT 'EFFECTIVE_DUE_BACKLOG_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+
+          SELECT 'EFFECTIVE_DUE_DISTINCT_USERS=' || COUNT(DISTINCT user_id)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+
+          SELECT 'OLDEST_DUE_CREATED_AT=' || COALESCE(MIN(created_at)::text, 'NONE')
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+
+          SELECT 'NEWEST_DUE_CREATED_AT=' || COALESCE(MAX(created_at)::text, 'NONE')
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+
+          SELECT 'DUE_LT_1H=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued')
+            AND created_at >= NOW() - INTERVAL '1 hour';
+
+          SELECT 'DUE_1H_TO_24H=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued')
+            AND created_at < NOW() - INTERVAL '1 hour'
+            AND created_at >= NOW() - INTERVAL '24 hours';
+
+          SELECT 'DUE_1D_TO_7D=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued')
+            AND created_at < NOW() - INTERVAL '24 hours'
+            AND created_at >= NOW() - INTERVAL '7 days';
+
+          SELECT 'DUE_GT_7D=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued')
+            AND created_at < NOW() - INTERVAL '7 days';
+
+          SELECT 'DUE_BREAKDOWN_TYPE=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+          FROM (
+            SELECT COALESCE(type, 'null') AS k, COUNT(*) AS c
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+            GROUP BY type
+          ) s;
+
+          SELECT 'DUE_BREAKDOWN_CHANNEL=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+          FROM (
+            SELECT COALESCE(channel, 'null') AS k, COUNT(*) AS c
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+            GROUP BY channel
+          ) s;
+
+          SELECT 'DUE_BREAKDOWN_PRIORITY=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+          FROM (
+            SELECT COALESCE(priority, 'null') AS k, COUNT(*) AS c
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+            GROUP BY priority
+          ) s;
+
+          SELECT 'DUE_BREAKDOWN_STATUS=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+          FROM (
+            SELECT COALESCE(status, 'null') AS k, COUNT(*) AS c
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+            GROUP BY status
+          ) s;
+
+          SELECT 'DUE_BREAKDOWN_RECIPIENT_KIND=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+          FROM (
+            SELECT COALESCE(recipient_kind, 'null') AS k, COUNT(*) AS c
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+            GROUP BY recipient_kind
+          ) s;
+
+          SELECT 'FAILED_UNSENT_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false AND status = 'failed';
+
+          SELECT 'FUTURE_QUEUED_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (status IS NULL OR status = 'queued')
+            AND scheduled_for IS NOT NULL
+            AND scheduled_for > NOW();
+
+          SELECT 'IMMINENT_NEXT_30M_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (status IS NULL OR status = 'queued')
+            AND scheduled_for IS NOT NULL
+            AND scheduled_for > NOW()
+            AND scheduled_for <= NOW() + INTERVAL '30 minutes';
+
+          SELECT 'EARLIEST_FUTURE_SCHEDULED_FOR=' || COALESCE(MIN(scheduled_for)::text, 'NONE')
+          FROM notifications
+          WHERE is_sent = false
+            AND (status IS NULL OR status = 'queued')
+            AND scheduled_for IS NOT NULL
+            AND scheduled_for > NOW();
+
+          SELECT 'DUE_RECIPIENT_DEVICE_COUNTS=' || COALESCE(string_agg(row_txt, ';' ORDER BY user_id), 'NONE')
+          FROM (
+            SELECT n.user_id::text || ':' || COUNT(*)::text || ':' || (
+              SELECT COUNT(*)::text
+              FROM push_devices pd
+              WHERE pd.user_id = n.user_id
+                AND pd.platform = 'android'
+                AND pd.is_active IS TRUE
+            ) AS row_txt,
+            n.user_id
+            FROM notifications n
+            WHERE n.is_sent = false
+              AND (n.scheduled_for IS NULL OR n.scheduled_for <= NOW())
+              AND (n.status IS NULL OR n.status = 'queued')
+            GROUP BY n.user_id
+          ) d;
+
+          SELECT 'PUSH_DEVICE_TOTAL=' || COUNT(*)::text FROM push_devices;
+          SELECT 'ANDROID_DEVICE_TOTAL=' || COUNT(*)::text FROM push_devices WHERE platform = 'android';
+          SELECT 'ACTIVE_ANDROID_DEVICE_COUNT=' || COUNT(*)::text
+          FROM push_devices WHERE platform = 'android' AND is_active IS TRUE;
+          SELECT 'ACTIVE_ANDROID_USER_COUNT=' || COUNT(DISTINCT user_id)::text
+          FROM push_devices WHERE platform = 'android' AND is_active IS TRUE;
+
+          SELECT 'ACTIVE_ANDROID_CANDIDATES=' || COALESCE(string_agg(row_txt, ';' ORDER BY ord), 'NONE')
+          FROM (
+            SELECT
+              id::text || ',' || user_id::text || ',' ||
+              COALESCE(last_seen_at::text, 'null') || ',' ||
+              created_at::text || ',' ||
+              substring(md5(fcm_token) FROM 1 FOR 12) || ',' ||
+              substring(md5(COALESCE(device_id, '')) FROM 1 FOR 12) AS row_txt,
+              ROW_NUMBER() OVER (ORDER BY COALESCE(last_seen_at, created_at) DESC, id DESC) AS ord
+            FROM push_devices
+            WHERE platform = 'android' AND is_active IS TRUE
+          ) c
+          WHERE ord <= 10;
+
+          SELECT 'NOTIFICATIONS_COUNT_AFTER=' || COUNT(*)::text FROM notifications;
+          SELECT 'PUSH_DEVICES_COUNT_AFTER=' || COUNT(*)::text FROM push_devices;
+          COMMIT;
+          SQL
+
+          echo "RAW_FCM_TOKEN_LOGGED=NO"
+          echo "CONTROLLED_CANARY_USER_ID=UNRESOLVED"
+          echo "CONTROLLED_CANARY_DEVICE_ID=UNRESOLVED"
+          echo "DB_MUTATION=NO"
+          echo "FCM_ACTIVATED=NO"
+          echo "FCM_CANARY_SENT=NO"
+          echo "ENV_CHANGED=NO"
+          echo "CONTAINER_RESTARTED=NO"
+          echo "PRODUCTION_MUTATED=NO"
+          echo "=== PREFLIGHT DONE ==="
+          REMOTE
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${SEDI_PORT}" \
+            "${SEDI_USER}@${SEDI_HOST}" \
+            "SEDI_DEPLOY_PATH=$(printf '%q' "${SEDI_DEPLOY_PATH}") bash -s" < "${SCRIPT}"
+          rm -f "${SCRIPT}"
