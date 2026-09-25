@@ -47,7 +47,10 @@ from backend.app.services.i10.care_digest_producer_worker import (
 from backend.app.services.i10.care_network_access import revoke_caregiver_subject_access
 from backend.app.services.i10.care_network_grants import revoke_subject_notification_grant_by_scope
 from backend.app.services.i10.caregiver_delivery_worker import process_caregiver_delivery_intent
-from backend.app.services.i10.policy_types import I10NotificationScope, I10SemanticFamily
+from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
+from backend.app.services.i10.intake import evaluate_foundation_policy
+from backend.app.services.i10.policy_types import I10DecisionValue, I10NotificationScope, I10SemanticFamily
+from backend.app.services.i10.provider_delivery_policy import apply_i10_provider_lifetime
 from backend.app.services.intelligence.device_safety_registry import active_clinical_device_rule_count
 from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
 from backend.app.services.notification_engine import DecisionEngine
@@ -72,6 +75,37 @@ _I10_FLAGS = patch.dict(
     },
     clear=False,
 )
+
+
+_MORNING_WINDOW_NOW = datetime(2026, 8, 31, 4, 30, tzinfo=timezone.utc)
+
+
+def _foundation_at_morning_window(*, candidate, authorized):
+    if not authorized:
+        return evaluate_foundation_policy(candidate=candidate, authorized=authorized)
+    if candidate.expires_at is not None and candidate.expires_at <= _MORNING_WINDOW_NOW:
+        return I10DecisionValue.EXPIRE, "CANDIDATE_EXPIRED"
+    return I10DecisionValue.SEND, "FOUNDATION_SEND"
+
+
+@pytest.fixture
+def morning_window_now():
+    """Align Stage B morning create with the canonical Gate4 window clock."""
+    with patch(
+        "backend.app.services.i10.intake.apply_i10_provider_lifetime",
+        side_effect=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=_MORNING_WINDOW_NOW
+        ),
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_foundation_policy",
+        side_effect=_foundation_at_morning_window,
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_i10_canonical_policy",
+        side_effect=lambda db, **kwargs: evaluate_i10_canonical_policy(
+            db, **{**kwargs, "now_utc": _MORNING_WINDOW_NOW}
+        ),
+    ):
+        yield _MORNING_WINDOW_NOW
 
 
 @pytest.fixture
@@ -181,7 +215,7 @@ def _ok_retrieval(*_a, **_k):
 # ---------------------------------------------------------------------------
 
 
-def test_flow_a_son_daily_cross_i(db, stage_b_patches, monkeypatch):
+def test_flow_a_son_daily_cross_i(db, stage_b_patches, morning_window_now, monkeypatch):
     family = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     son = family.son
     mother = family.mother_hs
