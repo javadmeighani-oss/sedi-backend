@@ -222,8 +222,11 @@ def test_no_schema_or_public_api_contract_change():
     service = Path("backend/app/services/i6/consent_service.py").read_text(encoding="utf-8")
     assert "def ensure_default_memory_enabled(" in service
     session = Path("backend/app/services/a3_session_open.py").read_text(encoding="utf-8")
-    assert "ensure_default_memory_enabled(db, int(user.id), commit=True)" in session
-    ctx_idx = session.index("UserContextService(db).get_user_context")
-    helper_idx = session.index("ensure_default_memory_enabled")
-    opener_idx = session.index("maybe_proactive_opener")
+    assert "def open_a3_session(" in session
+    open_fn = session.split("def open_a3_session(", 1)[1]
+    helper_idx = open_fn.index(
+        "ensure_default_memory_enabled(db, int(user.id), commit=True)"
+    )
+    ctx_idx = open_fn.index("UserContextService(db).get_user_context")
+    opener_idx = open_fn.index("proactive = maybe_proactive_opener(db, user)")
     assert helper_idx < ctx_idx < opener_idx

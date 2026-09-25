@@ -62,13 +62,13 @@ def test_migration_070_static_audit():
     assert "i8_proactive_evaluations" not in body_069
 
 
-def test_alembic_single_head_is_070():
+def test_alembic_single_head_is_086():
     from alembic.script import ScriptDirectory
 
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["080_i9_device_reported_vital_status"]
+    assert script.get_heads() == ["086_i9_vital_observation_context_authority"]
 
 
 def test_evaluation_identity_families():
