@@ -1,0 +1,665 @@
+# ONE-SHOT production FCM activation canary.
+# workflow_dispatch only. Recreates sedi-backend on pinned 29656ea4 only.
+# NO new image deploy. NO backend/app change. NO migration.
+name: I10 FCM Production Activation Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Must be exactly ACTIVATE_FCM_CANARY_01"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+env:
+  PINNED_IMAGE_TAG: "29656ea440352b348721621e9cc99c5877045015"
+  PINNED_IMAGE: "ghcr.io/javadmeighani-oss/sedi-backend:29656ea440352b348721621e9cc99c5877045015"
+  PINNED_ALEMBIC: "086_i9_vital_observation_context_authority"
+
+jobs:
+  activate-canary:
+    name: Activate FCM canary on pinned production image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate confirmation
+        env:
+          CONF: ${{ github.event.inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "${CONF}" = "ACTIVATE_FCM_CANARY_01"
+
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run controlled FCM activation canary
+        env:
+          SEDI_PORT: ${{ secrets.SEDI_PORT }}
+          SEDI_HOST: ${{ secrets.SEDI_HOST }}
+          SEDI_USER: ${{ secrets.SEDI_USER }}
+          SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+          PINNED_IMAGE_TAG: ${{ env.PINNED_IMAGE_TAG }}
+          PINNED_IMAGE: ${{ env.PINNED_IMAGE }}
+          PINNED_ALEMBIC: ${{ env.PINNED_ALEMBIC }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+            -p "${SEDI_PORT}" "${SEDI_USER}@${SEDI_HOST}" \
+            "PINNED_IMAGE_TAG='${PINNED_IMAGE_TAG}' PINNED_IMAGE='${PINNED_IMAGE}' PINNED_ALEMBIC='${PINNED_ALEMBIC}' GITHUB_RUN_ID='${GITHUB_RUN_ID}' SEDI_DEPLOY_PATH='${SEDI_DEPLOY_PATH}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "${SEDI_DEPLOY_PATH}"
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          BACKUP="/etc/sedi/sedi-backend.env.bak.fcm-canary-${STAMP}"
+          REPORT="/tmp/sedi-fcm-canary-${GITHUB_RUN_ID}.report"
+          : > "${REPORT}"
+          ROLLBACK_NEEDED=0
+          CANARY_SENT=0
+          CANARY_ID=""
+          echo "GATE=SEDI-V1-FCM-PRODUCTION-ACTIVATION-CANARY-01"
+          echo "RUN_ID=${GITHUB_RUN_ID}"
+          echo "MAIN_HEAD_NOTE=workflow_only_on_current_main"
+          report() { printf '%s\n' "$1" | tee -a "${REPORT}"; }
+
+          env_get() {
+            python3 - "$1" "$2" <<'PY'
+          import sys
+          path, key = sys.argv[1], sys.argv[2]
+          found = False
+          for line in open(path, encoding="utf-8"):
+              s = line.strip()
+              if not s or s.startswith("#") or "=" not in s:
+                  continue
+              if s.startswith("export "):
+                  s = s[7:]
+              k, _, v = s.partition("=")
+              if k.strip() == key:
+                  print(v)
+                  found = True
+                  break
+          if not found:
+              print("UNSET")
+          PY
+          }
+
+          upsert_env() {
+            python3 - "$ENV_FILE" "$1" "$2" <<'PY'
+          import sys
+          path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
+          lines = open(path, encoding="utf-8").read().splitlines()
+          found = False
+          out = []
+          for line in lines:
+              raw = line[7:] if line.startswith("export ") else line
+              if raw.startswith(key + "="):
+                  out.append(f"{key}={value}")
+                  found = True
+              else:
+                  out.append(line)
+          if not found:
+              out.append(f"{key}={value}")
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write("\n".join(out) + "\n")
+          PY
+          }
+
+          remove_env() {
+            python3 - "$ENV_FILE" "$1" <<'PY'
+          import sys
+          path, key = sys.argv[1], sys.argv[2]
+          out = []
+          for line in open(path, encoding="utf-8").read().splitlines():
+              raw = line[7:] if line.startswith("export ") else line
+              if raw.startswith(key + "="):
+                  continue
+              out.append(line)
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write("\n".join(out) + "\n")
+          PY
+          }
+
+          restore_scheduler_from_backup() {
+            local orig
+            orig="$(env_get "${BACKUP}" "SEDI_DISABLE_SCHEDULER")"
+            if [ "${orig}" = "UNSET" ]; then
+              remove_env "SEDI_DISABLE_SCHEDULER"
+              echo "SCHEDULER_RESTORE=REMOVED_KEY"
+            else
+              upsert_env "SEDI_DISABLE_SCHEDULER" "${orig}"
+              echo "SCHEDULER_RESTORE=${orig}"
+            fi
+          }
+
+          assert_pinned_image() {
+            local img
+            img="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+            echo "RUNNING_TAG=${img}"
+            case "${img}" in
+              *29656ea440352b348721621e9cc99c5877045015*)
+                return 0
+                ;;
+              *)
+                echo "IMAGE_PIN_MISMATCH=${img}"
+                return 1
+                ;;
+            esac
+          }
+
+          assert_compose_pin() {
+            SEDI_IMAGE_TAG="${PINNED_IMAGE_TAG}" docker compose -f compose.production.yml config \
+              | grep -E 'image:' | grep -F "sedi-backend:${PINNED_IMAGE_TAG}" >/dev/null
+            if SEDI_IMAGE_TAG="${PINNED_IMAGE_TAG}" docker compose -f compose.production.yml config \
+              | grep -E 'image:.*sedi-backend' | grep -E 'latest|6abac549|3e945b'; then
+              echo "COMPOSE_IMAGE_UNSAFE"
+              return 1
+            fi
+            docker image inspect "${PINNED_IMAGE}" >/dev/null
+          }
+
+          recreate_backend() {
+            assert_compose_pin
+            SEDI_IMAGE_TAG="${PINNED_IMAGE_TAG}" docker compose -f compose.production.yml \
+              up -d --no-deps --force-recreate --pull never sedi-backend
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json 2>/dev/null; then
+                echo "RECREATE_HEALTHZ=PASS attempt=${i}"
+                assert_pinned_image
+                return 0
+              fi
+              sleep 2
+            done
+            echo "RECREATE_HEALTHZ=FAIL"
+            return 1
+          }
+
+          verify_runtime() {
+            assert_pinned_image
+            docker exec sedi-backend python - <<'PY'
+          import os
+          from backend.app.core.process_role import should_start_scheduler
+          raw = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
+          print(f"PROVIDER_ENV={raw if raw is not None else 'UNSET'}")
+          print(f"SEDI_DISABLE_SCHEDULER={os.getenv('SEDI_DISABLE_SCHEDULER', 'UNSET')}")
+          print(f"SEDI_PROCESS_ROLE={os.getenv('SEDI_PROCESS_ROLE', 'UNSET')}")
+          print(f"SCHEDULER_SHOULD_START={should_start_scheduler()}")
+          PY
+            docker exec sedi-backend python -m alembic -c backend/alembic.ini current | tee /tmp/sedi_alembic.txt
+            grep -q "${PINNED_ALEMBIC}" /tmp/sedi_alembic.txt
+            curl -fsS http://127.0.0.1:8000/health; echo
+            curl -fsS http://127.0.0.1:8000/healthz; echo
+          }
+
+          abort_unsent_canary() {
+            local nid
+            nid="${CANARY_ID:-$(docker exec sedi-backend sh -c 'cat /tmp/sedi_canary_id 2>/dev/null || true')}"
+            if [ -z "${nid}" ]; then
+              echo "NO_CANARY_TO_ABORT"
+              return 0
+            fi
+            docker exec -i -e CANARY_ID="${nid}" sedi-backend python - <<'PY' || true
+          import os
+          from backend.app.database import SessionFactory
+          from backend.app import models
+          db = SessionFactory()
+          try:
+              n = db.query(models.Notification).filter_by(id=int(os.environ["CANARY_ID"])).first()
+              if n is None:
+                  print("CANARY_ABORT_MISSING")
+              elif n.is_sent:
+                  print("CANARY_ABORT_SKIP_ALREADY_SENT")
+              else:
+                  n.status = "expired"
+                  n.is_sent = False
+                  n.sent_at = None
+                  n.last_error = "gate_aborted:SEDI-V1-FCM-PRODUCTION-ACTIVATION-CANARY-01"
+                  db.add(n)
+                  db.commit()
+                  print(f"CANARY_ABORTED_ID={n.id}")
+          finally:
+              db.close()
+          PY
+          }
+
+          rollback_now() {
+            echo "ROLLBACK_BEGIN"
+            if [ "${CANARY_SENT}" != "1" ]; then
+              abort_unsent_canary
+            fi
+            if [ -f "${BACKUP}" ]; then
+              cp -a "${BACKUP}" "${ENV_FILE}"
+              echo "ENV_RESTORED_FROM_BACKUP=YES"
+            fi
+            recreate_backend || true
+            verify_runtime || true
+            echo "ROLLBACK_END"
+          }
+
+          on_err() {
+            echo "GATE_PHASE_FAILED"
+            if [ "${CANARY_SENT}" = "1" ]; then
+              echo "ROLLBACK_OCCURRED=NO"
+              echo "OPEN_FINDINGS=Canary FCM was accepted; later verification failed. No retry. STOP for review."
+              echo "GATE_RESULT=FAIL"
+              echo "=== REPORT ==="
+              cat "${REPORT}" || true
+              exit 1
+            fi
+            if [ "${ROLLBACK_NEEDED}" = "1" ]; then
+              rollback_now
+              echo "ROLLBACK_OCCURRED=YES"
+            else
+              echo "ROLLBACK_OCCURRED=NO"
+            fi
+            echo "GATE_RESULT=FAIL"
+            echo "=== REPORT ==="
+            cat "${REPORT}" || true
+            exit 1
+          }
+          trap on_err ERR
+
+          echo "=== 0 PRECHECK ==="
+          assert_pinned_image
+          docker image inspect "${PINNED_IMAGE}" >/dev/null
+          curl -fsS http://127.0.0.1:8000/health >/tmp/h.json
+          curl -fsS http://127.0.0.1:8000/healthz >/tmp/hz.json
+          report "HEALTH=PASS"
+          report "HEALTHZ=PASS"
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current | tee /tmp/alembic_pre.txt
+          grep -q "${PINNED_ALEMBIC}" /tmp/alembic_pre.txt
+          report "ALEMBIC=${PINNED_ALEMBIC}"
+          PRE_RC=0
+          docker exec -i sedi-backend python - <<'PY' || PRE_RC=$?
+          import hashlib, os, sys
+          from datetime import datetime, timezone
+          from sqlalchemy import or_
+          from backend.app import models
+          from backend.app.database import SessionFactory
+          from backend.app.services.i10.provider_delivery_policy import evaluate_notification_provider_freshness
+
+          def sha12(v):
+              if not v:
+                  return ""
+              return hashlib.sha256(str(v).encode("utf-8")).hexdigest()[:12]
+
+          now = datetime.now(timezone.utc)
+          naive = now.replace(tzinfo=None)
+          print(f"PRECHECK_NOW_UTC={now.isoformat()}")
+          raw = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
+          print(f"PRE_PROVIDER_ENABLED={raw if raw is not None else 'UNSET'}")
+          print(f"PRE_SEDI_DISABLE_SCHEDULER={os.getenv('SEDI_DISABLE_SCHEDULER', 'UNSET')}")
+          print(f"PRE_SEDI_PROCESS_ROLE={os.getenv('SEDI_PROCESS_ROLE', 'UNSET')}")
+          pid = (os.getenv("FCM_PROJECT_ID") or "").strip()
+          sa = (os.getenv("FCM_SERVICE_ACCOUNT_JSON") or "").strip()
+          print(f"FCM_PROJECT_ID_CONFIGURED={'YES' if pid else 'NO'}")
+          print(f"FCM_SERVICE_ACCOUNT_CONFIGURED={'YES' if sa else 'NO'}")
+          print(f"FCM_SERVICE_ACCOUNT_PATH_PRESENT={'YES' if sa and os.path.exists(sa) else 'NO'}")
+          db = SessionFactory()
+          try:
+              db.rollback()
+              devices = db.query(models.PushDevice).filter_by(user_id=1).order_by(models.PushDevice.id.asc()).all()
+              active = [d for d in devices if d.is_active and str(d.platform or "").lower() == "android"]
+              print(f"PRE_ANDROID_ACTIVE_COUNT={len(active)}")
+              print(f"PRE_PRIMARY_PUSH_DEVICE_ID={active[0].id if len(active)==1 else None}")
+              if active:
+                  print(f"PRE_PRIMARY_DEVICE_HASH={sha12(active[0].device_id)}")
+              due = (
+                  db.query(models.Notification)
+                  .filter(models.Notification.is_sent == False)  # noqa: E712
+                  .filter(or_(models.Notification.scheduled_for.is_(None), models.Notification.scheduled_for <= naive))
+                  .filter(or_(models.Notification.status.is_(None), models.Notification.status == "queued"))
+                  .order_by(models.Notification.id.asc())
+                  .all()
+              )
+              fresh, expire, block, amb = [], [], [], []
+              for n in due:
+                  fr = evaluate_notification_provider_freshness(db, n, now_utc=now)
+                  out = fr.outcome.value
+                  print(f"PRE_DUE|{n.id}|{out}|{fr.reason_code}|{fr.remaining_seconds}")
+                  if out == "ALLOW":
+                      fresh.append(n.id)
+                  elif out == "EXPIRE":
+                      expire.append(n.id)
+                  elif out == "BLOCK":
+                      block.append(n.id)
+                  else:
+                      amb.append(n.id)
+              print(f"PRE_DUE_NOW={len(due)}")
+              print(f"PRE_FRESH_NOW={len(fresh)}")
+              print(f"PRE_EXPIRE_NOW={len(expire)}")
+              print(f"PRE_BLOCK_NOW={len(block)}")
+              print(f"PRE_AMBIGUOUS_NOW={len(amb)}")
+              print(f"PRE_FRESH_IDS={fresh}")
+              print(f"PRE_EXPIRE_IDS={expire}")
+              print(f"PRE_BLOCK_IDS={block}")
+              print(f"PRE_AMBIGUOUS_IDS={amb}")
+              ok = True
+              if len(active) != 1 or active[0].id != 6 or sha12(active[0].device_id) != "498140a30b84":
+                  ok = False
+                  print("PRECHECK_PRIMARY_MISMATCH=YES")
+              if len(fresh) != 0 or len(block) != 0 or len(amb) != 0:
+                  ok = False
+                  print("PRECHECK_FRESHNESS_UNSAFE=YES")
+              if not pid or not sa or not os.path.exists(sa):
+                  ok = False
+                  print("PRECHECK_FCM_CONFIG_MISSING=YES")
+              if raw is not None and raw.strip().lower() in ("true", "1", "yes"):
+                  ok = False
+                  print("PRECHECK_PROVIDER_ALREADY_ON=YES")
+              sys.exit(0 if ok else 11)
+          finally:
+              db.rollback()
+              db.close()
+          PY
+          if [ "${PRE_RC}" = "11" ]; then
+            report "GATE_RESULT=STOP"
+            report "ROLLBACK_OCCURRED=NO"
+            report "OPEN_FINDINGS=Precheck failed: FRESH/BLOCK/AMBIGUOUS due rows, primary/FCM mismatch, or provider already on. No mutation."
+            echo "=== REPORT ==="
+            cat "${REPORT}"
+            exit 0
+          fi
+          if [ "${PRE_RC}" != "0" ]; then
+            echo "PRECHECK_PYTHON_ERROR=${PRE_RC}"
+            exit 1
+          fi
+
+          echo "=== 1 BACKUP ENV ==="
+          cp -a "${ENV_FILE}" "${BACKUP}"
+          report "ENV_BACKUP_PATH=${BACKUP}"
+          report "ENV_BACKUP_SHA256=$(sha256sum "${BACKUP}" | awk '{print $1}')"
+          PRE_PROV="$(env_get "${BACKUP}" "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")"
+          PRE_SCH="$(env_get "${BACKUP}" "SEDI_DISABLE_SCHEDULER")"
+          PRE_ROLE="$(env_get "${BACKUP}" "SEDI_PROCESS_ROLE")"
+          report "PRE_PROVIDER_ENABLED=${PRE_PROV}"
+          report "PRE_SCHEDULER_DISABLE_FLAG=${PRE_SCH}"
+          report "PRE_SEDI_PROCESS_ROLE=${PRE_ROLE}"
+          if [ "${PRE_SCH}" = "UNSET" ] || [ "${PRE_SCH}" = "false" ] || [ "${PRE_SCH}" = "0" ]; then
+            report "PRE_SCHEDULER_ENABLED=true"
+          else
+            report "PRE_SCHEDULER_ENABLED=false"
+          fi
+          ROLLBACK_NEEDED=1
+
+          echo "=== 2 ACTIVATION MODE ==="
+          upsert_env "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED" "true"
+          upsert_env "SEDI_DISABLE_SCHEDULER" "1"
+          recreate_backend
+          verify_runtime
+          docker exec sedi-backend python - <<'PY'
+          import os, sys
+          from backend.app.core.process_role import should_start_scheduler
+          raw = (os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED") or "").strip().lower()
+          if raw not in ("true", "1", "yes") or should_start_scheduler():
+              print("ACTIVATION_MODE_VERIFY=FAIL")
+              sys.exit(12)
+          print("PROVIDER_ENABLED=true")
+          print("SCHEDULER_STARTED=false")
+          PY
+
+          echo "=== 3 BACKLOG CLOSE ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import sys
+          from datetime import datetime, timezone
+          from sqlalchemy import or_
+          from backend.app import models
+          from backend.app.database import SessionFactory
+          from backend.app.services.i10.provider_delivery_policy import evaluate_notification_provider_freshness
+          from backend.app.services.notifications.delivery_service import DeliveryService
+
+          now = datetime.now(timezone.utc)
+          naive = now.replace(tzinfo=None)
+          db = SessionFactory()
+          try:
+              due = (
+                  db.query(models.Notification)
+                  .filter(models.Notification.is_sent == False)  # noqa: E712
+                  .filter(or_(models.Notification.scheduled_for.is_(None), models.Notification.scheduled_for <= naive))
+                  .filter(or_(models.Notification.status.is_(None), models.Notification.status == "queued"))
+                  .order_by(models.Notification.id.asc())
+                  .all()
+              )
+              ids = [n.id for n in due]
+              print(f"BACKLOG_DUE_BEFORE={ids}")
+              bad = []
+              for n in due:
+                  fr = evaluate_notification_provider_freshness(db, n, now_utc=now)
+                  print(f"BACKLOG_CLASS|{n.id}|{fr.outcome.value}|{fr.reason_code}")
+                  if fr.outcome.value != "EXPIRE":
+                      bad.append((n.id, fr.outcome.value, fr.reason_code))
+              if bad:
+                  print(f"BACKLOG_NOT_ALL_EXPIRE={bad}")
+                  sys.exit(13)
+              sent = DeliveryService(db).deliver_pending(limit=100)
+              print(f"BACKLOG_CLOSE_SENT_COUNT={sent}")
+              if sent != 0:
+                  sys.exit(14)
+              expired = []
+              for nid in ids:
+                  n = db.query(models.Notification).filter_by(id=nid).one()
+                  print(f"BACKLOG_AFTER|{nid}|status={n.status}|is_sent={n.is_sent}|sent_at={n.sent_at}")
+                  if n.status != "expired" or n.is_sent or n.sent_at is not None:
+                      sys.exit(15)
+                  expired.append(nid)
+              due_after = (
+                  db.query(models.Notification)
+                  .filter(models.Notification.is_sent == False)  # noqa: E712
+                  .filter(or_(models.Notification.scheduled_for.is_(None), models.Notification.scheduled_for <= naive))
+                  .filter(or_(models.Notification.status.is_(None), models.Notification.status == "queued"))
+                  .count()
+              )
+              print(f"DUE_OLD_ROWS={due_after}")
+              print(f"BACKLOG_EXPIRED_IDS={expired}")
+              print("REAL_FCM_SENDS_DURING_BACKLOG_CLOSE=0")
+              if due_after != 0:
+                  sys.exit(16)
+          finally:
+              db.close()
+          PY
+
+          echo "=== 4-6 CANARY CREATE AND SEND ==="
+          CANARY_RC=0
+          docker exec -i -e GITHUB_RUN_ID="${GITHUB_RUN_ID}" sedi-backend python - <<'PY' || CANARY_RC=$?
+          import hashlib, os, sys
+          from datetime import datetime, timedelta, timezone
+          from sqlalchemy import or_
+          from backend.app import models
+          from backend.app.database import SessionFactory
+          from backend.app.schemas.notification import NotificationPayload
+          from backend.app.services.i10.contracts import I10NotificationCandidate
+          from backend.app.services.i10.intake import enqueue_i10_notification
+          from backend.app.services.i10.policy_types import I10DecisionValue, I10NotificationScope, I10PrivacyClass, I10SemanticFamily
+          from backend.app.services.i10.primary_mobile_endpoint import ALLOW_PRIMARY_ENDPOINT, resolve_primary_android_endpoint
+          from backend.app.services.i10.provider_delivery_policy import (
+              evaluate_notification_provider_freshness,
+              recipient_provider_block_reason,
+          )
+          from backend.app.services.i9.health_subject_service import resolve_canonical_active_self_subject
+          from backend.app.services.gate4.policy_resolver import evaluate_delivery_with_gate4_policy
+          from backend.app.services.notifications.delivery_service import DeliveryService
+
+          def sha12(v):
+              if not v:
+                  return ""
+              return hashlib.sha256(str(v).encode("utf-8")).hexdigest()[:12]
+
+          run_id = os.environ["GITHUB_RUN_ID"]
+          now = datetime.now(timezone.utc)
+          naive = now.replace(tzinfo=None)
+          db = SessionFactory()
+          try:
+              self_hs = resolve_canonical_active_self_subject(db, 1)
+              if self_hs is None:
+                  print("SELF_SUBJECT=MISSING")
+                  sys.exit(17)
+              print(f"CANARY_SELF_HEALTH_SUBJECT_ID={self_hs.id}")
+              user = db.query(models.User).filter_by(id=1).one()
+              lang = user.preferred_language if user.preferred_language in ("en", "fa", "ar") else "en"
+              source_id = f"sedi-v1-fcm-canary-{run_id}"
+              dedupe = f"fcm-canary:{run_id}"
+              candidate = I10NotificationCandidate(
+                  candidate_key=dedupe,
+                  health_subject_id=int(self_hs.id),
+                  recipient_user_id=1,
+                  notification_scope=I10NotificationScope.GENERAL_STATUS,
+                  source_owner="I10",
+                  source_type="production_fcm_canary",
+                  source_id=source_id,
+                  semantic_family=I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP,
+                  privacy_hint=I10PrivacyClass.PRIVATE,
+                  valid_from=now,
+                  expires_at=now + timedelta(minutes=10),
+              )
+              payload = NotificationPayload(
+                  user_id=1,
+                  type="companion_ping",
+                  title="Sedi",
+                  body="Sedi notification connection test.",
+                  priority="normal",
+                  dedupe_key=dedupe,
+                  health_subject_id=int(self_hs.id),
+                  semantic_family=I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP.value,
+                  metadata={"language": lang, "gate": "SEDI-V1-FCM-PRODUCTION-ACTIVATION-CANARY-01"},
+              )
+              result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
+              print(f"CANARY_I10_DECISION={result.decision.value}")
+              print(f"CANARY_I10_REASON={result.reason_code}")
+              print(f"CANARY_I10_DECISION_ID={result.decision_id}")
+              print(f"CANARY_NOTIFICATION_ID={result.notification_id}")
+              if result.decision != I10DecisionValue.SEND or result.notification_id is None:
+                  print("CANARY_I10_NOT_SEND=YES")
+                  sys.exit(18)
+              canary_id = int(result.notification_id)
+              open("/tmp/sedi_canary_id", "w").write(str(canary_id))
+              n = db.query(models.Notification).filter_by(id=canary_id).one()
+              linked = None
+              if n.i10_policy_decision_id is not None:
+                  linked = db.query(models.I10NotificationDecision).filter_by(id=int(n.i10_policy_decision_id)).first()
+              if linked is None:
+                  linked = (
+                      db.query(models.I10NotificationDecision)
+                      .filter_by(notification_id=canary_id)
+                      .order_by(models.I10NotificationDecision.id.desc())
+                      .first()
+                  )
+              print(f"CANARY_LINKED_DECISION_ID={getattr(linked, 'id', None)}")
+              print(f"CANARY_LINKED_DECISION={getattr(linked, 'decision', None)}")
+              if linked is None or str(linked.decision) != "SEND":
+                  sys.exit(19)
+              fr = evaluate_notification_provider_freshness(db, n, now_utc=now)
+              print(f"CANARY_FRESHNESS={fr.outcome.value}")
+              print(f"CANARY_FRESHNESS_REASON={fr.reason_code}")
+              if fr.outcome.value != "ALLOW":
+                  sys.exit(20)
+              block = recipient_provider_block_reason(db, n)
+              print(f"CANARY_RECIPIENT_BLOCK={block}")
+              if block is not None:
+                  sys.exit(21)
+              res = resolve_primary_android_endpoint(db, 1)
+              print(f"CANARY_PRIMARY_OUTCOME={res.outcome}")
+              print(f"CANARY_PRIMARY_PUSH_DEVICE_ID={getattr(res.device, 'id', None)}")
+              print(f"CANARY_DEVICE_HASH={sha12(getattr(res.device, 'device_id', None))}")
+              if res.outcome != ALLOW_PRIMARY_ENDPOINT or getattr(res.device, "id", None) != 6:
+                  sys.exit(22)
+              should, policy = evaluate_delivery_with_gate4_policy(db, notification=n, now_utc=now)
+              reason = getattr(policy, "reason_code", None) if policy is not None else "ALLOW"
+              print(f"CANARY_GATE4_SHOULD_DELIVER={should}")
+              print(f"CANARY_GATE4_POLICY={reason}")
+              if not should:
+                  print("CANARY_GATE4_BLOCKED=YES")
+                  sys.exit(23)
+              due = (
+                  db.query(models.Notification)
+                  .filter(models.Notification.is_sent == False)  # noqa: E712
+                  .filter(or_(models.Notification.scheduled_for.is_(None), models.Notification.scheduled_for <= naive))
+                  .filter(or_(models.Notification.status.is_(None), models.Notification.status == "queued"))
+                  .order_by(models.Notification.id.asc())
+                  .all()
+              )
+              due_ids = [x.id for x in due]
+              print(f"DUE_NOW={due_ids}")
+              if due_ids != [canary_id]:
+                  print("DUE_NOT_ONLY_CANARY=YES")
+                  sys.exit(24)
+              sent = DeliveryService(db).deliver_pending(limit=1)
+              print(f"CANARY_DELIVER_SENT_COUNT={sent}")
+              db.expire_all()
+              n = db.query(models.Notification).filter_by(id=canary_id).one()
+              print(f"CANARY_IS_SENT={n.is_sent}")
+              print(f"CANARY_STATUS={n.status}")
+              print(f"CANARY_PROVIDER={n.provider}")
+              print(f"CANARY_PROVIDER_MESSAGE_ID_PRESENT={'YES' if n.provider_message_id else 'NO'}")
+              print(f"CANARY_LAST_ERROR={n.last_error}")
+              print(f"CANARY_SENT_AT={n.sent_at}")
+              if sent != 1 or n.is_sent is not True or n.status != "sent" or n.provider != "fcm" or not n.provider_message_id or n.last_error:
+                  sys.exit(25)
+              print("REAL_FCM_SEND_COUNT_FOR_CANARY=1")
+              print("CANARY_SEMANTIC_FAMILY=GENERAL_CONTEXTUAL_FOLLOW_UP")
+          finally:
+              db.close()
+          PY
+          CANARY_ID="$(docker exec sedi-backend sh -c 'cat /tmp/sedi_canary_id 2>/dev/null || true')"
+          if [ -n "${CANARY_ID}" ]; then
+            report "CANARY_NOTIFICATION_ID=${CANARY_ID}"
+          fi
+          if [ "${CANARY_RC}" != "0" ]; then
+            echo "CANARY_PHASE_FAILED=${CANARY_RC}"
+            exit 1
+          fi
+          CANARY_SENT=1
+          ROLLBACK_NEEDED=0
+
+          echo "=== 7 NORMAL PRODUCTION MODE ==="
+          upsert_env "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED" "true"
+          restore_scheduler_from_backup
+          recreate_backend
+          verify_runtime
+          docker exec -i sedi-backend python - <<'PY'
+          import os, sys
+          from backend.app import models
+          from backend.app.database import SessionFactory
+          from backend.app.core.process_role import should_start_scheduler
+          raw = (os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED") or "").strip().lower()
+          print(f"POST_PROVIDER_ENABLED={raw in ('true','1','yes')}")
+          print(f"POST_SCHEDULER_ENABLED={should_start_scheduler()}")
+          if raw not in ("true", "1", "yes") or not should_start_scheduler():
+              sys.exit(26)
+          db = SessionFactory()
+          try:
+              active = (
+                  db.query(models.PushDevice)
+                  .filter_by(user_id=1, is_active=True, platform="android")
+                  .all()
+              )
+              print(f"POST_ANDROID_ACTIVE_COUNT={len(active)}")
+              print(f"POST_PRIMARY_PUSH_DEVICE_ID={active[0].id if len(active)==1 else None}")
+              if len(active) != 1 or active[0].id != 6:
+                  sys.exit(27)
+          finally:
+              db.close()
+          PY
+          report "POST_PROVIDER_ENABLED=true"
+          report "POST_SCHEDULER_ENABLED=true"
+          report "POST_RUNNING_TAG=${PINNED_IMAGE}"
+          report "NEW_BACKEND_IMAGE_DEPLOYED=NO"
+          report "MIGRATION_CHANGED=NO"
+          report "SCHEMA_CHANGED=NO"
+          report "BACKEND_APP_CHANGED=NO"
+          report "FRONTEND_CHANGED=NO"
+          report "ROLLBACK_OCCURRED=NO"
+          report "GATE_RESULT=GREEN"
+          echo "=== FINAL REPORT ==="
+          cat "${REPORT}"
+          REMOTE
