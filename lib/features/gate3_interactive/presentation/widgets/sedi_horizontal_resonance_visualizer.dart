@@ -218,8 +218,11 @@ class _HorizontalResonancePainter extends CustomPainter {
           SediHorizontalResonanceVisualizer.amplitudeScale;
 
       final x = pitch * (i + 0.5);
-      final opacity = (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92).toDouble();
-      paint.color = _presence.withOpacity(opacity);
+      final baseOpacity =
+          (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92).toDouble();
+      final finalOpacity =
+          (baseOpacity * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0);
+      paint.color = _presence.withOpacity(finalOpacity);
 
       canvas.drawLine(
         Offset(x, midY - half),

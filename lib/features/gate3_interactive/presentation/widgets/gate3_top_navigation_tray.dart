@@ -62,13 +62,7 @@ class Gate3TopNavigationTray extends StatelessWidget {
                   width: double.infinity,
                   height: handleHeight,
                   child: Center(
-                    child: Icon(
-                      expanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 18,
-                      color: AppTheme.textSecondary,
-                    ),
+                    child: _TrayChevron(expanded: expanded),
                   ),
                 ),
               ),
@@ -78,4 +72,68 @@ class Gate3TopNavigationTray extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Visible chevron only. Handle tap target stays [Gate3TopNavigationTray.handleHeight].
+class _TrayChevron extends StatelessWidget {
+  static const double visualSize = 18 * 1.30;
+  static const double strokeWidth = 1.5 * 1.10;
+
+  final bool expanded;
+
+  const _TrayChevron({required this.expanded});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size.square(visualSize),
+      painter: _TrayChevronPainter(
+        pointingUp: expanded,
+        color: AppTheme.textSecondary,
+        strokeWidth: strokeWidth,
+      ),
+    );
+  }
+}
+
+class _TrayChevronPainter extends CustomPainter {
+  final bool pointingUp;
+  final Color color;
+  final double strokeWidth;
+
+  const _TrayChevronPainter({
+    required this.pointingUp,
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
+
+    final insetX = size.width * 0.28;
+    final top = size.height * 0.38;
+    final bottom = size.height * 0.58;
+    final midX = size.width / 2;
+    final apexY = pointingUp ? top : bottom;
+    final wingY = pointingUp ? bottom : top;
+
+    final path = Path()
+      ..moveTo(insetX, wingY)
+      ..lineTo(midX, apexY)
+      ..lineTo(size.width - insetX, wingY);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrayChevronPainter oldDelegate) =>
+      oldDelegate.pointingUp != pointingUp ||
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth;
 }

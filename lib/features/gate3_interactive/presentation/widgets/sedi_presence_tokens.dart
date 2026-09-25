@@ -7,9 +7,9 @@ class SediPresenceTokens {
   /// Approved Sedi-presence green — outline, brand, and horizontal bars.
   static const Color presenceGreen = Color(0xFF86F83C);
 
-  static const double orbWidthFactor = 0.255;
-  static const double orbMinDiameter = 92;
-  static const double orbMaxDiameter = 104;
+  static const double orbWidthFactor = 0.204;
+  static const double orbMinDiameter = 73.6;
+  static const double orbMaxDiameter = 83.2;
 
   static const double visualizerHeight = 36;
   static const double barPitch = 4;
@@ -18,6 +18,9 @@ class SediPresenceTokens {
 
   /// ~20% reduction from the previous visual-amplitude maximum.
   static const double amplitudeScale = 0.80;
+
+  /// Visibility-only scale on computed bar opacity. Not amplitude or energy.
+  static const double barOpacityScale = 1.20;
 
   static double orbDiameterFor(double availableWidth) {
     return (availableWidth * orbWidthFactor)

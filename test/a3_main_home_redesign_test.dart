@@ -57,7 +57,10 @@ void main() {
     expect(orb.contains('SediFrequencyRingPainter'), isFalse);
     expect(orb.contains('SediOrbTexturePainter'), isFalse);
     expect(orb.contains('sediOrbBrandLatin'), isTrue);
-    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.255, 0.0001));
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.204, 0.0001));
+    expect(SediPresenceTokens.orbMinDiameter, closeTo(73.6, 0.0001));
+    expect(SediPresenceTokens.orbMaxDiameter, closeTo(83.2, 0.0001));
+    expect(SediPresenceTokens.barOpacityScale, closeTo(1.20, 0.0001));
     expect(presence.contains('horizontalInset * 2'), isFalse);
     expect(presence.contains('maxW - SediOrbPresence.horizontalInset'), isFalse);
 
@@ -65,8 +68,10 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_top_navigation_tray.dart',
     );
     expect(tray.contains('handleHeight = 44'), isTrue);
-    expect(tray.contains('size: 18'), isTrue);
-    expect(Gate3TopNavigationTray.handleHeight, greaterThanOrEqualTo(44));
+    expect(tray.contains('visualSize = 18 * 1.30'), isTrue);
+    expect(tray.contains('strokeWidth = 1.5 * 1.10'), isTrue);
+    expect(tray.contains('size: 18'), isFalse);
+    expect(Gate3TopNavigationTray.handleHeight, 44);
 
     expect(
       'SediHorizontalResonanceVisualizer'.allMatches(presence).length,
@@ -79,6 +84,9 @@ void main() {
     expect(vis.contains('SediPresenceTokens.amplitudeScale'), isTrue);
     expect(vis.contains('height = SediPresenceTokens.visualizerHeight'), isTrue);
     expect(vis.contains('phaseSpeed = 0.85'), isTrue);
+    expect(vis.contains('barOpacityScale'), isTrue);
+    expect(orb.contains('d * 0.34'), isTrue);
+    expect(orb.contains('0.80'), isFalse);
 
     expect(sediOrbBrandLatin, 'Sedi.');
     expect(SediPresenceTokens.presenceGreen, const Color(0xFF86F83C));
@@ -115,8 +123,11 @@ void main() {
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, closeTo(0.80, 0.01));
   });
 
-  test('responsive orb diameter is ~25–26% and clamped', () {
-    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.255, 0.01));
+  test('responsive orb diameter is 80% of prior tokens and clamped', () {
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.255 * 0.80, 0.0001));
+    expect(SediPresenceTokens.orbMinDiameter, closeTo(92 * 0.80, 0.0001));
+    expect(SediPresenceTokens.orbMaxDiameter, closeTo(104 * 0.80, 0.0001));
+    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.204, 0.01));
     expect(SediBrainOrb.diameterFor(200), SediBrainOrb.minDiameter);
     expect(SediBrainOrb.diameterFor(800), SediBrainOrb.maxDiameter);
     expect(SediPresenceTokens.barCountFor(400), inInclusiveRange(96, 100));
