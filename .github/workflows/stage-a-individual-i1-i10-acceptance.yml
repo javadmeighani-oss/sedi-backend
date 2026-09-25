@@ -149,6 +149,7 @@ jobs:
             backend/tests/test_i6_memory_consent.py \
             backend/tests/test_i6_product_write_closure.py \
             backend/tests/test_i6_read_governance.py \
+            backend/tests/test_i6_default_memory_enabled.py \
             backend/tests/test_i7_period_summaries.py \
             backend/tests/test_i7_section45_memory_foundation.py \
             backend/tests/test_i7_wave2_governed_memory_lifecycle.py \

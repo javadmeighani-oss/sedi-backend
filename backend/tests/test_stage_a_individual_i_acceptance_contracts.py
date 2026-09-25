@@ -146,11 +146,11 @@ def test_i10_cni_owner_column_nullable_in_orm():
     assert col.nullable is True
 
 
-def test_alembic_single_head_remains_079():
+def test_alembic_single_head_remains_086():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["080_i9_device_reported_vital_status"]
+    assert script.get_heads() == ["086_i9_vital_observation_context_authority"]
