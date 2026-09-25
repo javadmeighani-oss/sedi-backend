@@ -11,7 +11,9 @@ import pytest
 from sqlalchemy import func
 
 from backend.app import models
-from backend.app.services.i10.policy_types import I10SemanticFamily
+from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
+from backend.app.services.i10.intake import evaluate_foundation_policy
+from backend.app.services.i10.policy_types import I10DecisionValue, I10SemanticFamily
 from backend.app.services.i10.provider_delivery_policy import apply_i10_provider_lifetime
 from backend.app.services.i9.health_subject_service import (
     create_managed_subject_without_account,
@@ -36,6 +38,14 @@ def gate4_patch():
 _MORNING_WINDOW_NOW = datetime(2026, 8, 31, 4, 30, tzinfo=timezone.utc)
 
 
+def _foundation_at_morning_window(*, candidate, authorized):
+    if not authorized:
+        return evaluate_foundation_policy(candidate=candidate, authorized=authorized)
+    if candidate.expires_at is not None and candidate.expires_at <= _MORNING_WINDOW_NOW:
+        return I10DecisionValue.EXPIRE, "CANDIDATE_EXPIRED"
+    return I10DecisionValue.SEND, "FOUNDATION_SEND"
+
+
 @pytest.fixture
 def morning_window_now():
     """Align B08 DecisionEngine morning creates with the canonical Gate4 window."""
@@ -43,6 +53,14 @@ def morning_window_now():
         "backend.app.services.i10.intake.apply_i10_provider_lifetime",
         side_effect=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
             db, candidate, now_utc=_MORNING_WINDOW_NOW
+        ),
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_foundation_policy",
+        side_effect=_foundation_at_morning_window,
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_i10_canonical_policy",
+        side_effect=lambda db, **kwargs: evaluate_i10_canonical_policy(
+            db, **{**kwargs, "now_utc": _MORNING_WINDOW_NOW}
         ),
     ):
         yield _MORNING_WINDOW_NOW
