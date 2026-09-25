@@ -24,12 +24,30 @@ void main() {
     expect(src.contains('lifestyle_page.dart'), isFalse);
     expect(src.contains('l10n.openChat'), isFalse);
     expect(src.contains('historyExplain'), isTrue);
+    expect(src.contains('conversationsLast30Days'), isTrue);
+    expect(src.contains("'group': 'daily'"), isTrue);
+    expect(src.contains('currentGroupKey'), isTrue);
+    expect(src.contains('formatIsoForProfileDisplay'), isTrue);
+    expect(src.contains('AnimatedSize'), isTrue);
+    expect(src.contains('_expandedKey'), isTrue);
+    expect(src.contains('substring(0, 80)'), isFalse);
+    expect(src.contains('recentConversations'), isFalse);
+    expect(src.contains('MessageBubble'), isFalse);
+    expect(src.contains('onEdit'), isFalse);
+    expect(src.contains('Read more'), isFalse);
+    expect(src.contains('I6'), isFalse);
+    expect(src.contains('I7'), isFalse);
 
     final explainEn = LifestyleL10n('en').historyExplain.toLowerCase();
     expect(explainEn.contains('ask sedi'), isFalse);
     expect(explainEn.contains('in chat'), isFalse);
     expect(explainEn.contains('read-only'), isTrue);
+    expect(explainEn.contains('30 days'), isTrue);
+    expect(explainEn.contains('retention'), isFalse);
     expect(LifestyleL10n('fa').historyExplain.contains('چت'), isFalse);
     expect(LifestyleL10n('ar').historyExplain.contains('الدردشة'), isFalse);
+    expect(LifestyleL10n('en').conversationsLast30Days, isNotEmpty);
+    expect(LifestyleL10n('fa').conversationsLast30Days, isNotEmpty);
+    expect(LifestyleL10n('ar').conversationsLast30Days, isNotEmpty);
   });
 }

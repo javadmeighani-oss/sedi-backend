@@ -52,11 +52,13 @@ class HistoryGroupItem {
 
 class HistoryResponse {
   final String group;
+  final String? currentGroupKey;
   final List<HistoryGroupItem> items;
 
   const HistoryResponse({
     required this.group,
     required this.items,
+    this.currentGroupKey,
   });
 
   factory HistoryResponse.fromJson(Map<String, dynamic> json) {
@@ -66,8 +68,10 @@ class HistoryResponse {
             .map((e) => HistoryGroupItem.fromJson(e is Map<String, dynamic> ? e : <String, dynamic>{}))
             .toList()
         : <HistoryGroupItem>[];
+    final current = json['current_group_key']?.toString().trim();
     return HistoryResponse(
       group: json['group']?.toString() ?? 'daily',
+      currentGroupKey: (current == null || current.isEmpty) ? null : current,
       items: list,
     );
   }

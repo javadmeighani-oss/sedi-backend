@@ -99,9 +99,22 @@ class LifestyleL10n {
   String get sediSummaries =>
       _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات سدي');
   String get historyExplain => _t(
-        en: 'This is a read-only archive of retained conversations and Sedi summaries.',
-        fa: 'این بایگانی فقط‌خواندنی گفتگوهای نگهداری‌شده و خلاصه‌های صدی است.',
-        ar: 'هذا أرشيف للقراءة فقط للمحادثات المحتفظ بها وملخصات سدي.',
+        en:
+            'This is a read-only archive of conversations from the last 30 days and Sedi summaries.',
+        fa:
+            'این بایگانی فقط‌خواندنی گفتگوهای ۳۰ روز گذشته و خلاصه‌های صدی است.',
+        ar:
+            'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات سدي.',
+      );
+  String get conversationsLast30Days => _t(
+        en: 'Conversations from the last 30 days',
+        fa: 'گفتگوهای ۳۰ روز گذشته',
+        ar: 'محادثات الثلاثين يوماً الماضية',
+      );
+  String turnCount(int n) => _t(
+        en: n == 1 ? '1 turn' : '$n turns',
+        fa: n == 1 ? '۱ گفتگو' : '$n گفتگو',
+        ar: n == 1 ? 'محادثة واحدة' : '$n محادثات',
       );
   String get noConversations => _t(
         en: 'No conversations in this period.',
