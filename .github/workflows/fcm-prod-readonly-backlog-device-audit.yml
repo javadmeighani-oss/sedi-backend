@@ -1,0 +1,458 @@
+# Temporary ops-only read-only backlog/device forensic audit.
+# Must not be merged to main. Push trigger only on this ops branch.
+name: FCM Production Readonly Backlog Device Audit
+
+on:
+  push:
+    branches:
+      - ops/sedi-v1-fcm-readonly-preflight-01
+
+permissions:
+  contents: read
+
+jobs:
+  fcm-readonly-backlog-device-audit:
+    name: FCM production read-only backlog/device audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only backlog and device audit
+        env:
+          SEDI_PORT: ${{ secrets.SEDI_PORT }}
+          SEDI_HOST: ${{ secrets.SEDI_HOST }}
+          SEDI_USER: ${{ secrets.SEDI_USER }}
+          SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+          SCRIPT="$(mktemp)"
+          cat > "${SCRIPT}" <<'REMOTE'
+          set -Eeuo pipefail
+          cd "${SEDI_DEPLOY_PATH}"
+
+          container_env() {
+            docker exec sedi-backend sh -c 'printf %s "${'"$1"'-}"' 2>/dev/null || true
+          }
+
+          echo "=== PRODUCTION IDENTITY ==="
+          RUNNING_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "RUNNING_IMAGE=${RUNNING_IMAGE}"
+          echo "RUNNING_IMAGE_TAG=${RUNNING_IMAGE##*:}"
+          echo "=== ALEMBIC CURRENT ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+          echo "=== ALEMBIC HEADS ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+          PROVIDER_RAW="$(container_env SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED)"
+          if [ -z "${PROVIDER_RAW}" ]; then
+            echo "PROVIDER_DELIVERY_GATE=UNSET"
+          elif printf '%s' "${PROVIDER_RAW}" | grep -Eiq '^(true|1|yes)$'; then
+            echo "PROVIDER_DELIVERY_GATE=TRUE"
+          elif printf '%s' "${PROVIDER_RAW}" | grep -Eiq '^(false|0|no)$'; then
+            echo "PROVIDER_DELIVERY_GATE=FALSE"
+          else
+            echo "PROVIDER_DELIVERY_GATE=OTHER"
+          fi
+
+          echo "=== READ-ONLY DB AUDIT ==="
+          PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+          PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+          docker exec -i sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 -P pager=off -q <<'SQL'
+          BEGIN TRANSACTION READ ONLY;
+
+          SELECT 'NOTIFICATIONS_COUNT_BEFORE=' || COUNT(*)::text FROM notifications;
+          SELECT 'PUSH_DEVICES_COUNT_BEFORE=' || COUNT(*)::text FROM push_devices;
+          SELECT 'I10_DECISIONS_COUNT_BEFORE=' || COUNT(*)::text FROM i10_notification_decisions;
+          SELECT 'NOTIFICATIONS_TOTAL=' || COUNT(*)::text FROM notifications;
+
+          SELECT 'PRIOR_DUE_COUNT=41';
+          SELECT 'CURRENT_DUE_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+          SELECT 'DUE_COUNT_DELTA=' || (COUNT(*) - 41)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+          SELECT 'CURRENT_DUE_USERS=' || COUNT(DISTINCT user_id)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+            AND (status IS NULL OR status = 'queued');
+
+          SELECT 'FAILED_UNSENT_COUNT=' || COUNT(*)::text
+          FROM notifications WHERE is_sent = false AND status = 'failed';
+          SELECT 'FUTURE_QUEUED_COUNT=' || COUNT(*)::text
+          FROM notifications
+          WHERE is_sent = false
+            AND (status IS NULL OR status = 'queued')
+            AND scheduled_for IS NOT NULL
+            AND scheduled_for > NOW();
+
+          WITH due AS (
+            SELECT *
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+          ),
+          user_dev AS (
+            SELECT
+              u.user_id,
+              MIN(pd.created_at) AS first_any_device_created_at,
+              MIN(pd.created_at) FILTER (WHERE pd.is_active IS TRUE) AS first_active_device_created_at,
+              MAX(pd.last_seen_at) FILTER (WHERE pd.is_active IS TRUE) AS latest_active_device_last_seen_at,
+              COUNT(pd.id) AS any_device_count,
+              COUNT(pd.id) FILTER (WHERE pd.is_active IS TRUE) AS active_device_count
+            FROM (SELECT DISTINCT user_id FROM due) u
+            LEFT JOIN push_devices pd ON pd.user_id = u.user_id
+            GROUP BY u.user_id
+          ),
+          due_x AS (
+            SELECT
+              n.id,
+              n.user_id,
+              n.type,
+              n.channel,
+              n.priority,
+              n.status,
+              n.created_at,
+              n.scheduled_for,
+              n.queued_at,
+              n.category,
+              n.source_type,
+              n.template_key,
+              n.semantic_family,
+              n.health_subject_id,
+              n.recipient_kind,
+              n.i10_policy_decision_id,
+              CASE WHEN n.source_id IS NULL OR btrim(n.source_id) = '' THEN 'NONE' ELSE substring(md5(n.source_id) FROM 1 FOR 12) END AS source_id_h12,
+              CASE WHEN n.dedupe_key IS NULL OR btrim(n.dedupe_key) = '' THEN 'NONE' ELSE substring(md5(n.dedupe_key) FROM 1 FOR 12) END AS dedupe_h12,
+              d.id AS decision_id,
+              d.source_owner,
+              d.source_type AS dec_source_type,
+              d.decision,
+              d.reason_code,
+              d.priority AS dec_priority,
+              d.semantic_family AS dec_semantic_family,
+              d.valid_from,
+              d.expires_at,
+              d.created_at AS dec_created_at,
+              CASE WHEN d.candidate_key IS NULL OR btrim(d.candidate_key) = '' THEN 'NONE' ELSE substring(md5(d.candidate_key) FROM 1 FOR 12) END AS candidate_key_h12,
+              CASE WHEN d.source_id IS NULL OR btrim(d.source_id) = '' THEN 'NONE' ELSE substring(md5(d.source_id) FROM 1 FOR 12) END AS dec_source_id_h12,
+              ud.first_any_device_created_at,
+              ud.first_active_device_created_at,
+              ud.latest_active_device_last_seen_at,
+              ud.any_device_count,
+              ud.active_device_count,
+              (ud.any_device_count = 0) AS class_a,
+              (ud.any_device_count > 0 AND ud.active_device_count = 0) AS class_b,
+              (ud.first_any_device_created_at IS NOT NULL AND n.created_at < ud.first_any_device_created_at) AS class_c,
+              (ud.first_any_device_created_at IS NOT NULL AND n.created_at >= ud.first_any_device_created_at) AS class_d,
+              (ud.first_active_device_created_at IS NOT NULL AND n.created_at < ud.first_active_device_created_at) AS class_e,
+              (ud.first_active_device_created_at IS NOT NULL AND n.created_at >= ud.first_active_device_created_at) AS class_f,
+              CASE
+                WHEN d.id IS NULL THEN 'MISSING'
+                WHEN d.expires_at IS NULL THEN 'NO_EXPIRY'
+                WHEN d.expires_at <= NOW() THEN 'EXPIRED'
+                ELSE 'NOT_EXPIRED'
+              END AS i10_class
+            FROM due n
+            LEFT JOIN user_dev ud ON ud.user_id = n.user_id
+            LEFT JOIN i10_notification_decisions d ON d.id = COALESCE(
+              n.i10_policy_decision_id,
+              (SELECT d2.id FROM i10_notification_decisions d2 WHERE d2.notification_id = n.id ORDER BY d2.id DESC LIMIT 1)
+            )
+          )
+          SELECT 'DUE_ROW=' ||
+            id::text || '|' ||
+            user_id::text || '|' ||
+            COALESCE(type, 'null') || '|' ||
+            COALESCE(channel, 'null') || '|' ||
+            COALESCE(priority, 'null') || '|' ||
+            COALESCE(status, 'null') || '|' ||
+            COALESCE(created_at::text, 'null') || '|' ||
+            COALESCE(scheduled_for::text, 'null') || '|' ||
+            COALESCE(queued_at::text, 'null') || '|' ||
+            COALESCE(category, 'null') || '|' ||
+            COALESCE(source_type, 'null') || '|' ||
+            COALESCE(template_key, 'null') || '|' ||
+            COALESCE(semantic_family, 'null') || '|' ||
+            COALESCE(health_subject_id::text, 'null') || '|' ||
+            COALESCE(recipient_kind, 'null') || '|' ||
+            COALESCE(i10_policy_decision_id::text, 'null') || '|' ||
+            source_id_h12 || '|' ||
+            dedupe_h12 || '|' ||
+            CASE WHEN class_a THEN 'A' ELSE '' END ||
+            CASE WHEN class_b THEN 'B' ELSE '' END ||
+            CASE WHEN class_c THEN 'C' ELSE '' END ||
+            CASE WHEN class_d THEN 'D' ELSE '' END ||
+            CASE WHEN class_e THEN 'E' ELSE '' END ||
+            CASE WHEN class_f THEN 'F' ELSE '' END || '|' ||
+            i10_class
+          FROM due_x
+          ORDER BY user_id, created_at, id;
+
+          WITH due AS (
+            SELECT *
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+          ),
+          user_dev AS (
+            SELECT
+              u.user_id,
+              MIN(pd.created_at) AS first_any_device_created_at,
+              MIN(pd.created_at) FILTER (WHERE pd.is_active IS TRUE) AS first_active_device_created_at,
+              COUNT(pd.id) AS any_device_count,
+              COUNT(pd.id) FILTER (WHERE pd.is_active IS TRUE) AS active_device_count
+            FROM (SELECT DISTINCT user_id FROM due) u
+            LEFT JOIN push_devices pd ON pd.user_id = u.user_id
+            GROUP BY u.user_id
+          ),
+          due_x AS (
+            SELECT
+              n.id,
+              n.user_id,
+              n.type,
+              n.source_type,
+              n.template_key,
+              n.category,
+              n.semantic_family,
+              d.id AS decision_id,
+              d.expires_at,
+              ud.any_device_count,
+              ud.active_device_count,
+              ud.first_any_device_created_at,
+              ud.first_active_device_created_at,
+              (ud.any_device_count = 0) AS class_a,
+              (ud.any_device_count > 0 AND ud.active_device_count = 0) AS class_b,
+              (ud.first_any_device_created_at IS NOT NULL AND n.created_at < ud.first_any_device_created_at) AS class_c,
+              (ud.first_any_device_created_at IS NOT NULL AND n.created_at >= ud.first_any_device_created_at) AS class_d,
+              CASE
+                WHEN d.id IS NULL THEN 'MISSING'
+                WHEN d.expires_at IS NULL THEN 'NO_EXPIRY'
+                WHEN d.expires_at <= NOW() THEN 'EXPIRED'
+                ELSE 'NOT_EXPIRED'
+              END AS i10_class
+            FROM due n
+            LEFT JOIN user_dev ud ON ud.user_id = n.user_id
+            LEFT JOIN i10_notification_decisions d ON d.id = COALESCE(
+              n.i10_policy_decision_id,
+              (SELECT d2.id FROM i10_notification_decisions d2 WHERE d2.notification_id = n.id ORDER BY d2.id DESC LIMIT 1)
+            )
+          )
+          SELECT * FROM (
+            SELECT 'DUE_BREAKDOWN_BY_USER=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT user_id::text AS k, COUNT(*) AS c FROM due_x GROUP BY user_id) s
+            UNION ALL
+            SELECT 'DUE_BREAKDOWN_BY_TYPE=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT COALESCE(type, 'null') AS k, COUNT(*) AS c FROM due_x GROUP BY type) s
+            UNION ALL
+            SELECT 'DUE_BREAKDOWN_BY_SOURCE_TYPE=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT COALESCE(source_type, 'null') AS k, COUNT(*) AS c FROM due_x GROUP BY source_type) s
+            UNION ALL
+            SELECT 'DUE_BREAKDOWN_BY_TEMPLATE_KEY=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT COALESCE(template_key, 'null') AS k, COUNT(*) AS c FROM due_x GROUP BY template_key) s
+            UNION ALL
+            SELECT 'DUE_BREAKDOWN_BY_CATEGORY=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT COALESCE(category, 'null') AS k, COUNT(*) AS c FROM due_x GROUP BY category) s
+            UNION ALL
+            SELECT 'DUE_BREAKDOWN_BY_SEMANTIC_FAMILY=' || COALESCE(string_agg(k || ':' || c::text, ',' ORDER BY k), 'NONE')
+            FROM (SELECT COALESCE(semantic_family, 'null') AS k, COUNT(*) AS c FROM due_x GROUP BY semantic_family) s
+            UNION ALL
+            SELECT 'I10_DECISION_LINKED_COUNT=' || COUNT(*) FILTER (WHERE decision_id IS NOT NULL)::text FROM due_x
+            UNION ALL
+            SELECT 'I10_DECISION_MISSING_COUNT=' || COUNT(*) FILTER (WHERE decision_id IS NULL)::text FROM due_x
+            UNION ALL
+            SELECT 'I10_DECISION_EXPIRED_COUNT=' || COUNT(*) FILTER (WHERE i10_class = 'EXPIRED')::text FROM due_x
+            UNION ALL
+            SELECT 'I10_DECISION_NOT_EXPIRED_COUNT=' || COUNT(*) FILTER (WHERE i10_class = 'NOT_EXPIRED')::text FROM due_x
+            UNION ALL
+            SELECT 'I10_DECISION_WITHOUT_EXPIRY_COUNT=' || COUNT(*) FILTER (WHERE i10_class = 'NO_EXPIRY')::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_NO_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE class_a)::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_NO_ACTIVE_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE class_b)::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_PRE_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE class_c)::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_POST_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE class_d)::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_I10_EXPIRED_COUNT=' || COUNT(*) FILTER (WHERE i10_class = 'EXPIRED')::text FROM due_x
+            UNION ALL
+            SELECT 'BACKLOG_I10_NO_EXPIRY_COUNT=' || COUNT(*) FILTER (WHERE i10_class = 'NO_EXPIRY')::text FROM due_x
+            UNION ALL
+            SELECT 'PRE_DEVICE_AND_NO_ACTIVE_DEVICE=' || COUNT(*) FILTER (WHERE class_c AND (class_a OR class_b))::text FROM due_x
+            UNION ALL
+            SELECT 'POST_DEVICE_AND_ACTIVE_DEVICE=' || COUNT(*) FILTER (WHERE class_d AND active_device_count > 0)::text FROM due_x
+            UNION ALL
+            SELECT 'I10_EXPIRED_AND_ACTIVE_DEVICE=' || COUNT(*) FILTER (WHERE i10_class = 'EXPIRED' AND active_device_count > 0)::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_DUE_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1)::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_PRE_FIRST_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1 AND class_c)::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_POST_FIRST_DEVICE_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1 AND class_d)::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_I10_EXPIRED_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1 AND i10_class = 'EXPIRED')::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_I10_NONEXPIRED_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1 AND i10_class = 'NOT_EXPIRED')::text FROM due_x
+            UNION ALL
+            SELECT 'USER1_I10_NO_EXPIRY_COUNT=' || COUNT(*) FILTER (WHERE user_id = 1 AND i10_class = 'NO_EXPIRY')::text FROM due_x
+          ) agg;
+
+          WITH due AS (
+            SELECT *
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+          )
+          SELECT 'I10_ROW=' ||
+            n.id::text || '|' ||
+            COALESCE(d.id::text, 'NONE') || '|' ||
+            COALESCE(d.source_owner, 'null') || '|' ||
+            COALESCE(d.source_type, 'null') || '|' ||
+            COALESCE(d.decision, 'null') || '|' ||
+            COALESCE(d.reason_code, 'null') || '|' ||
+            COALESCE(d.priority, 'null') || '|' ||
+            COALESCE(d.semantic_family, 'null') || '|' ||
+            COALESCE(d.valid_from::text, 'null') || '|' ||
+            COALESCE(d.expires_at::text, 'null') || '|' ||
+            COALESCE(d.created_at::text, 'null') || '|' ||
+            CASE WHEN d.candidate_key IS NULL OR btrim(d.candidate_key) = '' THEN 'NONE' ELSE substring(md5(d.candidate_key) FROM 1 FOR 12) END || '|' ||
+            CASE WHEN d.source_id IS NULL OR btrim(d.source_id) = '' THEN 'NONE' ELSE substring(md5(d.source_id) FROM 1 FOR 12) END
+          FROM due n
+          LEFT JOIN i10_notification_decisions d ON d.id = COALESCE(
+            n.i10_policy_decision_id,
+            (SELECT d2.id FROM i10_notification_decisions d2 WHERE d2.notification_id = n.id ORDER BY d2.id DESC LIMIT 1)
+          )
+          WHERE d.id IS NOT NULL
+          ORDER BY n.user_id, n.id;
+
+          SELECT 'USER_DEVICE_TIMELINE=' ||
+            u.user_id::text || '|' ||
+            COALESCE(MIN(pd.created_at)::text, 'NONE') || '|' ||
+            COALESCE(MIN(pd.created_at) FILTER (WHERE pd.is_active IS TRUE)::text, 'NONE') || '|' ||
+            COALESCE(MAX(pd.last_seen_at) FILTER (WHERE pd.is_active IS TRUE)::text, 'NONE') || '|' ||
+            COUNT(pd.id)::text || '|' ||
+            COUNT(pd.id) FILTER (WHERE pd.is_active IS TRUE)::text
+          FROM (
+            SELECT DISTINCT user_id
+            FROM notifications
+            WHERE is_sent = false
+              AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+              AND (status IS NULL OR status = 'queued')
+          ) u
+          LEFT JOIN push_devices pd ON pd.user_id = u.user_id
+          GROUP BY u.user_id
+          ORDER BY u.user_id;
+
+          SELECT 'PUSH_DEVICE_TOTAL=' || COUNT(*)::text FROM push_devices;
+          SELECT 'ACTIVE_DEVICE_TOTAL=' || COUNT(*) FILTER (WHERE is_active IS TRUE)::text FROM push_devices;
+          SELECT 'INACTIVE_DEVICE_TOTAL=' || COUNT(*) FILTER (WHERE is_active IS NOT TRUE)::text FROM push_devices;
+          SELECT 'USER1_DEVICE_TOTAL=' || COUNT(*)::text FROM push_devices WHERE user_id = 1;
+          SELECT 'USER1_ACTIVE_DEVICE_TOTAL=' || COUNT(*) FILTER (WHERE is_active IS TRUE)::text FROM push_devices WHERE user_id = 1;
+          SELECT 'USER1_INACTIVE_DEVICE_TOTAL=' || COUNT(*) FILTER (WHERE is_active IS NOT TRUE)::text FROM push_devices WHERE user_id = 1;
+
+          SELECT 'DEVICE_ROW=' ||
+            id::text || '|' ||
+            user_id::text || '|' ||
+            COALESCE(platform, 'null') || '|' ||
+            CASE WHEN is_active IS TRUE THEN 'true' ELSE 'false' END || '|' ||
+            COALESCE(created_at::text, 'null') || '|' ||
+            COALESCE(updated_at::text, 'null') || '|' ||
+            COALESCE(last_seen_at::text, 'null') || '|' ||
+            CASE WHEN device_id IS NULL OR btrim(device_id) = '' THEN 'NO' ELSE 'YES' END || '|' ||
+            substring(md5(fcm_token) FROM 1 FOR 12) || '|' ||
+            CASE WHEN device_id IS NULL OR btrim(device_id) = '' THEN 'NONE' ELSE substring(md5(device_id) FROM 1 FOR 12) END
+          FROM push_devices
+          ORDER BY user_id, COALESCE(last_seen_at, created_at) DESC, id DESC;
+
+          SELECT 'DEVICE_CANDIDATE=' ||
+            id::text || '|' ||
+            COALESCE(last_seen_at::text, 'null') || '|' ||
+            COALESCE(created_at::text, 'null') || '|' ||
+            CASE WHEN device_id IS NULL OR btrim(device_id) = '' THEN 'NO' ELSE 'YES' END || '|' ||
+            substring(md5(fcm_token) FROM 1 FOR 12) || '|' ||
+            CASE WHEN device_id IS NULL OR btrim(device_id) = '' THEN 'NONE' ELSE substring(md5(device_id) FROM 1 FOR 12) END
+          FROM push_devices
+          WHERE is_active IS TRUE AND platform = 'android'
+          ORDER BY last_seen_at DESC NULLS LAST, id DESC;
+
+          SELECT 'MOST_RECENT_DEVICE_CANDIDATE_ID=' || COALESCE((
+            SELECT id::text
+            FROM push_devices
+            WHERE is_active IS TRUE AND platform = 'android'
+            ORDER BY last_seen_at DESC NULLS LAST, id DESC
+            LIMIT 1
+          ), 'NONE');
+
+          SELECT 'NOTIFICATIONS_COUNT_AFTER=' || COUNT(*)::text FROM notifications;
+          SELECT 'PUSH_DEVICES_COUNT_AFTER=' || COUNT(*)::text FROM push_devices;
+          SELECT 'I10_DECISIONS_COUNT_AFTER=' || COUNT(*)::text FROM i10_notification_decisions;
+
+          ROLLBACK;
+          SQL
+
+          echo "=== PUSH REGISTER LOGS (timestamps/status only) ==="
+          docker inspect sedi-backend --format 'CONTAINER_STARTED_AT={{.State.StartedAt}}'
+          docker logs sedi-backend 2>&1 | python3 -c '
+          import re, sys
+          pat = re.compile(r"push/register|FCM registration|Invalid FCM token|Token deactivated|push_register", re.I)
+          ts_iso = re.compile(r"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})")
+          ts_clf = re.compile(r"\[(\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2})")
+          status = re.compile(r"\s(200|201|204|400|401|403|409|422|500)\s")
+          stamps = []
+          count = 0
+          for raw in sys.stdin:
+              if not pat.search(raw):
+                  continue
+              count += 1
+              stamp = None
+              m = ts_iso.search(raw)
+              if m:
+                  stamp = m.group(1)
+              else:
+                  m = ts_clf.search(raw)
+                  if m:
+                      stamp = m.group(1)
+              st = None
+              sm = status.search(raw)
+              if sm:
+                  st = sm.group(1)
+              stamps.append("%s:%s" % (stamp or "NOTS", st or "NA"))
+          print("PUSH_REGISTER_LOG_EVENTS_FOUND=%s" % ("YES" if count else "NO"))
+          print("PUSH_REGISTER_LOG_EVENT_COUNT=%s" % count)
+          print("PUSH_REGISTER_TIMESTAMPS=%s" % (",".join(stamps[:80]) if stamps else "NONE"))
+          '
+
+          echo "BACKEND_DEVICE_ID_OPTIONAL=YES"
+          echo "PHYSICAL_DEVICE_IDENTITY_FROM_DB_ALONE=INSUFFICIENT"
+          echo "CONTROLLED_DEVICE_RESOLUTION=UNRESOLVED"
+          echo "MOST_RECENT_DEVICE_IS_IDENTITY_PROOF=NO"
+          echo "RAW_FCM_TOKEN_LOGGED=NO"
+          echo "DB_MUTATION=NO"
+          echo "FCM_ACTIVATED=NO"
+          echo "FCM_CANARY_SENT=NO"
+          echo "ENV_CHANGED=NO"
+          echo "CONTAINER_RESTARTED=NO"
+          echo "PRODUCTION_MUTATED=NO"
+          echo "=== AUDIT DONE ==="
+          REMOTE
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${SEDI_PORT}" \
+            "${SEDI_USER}@${SEDI_HOST}" \
+            "SEDI_DEPLOY_PATH=$(printf '%q' "${SEDI_DEPLOY_PATH}") bash -s" < "${SCRIPT}"
+          rm -f "${SCRIPT}"
