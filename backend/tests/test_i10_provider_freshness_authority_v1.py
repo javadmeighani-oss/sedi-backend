@@ -22,8 +22,9 @@ from backend.app.services.gate4.scheduler_timing import (
     resolve_user_daily_notification_time_for_scheduler,
     resolve_user_timezone_for_scheduler,
 )
+from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
 from backend.app.services.i10.contracts import I10NotificationCandidate
-from backend.app.services.i10.intake import enqueue_i10_notification
+from backend.app.services.i10.intake import enqueue_i10_notification, evaluate_foundation_policy
 from backend.app.services.i10.policy_types import (
     I10DecisionValue,
     I10NotificationScope,
@@ -263,7 +264,7 @@ def test_a_explicit_upstream_expires_at_preserved_exactly(db):
 def test_a_enqueue_stamps_decision_expires_at(db):
     user = _user(db, "ttl-enqueue")
     subject = ensure_self_subject_for_account(db, user.id, commit=True)
-    now = datetime(2026, 9, 25, 10, 0, tzinfo=timezone.utc)
+    reference_now = datetime(2026, 9, 25, 10, 0, tzinfo=timezone.utc)
     cand = _candidate(
         subject_id=subject.id,
         recipient_id=user.id,
@@ -279,16 +280,39 @@ def test_a_enqueue_stamps_decision_expires_at(db):
         health_subject_id=subject.id,
         semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT.value,
     )
+
+    def _foundation_at_reference(*, candidate, authorized):
+        if not authorized:
+            return evaluate_foundation_policy(candidate=candidate, authorized=authorized)
+        if candidate.expires_at is not None and candidate.expires_at <= reference_now:
+            return I10DecisionValue.EXPIRE, "CANDIDATE_EXPIRED"
+        return I10DecisionValue.SEND, "FOUNDATION_SEND"
+
     with patch(
         "backend.app.services.i10.intake.apply_i10_provider_lifetime",
-        wraps=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
-            db, candidate, now_utc=now
+        side_effect=lambda db, candidate, now_utc=None: apply_i10_provider_lifetime(
+            db, candidate, now_utc=reference_now
+        ),
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_foundation_policy",
+        side_effect=_foundation_at_reference,
+    ), patch(
+        "backend.app.services.i10.intake.evaluate_i10_canonical_policy",
+        side_effect=lambda db, **kwargs: evaluate_i10_canonical_policy(
+            db, **{**kwargs, "now_utc": reference_now}
         ),
     ):
         result = enqueue_i10_notification(db, candidate=cand, payload=payload)
     assert result.decision.value == "SEND"
     row = db.query(models.I10NotificationDecision).filter_by(id=result.decision_id).one()
     assert row.expires_at is not None
+    persisted = row.expires_at
+    if persisted.tzinfo is None:
+        persisted = persisted.replace(tzinfo=timezone.utc)
+    else:
+        persisted = persisted.astimezone(timezone.utc)
+    assert persisted == reference_now + timedelta(hours=PRESENCE_REENGAGEMENT_TTL_HOURS)
+    assert PRESENCE_REENGAGEMENT_TTL_HOURS == 4
     assert row.decision == "SEND"
 
 
