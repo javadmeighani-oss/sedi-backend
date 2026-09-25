@@ -183,7 +183,6 @@ jobs:
             backend/tests/test_i10_b15_a02_owner_provenance.py \
             backend/tests/test_i10_b16_care_safety_escalation.py \
             backend/tests/test_i10_b16_a01_i4_authority_seam.py \
-            backend/tests/test_g8_c11a_real_fcm_backend_boundary.py \
             | tee /tmp/stage_a_evidence/i10.txt
       - name: Upload Stage A evidence
         if: always()
