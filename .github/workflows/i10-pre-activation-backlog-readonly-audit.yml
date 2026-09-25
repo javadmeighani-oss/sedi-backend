@@ -1,0 +1,259 @@
+# Read-only I10 pre-activation backlog audit. workflow_dispatch only.
+# NO provider enable, FCM send, deliver_pending invoke, deploy, or DB writes.
+name: I10 Pre-Activation Backlog Readonly Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-audit:
+    name: Production read-only backlog snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only production backlog audit
+        env:
+          SEDI_PORT: ${{ secrets.SEDI_PORT }}
+          SEDI_HOST: ${{ secrets.SEDI_HOST }}
+          SEDI_USER: ${{ secrets.SEDI_USER }}
+          SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${SEDI_PORT}" \
+            "${SEDI_USER}@${SEDI_HOST}" \
+            "SEDI_DEPLOY_PATH='${SEDI_DEPLOY_PATH}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "${SEDI_DEPLOY_PATH}"
+
+          echo "=== GATE ==="
+          echo "GATE=SEDI-V1-I10-PRE-ACTIVATION-BACKLOG-READONLY-AUDIT-01"
+          echo "MODE=READ_ONLY"
+
+          echo "=== IMAGE ==="
+          docker inspect sedi-backend --format 'RUNNING_TAG={{.Config.Image}}'
+
+          echo "=== CONTAINER ENV (presence only; no secret values) ==="
+          docker exec sedi-backend python - <<'PY'
+          import os
+          raw = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
+          print(f"SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED={raw if raw is not None else 'UNSET'}")
+          pid = (os.getenv("FCM_PROJECT_ID") or "").strip()
+          sa = (os.getenv("FCM_SERVICE_ACCOUNT_JSON") or "").strip()
+          print(f"FCM_PROJECT_ID_CONFIGURED={'YES' if pid else 'NO'}")
+          print(f"FCM_SERVICE_ACCOUNT_CONFIGURED={'YES' if sa else 'NO'}")
+          if sa:
+              print(f"FCM_SERVICE_ACCOUNT_PATH_PRESENT={'YES' if os.path.exists(sa) else 'NO'}")
+          print(f"SEDI_DISABLE_SCHEDULER={os.getenv('SEDI_DISABLE_SCHEDULER', 'UNSET')}")
+          print(f"SEDI_PROCESS_ROLE={os.getenv('SEDI_PROCESS_ROLE', 'UNSET')}")
+          PY
+
+          echo "=== ALEMBIC CURRENT ==="
+          docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+
+          echo "=== HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health
+          echo ""
+          echo "=== HEALTHZ ==="
+          curl -fsS http://127.0.0.1:8000/healthz
+          echo ""
+
+          echo "=== BACKLOG AND PRIMARY MOBILE (READ ONLY) ==="
+          docker exec sedi-backend python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          from datetime import datetime, timezone
+
+          from sqlalchemy import or_, text
+          from sqlalchemy.orm import Session
+
+          from backend.app import models
+          from backend.app.database import SessionFactory
+          from backend.app.services.i10.provider_delivery_policy import (
+              ProviderFreshnessOutcome,
+              evaluate_notification_provider_freshness,
+          )
+
+          PRIOR = [905, 907, 909, 911, 913, 915, 917]
+          AUDIT_NOW = datetime.now(timezone.utc)
+          AUDIT_NOW_NAIVE = AUDIT_NOW.replace(tzinfo=None)
+          print(f"AUDIT_NOW_UTC={AUDIT_NOW.isoformat()}")
+
+          def sha12(value) -> str:
+              if value is None or value == "":
+                  return ""
+              return hashlib.sha256(str(value).encode("utf-8")).hexdigest()[:12]
+
+          def iso(value):
+              if value is None:
+                  return None
+              if getattr(value, "tzinfo", None) is None:
+                  return value.replace(tzinfo=timezone.utc).isoformat()
+              return value.astimezone(timezone.utc).isoformat()
+
+          db: Session = SessionFactory()
+          mutated = False
+          try:
+              db.rollback()
+              db.execute(text("SET TRANSACTION READ ONLY"))
+              devices = (
+                  db.query(models.PushDevice)
+                  .filter(models.PushDevice.user_id == 1)
+                  .order_by(models.PushDevice.id.asc())
+                  .all()
+              )
+              print("=== PUSH_DEVICE_ROWS user_id=1 ===")
+              android_active = 0
+              for d in devices:
+                  if str(d.platform or "").lower() == "android" and bool(d.is_active):
+                      android_active += 1
+                  print(
+                      "PUSH_DEVICE|"
+                      f"id={d.id}|platform={d.platform}|is_active={d.is_active}|"
+                      f"device_id_sha256_prefix={sha12(d.device_id)}|"
+                      f"token_sha256_prefix={sha12(d.fcm_token)}|"
+                      f"last_seen_at={iso(d.last_seen_at)}"
+                  )
+              print(f"ANDROID_ACTIVE_COUNT={android_active}")
+              active_ids = [d.id for d in devices if d.is_active]
+              print(f"ACTIVE_PUSH_DEVICE_IDS={active_ids}")
+
+              due = (
+                  db.query(models.Notification)
+                  .filter(models.Notification.is_sent == False)  # noqa: E712
+                  .filter(
+                      or_(
+                          models.Notification.scheduled_for.is_(None),
+                          models.Notification.scheduled_for <= AUDIT_NOW_NAIVE,
+                      )
+                  )
+                  .filter(
+                      or_(
+                          models.Notification.status.is_(None),
+                          models.Notification.status == "queued",
+                      )
+                  )
+                  .order_by(models.Notification.id.asc())
+                  .all()
+              )
+
+              fresh_ids, expire_ids, block_ids, ambiguous_ids = [], [], [], []
+              print("=== DUE_ROW_DETAILS ===")
+              for n in due:
+                  decision = None
+                  if n.i10_policy_decision_id is not None:
+                      decision = (
+                          db.query(models.I10NotificationDecision)
+                          .filter(models.I10NotificationDecision.id == int(n.i10_policy_decision_id))
+                          .first()
+                      )
+                  if decision is None:
+                      decision = (
+                          db.query(models.I10NotificationDecision)
+                          .filter(models.I10NotificationDecision.notification_id == int(n.id))
+                          .order_by(models.I10NotificationDecision.id.desc())
+                          .first()
+                      )
+                  try:
+                      freshness = evaluate_notification_provider_freshness(
+                          db, n, now_utc=AUDIT_NOW
+                      )
+                      outcome = freshness.outcome.value if freshness.outcome else "UNKNOWN"
+                      reason = freshness.reason_code
+                      expires_at = iso(freshness.expires_at)
+                      remaining = freshness.remaining_seconds
+                  except Exception as exc:
+                      outcome, reason, expires_at, remaining = "AMBIGUOUS", f"AUDIT_ERROR:{type(exc).__name__}", None, None
+                  if outcome == ProviderFreshnessOutcome.ALLOW.value:
+                      fresh_ids.append(n.id)
+                  elif outcome == ProviderFreshnessOutcome.EXPIRE.value:
+                      expire_ids.append(n.id)
+                  elif outcome == ProviderFreshnessOutcome.BLOCK.value:
+                      block_ids.append(n.id)
+                  else:
+                      ambiguous_ids.append(n.id)
+                  print(
+                      "DUE_ROW|"
+                      f"notification_id={n.id}|user_id={n.user_id}|"
+                      f"health_subject_id={n.health_subject_id}|type={n.type}|"
+                      f"semantic_family={n.semantic_family}|priority={n.priority}|"
+                      f"status={n.status}|scheduled_for={iso(n.scheduled_for)}|"
+                      f"created_at={iso(n.created_at)}|"
+                      f"i10_policy_decision_id={n.i10_policy_decision_id}|"
+                      f"decision={getattr(decision, 'decision', None)}|"
+                      f"reason_code={getattr(decision, 'reason_code', None)}|"
+                      f"valid_from={iso(getattr(decision, 'valid_from', None)) if decision else None}|"
+                      f"expires_at={iso(getattr(decision, 'expires_at', None)) if decision else None}|"
+                      f"PROVIDER_OUTCOME={outcome}|PROVIDER_REASON={reason}|"
+                      f"PROVIDER_EXPIRES_AT={expires_at}|REMAINING_SECONDS={remaining}"
+                  )
+
+              print(f"DUE_NOW={len(due)}")
+              print(f"FRESH_NOW={len(fresh_ids)}")
+              print(f"EXPIRE_NOW={len(expire_ids)}")
+              print(f"BLOCK_NOW={len(block_ids)}")
+              print(f"AMBIGUOUS_NOW={len(ambiguous_ids)}")
+              print(f"FRESH_IDS={fresh_ids}")
+              print(f"EXPIRE_IDS={expire_ids}")
+              print(f"BLOCK_IDS={block_ids}")
+              print(f"AMBIGUOUS_IDS={ambiguous_ids}")
+
+              due_ids = {n.id for n in due}
+              still_due, now_expired, no_longer = [], [], []
+              print("=== PRIOR_ID_PERSISTED_STATE ===")
+              for nid in PRIOR:
+                  row = db.query(models.Notification).filter(models.Notification.id == nid).first()
+                  if row is None:
+                      print(f"PRIOR|{nid}|MISSING")
+                      no_longer.append(nid)
+                      continue
+                  print(
+                      f"PRIOR|{nid}|is_sent={row.is_sent}|status={row.status}|"
+                      f"scheduled_for={iso(row.scheduled_for)}|created_at={iso(row.created_at)}"
+                  )
+                  if nid in due_ids:
+                      still_due.append(nid)
+                  elif str(row.status or "").lower() == "expired":
+                      now_expired.append(nid)
+                  else:
+                      no_longer.append(nid)
+              print(f"PRIOR_IDS_STILL_DUE={still_due}")
+              print(f"PRIOR_IDS_NOW_EXPIRED={now_expired}")
+              print(f"PRIOR_IDS_NO_LONGER_DUE={no_longer}")
+              print(f"NEW_DUE_IDS={sorted(due_ids - set(PRIOR))}")
+              print("EVALUATION_PERSISTED=NO")
+          finally:
+              db.rollback()
+              db.close()
+          print(f"TRANSACTION_ROLLED_BACK=YES")
+          print(f"DB_MUTATED={'YES' if mutated else 'NO'}")
+          PY
+
+          echo "=== SCHEDULER / PROVIDER LOGS (read-only) ==="
+          docker logs --since 6h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 5 || true
+          LAST_SKIP="$(docker logs --since 24h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 1 || true)"
+          LAST_JOB="$(docker logs --since 24h sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\] deliver_pending job (start|end)" | tail -n 3 || true)"
+          echo "LAST_SKIP_LINE=${LAST_SKIP}"
+          echo "LAST_JOB_LINES=${LAST_JOB}"
+          SKIP_COUNT="$(docker logs --since 6h sedi-backend 2>&1 | grep -c "deliver_pending skipped: provider delivery disabled" || true)"
+          echo "PROVIDER_SKIP_COUNT_6H=${SKIP_COUNT}"
+          FCM_HITS="$(docker logs --since 24h sedi-backend 2>&1 | grep -Eic "fcm.googleapis.com|projects/.*/messages:send|\\[FCM\\] real send" || true)"
+          echo "FCM_ATTEMPTS_LOG_HITS_24H=${FCM_HITS}"
+          echo "DELIVER_PENDING_CADENCE_CODE=5m"
+          echo "PROVIDER_OFF_PREVENTS_EGRESS=YES_IF_GATE_FALSE"
+          echo "=== AUDIT_END ==="
+          REMOTE
