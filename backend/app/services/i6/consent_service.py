@@ -16,6 +16,10 @@ GRANTEE_ID_SEDI = "sedi"
 PERM_WRITE = "memory.write"
 PERM_READ = "memory.read"
 PERM_FORGET = "memory.forget"
+DEFAULT_MEMORY_SOURCE = "product_default_v1"
+DEFAULT_MEMORY_PROVENANCE = "service_default"
+DEFAULT_MEMORY_POLICY_VERSION = "i6-v1"
+_DEFAULT_MEMORY_PERMISSIONS = (PERM_WRITE, PERM_READ, PERM_FORGET)
 
 
 class ConsentDenied(PermissionError):
@@ -164,6 +168,106 @@ def get_memory_consent_status(db: Session, user_id: int) -> dict:
         },
         "policy_version": consent.policy_version if consent is not None else None,
     }
+
+
+def _matching_memory_consents(db: Session, user_id: int) -> list[models.UserConsent]:
+    return (
+        db.query(models.UserConsent)
+        .filter(
+            models.UserConsent.subject_user_id == user_id,
+            models.UserConsent.consent_type == MEMORY_CONSENT_TYPE,
+            models.UserConsent.purpose == MEMORY_PURPOSE,
+            models.UserConsent.grantee_type == GRANTEE_TYPE_SYSTEM,
+            models.UserConsent.grantee_id == GRANTEE_ID_SEDI,
+        )
+        .all()
+    )
+
+
+def _ensure_scopes(
+    db: Session,
+    consent: models.UserConsent,
+    permissions: tuple[str, ...] = _DEFAULT_MEMORY_PERMISSIONS,
+) -> None:
+    for key in permissions:
+        scope = (
+            db.query(models.UserConsentScope)
+            .filter_by(consent_id=consent.id, permission_key=key)
+            .first()
+        )
+        if scope is None:
+            db.add(models.UserConsentScope(consent_id=consent.id, permission_key=key, allowed=True))
+        elif scope.allowed is not True:
+            scope.allowed = True
+
+
+def ensure_default_memory_enabled(
+    db: Session,
+    user_id: int,
+    *,
+    commit: bool = True,
+) -> Optional[models.UserConsent]:
+    """Enable I6 memory as product default only when no prior decision exists.
+
+    A) Active consent is preserved; missing default scopes are ensured.
+    B) Any matching revoked/expired historical decision is never auto-enabled.
+    C) Only when no matching historical row exists is a default record created.
+    """
+    now = _utcnow()
+    rows = _matching_memory_consents(db, user_id)
+    active: Optional[models.UserConsent] = None
+    historical_block = False
+    for row in rows:
+        until = row.effective_until
+        if until is not None and until.tzinfo is None:
+            until = until.replace(tzinfo=timezone.utc)
+        status = row.status
+        if status == "active" and until is not None and until <= now:
+            row.status = "expired"
+            row.updated_at = now
+            status = "expired"
+        if status == "active":
+            active = row
+        else:
+            historical_block = True
+
+    if active is not None:
+        _ensure_scopes(db, active)
+        if commit:
+            db.commit()
+            db.refresh(active)
+        else:
+            db.flush()
+        return active
+
+    if historical_block or rows:
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+        return None
+
+    row = models.UserConsent(
+        subject_user_id=user_id,
+        consent_type=MEMORY_CONSENT_TYPE,
+        purpose=MEMORY_PURPOSE,
+        scope_summary="I6 personal long-term memory",
+        grantee_type=GRANTEE_TYPE_SYSTEM,
+        grantee_id=GRANTEE_ID_SEDI,
+        status="active",
+        policy_version=DEFAULT_MEMORY_POLICY_VERSION,
+        granted_at=now,
+        effective_from=now,
+        source=DEFAULT_MEMORY_SOURCE,
+        provenance=DEFAULT_MEMORY_PROVENANCE,
+    )
+    db.add(row)
+    db.flush()
+    _ensure_scopes(db, row)
+    if commit:
+        db.commit()
+        db.refresh(row)
+    return row
 
 
 def expire_due_consents(

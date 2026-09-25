@@ -174,7 +174,10 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
     Engagement cooldown may still supply a bounded returning opener.
     """
     from backend.app.services.a3_interaction_lifecycle import resolve_interaction_lifecycle
+    from backend.app.services.i6.consent_service import ensure_default_memory_enabled
     from backend.app.services.user_context import UserContextService
+
+    ensure_default_memory_enabled(db, int(user.id), commit=True)
 
     lang = _lang(user)
     first_intro = user.sedi_intro_completed_at is None
