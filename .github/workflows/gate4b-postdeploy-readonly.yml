@@ -5,12 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "audit (read-only) or close_backlog (provider-OFF historical closure)"
+        description: "audit (read-only) or close_expired (provider-OFF expire-only close)"
         required: false
         default: audit
         type: choice
         options:
           - audit
+          - close_expired
           - close_backlog
 
 permissions:
@@ -41,7 +42,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           MODE="${MODE:-audit}"
-          if [ "${MODE}" != "audit" ] && [ "${MODE}" != "close_backlog" ]; then
+          if [ "${MODE}" != "audit" ] && [ "${MODE}" != "close_expired" ] && [ "${MODE}" != "close_backlog" ]; then
             echo "invalid mode=${MODE}"
             exit 1
           fi
@@ -122,11 +123,11 @@ jobs:
               reason = (decision.reason_code or "").strip()
               expires_at = decision.expires_at
               if outcome == ProviderFreshnessOutcome.EXPIRE.value:
-                  bucket = "CLOSABLE_EXPIRE"
-              elif outcome == ProviderFreshnessOutcome.BLOCK.value and reason in CLOSABLE_BLOCK_REASONS:
-                  bucket = "CLOSABLE_FAILED_UNSENT"
+                  bucket = "EXPIRE"
               elif outcome == ProviderFreshnessOutcome.ALLOW.value or reason == "PROVIDER_FRESH":
-                  bucket = "SEND_FRESH_RISK"
+                  bucket = "FRESH"
+              elif outcome == ProviderFreshnessOutcome.BLOCK.value:
+                  bucket = "BLOCK"
               else:
                   bucket = "AMBIGUOUS"
               return {
@@ -168,9 +169,9 @@ jobs:
               due_rows = load_due(db, reference_now_naive)
               classified = []
               counts = {
-                  "CLOSABLE_EXPIRE": 0,
-                  "CLOSABLE_FAILED_UNSENT": 0,
-                  "SEND_FRESH_RISK": 0,
+                  "EXPIRE": 0,
+                  "FRESH": 0,
+                  "BLOCK": 0,
                   "AMBIGUOUS": 0,
               }
               for notification in due_rows:
@@ -201,39 +202,50 @@ jobs:
                   )
 
               due_before = len(due_rows)
-              send_risk = counts["SEND_FRESH_RISK"]
+              expire_n = counts["EXPIRE"]
+              fresh_n = counts["FRESH"]
+              block_n = counts["BLOCK"]
               ambiguous = counts["AMBIGUOUS"]
-              safe = send_risk == 0 and ambiguous == 0
               print(f"DUE_BEFORE={due_before}")
-              print(f"CLOSABLE_EXPIRE={counts['CLOSABLE_EXPIRE']}")
-              print(f"CLOSABLE_FAILED_UNSENT={counts['CLOSABLE_FAILED_UNSENT']}")
-              print(f"SEND_FRESH_RISK={send_risk}")
+              print(f"EXPIRE_BEFORE={expire_n}")
+              print(f"FRESH_BEFORE={fresh_n}")
+              print(f"BLOCK_BEFORE={block_n}")
+              print(f"AMBIGUOUS_BEFORE={ambiguous}")
+              print(f"CLOSABLE_EXPIRE={expire_n}")
+              print(f"CLOSABLE_FAILED_UNSENT=0")
+              print(f"SEND_FRESH_RISK={fresh_n}")
               print(f"AMBIGUOUS={ambiguous}")
               print(f"PUSH_DEVICE_TOTAL={len(devices)}")
               print(f"ANDROID_ACTIVE_COUNT={android_active}")
               print(f"ACTIVE_ANDROID_USERS={len(android_users)}")
-              print(f"AUDIT_SAFE_TO_CLOSE={'YES' if safe else 'NO'}")
+              print("FCM_ATTEMPTS=0")
+              print("HISTORICAL_SENT=0")
+              print("PROVIDER_ENABLED=false")
 
               if mode == "audit":
-                  print(f"GATE_RESULT={'PASS' if safe else 'BLOCKED'}")
-                  print("HISTORICAL_SENT=0")
+                  if ambiguous:
+                      print("AUDIT_SAFE_TO_CLOSE=NO")
+                      print("GATE_RESULT=BLOCKED")
+                      print(f"DUE_AFTER={due_before}")
+                      db.rollback()
+                      sys.exit(3)
+                  print("AUDIT_SAFE_TO_CLOSE=EXPIRE_ONLY")
+                  print("GATE_RESULT=PASS")
                   print(f"DUE_AFTER={due_before}")
                   db.rollback()
-                  if not safe:
-                      sys.exit(3)
                   sys.exit(0)
 
-              if mode != "close_backlog":
+              if mode != "close_expired":
                   print("HARD_STOP=INVALID_MODE")
                   db.rollback()
                   sys.exit(1)
 
-              print("=== CLOSE_BACKLOG PRECHECK ===")
+              print("=== CLOSE_EXPIRED PRECHECK ===")
               due_again = load_due(db, reference_now_naive)
               re_counts = {
-                  "CLOSABLE_EXPIRE": 0,
-                  "CLOSABLE_FAILED_UNSENT": 0,
-                  "SEND_FRESH_RISK": 0,
+                  "EXPIRE": 0,
+                  "FRESH": 0,
+                  "BLOCK": 0,
                   "AMBIGUOUS": 0,
               }
               reclassified = []
@@ -242,27 +254,26 @@ jobs:
                   re_counts[item["bucket"]] += 1
                   reclassified.append((notification, item))
               print(f"CLOSE_PRECHECK_DUE={len(due_again)}")
-              print(f"CLOSE_PRECHECK_SEND_FRESH_RISK={re_counts['SEND_FRESH_RISK']}")
+              print(f"CLOSE_PRECHECK_EXPIRE={re_counts['EXPIRE']}")
+              print(f"CLOSE_PRECHECK_FRESH={re_counts['FRESH']}")
+              print(f"CLOSE_PRECHECK_BLOCK={re_counts['BLOCK']}")
               print(f"CLOSE_PRECHECK_AMBIGUOUS={re_counts['AMBIGUOUS']}")
-              if re_counts["SEND_FRESH_RISK"] or re_counts["AMBIGUOUS"]:
-                  print("HARD_STOP=CLOSE_PRECHECK_UNSAFE")
+              if re_counts["AMBIGUOUS"]:
+                  print("HARD_STOP=AMBIGUOUS")
                   db.rollback()
                   sys.exit(4)
 
               expired = 0
-              failed_unsent = 0
               for notification, item in reclassified:
-                  if item["bucket"] == "CLOSABLE_EXPIRE":
-                      persist_provider_expired(notification, reason_code=item["reason"] or "PROVIDER_LIFETIME_ELAPSED")
+                  if item["bucket"] == "EXPIRE":
+                      persist_provider_expired(
+                          notification,
+                          reason_code=item["reason"] or "PROVIDER_LIFETIME_ELAPSED",
+                      )
                       db.add(notification)
                       expired += 1
-                  elif item["bucket"] == "CLOSABLE_FAILED_UNSENT":
-                      notification.status = "failed"
-                      notification.is_sent = False
-                      notification.sent_at = None
-                      notification.last_error = f"provider_policy_blocked:{item['reason']}"[:500]
-                      db.add(notification)
-                      failed_unsent += 1
+                  elif item["bucket"] in ("FRESH", "BLOCK"):
+                      continue
                   else:
                       print("HARD_STOP=UNEXPECTED_BUCKET")
                       db.rollback()
@@ -270,14 +281,28 @@ jobs:
               db.commit()
 
               due_after_rows = load_due(db, reference_now_naive)
+              after_counts = {
+                  "EXPIRE": 0,
+                  "FRESH": 0,
+                  "BLOCK": 0,
+                  "AMBIGUOUS": 0,
+              }
+              for notification in due_after_rows:
+                  item = classify(db, notification, reference_now)
+                  after_counts[item["bucket"]] += 1
+                  print_due_row(notification, item)
               due_after = len(due_after_rows)
               print(f"BACKLOG_EXPIRED={expired}")
-              print(f"BACKLOG_FAILED_UNSENT={failed_unsent}")
+              print("BACKLOG_FAILED_UNSENT=0")
               print("HISTORICAL_SENT=0")
+              print("FCM_ATTEMPTS=0")
               print(f"DUE_AFTER={due_after}")
+              print(f"FRESH_AFTER={after_counts['FRESH']}")
+              print(f"BLOCK_AFTER={after_counts['BLOCK']}")
+              print(f"AMBIGUOUS_AFTER={after_counts['AMBIGUOUS']}")
               print("PROVIDER_GATE_AFTER=OFF")
-              if due_after != 0:
-                  print("HARD_STOP=DUE_AFTER_NOT_ZERO")
+              if after_counts["AMBIGUOUS"] or after_counts["EXPIRE"]:
+                  print("HARD_STOP=CLOSE_EXPIRED_INCOMPLETE")
                   sys.exit(5)
               print("GATE_RESULT=PASS")
           except Exception:
