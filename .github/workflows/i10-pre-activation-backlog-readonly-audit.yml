@@ -47,7 +47,7 @@ jobs:
           docker inspect sedi-backend --format 'RUNNING_TAG={{.Config.Image}}'
 
           echo "=== CONTAINER ENV (presence only; no secret values) ==="
-          docker exec sedi-backend python - <<'PY'
+          docker exec -i sedi-backend python - <<'PY'
           import os
           raw = os.getenv("SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED")
           print(f"SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED={raw if raw is not None else 'UNSET'}")
@@ -72,7 +72,7 @@ jobs:
           echo ""
 
           echo "=== BACKLOG AND PRIMARY MOBILE (READ ONLY) ==="
-          docker exec sedi-backend python - <<'PY'
+          docker exec -i sedi-backend python - <<'PY'
           from __future__ import annotations
 
           import hashlib
@@ -244,9 +244,9 @@ jobs:
           PY
 
           echo "=== SCHEDULER / PROVIDER LOGS (read-only) ==="
-          docker logs --since 6h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 5 || true
-          LAST_SKIP="$(docker logs --since 24h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 1 || true)"
-          LAST_JOB="$(docker logs --since 24h sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\] deliver_pending job (start|end)" | tail -n 3 || true)"
+          docker logs --timestamps --since 6h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 5 || true
+          LAST_SKIP="$(docker logs --timestamps --since 24h sedi-backend 2>&1 | grep -E "deliver_pending skipped: provider delivery disabled" | tail -n 1 || true)"
+          LAST_JOB="$(docker logs --timestamps --since 24h sedi-backend 2>&1 | grep -E "\[Sedi Scheduler\] deliver_pending job (start|end)" | tail -n 3 || true)"
           echo "LAST_SKIP_LINE=${LAST_SKIP}"
           echo "LAST_JOB_LINES=${LAST_JOB}"
           SKIP_COUNT="$(docker logs --since 6h sedi-backend 2>&1 | grep -c "deliver_pending skipped: provider delivery disabled" || true)"
