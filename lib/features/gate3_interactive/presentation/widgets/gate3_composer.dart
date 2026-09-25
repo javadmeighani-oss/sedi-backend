@@ -120,7 +120,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   }) {
     return ConstrainedBox(
       constraints: const BoxConstraints(
-        minHeight: 28,
+        minHeight: 40,
         maxHeight: _maxTextHeight,
       ),
       child: TextField(
@@ -186,7 +186,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   Widget _buildToolbar(bool hasText) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+      padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
       child: Row(
         children: [
           Gate3ComposerActionButton(
@@ -252,7 +252,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
             child: widget.isRecording
                 ? _buildRecordingBody()
                 : _buildTextField(
