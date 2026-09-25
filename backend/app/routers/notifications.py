@@ -328,7 +328,12 @@ def admin_notif_send_now(
     """
     _require_admin_if_set(request)
     _log.info("event=send_now channel=%s user_id=%s template_key=%s", channel, user_id, template_key)
-    from backend.app.services.notifications.delivery_service import _get_fcm_tokens_for_user
+    from backend.app.services.i10.primary_mobile_endpoint import (
+        ALLOW_PRIMARY_ENDPOINT,
+        MULTIPLE_ACTIVE_PRIMARY_ENDPOINTS,
+        NO_ACTIVE_PRIMARY_ENDPOINT,
+        resolve_primary_android_endpoint,
+    )
     from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
 
     # Validate user exists
@@ -361,19 +366,15 @@ def admin_notif_send_now(
             },
         )
 
-    tokens = _get_fcm_tokens_for_user(db, user_id, limit=20)
-    tz_str = _get_user_tz_for_log(db, user_id)
-    priority = "high" if channel == "health_alert" else "normal"
-    in_quiet = is_within_quiet_hours(db, user_id, channel, priority)
-    tokens_masked = [_mask_token(t) for t in tokens]
-
-    _log.info(
-        "[NOTIF][SEND] user_id=%s channel=%s force=%s tokens=%s tz=%s quiet_hours=%s",
-        user_id, channel, force, tokens_masked, tz_str, in_quiet,
-    )
-
-    if not tokens:
-        _log.info("[NOTIF][SKIP] user_id=%s channel=%s reason=NO_TOKENS", user_id, channel)
+    resolution = resolve_primary_android_endpoint(db, user_id)
+    if resolution.outcome != ALLOW_PRIMARY_ENDPOINT or not resolution.token:
+        reason = resolution.outcome
+        if reason not in (
+            NO_ACTIVE_PRIMARY_ENDPOINT,
+            MULTIPLE_ACTIVE_PRIMARY_ENDPOINTS,
+        ):
+            reason = NO_ACTIVE_PRIMARY_ENDPOINT
+        _log.info("[NOTIF][SKIP] user_id=%s channel=%s reason=%s", user_id, channel, reason)
         return APIResponse(
             ok=True,
             data={
@@ -383,10 +384,20 @@ def admin_notif_send_now(
                 "attempted_tokens": 0,
                 "sent_success": 0,
                 "sent_fail": 0,
-                "reasons": ["NO_TOKENS"],
+                "reasons": [reason],
                 "fcm_errors": [],
             },
         )
+    tokens = [resolution.token]
+    tz_str = _get_user_tz_for_log(db, user_id)
+    priority = "high" if channel == "health_alert" else "normal"
+    in_quiet = is_within_quiet_hours(db, user_id, channel, priority)
+    tokens_masked = [_mask_token(t) for t in tokens]
+
+    _log.info(
+        "[NOTIF][SEND] user_id=%s channel=%s force=%s tokens=%s tz=%s quiet_hours=%s",
+        user_id, channel, force, tokens_masked, tz_str, in_quiet,
+    )
 
     if not force:
         if in_quiet:
