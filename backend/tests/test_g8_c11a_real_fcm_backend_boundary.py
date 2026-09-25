@@ -47,7 +47,14 @@ from backend.tests.helpers.stage_b_family_fixture import seed_stage_b_family
 
 pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
 
+_PROVIDER_GATE = "SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED"
 LEGACY_ACTIONS = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
+
+@pytest.fixture(autouse=True)
+def enable_isolated_provider_delivery_gate(monkeypatch):
+    """G8-C11A isolated tests only. Restored after each test. Never production."""
+    monkeypatch.setenv(_PROVIDER_GATE, "true")
 
 
 class CountingAdapter:
