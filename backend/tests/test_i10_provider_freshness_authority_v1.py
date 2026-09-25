@@ -275,6 +275,16 @@ def test_b_morning_reuses_canonical_scheduler_window(db):
     assert local_end == datetime(2026, 9, 25, 4, 40, tzinfo=timezone.utc)
 
 
+def test_b_morning_does_not_stamp_past_window_at_enqueue(db):
+    user = _user(db, "morning-past", tz="Asia/Tehran")
+    db.add(models.NotificationPrefs(user_id=user.id, daily_notification_time="08:00"))
+    db.commit()
+    now = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)  # after 08:10 Tehran
+    cand = _candidate(subject_id=1, recipient_id=user.id, family=I10SemanticFamily.MORNING_CHECK_IN)
+    stamped = apply_i10_provider_lifetime(db, cand, now_utc=now)
+    assert stamped.expires_at is None
+
+
 def test_c_daily_wellness_expires_at_local_day_boundary(db):
     user = _user(db, "daily-bound", tz="Asia/Tehran")
     now = datetime(2026, 9, 25, 8, 30, tzinfo=timezone.utc)  # 12:00 Tehran

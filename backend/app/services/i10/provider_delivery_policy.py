@@ -234,6 +234,11 @@ def apply_i10_provider_lifetime(
     )
     if expires_at is None:
         return candidate
+    if expires_at <= now:
+        # Do not persist a past I10 default. That would convert an otherwise
+        # eligible enqueue into foundation EXPIRE. Provider-time revalidation
+        # still computes the same window from created_at/valid_from.
+        return candidate
     valid_from = candidate.valid_from
     if valid_from is None:
         if _family_value(candidate.semantic_family) == _I10_OWNED_MORNING:
