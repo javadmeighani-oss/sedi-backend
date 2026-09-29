@@ -555,3 +555,596 @@ def test_morning_and_digest_distinct_occurrences_no_collision(db, gate4_patch, m
     }
     assert I10SemanticFamily.MORNING_CHECK_IN.value in families
     assert I10SemanticFamily.DAILY_WELLNESS_DIGEST.value in families
+
+# --- SEDI-V1-A4 Daily Smart Touchpoint acceptance (scheduler + i18n + single push) ---
+
+
+def test_a4_scheduler_does_not_cofire_morning_brief():
+    import inspect
+    from backend.app.core import scheduler as sched
+
+    src = inspect.getsource(sched.run_morning_notifications)
+    assert "create_daily_wellness_digest" in src
+    assert "create_morning_brief" not in src
+    assert "should_run_daily_smart_touchpoint" in src
+
+
+def test_a4_canonical_daily_time_0900_not_0800():
+    from backend.app.services.gate4.scheduler_timing import CANONICAL_DAILY_SMART_TOUCHPOINT_TIME
+
+    assert CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+
+
+def test_a4_should_run_at_0900_local_not_0800(db, gate4_patch):
+    from backend.app.services.gate4.scheduler_timing import should_run_daily_smart_touchpoint
+
+    user, _ = _self_setup(db)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="Asia/Tehran"))
+    db.commit()
+    # 09:05 Tehran ~= 05:35 UTC
+    assert should_run_daily_smart_touchpoint(db, user, datetime(2026, 9, 9, 5, 35, 0)) is True
+    # 08:05 Tehran ~= 04:35 UTC
+    assert should_run_daily_smart_touchpoint(db, user, datetime(2026, 9, 9, 4, 35, 0)) is False
+
+
+def test_a4_fa_en_ar_digest_localized_before_persist(db, gate4_patch, morning_window_now):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_wellness_digest_payload,
+        render_digest_body,
+        render_digest_title,
+    )
+
+    for lang in ("fa", "en", "ar"):
+        user, _ = _self_setup(db, name=f"a4-lang-{lang}")
+        user.preferred_language = lang
+        db.commit()
+        facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+        title = render_digest_title(facts, lang)
+        body = render_digest_body(facts, lang)
+        payload = build_daily_wellness_digest_payload(facts, occurrence_key=f"a4-{lang}", language=lang)
+        assert payload.metadata["language"] == lang
+        assert payload.title == title and bool(title)
+        assert payload.body == body and bool(body)
+
+
+def test_a4_no_data_path_no_invented_health_facts(db, gate4_patch):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        render_digest_body,
+    )
+
+    user, _ = _self_setup(db)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+    assert facts.data_status == DailyWellnessDataStatus.NO_DATA
+    body = render_digest_body(facts, "en").lower()
+    for term in ("diagnosis", "bpm=", "you have diabetes", "spo2"):
+        assert term not in body
+
+
+def test_a4_engagement_nudge_not_independently_scheduled():
+    import inspect
+    from backend.app.core import scheduler as sched
+
+    src = inspect.getsource(sched.start_scheduler)
+    assert "add_job(\n            run_engagement_nudge" not in src
+    assert hasattr(sched, "run_engagement_nudge")
+
+
+def test_a4_context_json_no_raw_memory_leak(db, gate4_patch, morning_window_now):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_wellness_digest_payload,
+    )
+
+    user, _ = _self_setup(db)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+    payload = build_daily_wellness_digest_payload(facts, occurrence_key="a4-ctx", language="en")
+    blob = str(payload.context or {}).lower()
+    for forbidden in ("user_message", "raw_memory", "physiologicalmeasurement"):
+        assert forbidden not in blob
+
+
+# --- SEDI-V1-A4 closure (CI-visible: local date, consent, I8, privacy, non-repetition, 09:00) ---
+
+
+def test_a4_closure_smart_0900_not_legacy_0800():
+    from backend.app.services.gate4.notification_contract import DEFAULT_DAILY_NOTIFICATION_TIME
+    from backend.app.services.gate4.scheduler_timing import (
+        CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        smart_daily_touchpoint_contract,
+    )
+
+    assert CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+    assert DEFAULT_DAILY_NOTIFICATION_TIME == "08:00"  # legacy prefs only
+    contract = smart_daily_touchpoint_contract()
+    assert contract["canonical_time"] == "09:00"
+    assert "08:00" not in contract.values()
+
+
+def test_a4_closure_occurrence_uses_user_local_date_tehran(db, gate4_patch, morning_window_now):
+    """Asia/Tehran: UTC evening can be next local morning — occurrence must use local day."""
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_digest_occurrence_key,
+    )
+
+    user, _ = _self_setup(db, name="tehran-occ")
+    db.add(models.UserProfileCore(user_id=user.id, timezone="Asia/Tehran"))
+    db.commit()
+    # 2026-09-09 21:30 UTC = 2026-09-10 01:00 Asia/Tehran
+    when = datetime(2026, 9, 9, 21, 30, 0)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts.local_period_date is not None
+    assert facts.local_period_date.isoformat() == "2026-09-10"
+    assert facts.observation_period_start.date().isoformat() == "2026-09-09"
+    key = build_daily_digest_occurrence_key(
+        user_id=user.id, period_date=facts.local_period_date
+    )
+    assert "2026-09-10" in key
+    assert "2026-09-09" not in key
+    eng = _engine(db)
+    # Engine must use local_period_date for occurrence (spy via create path key in metadata/source)
+    notif = eng.create_daily_wellness_digest(user_id=user.id, scheduled_for=when)
+    assert notif is not None
+    assert notif.source_id == "2026-09-10"
+    ctx = notif.context_json or ""
+    assert "2026-09-10" in ctx
+
+
+def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+        render_digest_body,
+    )
+
+    user, _ = _self_setup(db, name="adj-var")
+    f1 = assemble_daily_wellness_digest_facts(
+        db, user_id=user.id, when=datetime(2026, 9, 9, 9, 0, 0)
+    )
+    f2 = assemble_daily_wellness_digest_facts(
+        db, user_id=user.id, when=datetime(2026, 9, 10, 9, 0, 0)
+    )
+    assert f1.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    assert f2.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    b1 = render_digest_body(f1, "en")
+    b2 = render_digest_body(f2, "en")
+    assert b1 != b2
+
+
+def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):
+    from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    user, _ = _self_setup(db, name="consent-i67")
+    when = _when()
+    start = _period_start(when)
+    # Finalized non-contextual summary (no bounded_continuity topic)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({"headline": "bounded"}),
+        )
+    )
+    db.commit()
+    # Summary alone without READ consent → must NOT select I6_I7_CONTEXT
+    facts_no = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_no.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_no.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+    # Consent + non-contextual finalized summary → still NOT I6_I7_CONTEXT
+    grant_memory_consent(db, user.id, commit=True)
+    facts_yes = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_yes.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_yes.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+    revoke_memory_consent(db, user.id, commit=True)
+    facts_rev = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_rev.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+
+
+def test_a4_closure_i6_i7_empty_and_bounded_context(db, gate4_patch):
+    """Finalized empty/non-contextual ≠ I6_I7; privacy-safe bounded topic ⇒ I6_I7."""
+    from backend.app.services.i6.consent_service import grant_memory_consent
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    when = _when()
+    start = _period_start(when)
+
+    # Empty finalized summary + READ consent → GENERAL_CHECKIN
+    user_empty, _ = _self_setup(db, name="i67-empty")
+    grant_memory_consent(db, user_empty.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_empty.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({}),
+        )
+    )
+    db.commit()
+    facts_empty = assemble_daily_wellness_digest_facts(db, user_id=user_empty.id, when=when)
+    assert facts_empty.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    assert facts_empty.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+
+    # Non-contextual headline-only summary + consent → not I6_I7
+    user_nc, _ = _self_setup(db, name="i67-nonctx")
+    grant_memory_consent(db, user_nc.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_nc.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({"headline": "notes", "source": "ELIGIBLE"}),
+        )
+    )
+    db.commit()
+    facts_nc = assemble_daily_wellness_digest_facts(db, user_id=user_nc.id, when=when)
+    assert facts_nc.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_nc.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+    # Safe bounded I7 continuity topic + consent → I6_I7_CONTEXT
+    user_ctx, _ = _self_setup(db, name="i67-ctx")
+    grant_memory_consent(db, user_ctx.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_ctx.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps(
+                {
+                    "bounded_continuity": {
+                        "topic": "talked about activity plan walking",
+                        "not_transcript": True,
+                        "not_i9": True,
+                        "not_i6_fact": True,
+                    }
+                }
+            ),
+        )
+    )
+    db.commit()
+    facts_ctx = assemble_daily_wellness_digest_facts(db, user_id=user_ctx.id, when=when)
+    assert facts_ctx.content_family == DailySmartContentFamily.I6_I7_CONTEXT
+
+    # Sensitive / unusable topic → not I6_I7
+    user_sens, _ = _self_setup(db, name="i67-sens")
+    grant_memory_consent(db, user_sens.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_sens.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps(
+                {
+                    "bounded_continuity": {
+                        "topic": "my medication dose for diabetes diagnosis",
+                        "not_transcript": True,
+                    }
+                }
+            ),
+        )
+    )
+    db.commit()
+    facts_sens = assemble_daily_wellness_digest_facts(db, user_id=user_sens.id, when=when)
+    assert facts_sens.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_sens.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+
+def _seed_i8_plan_action(
+    db,
+    user: models.User,
+    *,
+    local_day,
+    when: datetime,
+    status: str = "ACTIVE",
+    safety_state: str = "SAFE",
+    clarification_required: bool = False,
+    valid_from: datetime | None = None,
+    valid_until: datetime | None = None,
+    expires_at: datetime | None = None,
+    plan_status: str = "ACTIVE",
+    key_suffix: str = "ok",
+):
+    now = when.replace(tzinfo=timezone.utc) if when.tzinfo is None else when
+    vf = valid_from if valid_from is not None else now
+    vu = valid_until if valid_until is not None else now + timedelta(hours=12)
+    exp = expires_at if expires_at is not None else now + timedelta(hours=12)
+    plan = models.I8OperationalPlan(
+        user_id=user.id,
+        user_local_date=local_day,
+        timezone_snapshot="UTC",
+        status=plan_status,
+        generation_mode="reactive",
+        plan_idempotency_key=f"plan-a4-{user.id}-{key_suffix}",
+        valid_from=vf,
+        valid_until=vu,
+        expires_at=exp,
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    action = models.I8OperationalPlanAction(
+        user_id=user.id,
+        plan_id=plan.id,
+        action_domain="lifestyle",
+        action_type="check_in",
+        action_idempotency_key=f"act-a4-{user.id}-{key_suffix}",
+        status=status,
+        summary_text="Check in",
+        presentation_json="{}",
+        knowledge_refs_json="[]",
+        safety_state=safety_state,
+        clarification_required=clarification_required,
+        valid_from=vf,
+        valid_until=vu,
+        expires_at=exp,
+    )
+    db.add(action)
+    db.commit()
+    return plan, action
+
+
+def test_a4_closure_i8_active_only_influences_family(db, gate4_patch):
+    from datetime import date
+
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    user, _ = _self_setup(db, name="i8-active")
+    when = _when()
+    local_day = date(2026, 8, 31)
+    now = when.replace(tzinfo=timezone.utc) if when.tzinfo is None else when
+    plan = models.I8OperationalPlan(
+        user_id=user.id,
+        user_local_date=local_day,
+        timezone_snapshot="UTC",
+        status="ACTIVE",
+        generation_mode="reactive",
+        plan_idempotency_key=f"plan-a4-{user.id}",
+        valid_from=now,
+        valid_until=now + timedelta(hours=12),
+        expires_at=now + timedelta(hours=12),
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    # ACTIVE plan without ACTIVE action → not I8
+    facts0 = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts0.content_family != DailySmartContentFamily.I8_ACTION
+
+    db.add(
+        models.I8OperationalPlanAction(
+            user_id=user.id,
+            plan_id=plan.id,
+            action_domain="lifestyle",
+            action_type="check_in",
+            action_idempotency_key=f"act-a4-{user.id}",
+            status="ACTIVE",
+            summary_text="Check in",
+            presentation_json="{}",
+            knowledge_refs_json="[]",
+            safety_state="SAFE",
+            clarification_required=False,
+            valid_from=now,
+            valid_until=now + timedelta(hours=12),
+            expires_at=now + timedelta(hours=12),
+        )
+    )
+    db.commit()
+    facts1 = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts1.content_family == DailySmartContentFamily.I8_ACTION
+
+
+def test_a4_closure_i8_eligibility_windows_and_safety(db, gate4_patch):
+    """I8_ACTION only when SAFE+ACTIVE+currently-valid on the correct local day."""
+    from datetime import date
+
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    when = _when()
+    local_day = date(2026, 8, 31)
+    now = when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+
+    def _family(name: str, **kwargs) -> DailySmartContentFamily:
+        user, _ = _self_setup(db, name=name)
+        _seed_i8_plan_action(db, user, local_day=local_day, when=when, key_suffix=name, **kwargs)
+        return assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when).content_family
+
+    assert _family("i8-ok") == DailySmartContentFamily.I8_ACTION
+
+    assert (
+        _family(
+            "i8-exp",
+            valid_from=now - timedelta(hours=6),
+            valid_until=now + timedelta(hours=1),
+            expires_at=now - timedelta(minutes=1),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert (
+        _family(
+            "i8-fut",
+            valid_from=now + timedelta(hours=1),
+            valid_until=now + timedelta(hours=8),
+            expires_at=now + timedelta(hours=8),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert (
+        _family(
+            "i8-vu",
+            valid_from=now - timedelta(hours=6),
+            valid_until=now - timedelta(minutes=1),
+            expires_at=now + timedelta(hours=2),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert _family("i8-blk", safety_state="BLOCKED") != DailySmartContentFamily.I8_ACTION
+    assert _family("i8-clr", safety_state="CLARIFY") != DailySmartContentFamily.I8_ACTION
+    assert (
+        _family("i8-cq", clarification_required=True) != DailySmartContentFamily.I8_ACTION
+    )
+
+    # Wrong local plan date
+    user_wrong, _ = _self_setup(db, name="i8-wrongday")
+    _seed_i8_plan_action(
+        db,
+        user_wrong,
+        local_day=date(2026, 8, 30),
+        when=when,
+        key_suffix="wrongday",
+    )
+    facts_wrong = assemble_daily_wellness_digest_facts(db, user_id=user_wrong.id, when=when)
+    assert facts_wrong.content_family != DailySmartContentFamily.I8_ACTION
+    assert facts_wrong.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+
+def test_a4_closure_sensitive_topic_privacy_lock_screen(db, gate4_patch, monkeypatch):
+    from backend.app.services.i6.consent_service import grant_memory_consent
+    from backend.app.services.i7.privacy_safe_recent_topic import (
+        display_phrase_for_topic_label,
+        get_privacy_safe_recent_topic_label,
+    )
+
+    user, _ = _self_setup(db, name="priv-topic")
+    grant_memory_consent(db, user.id, commit=True)
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.has_permission",
+        lambda *_a, **_k: True,
+    )
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "my medication dose for diabetes diagnosis lab symptom",
+    )
+    assert get_privacy_safe_recent_topic_label(db, user.id) is None
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "talked about activity plan walking",
+    )
+    label = get_privacy_safe_recent_topic_label(db, user.id)
+    assert label == "activity_plan"
+    phrase = display_phrase_for_topic_label(label, "en")
+    assert phrase and "activity" in phrase.lower()
+    assert "medication" not in phrase.lower()
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "xyzzy uncertain gibberish private notes",
+    )
+    assert get_privacy_safe_recent_topic_label(db, user.id) is None
+
+
+def test_a4_brand_copy_canonical_sedi():
+    """A4 localized prose brand: EN=Sedi, FA/AR=صدی; no سدی/سدي; no واحدةحدةحدة."""
+    from pathlib import Path
+
+    from backend.app.services.gate4.notification_contract import ACTION_LABELS, get_action_label
+    from backend.app.services.i10.daily_wellness_digest import (
+        _DIGEST_TITLES,
+        _GENERAL_BODIES,
+        _I6_I7_BODIES,
+        _I8_BODIES,
+        _I9_PARTIAL_BODIES,
+        _I9_STALE_BODIES,
+        _I9_SUFFICIENT_BODIES,
+        _NO_DATA_BODIES,
+        _SAFETY_BODIES,
+    )
+    from backend.app.services.notification_runtime.templates_v1 import TEMPLATES_V1
+
+    fa_wrong = "سدی"
+    ar_wrong = "سدي"
+    brand_fa_ar = "صدی"
+    typo = "واحدةحدة"
+
+    pools = (
+        _DIGEST_TITLES,
+        _GENERAL_BODIES,
+        _NO_DATA_BODIES,
+        _SAFETY_BODIES,
+        _I9_SUFFICIENT_BODIES,
+        _I9_PARTIAL_BODIES,
+        _I9_STALE_BODIES,
+        _I8_BODIES,
+        _I6_I7_BODIES,
+    )
+    fa_blob = " ".join(" ".join(p.get("fa", ())) for p in pools)
+    ar_blob = " ".join(" ".join(p.get("ar", ())) for p in pools)
+    en_blob = " ".join(" ".join(p.get("en", ())) for p in pools)
+
+    assert fa_wrong not in fa_blob
+    assert brand_fa_ar in fa_blob
+    assert ar_wrong not in ar_blob
+    assert brand_fa_ar in ar_blob
+    assert "Sedi" in en_blob
+    assert typo not in ar_blob
+    assert typo not in fa_blob
+
+    for tpl in TEMPLATES_V1:
+        texts = tpl.get("texts") or {}
+        for lang, block in texts.items():
+            msg = " ".join(str(v) for v in (block or {}).values())
+            assert fa_wrong not in msg
+            assert ar_wrong not in msg
+            assert typo not in msg
+            if lang == "en" and "Sedi" in msg:
+                assert "Sedi" in msg
+
+    ar_open = get_action_label("open_chat", "ar")
+    en_open = get_action_label("open_chat", "en")
+    assert ar_wrong not in ar_open
+    assert brand_fa_ar in ar_open
+    assert "Sedi" in en_open
+    assert fa_wrong not in ACTION_LABELS["open_chat"]["fa"]
+
+    # Source files under Gate1 A4 copy scope must not reintroduce defects.
+    root = Path(__file__).resolve().parents[1] / "app" / "services"
+    for rel in (
+        "i10/daily_wellness_digest.py",
+        "notification_runtime/templates_v1.py",
+        "gate4/notification_contract.py",
+    ):
+        text = (root / rel).read_text(encoding="utf-8")
+        assert fa_wrong not in text
+        assert ar_wrong not in text
+        assert typo not in text

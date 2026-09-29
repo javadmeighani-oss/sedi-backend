@@ -572,8 +572,27 @@ def test_c11a_14_15_interaction_and_source_id(db):
     assert "OPEN_CHAT" in merged.get("actions", "")
     gate4_actions = json.loads(merged.get("gate4_actions") or "[]")
     action_ids = {a["action_id"] for a in gate4_actions}
-    assert "OPEN_CHAT" in action_ids
-    assert "ACK_THANKS" in action_ids or "NOT_NOW" in action_ids
+    # Real FCM enrich path: Gate4 mobile metadata = like/dislike/open_chat (not ACK/NOT_NOW).
+    assert action_ids == {"like", "dislike", "open_chat"}
+    labels = {a["action_id"]: a["label"] for a in gate4_actions}
+    assert labels["like"] and labels["dislike"] and labels["open_chat"]
+    for lang in ("fa", "ar"):
+        merged_l, _ = enrich_notification_fcm_data(
+            legacy_data=legacy,
+            notification_id=notif.id,
+            user_id=notif.user_id,
+            title=notif.title,
+            body=notif.body,
+            notification_type=notif.type or "",
+            priority="normal",
+            language=lang,
+            deeplink_url=None,
+            actions_json=LEGACY_ACTIONS,
+            source_notification_id=notif.id,
+        )
+        acts = json.loads(merged_l.get("gate4_actions") or "[]")
+        assert {a["action_id"] for a in acts} == {"like", "dislike", "open_chat"}
+        assert all(a.get("label") for a in acts)
     assert merged.get("source_notification_id") == str(notif.id)
     assert "sedi://chat" in (merged.get("deeplink_url") or "")
     _mark("C11A-14_INTERACTION_METADATA_PRESERVED")

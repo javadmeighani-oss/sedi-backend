@@ -727,17 +727,13 @@ def test_j_language_contract_action_labels():
 
 
 def test_k_templates_v1_ar_gaps_documented():
+    # A4 filled AR for companion/health templates on the smart notification path.
     missing_ar = []
     for tpl in TEMPLATES_V1:
         texts = tpl.get("texts") or {}
         if "ar" not in texts:
             missing_ar.append(tpl["key"])
-    assert missing_ar == [
-        "companion_daily_checkin_v1",
-        "companion_encourage_move_v1",
-        "companion_breathing_break_v1",
-        "health_alert_generic_v1",
-    ]
+    assert missing_ar == []
 
 
 def test_a_unlinked_real_fcm_blocks_zero_http(db, monkeypatch):

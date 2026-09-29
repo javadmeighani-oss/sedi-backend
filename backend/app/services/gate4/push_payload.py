@@ -33,11 +33,15 @@ _REMINDER_CHANNEL_CATEGORIES = frozenset({"reminder", "medication", "care_follow
 CANONICAL_SEDI_SOUND = "sedi_alarm"
 CANONICAL_SEDI_SOUND_IOS = "sedi_alarm.wav"
 
-# Versioned Android channels (G1): existing channel IDs are sticky on installed devices;
-# v2 channels adopt the bundled sedi_alarm sound without deleting legacy channel compatibility.
+# Versioned Android channels (G1/G-A4): existing channel IDs are sticky on installed devices;
+# morning_v3 adopts audible sedi_alarm (morning_v2 was silent — keep constant for compatibility).
 CHANNEL_MORNING_V2 = "morning_v2"
+CHANNEL_MORNING_V3 = "morning_v3"
 CHANNEL_ENGAGEMENT_V2 = "engagement_v2"
 CHANNEL_HEALTH_ALERT_V2 = "health_alert_v2"
+
+# Mobile interaction actions exposed on push metadata (FA/EN/AR labels via contract).
+MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("like", "dislike", "open_chat")
 
 
 def normalize_push_language(language: str | None) -> str:
@@ -54,10 +58,16 @@ def _coerce_fcm_string(value: Any) -> str:
 
 
 def _resolve_v1_action_ids(actions: Sequence[str] | None, *, include_future: bool = False) -> list[str]:
+    # Default remains Gate4 V1 actions; callers pass MOBILE_INTERACTION_ACTIONS for like/dislike/open_chat.
+    # Do not rewrite OPEN_CHAT -> open_chat via case folding — that breaks Gate4 V1 defaults.
     ids = list(actions) if actions is not None else list(V1_DEFAULT_ACTIONS)
     resolved: list[str] = []
     for action_id in ids:
         if is_future_only_action(action_id) and not include_future:
+            continue
+        key = str(action_id).strip()
+        if key in MOBILE_INTERACTION_ACTIONS:
+            resolved.append(key)
             continue
         if not include_future and not is_v1_action(action_id):
             continue
@@ -120,8 +130,9 @@ def build_gate4_android_notification_options(
     """
     Android channel/sound/priority contract for V1 FCM (data-side metadata).
 
-    G1: versioned channels + canonical ``sedi_alarm`` for audible paths.
-    Morning/low remains silent. ``alarm_like`` is ``true`` only for ``critical``.
+    V1-A4: smart daily/morning/engagement/health paths request audible ``sedi_alarm``.
+    Quiet hours are suppress/defer before delivery (not silent morning send).
+    Critical keeps separate alarm_like semantics; no DND bypass invention.
     """
     risk_key = (risk or "normal").strip().lower()
     category_key = (category or "system").strip().lower()
@@ -143,14 +154,21 @@ def build_gate4_android_notification_options(
         alarm_like = False
         visibility = "public"
         play_sound = bool(sound_enabled)
-    elif category_key in ("morning", "daily_routine") or category_key == "morning_brief":
-        channel_id = CHANNEL_MORNING_V2
-        sound = ""
+    elif category_key in (
+        "morning",
+        "daily_routine",
+        "morning_brief",
+        "daily_status",
+        "daily",
+    ):
+        # New sticky channel for audible daily smart touchpoint (frontend Gate adopts morning_v3).
+        channel_id = CHANNEL_MORNING_V3
+        sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
         android_priority = "normal"
         critical = False
         alarm_like = False
         visibility = "private"
-        play_sound = False
+        play_sound = bool(sound_enabled)
     elif category_key in _REMINDER_CHANNEL_CATEGORIES:
         channel_id = CHANNEL_ENGAGEMENT_V2
         sound = CANONICAL_SEDI_SOUND if sound_enabled else ""
@@ -317,6 +335,8 @@ def enrich_notification_fcm_data(
         source_notification_id=source_notification_id,
     )
 
+    # Real Android smart-push path: Gate4 mobile metadata = like/dislike/open_chat (FA/EN/AR).
+    # Legacy V1_DEFAULT_ACTIONS remain available when callers pass actions= explicitly.
     gate4_data = build_gate4_push_data_payload(
         notification_id=notification_id,
         user_id=user_id,
@@ -330,6 +350,7 @@ def enrich_notification_fcm_data(
         source_notification_id=source_notification_id or notification_id,
         template_key=template_key,
         include_source_refs=False,
+        actions=list(MOBILE_INTERACTION_ACTIONS),
     )
     merged = merge_gate4_into_fcm_data(legacy_data, gate4_data)
     android_opts = build_gate4_android_notification_options(

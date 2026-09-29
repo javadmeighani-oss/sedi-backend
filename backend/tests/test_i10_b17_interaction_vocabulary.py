@@ -693,3 +693,29 @@ def test_done_payload_rejected_without_domain_endpoint(client, db, b17_patches):
 
     r = _feedback(client, user, notif.id, {"reaction": "interact", "action_id": "done"})
     assert r.status_code == 422
+
+# --- SEDI-V1-A4 feedback semantics ---
+
+
+def test_a4_like_dislike_not_collapsed_to_timing_policy():
+    from backend.app.services.gate4.notification_contract import normalize_legacy_action, get_action_label
+    from backend.app.services.i10.interaction_vocabulary import (
+        CanonicalInteractionVerb,
+        resolve_interaction_verb,
+    )
+
+    like = resolve_interaction_verb({"reaction": "like"})
+    dislike = resolve_interaction_verb({"reaction": "dislike"})
+    talk = resolve_interaction_verb({"action_id": "open_chat"})
+    assert like.verb is CanonicalInteractionVerb.LIKE
+    assert dislike.verb is CanonicalInteractionVerb.DISLIKE
+    assert talk.verb is CanonicalInteractionVerb.TALK_TO_SEDI
+    assert dislike.verb is not CanonicalInteractionVerb.NOT_NOW
+    assert like.gate4_policy_action is None
+    assert dislike.gate4_policy_action is None
+    assert normalize_legacy_action("like") == "like"
+    assert normalize_legacy_action("dislike") == "dislike"
+    for lang in ("fa", "en", "ar"):
+        assert get_action_label("like", lang)
+        assert get_action_label("dislike", lang)
+        assert get_action_label("open_chat", lang)

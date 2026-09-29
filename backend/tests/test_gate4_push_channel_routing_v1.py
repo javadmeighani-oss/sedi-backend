@@ -107,16 +107,32 @@ def test_default_maps_to_engagement_v2():
     assert opts["android_priority"] == "normal"
 
 
-def test_morning_is_silent_on_morning_v2():
+def test_morning_is_audible_on_morning_v3():
+    from backend.app.services.gate4.push_payload import CHANNEL_MORNING_V3
+
     opts = build_gate4_android_notification_options(
         risk="normal",
         priority="normal",
         category="morning",
         sound_enabled=True,
     )
-    assert opts["channel_id"] == CHANNEL_MORNING_V2
-    assert opts["sound"] is None
-    assert opts["play_sound"] is False
+    assert opts["channel_id"] == CHANNEL_MORNING_V3
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
+    assert opts["play_sound"] is True
+
+
+def test_daily_status_is_audible_on_morning_v3():
+    from backend.app.services.gate4.push_payload import CHANNEL_MORNING_V3
+
+    opts = build_gate4_android_notification_options(
+        risk="informational",
+        priority="normal",
+        category="daily_status",
+        sound_enabled=True,
+    )
+    assert opts["channel_id"] == CHANNEL_MORNING_V3
+    assert opts["sound"] == CANONICAL_SEDI_SOUND
+    assert opts["play_sound"] is True
 
 
 def test_normalize_invalid_language_falls_back_to_en():
@@ -166,6 +182,10 @@ def test_invalid_language_metadata_and_push_payload_fall_back_to_en():
         language="de",
         deeplink_url="sedi://chat?from=notif&source_notification_id=42",
         source_notification_id=42,
+        actions=[
+            SmartNotificationAction.ACK_THANKS.value,
+            SmartNotificationAction.OPEN_CHAT.value,
+        ],
     )
     assert payload["language"] == "en"
     assert payload["channel_id"] == CHANNEL_ENGAGEMENT_V2
@@ -178,3 +198,53 @@ def test_invalid_language_metadata_and_push_payload_fall_back_to_en():
     ):
         assert en_label in payload["gate4_actions"]
         assert ACTION_LABELS[action_id]["fa"] not in payload["gate4_actions"]
+
+def test_a4_mobile_interaction_labels_fa_en_ar():
+    from backend.app.services.gate4.push_payload import MOBILE_INTERACTION_ACTIONS, build_gate4_push_data_payload
+
+    for lang in ("fa", "en", "ar"):
+        data = build_gate4_push_data_payload(
+            notification_id=1,
+            user_id=1,
+            title="t",
+            body="b",
+            category="engagement",
+            risk="normal",
+            priority="normal",
+            language=lang,
+            deeplink_url="sedi://chat?from=notif",
+            actions=list(MOBILE_INTERACTION_ACTIONS),
+        )
+        assert "like" in data["gate4_actions"]
+        assert "dislike" in data["gate4_actions"]
+        assert "open_chat" in data["gate4_actions"]
+        assert data.get("play_sound") == "true"
+
+
+def test_a4_closure_enrich_fcm_uses_like_dislike_open_chat():
+    """Real FCMAdapter enrich path — not helper-only with explicit actions=."""
+    import json
+
+    from backend.app.services.gate4.push_payload import enrich_notification_fcm_data
+
+    for lang in ("fa", "en", "ar"):
+        merged, _opts = enrich_notification_fcm_data(
+            legacy_data={"notification_id": "9", "channel": "morning"},
+            notification_id=9,
+            user_id=1,
+            title="t",
+            body="b",
+            notification_type="daily_wellness_digest",
+            priority="normal",
+            language=lang,
+            deeplink_url=None,
+            actions_json=None,
+            category="daily_status",
+            risk="informational",
+        )
+        actions = json.loads(merged.get("gate4_actions") or "[]")
+        ids = {a["action_id"] for a in actions}
+        assert ids == {"like", "dislike", "open_chat"}
+        assert "ACK_THANKS" not in ids
+        assert "NOT_NOW" not in ids
+        assert all(a.get("label") for a in actions)

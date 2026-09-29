@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -20,6 +20,16 @@ from backend.app.services.gate4.policy_prefs_bridge import (
 from backend.app.services.memory import MemoryRepository
 
 GATE4_DAILY_TOLERANCE_MINUTES = 10
+# V1 Daily Smart Touchpoint is fixed 09:00 user-local (prefs keep schema compatibility).
+CANONICAL_DAILY_SMART_TOUCHPOINT_TIME = "09:00"
+
+
+def smart_daily_touchpoint_contract() -> dict[str, str]:
+    """Explicit smart-daily contract — never exposes legacy DEFAULT 08:00."""
+    return {
+        "canonical_time": CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        "path": "should_run_daily_smart_touchpoint",
+    }
 
 
 def _ensure_utc(dt: datetime) -> datetime:
@@ -97,6 +107,8 @@ def should_run_daily_notification_gate4(
     Return True when local time is within the daily notification tolerance window.
 
     Read-only — does not write DB or create notifications.
+    Compatibility path (prefs/memory → default 08:00). V1 Daily Smart Touchpoint
+    uses ``should_run_daily_smart_touchpoint`` (fixed 09:00) instead.
     """
     daily_time = resolve_user_daily_notification_time_for_scheduler(db, user)
     tz_name = resolve_user_timezone_for_scheduler(db, user)
@@ -106,6 +118,40 @@ def should_run_daily_notification_gate4(
         daily_time,
         tolerance_minutes=tolerance_minutes,
     )
+
+
+def should_run_daily_smart_touchpoint(
+    db: Session,
+    user: User,
+    now_utc: datetime,
+    *,
+    tolerance_minutes: int = GATE4_DAILY_TOLERANCE_MINUTES,
+) -> bool:
+    """
+    V1 Daily Smart Touchpoint: True when user-local time is within 09:00 ± tolerance.
+
+    Timezone from profile/I2/Gate4 resolver. Ignores prefs daily_notification_time
+    so schedule stays fixed at 09:00 (no 08:00 fallback on this path).
+    Read-only — does not write DB or create notifications.
+    """
+    tz_name = resolve_user_timezone_for_scheduler(db, user)
+    local_dt = get_local_now(_ensure_utc(now_utc), tz_name)
+    return is_daily_notification_time(
+        local_dt,
+        CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        tolerance_minutes=tolerance_minutes,
+    )
+
+
+def user_local_calendar_date(
+    db: Session,
+    user: User,
+    now_utc: datetime,
+) -> date:
+    """Return the user's local calendar date for ``now_utc`` (timezone resolver)."""
+    tz_name = resolve_user_timezone_for_scheduler(db, user)
+    local_dt = get_local_now(_ensure_utc(now_utc), tz_name)
+    return local_dt.date()
 
 
 def legacy_should_run_morning_notification(

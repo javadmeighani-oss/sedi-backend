@@ -1292,52 +1292,10 @@ def submit_notification_feedback(
         "DONE": "done",
     }.get(canonical, "open")
     feedback_request = type("FB", (), {"feedback": feedback_type, "reason": reason, "action": payload.get("action")})()
-    # Check if this is a morning_brief notification
-    is_morning_brief = (
-        notification.type == "morning_brief" or
-        "morning" in notification.body.lower() or 
-        (notification.title and "morning" in notification.title.lower())
-    )
-    
-    if is_morning_brief:
-        # v637 I6 vocabulary reconciliation: "morning_notification_feedback" and
-        # "morning_notification_time" are not MemoryContract keys and have no I6
-        # canonical ownership. Raw like/dislike counters have no existing canonical
-        # owner (not invented here); the actual morning time is canonically owned by
-        # NotificationPrefs.daily_notification_time and is adjusted there directly.
-        # Counters are request-scoped only (no cross-request persistence attempted).
-        positives = 1 if feedback_request.feedback == "positive" else 0
-        negatives = 1 if feedback_request.feedback == "negative" else 0
-
-        # Adjust morning time if many negatives (safe, with logging)
-        if negatives >= 3 and negatives > positives:
-            prefs_row = (
-                db.query(NotificationPrefs)
-                .filter(NotificationPrefs.user_id == notification.user_id)
-                .first()
-            )
-            current_time = getattr(prefs_row, "daily_notification_time", None) if prefs_row else None
-            current_hour, current_minute = 9, 0
-            if current_time:
-                try:
-                    current_hour, current_minute = (int(p) for p in str(current_time).split(":")[:2])
-                except (ValueError, TypeError):
-                    pass
-
-            # Shift +1 hour (cap between 6 and 11)
-            new_hour = min(current_hour + 1, 11)
-            if new_hour < 6:
-                new_hour = 6
-
-            if new_hour != current_hour:
-                upsert_prefs(
-                    db,
-                    notification.user_id,
-                    NotificationPrefsUpdate(
-                        daily_notification_time=f"{new_hour:02d}:{current_minute:02d}"
-                    ),
-                )
-                print(f"[Feedback] Adjusted morning time for user {user_id} from {current_hour}:{current_minute:02d} to {new_hour}:{current_minute:02d} (reason: {negatives} negative feedbacks)")
+    # V1-A4: Daily Smart Touchpoint time is fixed 09:00 user-local.
+    # Neutralize legacy request-local "3 negative morning feedbacks changes time" dead behavior.
+    # LIKE/DISLIKE remain content reactions via record_notification_interaction above;
+    # they must never mutate NotificationPrefs.daily_notification_time here.
     
     response_data = {
             "feedback_received": True,

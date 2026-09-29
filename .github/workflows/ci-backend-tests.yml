@@ -208,6 +208,7 @@ jobs:
             backend/tests/test_memory_history_timezone_v1.py \
             backend/tests/test_notification_inbox_gate4_v1.py \
             backend/tests/test_gate4_push_channel_routing_v1.py \
+            backend/tests/test_gate4_android_data_only_transport.py \
             backend/tests/test_notification_api_b2.py \
             backend/tests/test_section15_i0_interaction_response.py \
             backend/tests/test_section15_b8_interaction_idempotency.py \
@@ -235,6 +236,7 @@ jobs:
             backend/tests/test_i7_section44_design_contracts.py \
             backend/tests/test_i7_section45_memory_foundation.py \
             backend/tests/test_sedi_conversation_memory_continuity_v1.py \
+            backend/tests/test_a3_session_open_notification_continuity.py \
             backend/tests/test_sedi_session_identity_long_term_continuity_v1.py \
             backend/tests/test_i7_daily_integrity_bounded_continuity_v1.py \
             backend/tests/test_i10_explicit_presence_auth_30d_v1.py \

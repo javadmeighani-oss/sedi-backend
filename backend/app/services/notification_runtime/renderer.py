@@ -213,12 +213,14 @@ def _engagement_short(lang: str, name: Optional[str]) -> str:
 
 
 def _engagement_with_topic(lang: str, name: Optional[str], topic: str) -> str:
+    """Natural continuation with a privacy-safe coarse topic only (never raw chat)."""
     n = name or ({"fa": "عزیزم", "ar": "عزيزي", "en": "dear"}.get(lang, "dear"))
+    t = topic[:40]
     if lang == "fa":
-        return f"سلام {n}، درباره «{topic[:40]}» چطوره؟ 🌿"
+        return f"{n}، آخرین بار درباره {t} صحبت می‌کردیم. می‌خوای ادامه بدیم؟"
     if lang == "ar":
-        return f"مرحباً {n}، ماذا عن «{topic[:40]}»؟ 🌿"
-    return f"Hello {n}, how about «{topic[:40]}»? 🌿"
+        return f"{n}، آخر مرة تحدثنا عن {t}. هل تريد أن نكمل؟"
+    return f"{n}, last time we were talking about {t}. Want to continue?"
 
 
 def _render_health_alert(lang: str, name: Optional[str], inputs: Dict[str, Any], priority: str) -> tuple:

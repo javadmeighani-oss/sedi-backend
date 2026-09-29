@@ -119,14 +119,32 @@ ACTION_LABELS: Final[Mapping[str, Mapping[str, str]]] = {
         SmartNotificationLanguage.EN.value: "Let's talk",
         SmartNotificationLanguage.AR.value: "لنتحدث",
     },
+    # Mobile content reactions — independent of ACK_THANKS / NOT_NOW timing policy.
+    "like": {
+        SmartNotificationLanguage.FA.value: "پسندیدم",
+        SmartNotificationLanguage.EN.value: "Like",
+        SmartNotificationLanguage.AR.value: "أعجبني",
+    },
+    "dislike": {
+        SmartNotificationLanguage.FA.value: "نپسندیدم",
+        SmartNotificationLanguage.EN.value: "Dislike",
+        SmartNotificationLanguage.AR.value: "لم يعجبني",
+    },
+    "open_chat": {
+        SmartNotificationLanguage.FA.value: "صحبت کنیم",
+        SmartNotificationLanguage.EN.value: "Talk to Sedi",
+        SmartNotificationLanguage.AR.value: "لنتحدث مع صدی",
+    },
 }
 
+# Legacy aliases for open/dismiss only. LIKE/DISLIKE must NOT collapse into timing/ack policy.
 LEGACY_ACTION_MAP: Final[Mapping[str, str]] = {
     "open_chat": SmartNotificationAction.OPEN_CHAT.value,
     "open": SmartNotificationAction.OPEN_CHAT.value,
-    "like": SmartNotificationAction.ACK_THANKS.value,
-    "dislike": SmartNotificationAction.NOT_NOW.value,
     "dismiss": SmartNotificationAction.NOT_NOW.value,
+    # Explicit identity for content reactions (never ACK_THANKS / NOT_NOW).
+    "like": "like",
+    "dislike": "dislike",
 }
 
 
@@ -211,7 +229,21 @@ def is_future_only_action(action: str) -> bool:
 
 def get_action_semantics(action: str) -> ActionSemantics:
     """Return semantics for a canonical action; raises ValueError if unknown."""
-    canonical = normalize_legacy_action(action) if action in LEGACY_ACTION_MAP else action
+    lowered = (action or "").strip().lower()
+    # Content reactions are vocabulary-only (not Gate4 suppress/defer timing).
+    if lowered in ("like", "dislike"):
+        return ActionSemantics(
+            action_id=lowered,
+            description="Content reaction; does not imply timing policy (NOT_NOW) or ACK_THANKS.",
+            closes_notification=False,
+        )
+    canonical = normalize_legacy_action(action) if action in LEGACY_ACTION_MAP or lowered in LEGACY_ACTION_MAP else action
+    if canonical in ("like", "dislike"):
+        return ActionSemantics(
+            action_id=canonical,
+            description="Content reaction; does not imply timing policy (NOT_NOW) or ACK_THANKS.",
+            closes_notification=False,
+        )
     try:
         return _ACTION_SEMANTICS[canonical]
     except KeyError as exc:
@@ -220,12 +252,22 @@ def get_action_semantics(action: str) -> ActionSemantics:
 
 def get_action_label(action: str, language: str) -> str:
     """
-    Return localized label for a V1 action.
+    Return localized label for a V1 / mobile action.
 
     Unsupported language falls back to ``en``. Unknown action raises ValueError.
     Future-only actions raise ValueError (labels not defined for V1 push).
+    LIKE/DISLIKE remain distinct from ACK_THANKS/NOT_NOW.
+    Exact canonical keys (e.g. OPEN_CHAT) win over lowercase mobile aliases.
     """
-    canonical = normalize_legacy_action(action) if action in LEGACY_ACTION_MAP else action
+    key = (action or "").strip()
+    if key in ACTION_LABELS:
+        lang = normalize_language(language)
+        return ACTION_LABELS[key][lang]
+    lowered = key.lower()
+    if lowered in ACTION_LABELS:
+        lang = normalize_language(language)
+        return ACTION_LABELS[lowered][lang]
+    canonical = normalize_legacy_action(action) if lowered in LEGACY_ACTION_MAP else action
     if canonical not in ACTION_LABELS:
         raise ValueError(f"No label defined for action: {action}")
     lang = normalize_language(language)
@@ -244,22 +286,23 @@ def should_notify_for_risk(risk: str) -> bool:
 
 def normalize_legacy_action(action: str) -> str:
     """
-    Map legacy feedback/action strings to canonical Gate 4 action IDs.
+    Map legacy feedback/action strings to canonical IDs.
 
-    Mapping (backward-compatible, not wired to runtime yet):
+    Mapping:
     - open_chat / open -> OPEN_CHAT
-    - like -> ACK_THANKS
-    - dislike / dismiss -> NOT_NOW
+    - like -> like (content reaction; NEVER ACK_THANKS)
+    - dislike -> dislike (content reaction; NEVER NOT_NOW)
+    - dismiss -> NOT_NOW
 
     Already-canonical action IDs pass through unchanged.
-  """
+    """
     if not action:
         raise ValueError("action must be non-empty")
     key = action.strip()
     lowered = key.lower()
     if lowered in LEGACY_ACTION_MAP:
         return LEGACY_ACTION_MAP[lowered]
-    if key in _ACTION_SEMANTICS:
+    if key in _ACTION_SEMANTICS or key in ACTION_LABELS:
         return key
     raise ValueError(f"Unknown legacy or canonical action: {action}")
 

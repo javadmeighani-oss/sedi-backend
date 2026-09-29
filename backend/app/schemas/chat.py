@@ -19,3 +19,13 @@ class ChatRequest(BaseModel):
         description="Active HealthSubject; JWT Account must hold AHSA; OTHER chat fail-closed until governed context",
     )
 
+
+class SessionOpenRequest(BaseModel):
+    """Optional body for POST /interact/session/open (empty {} remains valid)."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_notification_id: Optional[int] = Field(
+        None,
+        description="Optional; verified notification origin for A3 continuity opener",
+    )
+
