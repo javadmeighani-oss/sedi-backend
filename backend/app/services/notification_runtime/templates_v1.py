@@ -30,6 +30,10 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
                 "title": "Hello",
                 "message": "Just checking in — how are you feeling today? 🌿",
             },
+            "ar": {
+                "title": "مرحباً",
+                "message": "مررت لأطمئن عليك؛ كيف حالك اليوم؟ 🌿",
+            },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "companion_daily_checkin_v1"},
@@ -48,6 +52,10 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
             "en": {
                 "title": "Move a little",
                 "message": "Take a small step; your body will thank you. 💚",
+            },
+            "ar": {
+                "title": "تحرك قليلاً",
+                "message": "خذ خطوة صغيرة؛ سيشكرك جسدك. 💚",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,
@@ -68,6 +76,10 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
                 "title": "Breathing break",
                 "message": "Take a minute to breathe deeply; you'll feel calmer. 🌬",
             },
+            "ar": {
+                "title": "استراحة تنفس",
+                "message": "خذ دقيقة للتنفس بعمق؛ ستشعر بالهدوء. 🌬",
+            },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "companion_breathing_break_v1"},
@@ -86,6 +98,10 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
             "en": {
                 "title": "Health Alert",
                 "message": "An unusual reading was detected. Open Sedi to review.",
+            },
+            "ar": {
+                "title": "تنبيه صحي",
+                "message": "تم تسجيل قراءة غير معتادة. افتح سدي للمراجعة.",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,

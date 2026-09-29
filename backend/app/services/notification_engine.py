@@ -874,28 +874,34 @@ class DecisionEngine:
     ) -> Optional[Notification]:
         """
         Create connection_ping notification (Release B2.1 / Stage 16.6.4).
-        Canonical I10 PRESENCE_REENGAGEMENT path (4h inactivity).
+        Canonical I10 PRESENCE_REENGAGEMENT path (4h chat inactivity, 6h sibling cooldown).
         """
-        # Aligned with scheduler.INACTIVE_HOURS (canonical 4h PRESENCE_REENGAGEMENT).
         presence_inactive_hours = 4
+        reengagement_cooldown_hours = 6
         from backend.app.services.i10.interaction_recorder import (
-            get_last_user_presence_at,
+            get_last_chat_activity_at,
             has_recent_engagement_family_notification,
         )
 
         when = scheduled_for or datetime.utcnow()
-        last_presence = get_last_user_presence_at(self.db, user_id)
-        if last_presence is not None and (when - last_presence) < timedelta(hours=presence_inactive_hours):
+        last_chat = get_last_chat_activity_at(self.db, user_id)
+        if last_chat is not None and (when - last_chat) < timedelta(hours=presence_inactive_hours):
             logger.info(
-                "[NOTIF] suppressed channel=engagement user_id=%s reason=recent_presence",
+                "[NOTIF] suppressed channel=engagement user_id=%s reason=recent_chat_activity",
                 user_id,
             )
             return None
-        # Dual-path lock vs ENGAGEMENT_NUDGE (create-time sibling suppression)
+        if last_chat is None:
+            logger.info(
+                "[NOTIF] suppressed channel=engagement user_id=%s reason=no_chat_baseline",
+                user_id,
+            )
+            return None
+        # Dual-path lock vs ENGAGEMENT_NUDGE (create-time sibling suppression) — 6h cooldown
         if has_recent_engagement_family_notification(
             self.db,
             user_id=user_id,
-            since=when - timedelta(hours=presence_inactive_hours),
+            since=when - timedelta(hours=reengagement_cooldown_hours),
         ):
             logger.info(
                 "[NOTIF] suppressed channel=engagement user_id=%s reason=engagement_family_cooldown",
@@ -920,6 +926,20 @@ class DecisionEngine:
             return None
 
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
+        # Privacy-safe coarse topic only — never raw chat / health-sensitive text.
+        try:
+            from backend.app.services.i7.privacy_safe_recent_topic import (
+                display_phrase_for_topic_label,
+                get_privacy_safe_recent_topic_label,
+            )
+
+            label = get_privacy_safe_recent_topic_label(self.db, user_id)
+            phrase = display_phrase_for_topic_label(label, effective_language)
+            if phrase:
+                inputs["last_topic_hint"] = phrase
+        except Exception:
+            pass
+
         rendered = render("engagement", effective_language, inputs, "low", user_ctx=user_ctx)
 
         payload = self.builder.build_payload(
@@ -938,7 +958,7 @@ class DecisionEngine:
             language=effective_language
         )
         
-        # Enhance with AI (safe wrapper)
+        # Enhance with AI (safe wrapper; correctness does not depend on enhancer)
         payload = enhance_with_ai(payload)
 
         from backend.app.services.gate4.notification_context import (

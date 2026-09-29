@@ -279,8 +279,8 @@ def is_eligible_for_presence_reengagement(
     when: datetime,
     inactive_hours: int = 4,
 ) -> bool:
-    """Fail-closed eligibility: requires a real presence baseline and idle >= threshold."""
-    last = get_last_user_presence_at(db, user_id)
+    """Fail-closed eligibility: requires real A3 chat activity and idle >= threshold."""
+    last = get_last_chat_activity_at(db, user_id)
     if last is None:
         return False
     return (when - last) >= timedelta(hours=inactive_hours)

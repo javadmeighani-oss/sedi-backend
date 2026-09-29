@@ -555,3 +555,91 @@ def test_morning_and_digest_distinct_occurrences_no_collision(db, gate4_patch, m
     }
     assert I10SemanticFamily.MORNING_CHECK_IN.value in families
     assert I10SemanticFamily.DAILY_WELLNESS_DIGEST.value in families
+
+# --- SEDI-V1-A4 Daily Smart Touchpoint acceptance (scheduler + i18n + single push) ---
+
+
+def test_a4_scheduler_does_not_cofire_morning_brief():
+    import inspect
+    from backend.app.core import scheduler as sched
+
+    src = inspect.getsource(sched.run_morning_notifications)
+    assert "create_daily_wellness_digest" in src
+    assert "create_morning_brief" not in src
+    assert "should_run_daily_smart_touchpoint" in src
+
+
+def test_a4_canonical_daily_time_0900_not_0800():
+    from backend.app.services.gate4.scheduler_timing import CANONICAL_DAILY_SMART_TOUCHPOINT_TIME
+
+    assert CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+
+
+def test_a4_should_run_at_0900_local_not_0800(db, gate4_patch):
+    from backend.app.services.gate4.scheduler_timing import should_run_daily_smart_touchpoint
+
+    user, _ = _self_setup(db)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="Asia/Tehran"))
+    db.commit()
+    # 09:05 Tehran ~= 05:35 UTC
+    assert should_run_daily_smart_touchpoint(db, user, datetime(2026, 9, 9, 5, 35, 0)) is True
+    # 08:05 Tehran ~= 04:35 UTC
+    assert should_run_daily_smart_touchpoint(db, user, datetime(2026, 9, 9, 4, 35, 0)) is False
+
+
+def test_a4_fa_en_ar_digest_localized_before_persist(db, gate4_patch, morning_window_now):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_wellness_digest_payload,
+        render_digest_body,
+        render_digest_title,
+    )
+
+    for lang in ("fa", "en", "ar"):
+        user, _ = _self_setup(db, name=f"a4-lang-{lang}")
+        user.preferred_language = lang
+        db.commit()
+        facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+        title = render_digest_title(facts, lang)
+        body = render_digest_body(facts, lang)
+        payload = build_daily_wellness_digest_payload(facts, occurrence_key=f"a4-{lang}", language=lang)
+        assert payload.metadata["language"] == lang
+        assert payload.title == title and bool(title)
+        assert payload.body == body and bool(body)
+
+
+def test_a4_no_data_path_no_invented_health_facts(db, gate4_patch):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        render_digest_body,
+    )
+
+    user, _ = _self_setup(db)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+    assert facts.data_status == DailyWellnessDataStatus.NO_DATA
+    body = render_digest_body(facts, "en").lower()
+    for term in ("diagnosis", "bpm=", "you have diabetes", "spo2"):
+        assert term not in body
+
+
+def test_a4_engagement_nudge_not_independently_scheduled():
+    import inspect
+    from backend.app.core import scheduler as sched
+
+    src = inspect.getsource(sched.start_scheduler)
+    assert "add_job(\n            run_engagement_nudge" not in src
+    assert hasattr(sched, "run_engagement_nudge")
+
+
+def test_a4_context_json_no_raw_memory_leak(db, gate4_patch, morning_window_now):
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_wellness_digest_payload,
+    )
+
+    user, _ = _self_setup(db)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=_when())
+    payload = build_daily_wellness_digest_payload(facts, occurrence_key="a4-ctx", language="en")
+    blob = str(payload.context or {}).lower()
+    for forbidden in ("user_message", "raw_memory", "physiologicalmeasurement"):
+        assert forbidden not in blob

@@ -19,14 +19,16 @@ from backend.app.services.memory import MemoryRepository, build_memory_context
 # Scheduling and Check Settings
 # -------------------------------
 CHECK_INTERVAL_HOURS = 2       # Health check interval (every 2 hours)
-INACTIVE_HOURS = 4             # Inactive threshold (if no interaction for 4+ hours) - UPDATED
-MORNING_HOUR = 9               # Default morning greeting time (9 AM) - UPDATED
+INACTIVE_HOURS = 4             # Canonical PRESENCE_REENGAGEMENT: idle >= 4h since last chat
+REENGAGEMENT_COOLDOWN_HOURS = 6  # Min hours between PRESENCE/ENGAGEMENT siblings
+REENGAGEMENT_MAX_PER_DAY = 2     # Max PRESENCE_REENGAGEMENT (+ sibling) per local day
+MORNING_HOUR = 9               # V1 Daily Smart Touchpoint hour (user-local 09:00)
 MORNING_CHECK_INTERVAL_MIN = 10  # Check for morning notifications every 10 minutes
 INACTIVITY_CHECK_INTERVAL_MIN = 15  # Check for inactivity every 15 minutes
-ENGAGEMENT_NUDGE_INACTIVE_HOURS = 3  # Stage 16.6: engagement nudge if inactive 3h+
-ENGAGEMENT_MAX_PER_DAY = int(os.getenv("ENGAGEMENT_MAX_PER_DAY", "3"))  # Stage 16.6.2
-ENGAGEMENT_MIN_HOURS = int(os.getenv("ENGAGEMENT_MIN_HOURS", "3"))  # Stage 16.6.2: min hours between nudges
-ENGAGEMENT_CHECK_INTERVAL_MIN = 10  # Run engagement nudge check every 10 minutes
+ENGAGEMENT_NUDGE_INACTIVE_HOURS = 3  # Legacy 3h nudge (retained; not scheduled in V1)
+ENGAGEMENT_MAX_PER_DAY = int(os.getenv("ENGAGEMENT_MAX_PER_DAY", "3"))  # Legacy compat
+ENGAGEMENT_MIN_HOURS = int(os.getenv("ENGAGEMENT_MIN_HOURS", "3"))  # Legacy compat
+ENGAGEMENT_CHECK_INTERVAL_MIN = 10  # Legacy; job not registered in V1
 DELIVERY_PENDING_INTERVAL_MIN = 5  # Run notification delivery outbox every 5 minutes
 # Device disconnected: if last_seen_at older than threshold, create notification (dedupe: once per 6h per device)
 DEVICE_DISCONNECTED_THRESHOLD_MIN = int(os.getenv("DEVICE_DISCONNECTED_THRESHOLD_MIN", "15"))
@@ -87,15 +89,15 @@ def run_inactivity_notifications():
     """
     Canonical 4h PRESENCE_REENGAGEMENT (connection_ping).
     Runs every 15 minutes, but only creates notifications if:
-    - User has trustworthy presence baseline and is inactive 4+ hours
-    - Not more than 2 connection_ping / reengagement siblings per day
-    - Not more than once per 4 hours across PRESENCE_REENGAGEMENT + ENGAGEMENT_NUDGE
+    - User has real A3 chat activity baseline (Memory) and is idle 4+ hours
+    - Not more than 2 reengagement siblings per calendar day
+    - Not more than once per 6 hours across PRESENCE_REENGAGEMENT + ENGAGEMENT_NUDGE
 
     Capacity: same-tick keyset pages (no unbounded User.all()).
     """
     from backend.app.core.capacity_observability import track_span
     from backend.app.core.scheduler_user_batch import iter_users_bounded
-    from backend.app.services.i10.interaction_recorder import get_last_user_presence_at
+    from backend.app.services.i10.interaction_recorder import get_last_chat_activity_at
 
     with track_span("scheduler_job", job_id="inactivity_notifications") as meta:
         scanned = 0
@@ -106,28 +108,26 @@ def run_inactivity_notifications():
             for user in iter_users_bounded(db):
                 scanned += 1
                 try:
-                    # Chat Memory + notification LIKE/DISLIKE/OPEN_CHAT presence evidence
-                    last_presence = get_last_user_presence_at(db, user.id)
+                    # Chat evidence only — not notification LIKE/DISLIKE presence
+                    last_chat = get_last_chat_activity_at(db, user.id)
 
-                    if last_presence is None:
-                        # Fail-safe: no trustworthy activity baseline (do not invent)
+                    if last_chat is None:
+                        # Fail-safe: no trustworthy chat baseline (do not invent)
                         continue
 
-                    # Check if 4+ hours inactive
-                    time_since = now - last_presence
+                    time_since = now - last_chat
                     if time_since < timedelta(hours=INACTIVE_HOURS):
                         continue
 
                     # Dedupe: max 2 presence/engagement siblings per day
                     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    # Exclusive lower bound: count siblings strictly after start-of-day-1us
                     if _recent_engagement_family_count(
                         db, user_id=user.id, since=today_start - timedelta(microseconds=1)
-                    ) >= 2:
+                    ) >= REENGAGEMENT_MAX_PER_DAY:
                         continue
 
-                    # Cooldown: shared with ENGAGEMENT_NUDGE to prevent dual-path double send
-                    cooldown_threshold = now - timedelta(hours=INACTIVE_HOURS)
+                    # Cooldown: >=6h between siblings (shared with legacy ENGAGEMENT_NUDGE)
+                    cooldown_threshold = now - timedelta(hours=REENGAGEMENT_COOLDOWN_HOURS)
                     if _recent_engagement_family_count(db, user_id=user.id, since=cooldown_threshold) > 0:
                         continue
 
@@ -175,78 +175,52 @@ def check_health_status():
 # -------------------------------
 def run_morning_notifications():
     """
-    Check for morning notification time and send notifications.
-    Runs every 10 minutes, but only creates notifications when:
-    - Current time (in user's timezone) matches user's morning preference (default 9 AM)
-    - Only once per calendar day per user (dedupe)
-    Stage 16.6: Uses user timezone from UserMemoryFact key "timezone" (e.g. Asia/Tehran); else server default.
+    V1 Daily Smart Touchpoint — single DAILY_WELLNESS_DIGEST per user-local day.
+
+    Runs every 10 minutes; creates only when:
+    - User-local time is within 09:00 ± 10 minutes (fixed; prefs not used for schedule)
+    - No DAILY_WELLNESS_DIGEST already exists for that user-local calendar date
+
+    Does NOT create morning_brief (legacy API retained elsewhere for compatibility).
 
     Capacity: same-tick keyset pages (no unbounded User.all()).
     """
     from backend.app.core.capacity_observability import track_span
     from backend.app.core.scheduler_user_batch import iter_users_bounded
+    from backend.app.services.gate4.scheduler_timing import (
+        should_run_daily_smart_touchpoint,
+        user_local_calendar_date,
+    )
+    from backend.app.services.i10.policy_types import I10SemanticFamily
 
     with track_span("scheduler_job", job_id="morning_notifications") as meta:
         scanned = 0
         with next(get_db()) as db:
             now = datetime.utcnow()
-            memory_repo = MemoryRepository(db)
             decision_engine = DecisionEngine(db)
-            memory_context = None  # Will be built per user if needed
-
-            from backend.app.services.gate4.feature_flags import gate4_daily_0800_enabled
-            from backend.app.services.gate4.scheduler_timing import (
-                legacy_should_run_morning_notification,
-                should_run_daily_notification_gate4,
-            )
 
             for user in iter_users_bounded(db):
                 scanned += 1
                 try:
                     now_utc = now.replace(tzinfo=pytz.UTC)
-                    if gate4_daily_0800_enabled():
-                        if not should_run_daily_notification_gate4(db, user, now_utc):
-                            continue
-                    else:
-                        if not legacy_should_run_morning_notification(
-                            memory_repo, user, now_utc, morning_hour_default=MORNING_HOUR
-                        ):
-                            continue
+                    if not should_run_daily_smart_touchpoint(db, user, now_utc):
+                        continue
 
-                    # Dedupe: morning_brief only — daily digest has separate I10 occurrence key
-                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
-                    today_morning_notifications = (
-                        db.query(Notification)
+                    local_date = user_local_calendar_date(db, user, now_utc)
+                    # Local-day dedupe for the single daily smart family
+                    already = (
+                        db.query(Notification.id)
                         .filter(
                             Notification.user_id == user.id,
-                            Notification.type == "morning_brief",
-                            Notification.created_at >= today_start
+                            Notification.semantic_family
+                            == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value,
+                            Notification.template_key == "daily_wellness_digest",
+                            Notification.source_id == local_date.isoformat(),
                         )
-                        .all()
+                        .first()
                     )
-
-                    morning_already_sent = len(today_morning_notifications) > 0
-
-                    if not morning_already_sent:
-                        # Build memory context for personalized message
-                        try:
-                            memory_context = build_memory_context(db, user.id)
-                        except Exception as e:
-                            print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
-                            memory_context = None
-
-                        # Create morning notification using new contract (Release B - Part B1)
-                        notif = decision_engine.create_morning_brief(
-                            user_id=user.id,
-                            memory_context=memory_context,
-                            scheduled_for=now
-                        )
-
-                        if notif:
-                            print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
-                        else:
-                            print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
+                    if already is not None:
+                        continue
 
                     digest_notif = decision_engine.create_daily_wellness_digest(
                         user_id=user.id,
@@ -555,17 +529,11 @@ def start_scheduler():
             misfire_grace_time=60,
         )
 
-        # Stage 16.6: Engagement nudge every 10 minutes (3h inactive, max 3/day)
-        scheduler.add_job(
-            run_engagement_nudge,
-            "interval",
-            minutes=ENGAGEMENT_CHECK_INTERVAL_MIN,
-            id="engagement_nudge",
-            replace_existing=True,
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=60,
-        )
+        # V1: parallel 3h engagement_nudge is NOT independently scheduled.
+        # PRESENCE_REENGAGEMENT (4h chat-idle) is the sole canonical re-engagement path.
+        # run_engagement_nudge / create_engagement_nudge retained for compatibility only.
+        if scheduler.get_job("engagement_nudge") is not None:
+            scheduler.remove_job("engagement_nudge")
 
         # Schedule health status check every 2 hours (keep existing)
         scheduler.add_job(

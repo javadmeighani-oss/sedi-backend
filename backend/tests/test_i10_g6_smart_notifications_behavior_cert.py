@@ -254,7 +254,8 @@ def _backdate_presence_events(db, user_id: int, when: datetime) -> None:
     db.commit()
 
 
-def test_n56_e05_like_counts_as_recent_presence(db, gate4_patch, client):
+def test_n56_e05_like_does_not_reset_chat_idle(db, gate4_patch, client):
+    """LIKE records notification presence but reengagement uses chat activity only."""
     user, subject = _self_setup(db, "e05")
     now = datetime(2026, 9, 9, 16, 0, 0)
     _seed_chat(db, user.id, when=now - timedelta(hours=6))
@@ -265,11 +266,13 @@ def test_n56_e05_like_counts_as_recent_presence(db, gate4_patch, client):
     presence = get_last_notification_presence_at(db, user.id)
     assert presence is not None
     assert get_last_user_presence_at(db, user.id) >= presence
-    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is None
-    _print_marker("N56-E05_LIKE_COUNTS_AS_RECENT_PRESENCE")
+    # Chat still idle >=4h → PRESENCE_REENGAGEMENT remains eligible (LIKE ≠ chat)
+    assert get_last_chat_activity_at(db, user.id) <= now - timedelta(hours=5)
+    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is not None
+    _print_marker("N56-E05_LIKE_DOES_NOT_RESET_CHAT_IDLE")
 
 
-def test_n56_e06_dislike_counts_as_recent_presence(db, gate4_patch, client):
+def test_n56_e06_dislike_does_not_reset_chat_idle(db, gate4_patch, client):
     user, subject = _self_setup(db, "e06")
     now = datetime(2026, 9, 9, 16, 0, 0)
     _seed_chat(db, user.id, when=now - timedelta(hours=6))
@@ -278,18 +281,19 @@ def test_n56_e06_dislike_counts_as_recent_presence(db, gate4_patch, client):
     assert resp.status_code == 200
     _backdate_presence_events(db, user.id, now)
     assert get_last_notification_presence_at(db, user.id) is not None
-    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is None
-    _print_marker("N56-E06_DISLIKE_COUNTS_AS_RECENT_PRESENCE")
+    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is not None
+    _print_marker("N56-E06_DISLIKE_DOES_NOT_RESET_CHAT_IDLE")
 
 
-def test_n56_e07_open_chat_counts_as_recent_presence(db, gate4_patch, client):
+def test_n56_e07_open_chat_does_not_reset_chat_idle(db, gate4_patch, client):
     user, subject = _self_setup(db, "e07")
     now = datetime(2026, 9, 9, 16, 0, 0)
     _seed_chat(db, user.id, when=now - timedelta(hours=6))
     seed = _companion_notif(db, user, subject)
-    resp = _feedback(client, user, seed.id, {"action_id": "OPEN_CHAT"})
+    resp = _feedback(client, user, seed.id, {"action_id": "open_chat"})
     assert resp.status_code == 200
     _backdate_presence_events(db, user.id, now)
+    assert get_last_notification_presence_at(db, user.id) is not None
     evt = (
         db.query(models.InteractionEvent)
         .filter(
@@ -299,8 +303,8 @@ def test_n56_e07_open_chat_counts_as_recent_presence(db, gate4_patch, client):
         .one()
     )
     assert evt.source_notification_id == seed.id
-    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is None
-    _print_marker("N56-E07_OPEN_CHAT_COUNTS_AS_RECENT_PRESENCE")
+    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is not None
+    _print_marker("N56-E07_OPEN_CHAT_DOES_NOT_RESET_CHAT_IDLE")
 
 
 def test_n56_e08_notification_activity_does_not_mint_i7_memory(db, gate4_patch, client):
@@ -367,9 +371,12 @@ def test_n56_e11_connection_ping_cooldown_enforced(db, gate4_patch):
     first = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now)
     assert first is not None
     first.created_at = now
+    if first.scheduled_for is None:
+        first.scheduled_for = now
     db.commit()
-    assert _recent_engagement_family_count(db, user_id=user.id, since=now - timedelta(hours=4)) >= 1
-    second = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now + timedelta(minutes=10))
+    assert _recent_engagement_family_count(db, user_id=user.id, since=now - timedelta(hours=6)) >= 1
+    # Within 6h cooldown window
+    second = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now + timedelta(hours=3))
     assert second is None
     _print_marker("N56-E11_CONNECTION_PING_COOLDOWN_ENFORCED")
 
@@ -382,16 +389,14 @@ def test_n56_e12_max_daily_limit_enforced(db, gate4_patch):
     _seed_chat(db, user.id, when=day - timedelta(hours=5))
     n1 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=day)
     assert n1 is not None
-    # Force distinct occurrence key via +4h bucket while still same calendar day
-    _seed_chat(db, user.id, when=day + timedelta(hours=4) - timedelta(hours=5))
+    # Distinct occurrence (+6h) after cooldown clears while same calendar day
+    _seed_chat(db, user.id, when=day + timedelta(hours=6) - timedelta(hours=5))
     n2 = _engine(db).create_connection_ping(
-        user_id=user.id, scheduled_for=day + timedelta(hours=4)
+        user_id=user.id, scheduled_for=day + timedelta(hours=6)
     )
     assert n2 is not None
     today_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
     assert _recent_engagement_family_count(db, user_id=user.id, since=today_start) >= 2
-    _seed_chat(db, user.id, when=day + timedelta(hours=8) - timedelta(hours=5))
-    # Scheduler-level max-2 is proven via count; create may still dedupe by occurrence
     count = _recent_engagement_family_count(db, user_id=user.id, since=today_start)
     assert count >= 2
     _print_marker("N56-E12_MAX_DAILY_LIMIT_ENFORCED")
@@ -455,17 +460,19 @@ def test_n56_e16_wrong_health_subject_blocked(db, gate4_patch):
     _print_marker("N56-E16_WRONG_HEALTH_SUBJECT_BLOCKED")
 
 
-def test_n56_e17_recent_interaction_before_create_suppresses_stale_ping(db, gate4_patch, client):
-    """Create-time presence recheck (no delivery-time seam)."""
+def test_n56_e17_recent_chat_before_create_suppresses_stale_ping(db, gate4_patch, client):
+    """Create-time chat recheck (notification presence alone does not suppress)."""
     user, subject = _self_setup(db, "e17")
     now = datetime(2026, 9, 9, 16, 0, 0)
     _seed_chat(db, user.id, when=now - timedelta(hours=5))
     seed = _companion_notif(db, user, subject)
     _feedback(client, user, seed.id, {"action_id": "OPEN_CHAT"})
     _backdate_presence_events(db, user.id, now)
+    # OPEN_CHAT presence alone does not suppress — but fresh chat does
+    _seed_chat(db, user.id, when=now, text_msg="just chatted")
     assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is None
-    print("STALE_REENGAGEMENT_SUPPRESSION=CREATE_TIME_YES_DELIVERY_TIME_NO_SEAM")
-    _print_marker("N56-E17_RECENT_INTERACTION_BEFORE_DELIVERY_SUPPRESSES_STALE_PING")
+    print("STALE_REENGAGEMENT_SUPPRESSION=CREATE_TIME_CHAT_YES_DELIVERY_TIME_NO_SEAM")
+    _print_marker("N56-E17_RECENT_CHAT_BEFORE_CREATE_SUPPRESSES_STALE_PING")
 
 
 def test_n56_e18_ignored_reengagement_does_not_spam(db, gate4_patch):
@@ -515,8 +522,8 @@ def test_n56_e20_no_clinical_or_safety_semantic_escalation(db, gate4_patch):
     _print_marker("N56-E20_NO_CLINICAL_OR_SAFETY_SEMANTIC_ESCALATION")
 
 
-def test_n56_never_chatted_fail_safe_and_presence_baseline(db, gate4_patch, client):
-    """No chat + no notification presence → not eligible; LIKE alone can establish baseline."""
+def test_n56_never_chatted_fail_safe_chat_only(db, gate4_patch, client):
+    """No chat → not eligible; LIKE alone does NOT establish reengagement chat baseline."""
     from backend.app.services.i10.interaction_recorder import is_eligible_for_presence_reengagement
 
     user, subject = _self_setup(db, "never")
@@ -528,9 +535,9 @@ def test_n56_never_chatted_fail_safe_and_presence_baseline(db, gate4_patch, clie
     _backdate_presence_events(db, user.id, now - timedelta(hours=5))
     assert get_last_chat_activity_at(db, user.id) is None
     assert get_last_notification_presence_at(db, user.id) is not None
-    assert is_eligible_for_presence_reengagement(db, user.id, when=now) is True
-    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is not None
-    print("NEVER_CHATTED_USER_RESULT=FAIL_SAFE_SKIP_UNTIL_PRESENCE_BASELINE")
+    assert is_eligible_for_presence_reengagement(db, user.id, when=now) is False
+    assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=now) is None
+    print("NEVER_CHATTED_USER_RESULT=FAIL_SAFE_SKIP_UNTIL_CHAT_BASELINE")
 
 
 # ---------------------------------------------------------------------------
