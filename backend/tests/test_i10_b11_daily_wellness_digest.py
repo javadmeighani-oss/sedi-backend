@@ -723,6 +723,7 @@ def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):
     user, _ = _self_setup(db, name="consent-i67")
     when = _when()
     start = _period_start(when)
+    # Finalized non-contextual summary (no bounded_continuity topic)
     db.add(
         models.UserPeriodSummary(
             user_id=user.id,
@@ -741,17 +742,180 @@ def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):
     assert facts_no.content_family != DailySmartContentFamily.I6_I7_CONTEXT
     assert facts_no.content_family == DailySmartContentFamily.GENERAL_CHECKIN
 
+    # Consent + non-contextual finalized summary → still NOT I6_I7_CONTEXT
     grant_memory_consent(db, user.id, commit=True)
     facts_yes = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
-    assert facts_yes.content_family == DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_yes.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_yes.content_family == DailySmartContentFamily.GENERAL_CHECKIN
 
     revoke_memory_consent(db, user.id, commit=True)
     facts_rev = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
     assert facts_rev.content_family != DailySmartContentFamily.I6_I7_CONTEXT
 
 
+def test_a4_closure_i6_i7_empty_and_bounded_context(db, gate4_patch):
+    """Finalized empty/non-contextual ≠ I6_I7; privacy-safe bounded topic ⇒ I6_I7."""
+    from backend.app.services.i6.consent_service import grant_memory_consent
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    when = _when()
+    start = _period_start(when)
+
+    # Empty finalized summary + READ consent → GENERAL_CHECKIN
+    user_empty, _ = _self_setup(db, name="i67-empty")
+    grant_memory_consent(db, user_empty.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_empty.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({}),
+        )
+    )
+    db.commit()
+    facts_empty = assemble_daily_wellness_digest_facts(db, user_id=user_empty.id, when=when)
+    assert facts_empty.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    assert facts_empty.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+
+    # Non-contextual headline-only summary + consent → not I6_I7
+    user_nc, _ = _self_setup(db, name="i67-nonctx")
+    grant_memory_consent(db, user_nc.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_nc.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({"headline": "notes", "source": "ELIGIBLE"}),
+        )
+    )
+    db.commit()
+    facts_nc = assemble_daily_wellness_digest_facts(db, user_id=user_nc.id, when=when)
+    assert facts_nc.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_nc.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+    # Safe bounded I7 continuity topic + consent → I6_I7_CONTEXT
+    user_ctx, _ = _self_setup(db, name="i67-ctx")
+    grant_memory_consent(db, user_ctx.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_ctx.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps(
+                {
+                    "bounded_continuity": {
+                        "topic": "talked about activity plan walking",
+                        "not_transcript": True,
+                        "not_i9": True,
+                        "not_i6_fact": True,
+                    }
+                }
+            ),
+        )
+    )
+    db.commit()
+    facts_ctx = assemble_daily_wellness_digest_facts(db, user_id=user_ctx.id, when=when)
+    assert facts_ctx.content_family == DailySmartContentFamily.I6_I7_CONTEXT
+
+    # Sensitive / unusable topic → not I6_I7
+    user_sens, _ = _self_setup(db, name="i67-sens")
+    grant_memory_consent(db, user_sens.id, commit=True)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user_sens.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps(
+                {
+                    "bounded_continuity": {
+                        "topic": "my medication dose for diabetes diagnosis",
+                        "not_transcript": True,
+                    }
+                }
+            ),
+        )
+    )
+    db.commit()
+    facts_sens = assemble_daily_wellness_digest_facts(db, user_id=user_sens.id, when=when)
+    assert facts_sens.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_sens.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+
+def _seed_i8_plan_action(
+    db,
+    user: models.User,
+    *,
+    local_day,
+    when: datetime,
+    status: str = "ACTIVE",
+    safety_state: str = "SAFE",
+    clarification_required: bool = False,
+    valid_from: datetime | None = None,
+    valid_until: datetime | None = None,
+    expires_at: datetime | None = None,
+    plan_status: str = "ACTIVE",
+    key_suffix: str = "ok",
+):
+    now = when.replace(tzinfo=timezone.utc) if when.tzinfo is None else when
+    vf = valid_from if valid_from is not None else now
+    vu = valid_until if valid_until is not None else now + timedelta(hours=12)
+    exp = expires_at if expires_at is not None else now + timedelta(hours=12)
+    plan = models.I8OperationalPlan(
+        user_id=user.id,
+        user_local_date=local_day,
+        timezone_snapshot="UTC",
+        status=plan_status,
+        generation_mode="reactive",
+        plan_idempotency_key=f"plan-a4-{user.id}-{key_suffix}",
+        valid_from=vf,
+        valid_until=vu,
+        expires_at=exp,
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    action = models.I8OperationalPlanAction(
+        user_id=user.id,
+        plan_id=plan.id,
+        action_domain="lifestyle",
+        action_type="check_in",
+        action_idempotency_key=f"act-a4-{user.id}-{key_suffix}",
+        status=status,
+        summary_text="Check in",
+        presentation_json="{}",
+        knowledge_refs_json="[]",
+        safety_state=safety_state,
+        clarification_required=clarification_required,
+        valid_from=vf,
+        valid_until=vu,
+        expires_at=exp,
+    )
+    db.add(action)
+    db.commit()
+    return plan, action
+
+
 def test_a4_closure_i8_active_only_influences_family(db, gate4_patch):
-    from datetime import date, timezone
+    from datetime import date
 
     from backend.app.services.i10.daily_wellness_digest import (
         DailySmartContentFamily,
@@ -801,6 +965,76 @@ def test_a4_closure_i8_active_only_influences_family(db, gate4_patch):
     db.commit()
     facts1 = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
     assert facts1.content_family == DailySmartContentFamily.I8_ACTION
+
+
+def test_a4_closure_i8_eligibility_windows_and_safety(db, gate4_patch):
+    """I8_ACTION only when SAFE+ACTIVE+currently-valid on the correct local day."""
+    from datetime import date
+
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    when = _when()
+    local_day = date(2026, 8, 31)
+    now = when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+
+    def _family(name: str, **kwargs) -> DailySmartContentFamily:
+        user, _ = _self_setup(db, name=name)
+        _seed_i8_plan_action(db, user, local_day=local_day, when=when, key_suffix=name, **kwargs)
+        return assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when).content_family
+
+    assert _family("i8-ok") == DailySmartContentFamily.I8_ACTION
+
+    assert (
+        _family(
+            "i8-exp",
+            valid_from=now - timedelta(hours=6),
+            valid_until=now + timedelta(hours=1),
+            expires_at=now - timedelta(minutes=1),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert (
+        _family(
+            "i8-fut",
+            valid_from=now + timedelta(hours=1),
+            valid_until=now + timedelta(hours=8),
+            expires_at=now + timedelta(hours=8),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert (
+        _family(
+            "i8-vu",
+            valid_from=now - timedelta(hours=6),
+            valid_until=now - timedelta(minutes=1),
+            expires_at=now + timedelta(hours=2),
+        )
+        != DailySmartContentFamily.I8_ACTION
+    )
+
+    assert _family("i8-blk", safety_state="BLOCKED") != DailySmartContentFamily.I8_ACTION
+    assert _family("i8-clr", safety_state="CLARIFY") != DailySmartContentFamily.I8_ACTION
+    assert (
+        _family("i8-cq", clarification_required=True) != DailySmartContentFamily.I8_ACTION
+    )
+
+    # Wrong local plan date
+    user_wrong, _ = _self_setup(db, name="i8-wrongday")
+    _seed_i8_plan_action(
+        db,
+        user_wrong,
+        local_day=date(2026, 8, 30),
+        when=when,
+        key_suffix="wrongday",
+    )
+    facts_wrong = assemble_daily_wellness_digest_facts(db, user_id=user_wrong.id, when=when)
+    assert facts_wrong.content_family != DailySmartContentFamily.I8_ACTION
+    assert facts_wrong.content_family == DailySmartContentFamily.GENERAL_CHECKIN
 
 
 def test_a4_closure_sensitive_topic_privacy_lock_screen(db, gate4_patch, monkeypatch):

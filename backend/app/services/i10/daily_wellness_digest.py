@@ -369,34 +369,71 @@ def _has_eligible_safety_signal(db: Session, user_id: int, period_start: datetim
     return row is not None
 
 
-def _has_active_i8_action(db: Session, user_id: int, *, local_day: date) -> bool:
-    """READ-ONLY: governed ACTIVE I8 plan/action for the user-local day. No mutation."""
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _i8_action_eligible_for_digest(
+    action: models.I8OperationalPlanAction,
+    *,
+    now: datetime,
+) -> bool:
+    """Bounded A4 read-only window/safety gate. Does not mutate I8."""
+    if action.status != "ACTIVE":
+        return False
+    if action.safety_state != "SAFE":
+        return False
+    if bool(action.clarification_required):
+        return False
+    if action.valid_from is None or action.valid_until is None or action.expires_at is None:
+        return False
+    now_utc = _as_utc(now)
+    if now_utc < _as_utc(action.valid_from):
+        return False
+    if now_utc > _as_utc(action.valid_until):
+        return False
+    if now_utc >= _as_utc(action.expires_at):
+        return False
+    return True
+
+
+def _has_active_i8_action(
+    db: Session,
+    user_id: int,
+    *,
+    local_day: date,
+    now: datetime,
+) -> bool:
+    """READ-ONLY: currently-valid SAFE ACTIVE I8 action for the user-local day."""
     from backend.app.services.i8.repository import I8OperationalRepository
 
     plan = I8OperationalRepository().get_active_plan(
         db, user_id=user_id, user_local_date=local_day
     )
-    if plan is None:
+    if plan is None or plan.user_id != user_id or plan.status != "ACTIVE":
         return False
-    action = (
+    if plan.user_local_date != local_day:
+        return False
+    actions = (
         db.query(models.I8OperationalPlanAction)
         .filter(
             models.I8OperationalPlanAction.plan_id == plan.id,
+            models.I8OperationalPlanAction.user_id == user_id,
             models.I8OperationalPlanAction.status == "ACTIVE",
         )
-        .first()
+        .all()
     )
-    return action is not None
+    return any(_i8_action_eligible_for_digest(a, now=now) for a in actions)
 
 
 def _has_permitted_i6_i7_context(db: Session, user_id: int) -> bool:
-    """I6 READ consent required — finalized summary alone is not sufficient."""
+    """I6 READ + privacy-safe bounded I7 topic. Finalized empty summary is not enough."""
     from backend.app.services.i6.consent_service import PERM_READ, has_permission
 
     if not has_permission(db, user_id, PERM_READ):
         return False
-    if _load_i7_daily_flag(db, user_id):
-        return True
     try:
         from backend.app.services.i7.privacy_safe_recent_topic import (
             get_privacy_safe_recent_topic_label,
@@ -414,6 +451,7 @@ def select_daily_smart_content_family(
     data_status: DailyWellnessDataStatus,
     period_start: datetime,
     local_day: date,
+    now: datetime,
 ) -> DailySmartContentFamily:
     """ONE primary topic in fixed priority order; never invents health facts."""
     if _has_eligible_safety_signal(db, user_id, period_start):
@@ -424,7 +462,7 @@ def select_daily_smart_content_family(
         DailyWellnessDataStatus.STALE_DATA,
     ):
         return DailySmartContentFamily.I9_OBSERVATION
-    if _has_active_i8_action(db, user_id, local_day=local_day):
+    if _has_active_i8_action(db, user_id, local_day=local_day, now=now):
         return DailySmartContentFamily.I8_ACTION
     if _has_permitted_i6_i7_context(db, user_id):
         return DailySmartContentFamily.I6_I7_CONTEXT
@@ -482,6 +520,7 @@ def assemble_daily_wellness_digest_facts(
         data_status=data_status,
         period_start=period_start,
         local_day=local_day,
+        now=now,
     )
 
     return DailyWellnessDigestFacts(
