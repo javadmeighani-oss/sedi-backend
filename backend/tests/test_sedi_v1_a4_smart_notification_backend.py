@@ -234,6 +234,10 @@ def test_a4_reengagement_max2_and_6h_cooldown(db, gate4_patch):
 
 def test_a4_sensitive_topic_never_in_lock_screen(db, gate4_patch, monkeypatch):
     user = _user(db, "sens")
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.has_permission",
+        lambda *_a, **_k: True,
+    )
 
     def _fake_topic(_db, _uid):
         return "my medication dose for diabetes"
@@ -247,6 +251,10 @@ def test_a4_sensitive_topic_never_in_lock_screen(db, gate4_patch, monkeypatch):
 
 def test_a4_safe_coarse_topic_may_appear(db, gate4_patch, monkeypatch):
     user = _user(db, "safe")
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.has_permission",
+        lambda *_a, **_k: True,
+    )
 
     def _fake_topic(_db, _uid):
         return "talked about activity plan walking"

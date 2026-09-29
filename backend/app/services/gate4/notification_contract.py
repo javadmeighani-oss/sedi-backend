@@ -257,8 +257,13 @@ def get_action_label(action: str, language: str) -> str:
     Unsupported language falls back to ``en``. Unknown action raises ValueError.
     Future-only actions raise ValueError (labels not defined for V1 push).
     LIKE/DISLIKE remain distinct from ACK_THANKS/NOT_NOW.
+    Exact canonical keys (e.g. OPEN_CHAT) win over lowercase mobile aliases.
     """
-    lowered = (action or "").strip().lower()
+    key = (action or "").strip()
+    if key in ACTION_LABELS:
+        lang = normalize_language(language)
+        return ACTION_LABELS[key][lang]
+    lowered = key.lower()
     if lowered in ACTION_LABELS:
         lang = normalize_language(language)
         return ACTION_LABELS[lowered][lang]

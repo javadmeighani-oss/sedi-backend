@@ -12,6 +12,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 from backend.app.services.gate4.notification_contract import (
     GATE4_CONTRACT_VERSION,
+    V1_DEFAULT_ACTIONS,
     can_bypass_quiet_hours,
     get_action_label,
     is_future_only_action,
@@ -57,16 +58,16 @@ def _coerce_fcm_string(value: Any) -> str:
 
 
 def _resolve_v1_action_ids(actions: Sequence[str] | None, *, include_future: bool = False) -> list[str]:
-    ids = list(actions) if actions is not None else list(MOBILE_INTERACTION_ACTIONS)
+    # Default remains Gate4 V1 actions; callers pass MOBILE_INTERACTION_ACTIONS for like/dislike/open_chat.
+    # Do not rewrite OPEN_CHAT -> open_chat via case folding — that breaks Gate4 V1 defaults.
+    ids = list(actions) if actions is not None else list(V1_DEFAULT_ACTIONS)
     resolved: list[str] = []
     for action_id in ids:
         if is_future_only_action(action_id) and not include_future:
             continue
         key = str(action_id).strip()
-        lowered = key.lower()
-        # Mobile interaction verbs (like/dislike/open_chat) are first-class for push metadata.
-        if lowered in MOBILE_INTERACTION_ACTIONS:
-            resolved.append(lowered)
+        if key in MOBILE_INTERACTION_ACTIONS:
+            resolved.append(key)
             continue
         if not include_future and not is_v1_action(action_id):
             continue
