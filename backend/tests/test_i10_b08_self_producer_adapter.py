@@ -80,6 +80,22 @@ def _self_setup(db, name: str = "self-user") -> tuple[models.User, models.Health
     return user, subject
 
 
+def _seed_chat_idle(db, user: models.User, *, scheduled_for: datetime, idle_hours: int = 5) -> None:
+    """A4: PRESENCE path requires prior chat activity idle >= 4h (not notification presence)."""
+    from datetime import timedelta
+
+    db.add(
+        models.Memory(
+            user_id=user.id,
+            user_message="hello",
+            sedi_response="hi",
+            language=user.preferred_language or "en",
+            created_at=scheduled_for - timedelta(hours=idle_hours),
+        )
+    )
+    db.commit()
+
+
 def _engine(db) -> DecisionEngine:
     return DecisionEngine(db)
 
@@ -150,6 +166,7 @@ def test_morning_no_parallel_legacy_persist(db, gate4_patch, morning_window_now)
 def test_inactivity_eligible_uses_i10(db, gate4_patch):
     user, subject = _self_setup(db)
     when = datetime(2026, 8, 31, 12, 0, 0)
+    _seed_chat_idle(db, user, scheduled_for=when)
     notif = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=when)
     assert notif is not None
     assert notif.type == "connection_ping"
@@ -159,7 +176,9 @@ def test_inactivity_eligible_uses_i10(db, gate4_patch):
 
 def test_inactivity_non_medical_semantics(db, gate4_patch):
     user, _ = _self_setup(db)
-    notif = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 12, 0, 0))
+    when = datetime(2026, 8, 31, 12, 0, 0)
+    _seed_chat_idle(db, user, scheduled_for=when)
+    notif = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=when)
     decision = db.query(models.I10NotificationDecision).filter(
         models.I10NotificationDecision.id == notif.i10_policy_decision_id
     ).one()
@@ -172,23 +191,30 @@ def test_inactivity_non_medical_semantics(db, gate4_patch):
 def test_inactivity_duplicate_same_occurrence_blocked(db, gate4_patch):
     user, _ = _self_setup(db)
     when = datetime(2026, 8, 31, 12, 0, 0)
+    _seed_chat_idle(db, user, scheduled_for=when)
     assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=when) is not None
     assert _engine(db).create_connection_ping(user_id=user.id, scheduled_for=when) is None
 
 
 def test_inactivity_later_occurrence_allowed(db, gate4_patch):
     user, _ = _self_setup(db)
-    n1 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 12, 0, 0))
-    n2 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 16, 0, 0))
+    t1 = datetime(2026, 8, 31, 12, 0, 0)
+    # A4: sibling cooldown is 6h (was 4h); keep distinct occurrence buckets.
+    t2 = datetime(2026, 8, 31, 18, 0, 0)
+    _seed_chat_idle(db, user, scheduled_for=t1)
+    n1 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=t1)
+    n2 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=t2)
     assert n1 is not None and n2 is not None
     assert n1.id != n2.id
 
 
 def test_inactivity_no_parallel_legacy_persist(db, gate4_patch):
     user, _ = _self_setup(db)
+    when = datetime(2026, 8, 31, 12, 0, 0)
+    _seed_chat_idle(db, user, scheduled_for=when)
     engine = _engine(db)
     with patch.object(engine.builder, "persist") as mock_legacy:
-        engine.create_connection_ping(user_id=user.id, scheduled_for=datetime(2026, 8, 31, 12, 0, 0))
+        engine.create_connection_ping(user_id=user.id, scheduled_for=when)
     mock_legacy.assert_not_called()
 
 
