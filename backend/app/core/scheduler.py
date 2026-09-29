@@ -119,11 +119,17 @@ def run_inactivity_notifications():
                     if time_since < timedelta(hours=INACTIVE_HOURS):
                         continue
 
-                    # Dedupe: max 2 presence/engagement siblings per day
-                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    if _recent_engagement_family_count(
-                        db, user_id=user.id, since=today_start - timedelta(microseconds=1)
-                    ) >= REENGAGEMENT_MAX_PER_DAY:
+                    # Dedupe: max 2 presence/engagement siblings per USER-LOCAL day
+                    from backend.app.services.i10.interaction_recorder import (
+                        count_engagement_family_on_user_local_day,
+                    )
+
+                    if (
+                        count_engagement_family_on_user_local_day(
+                            db, user_id=user.id, when=now
+                        )
+                        >= REENGAGEMENT_MAX_PER_DAY
+                    ):
                         continue
 
                     # Cooldown: >=6h between siblings (shared with legacy ENGAGEMENT_NUDGE)

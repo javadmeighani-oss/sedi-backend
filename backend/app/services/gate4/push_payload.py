@@ -335,6 +335,8 @@ def enrich_notification_fcm_data(
         source_notification_id=source_notification_id,
     )
 
+    # Real Android smart-push path: Gate4 mobile metadata = like/dislike/open_chat (FA/EN/AR).
+    # Legacy V1_DEFAULT_ACTIONS remain available when callers pass actions= explicitly.
     gate4_data = build_gate4_push_data_payload(
         notification_id=notification_id,
         user_id=user_id,
@@ -348,6 +350,7 @@ def enrich_notification_fcm_data(
         source_notification_id=source_notification_id or notification_id,
         template_key=template_key,
         include_source_refs=False,
+        actions=list(MOBILE_INTERACTION_ACTIONS),
     )
     merged = merge_gate4_into_fcm_data(legacy_data, gate4_data)
     android_opts = build_gate4_android_notification_options(

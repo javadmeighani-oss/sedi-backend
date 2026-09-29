@@ -383,6 +383,9 @@ def test_n56_e11_connection_ping_cooldown_enforced(db, gate4_patch):
 
 def test_n56_e12_max_daily_limit_enforced(db, gate4_patch):
     from backend.app.core.scheduler import _recent_engagement_family_count
+    from backend.app.services.i10.interaction_recorder import (
+        count_engagement_family_on_user_local_day,
+    )
 
     user, _ = _self_setup(db, "e12")
     day = datetime(2026, 9, 9, 8, 0, 0)
@@ -395,10 +398,20 @@ def test_n56_e12_max_daily_limit_enforced(db, gate4_patch):
         user_id=user.id, scheduled_for=day + timedelta(hours=6)
     )
     assert n2 is not None
+    assert count_engagement_family_on_user_local_day(db, user_id=user.id, when=day) >= 2
+    # Third same local day — producer must suppress (cannot bypass max-2)
+    _seed_chat(db, user.id, when=day + timedelta(hours=12) - timedelta(hours=5))
+    n3 = _engine(db).create_connection_ping(
+        user_id=user.id, scheduled_for=day + timedelta(hours=12)
+    )
+    assert n3 is None
+    # Next user-local day eligible again
+    next_day = day + timedelta(days=1)
+    _seed_chat(db, user.id, when=next_day - timedelta(hours=5))
+    n4 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=next_day)
+    assert n4 is not None
     today_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
     assert _recent_engagement_family_count(db, user_id=user.id, since=today_start) >= 2
-    count = _recent_engagement_family_count(db, user_id=user.id, since=today_start)
-    assert count >= 2
     _print_marker("N56-E12_MAX_DAILY_LIMIT_ENFORCED")
 
 

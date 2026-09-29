@@ -231,16 +231,47 @@ def _norm_lang(language: str | None) -> str:
 
 
 def _stable_variant_index(seed: str, n: int) -> int:
+    """Legacy hash%N (kept for non-rotation callers). Prefer ``_rotation_variant_index``."""
     if n <= 0:
         return 0
     digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
     return int(digest[:8], 16) % n
 
 
-def _pick_variant(variants: dict[str, tuple[str, ...]], language: str, seed: str) -> str:
+def _rotation_variant_index(
+    *,
+    user_id: int,
+    local_day: date,
+    content_family: str,
+    n: int,
+) -> int:
+    """Stateless deterministic rotation: adjacent local days differ when n > 1."""
+    if n <= 1:
+        return 0
+    offset = int(
+        hashlib.sha256(f"{user_id}:{content_family}".encode("utf-8")).hexdigest()[:8],
+        16,
+    ) % n
+    return (offset + local_day.toordinal()) % n
+
+
+def _pick_variant(
+    variants: dict[str, tuple[str, ...]],
+    language: str,
+    *,
+    user_id: int,
+    local_day: date,
+    content_family: str,
+) -> str:
     lang = _norm_lang(language)
     pool = variants.get(lang) or variants["en"]
-    return pool[_stable_variant_index(seed, len(pool))]
+    idx = _rotation_variant_index(
+        user_id=user_id,
+        local_day=local_day,
+        content_family=content_family,
+        n=len(pool),
+    )
+    return pool[idx]
 
 
 def build_daily_digest_occurrence_key(*, user_id: int, period_date: date) -> str:
@@ -338,15 +369,12 @@ def _has_eligible_safety_signal(db: Session, user_id: int, period_start: datetim
     return row is not None
 
 
-def _has_active_i8_action(db: Session, user_id: int) -> bool:
-    plan = (
-        db.query(models.I8OperationalPlan)
-        .filter(
-            models.I8OperationalPlan.user_id == user_id,
-            models.I8OperationalPlan.status == "ACTIVE",
-        )
-        .order_by(models.I8OperationalPlan.id.desc())
-        .first()
+def _has_active_i8_action(db: Session, user_id: int, *, local_day: date) -> bool:
+    """READ-ONLY: governed ACTIVE I8 plan/action for the user-local day. No mutation."""
+    from backend.app.services.i8.repository import I8OperationalRepository
+
+    plan = I8OperationalRepository().get_active_plan(
+        db, user_id=user_id, user_local_date=local_day
     )
     if plan is None:
         return False
@@ -362,6 +390,11 @@ def _has_active_i8_action(db: Session, user_id: int) -> bool:
 
 
 def _has_permitted_i6_i7_context(db: Session, user_id: int) -> bool:
+    """I6 READ consent required — finalized summary alone is not sufficient."""
+    from backend.app.services.i6.consent_service import PERM_READ, has_permission
+
+    if not has_permission(db, user_id, PERM_READ):
+        return False
     if _load_i7_daily_flag(db, user_id):
         return True
     try:
@@ -380,6 +413,7 @@ def select_daily_smart_content_family(
     user_id: int,
     data_status: DailyWellnessDataStatus,
     period_start: datetime,
+    local_day: date,
 ) -> DailySmartContentFamily:
     """ONE primary topic in fixed priority order; never invents health facts."""
     if _has_eligible_safety_signal(db, user_id, period_start):
@@ -390,7 +424,7 @@ def select_daily_smart_content_family(
         DailyWellnessDataStatus.STALE_DATA,
     ):
         return DailySmartContentFamily.I9_OBSERVATION
-    if _has_active_i8_action(db, user_id):
+    if _has_active_i8_action(db, user_id, local_day=local_day):
         return DailySmartContentFamily.I8_ACTION
     if _has_permitted_i6_i7_context(db, user_id):
         return DailySmartContentFamily.I6_I7_CONTEXT
@@ -443,7 +477,11 @@ def assemble_daily_wellness_digest_facts(
     baseline_cmp = _baseline_comparison_phrase(projection) if projection.health_subject_id else None
     alert_summary = _qualifying_alert_summary(db, user_id, period_start)
     family = select_daily_smart_content_family(
-        db, user_id=user_id, data_status=data_status, period_start=period_start
+        db,
+        user_id=user_id,
+        data_status=data_status,
+        period_start=period_start,
+        local_day=local_day,
     )
 
     return DailyWellnessDigestFacts(
@@ -473,24 +511,33 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
     """
     lang = _norm_lang(language)
     local_day = facts.local_period_date or facts.observation_period_start.date()
-    seed = f"{facts.user_id}:{local_day.isoformat()}:{facts.content_family.value}"
+    family_key = facts.content_family.value
+
+    def _body(pool: dict[str, tuple[str, ...]], *, key: str = family_key) -> str:
+        return _pick_variant(
+            pool,
+            lang,
+            user_id=facts.user_id,
+            local_day=local_day,
+            content_family=key,
+        )
 
     if facts.content_family == DailySmartContentFamily.SAFETY:
-        return _pick_variant(_SAFETY_BODIES, lang, seed)
+        return _body(_SAFETY_BODIES)
     if facts.content_family == DailySmartContentFamily.I8_ACTION:
-        return _pick_variant(_I8_BODIES, lang, seed)
+        return _body(_I8_BODIES)
     if facts.content_family == DailySmartContentFamily.I6_I7_CONTEXT:
-        return _pick_variant(_I6_I7_BODIES, lang, seed)
+        return _body(_I6_I7_BODIES)
     if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
-        return _pick_variant(_GENERAL_BODIES, lang, seed)
+        return _body(_GENERAL_BODIES)
 
     # I9_OBSERVATION
     if facts.data_status == DailyWellnessDataStatus.NO_DATA:
-        return _pick_variant(_NO_DATA_BODIES, lang, seed)
+        return _body(_NO_DATA_BODIES, key=f"{family_key}:no_data")
     if facts.data_status == DailyWellnessDataStatus.STALE_DATA:
-        return _pick_variant(_I9_STALE_BODIES, lang, seed)
+        return _body(_I9_STALE_BODIES, key=f"{family_key}:stale")
     if facts.data_status == DailyWellnessDataStatus.PARTIAL_DATA:
-        return _pick_variant(_I9_PARTIAL_BODIES, lang, seed)
+        return _body(_I9_PARTIAL_BODIES, key=f"{family_key}:partial")
 
     # Sufficient I9 — keep factual English join for EN compatibility; localize otherwise.
     if lang == "en":
@@ -500,13 +547,18 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
         if facts.limitations:
             parts.append(facts.limitations[0])
         return " ".join(p for p in parts if p)
-    return _pick_variant(_I9_SUFFICIENT_BODIES, lang, seed)
+    return _body(_I9_SUFFICIENT_BODIES, key=f"{family_key}:sufficient")
 
 
 def render_digest_title(facts: DailyWellnessDigestFacts, language: str = "en") -> str:
     local_day = facts.local_period_date or facts.observation_period_start.date()
-    seed = f"{facts.user_id}:{local_day.isoformat()}:{facts.content_family.value}:title"
-    return _pick_variant(_DIGEST_TITLES, language, seed)
+    return _pick_variant(
+        _DIGEST_TITLES,
+        language,
+        user_id=facts.user_id,
+        local_day=local_day,
+        content_family=f"{facts.content_family.value}:title",
+    )
 
 
 def build_daily_wellness_digest_payload(

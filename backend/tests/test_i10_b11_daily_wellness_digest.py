@@ -643,3 +643,198 @@ def test_a4_context_json_no_raw_memory_leak(db, gate4_patch, morning_window_now)
     blob = str(payload.context or {}).lower()
     for forbidden in ("user_message", "raw_memory", "physiologicalmeasurement"):
         assert forbidden not in blob
+
+
+# --- SEDI-V1-A4 closure (CI-visible: local date, consent, I8, privacy, non-repetition, 09:00) ---
+
+
+def test_a4_closure_smart_0900_not_legacy_0800():
+    from backend.app.services.gate4.notification_contract import DEFAULT_DAILY_NOTIFICATION_TIME
+    from backend.app.services.gate4.scheduler_timing import (
+        CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        smart_daily_touchpoint_contract,
+    )
+
+    assert CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+    assert DEFAULT_DAILY_NOTIFICATION_TIME == "08:00"  # legacy prefs only
+    contract = smart_daily_touchpoint_contract()
+    assert contract["canonical_time"] == "09:00"
+    assert "08:00" not in contract.values()
+
+
+def test_a4_closure_occurrence_uses_user_local_date_tehran(db, gate4_patch, morning_window_now):
+    """Asia/Tehran: UTC evening can be next local morning — occurrence must use local day."""
+    from backend.app.services.i10.daily_wellness_digest import (
+        assemble_daily_wellness_digest_facts,
+        build_daily_digest_occurrence_key,
+    )
+
+    user, _ = _self_setup(db, name="tehran-occ")
+    db.add(models.UserProfileCore(user_id=user.id, timezone="Asia/Tehran"))
+    db.commit()
+    # 2026-09-09 21:30 UTC = 2026-09-10 01:00 Asia/Tehran
+    when = datetime(2026, 9, 9, 21, 30, 0)
+    facts = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts.local_period_date is not None
+    assert facts.local_period_date.isoformat() == "2026-09-10"
+    assert facts.observation_period_start.date().isoformat() == "2026-09-09"
+    key = build_daily_digest_occurrence_key(
+        user_id=user.id, period_date=facts.local_period_date
+    )
+    assert "2026-09-10" in key
+    assert "2026-09-09" not in key
+    eng = _engine(db)
+    # Engine must use local_period_date for occurrence (spy via create path key in metadata/source)
+    notif = eng.create_daily_wellness_digest(user_id=user.id, scheduled_for=when)
+    assert notif is not None
+    assert notif.source_id == "2026-09-10"
+    ctx = notif.context_json or ""
+    assert "2026-09-10" in ctx
+
+
+def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+        render_digest_body,
+    )
+
+    user, _ = _self_setup(db, name="adj-var")
+    f1 = assemble_daily_wellness_digest_facts(
+        db, user_id=user.id, when=datetime(2026, 9, 9, 9, 0, 0)
+    )
+    f2 = assemble_daily_wellness_digest_facts(
+        db, user_id=user.id, when=datetime(2026, 9, 10, 9, 0, 0)
+    )
+    assert f1.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    assert f2.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+    b1 = render_digest_body(f1, "en")
+    b2 = render_digest_body(f2, "en")
+    assert b1 != b2
+
+
+def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):
+    from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    user, _ = _self_setup(db, name="consent-i67")
+    when = _when()
+    start = _period_start(when)
+    db.add(
+        models.UserPeriodSummary(
+            user_id=user.id,
+            summary_type="DAILY",
+            period_start=start,
+            period_end=start + timedelta(days=1),
+            generated_at=when,
+            finalized_at=when,
+            status="active",
+            structured_summary_json=json.dumps({"headline": "bounded"}),
+        )
+    )
+    db.commit()
+    # Summary alone without READ consent → must NOT select I6_I7_CONTEXT
+    facts_no = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_no.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+    assert facts_no.content_family == DailySmartContentFamily.GENERAL_CHECKIN
+
+    grant_memory_consent(db, user.id, commit=True)
+    facts_yes = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_yes.content_family == DailySmartContentFamily.I6_I7_CONTEXT
+
+    revoke_memory_consent(db, user.id, commit=True)
+    facts_rev = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts_rev.content_family != DailySmartContentFamily.I6_I7_CONTEXT
+
+
+def test_a4_closure_i8_active_only_influences_family(db, gate4_patch):
+    from datetime import date, timezone
+
+    from backend.app.services.i10.daily_wellness_digest import (
+        DailySmartContentFamily,
+        assemble_daily_wellness_digest_facts,
+    )
+
+    user, _ = _self_setup(db, name="i8-active")
+    when = _when()
+    local_day = date(2026, 8, 31)
+    now = when.replace(tzinfo=timezone.utc) if when.tzinfo is None else when
+    plan = models.I8OperationalPlan(
+        user_id=user.id,
+        user_local_date=local_day,
+        timezone_snapshot="UTC",
+        status="ACTIVE",
+        generation_mode="reactive",
+        plan_idempotency_key=f"plan-a4-{user.id}",
+        valid_from=now,
+        valid_until=now + timedelta(hours=12),
+        expires_at=now + timedelta(hours=12),
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    # ACTIVE plan without ACTIVE action → not I8
+    facts0 = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts0.content_family != DailySmartContentFamily.I8_ACTION
+
+    db.add(
+        models.I8OperationalPlanAction(
+            user_id=user.id,
+            plan_id=plan.id,
+            action_domain="lifestyle",
+            action_type="check_in",
+            action_idempotency_key=f"act-a4-{user.id}",
+            status="ACTIVE",
+            summary_text="Check in",
+            presentation_json="{}",
+            knowledge_refs_json="[]",
+            safety_state="SAFE",
+            clarification_required=False,
+            valid_from=now,
+            valid_until=now + timedelta(hours=12),
+            expires_at=now + timedelta(hours=12),
+        )
+    )
+    db.commit()
+    facts1 = assemble_daily_wellness_digest_facts(db, user_id=user.id, when=when)
+    assert facts1.content_family == DailySmartContentFamily.I8_ACTION
+
+
+def test_a4_closure_sensitive_topic_privacy_lock_screen(db, gate4_patch, monkeypatch):
+    from backend.app.services.i6.consent_service import grant_memory_consent
+    from backend.app.services.i7.privacy_safe_recent_topic import (
+        display_phrase_for_topic_label,
+        get_privacy_safe_recent_topic_label,
+    )
+
+    user, _ = _self_setup(db, name="priv-topic")
+    grant_memory_consent(db, user.id, commit=True)
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.has_permission",
+        lambda *_a, **_k: True,
+    )
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "my medication dose for diabetes diagnosis lab symptom",
+    )
+    assert get_privacy_safe_recent_topic_label(db, user.id) is None
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "talked about activity plan walking",
+    )
+    label = get_privacy_safe_recent_topic_label(db, user.id)
+    assert label == "activity_plan"
+    phrase = display_phrase_for_topic_label(label, "en")
+    assert phrase and "activity" in phrase.lower()
+    assert "medication" not in phrase.lower()
+
+    monkeypatch.setattr(
+        "backend.app.services.i7.privacy_safe_recent_topic.get_bounded_continuity_topic",
+        lambda *_a, **_k: "xyzzy uncertain gibberish private notes",
+    )
+    assert get_privacy_safe_recent_topic_label(db, user.id) is None

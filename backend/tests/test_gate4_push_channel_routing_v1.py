@@ -219,3 +219,32 @@ def test_a4_mobile_interaction_labels_fa_en_ar():
         assert "dislike" in data["gate4_actions"]
         assert "open_chat" in data["gate4_actions"]
         assert data.get("play_sound") == "true"
+
+
+def test_a4_closure_enrich_fcm_uses_like_dislike_open_chat():
+    """Real FCMAdapter enrich path — not helper-only with explicit actions=."""
+    import json
+
+    from backend.app.services.gate4.push_payload import enrich_notification_fcm_data
+
+    for lang in ("fa", "en", "ar"):
+        merged, _opts = enrich_notification_fcm_data(
+            legacy_data={"notification_id": "9", "channel": "morning"},
+            notification_id=9,
+            user_id=1,
+            title="t",
+            body="b",
+            notification_type="daily_wellness_digest",
+            priority="normal",
+            language=lang,
+            deeplink_url=None,
+            actions_json=None,
+            category="daily_status",
+            risk="informational",
+        )
+        actions = json.loads(merged.get("gate4_actions") or "[]")
+        ids = {a["action_id"] for a in actions}
+        assert ids == {"like", "dislike", "open_chat"}
+        assert "ACK_THANKS" not in ids
+        assert "NOT_NOW" not in ids
+        assert all(a.get("label") for a in actions)

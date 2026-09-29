@@ -331,3 +331,89 @@ def has_recent_engagement_family_notification(
         .first()
     )
     return row is not None
+
+
+def _engagement_family_filter():
+    from sqlalchemy import or_
+
+    from backend.app.models import Notification
+    from backend.app.services.i10.policy_types import I10SemanticFamily
+
+    return or_(
+        Notification.semantic_family.in_(
+            (
+                I10SemanticFamily.PRESENCE_REENGAGEMENT.value,
+                I10SemanticFamily.ENGAGEMENT_NUDGE.value,
+            )
+        ),
+        Notification.type == "connection_ping",
+        Notification.template_key.in_(("connection_ping", "engagement_nudge")),
+    )
+
+
+def user_local_day_bounds_naive_utc(
+    db: Session,
+    *,
+    user_id: int,
+    when: datetime,
+) -> tuple[datetime, datetime, "date"]:
+    """User-local calendar day as naive-UTC [start, end) for DB comparisons."""
+    from datetime import date, timezone
+    from zoneinfo import ZoneInfo
+
+    from backend.app.models import User
+    from backend.app.services.gate4.scheduler_timing import resolve_user_timezone_for_scheduler
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        day = when.date() if when.tzinfo is None else when.astimezone(timezone.utc).date()
+        start = datetime(day.year, day.month, day.day)
+        return start, start + timedelta(days=1), day
+
+    when_utc = when.replace(tzinfo=timezone.utc) if when.tzinfo is None else when.astimezone(timezone.utc)
+    tz_name = resolve_user_timezone_for_scheduler(db, user)
+    try:
+        zone = ZoneInfo(tz_name)
+    except Exception:
+        zone = ZoneInfo("Asia/Tehran")
+    local = when_utc.astimezone(zone)
+    local_day: date = local.date()
+    start_local = datetime(local_day.year, local_day.month, local_day.day, tzinfo=zone)
+    end_local = start_local + timedelta(days=1)
+    start_naive = start_local.astimezone(timezone.utc).replace(tzinfo=None)
+    end_naive = end_local.astimezone(timezone.utc).replace(tzinfo=None)
+    return start_naive, end_naive, local_day
+
+
+def count_engagement_family_on_user_local_day(
+    db: Session,
+    *,
+    user_id: int,
+    when: datetime,
+) -> int:
+    """Count PRESENCE/ENGAGEMENT siblings on the user's local calendar day (canonical max-2)."""
+    from sqlalchemy import and_, or_
+
+    from backend.app.models import Notification
+
+    start, end, _ = user_local_day_bounds_naive_utc(db, user_id=user_id, when=when)
+    return (
+        db.query(Notification.id)
+        .filter(
+            Notification.user_id == user_id,
+            _engagement_family_filter(),
+            or_(
+                and_(
+                    Notification.scheduled_for.isnot(None),
+                    Notification.scheduled_for >= start,
+                    Notification.scheduled_for < end,
+                ),
+                and_(
+                    Notification.scheduled_for.is_(None),
+                    Notification.created_at >= start,
+                    Notification.created_at < end,
+                ),
+            ),
+        )
+        .count()
+    )

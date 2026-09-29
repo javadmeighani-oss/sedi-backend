@@ -24,6 +24,14 @@ GATE4_DAILY_TOLERANCE_MINUTES = 10
 CANONICAL_DAILY_SMART_TOUCHPOINT_TIME = "09:00"
 
 
+def smart_daily_touchpoint_contract() -> dict[str, str]:
+    """Explicit smart-daily contract — never exposes legacy DEFAULT 08:00."""
+    return {
+        "canonical_time": CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        "path": "should_run_daily_smart_touchpoint",
+    }
+
+
 def _ensure_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)

@@ -837,9 +837,11 @@ class DecisionEngine:
         )
 
         facts = assemble_daily_wellness_digest_facts(self.db, user_id=user_id, when=when)
+        # Occurrence keyed to user-local calendar date (not UTC observation_period_start.date()).
+        period_date = facts.local_period_date or facts.observation_period_start.date()
         occurrence_key = build_daily_digest_occurrence_key(
             user_id=user_id,
-            period_date=facts.observation_period_start.date(),
+            period_date=period_date,
         )
         user = self.db.query(User).filter(User.id == user_id).first()
         lang = (user.preferred_language if user and user.preferred_language else "en")
@@ -878,7 +880,9 @@ class DecisionEngine:
         """
         presence_inactive_hours = 4
         reengagement_cooldown_hours = 6
+        reengagement_max_per_local_day = 2
         from backend.app.services.i10.interaction_recorder import (
+            count_engagement_family_on_user_local_day,
             get_last_chat_activity_at,
             has_recent_engagement_family_notification,
         )
@@ -894,6 +898,16 @@ class DecisionEngine:
         if last_chat is None:
             logger.info(
                 "[NOTIF] suppressed channel=engagement user_id=%s reason=no_chat_baseline",
+                user_id,
+            )
+            return None
+        # Canonical max 2 PRESENCE/ENGAGEMENT siblings per USER-LOCAL calendar day
+        if (
+            count_engagement_family_on_user_local_day(self.db, user_id=user_id, when=when)
+            >= reengagement_max_per_local_day
+        ):
+            logger.info(
+                "[NOTIF] suppressed channel=engagement user_id=%s reason=max_per_local_day",
                 user_id,
             )
             return None
