@@ -390,7 +390,7 @@ def test_case16_i6_absence_keeps_verified_facts_empty_path():
     [
         ("en", "Sedi"),
         ("fa", "صدی"),
-        ("ar", "صدي"),
+        ("ar", "صدی"),
     ],
 )
 def test_case17_19_persona_and_intro_languages(lang, intro_needle):
