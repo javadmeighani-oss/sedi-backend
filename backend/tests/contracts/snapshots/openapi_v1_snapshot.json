@@ -7217,6 +7217,26 @@
         "title": "SensorSyncResponse",
         "type": "object"
       },
+      "SessionOpenRequest": {
+        "additionalProperties": false,
+        "description": "Optional body for POST /interact/session/open (empty {} remains valid).",
+        "properties": {
+          "source_notification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional; verified notification origin for A3 continuity opener",
+            "title": "Source Notification Id"
+          }
+        },
+        "title": "SessionOpenRequest",
+        "type": "object"
+      },
       "SubjectCaregiverAccessGrantIn": {
         "additionalProperties": false,
         "properties": {
@@ -12965,8 +12985,17 @@
     },
     "/interact/session/open": {
       "post": {
-        "description": "Server-authoritative A3 open: durable intro once + optional proactive opener.",
+        "description": "Server-authoritative A3 open: durable intro once + optional proactive opener.\n\nOptional ``source_notification_id`` verifies ownership and yields a bounded\nnotification-origin continuation (after first-intro priority). Does not mint Memory.",
         "operationId": "open_session_interact_session_open_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionOpenRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -12977,6 +13006,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
