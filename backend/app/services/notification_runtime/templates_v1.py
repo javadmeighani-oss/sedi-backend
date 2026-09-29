@@ -101,7 +101,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
             },
             "ar": {
                 "title": "تنبيه صحي",
-                "message": "تم تسجيل قراءة غير معتادة. افتح سدي للمراجعة.",
+                "message": "تم تسجيل قراءة غير معتادة. افتح صدی للمراجعة.",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,

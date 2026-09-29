@@ -838,3 +838,79 @@ def test_a4_closure_sensitive_topic_privacy_lock_screen(db, gate4_patch, monkeyp
         lambda *_a, **_k: "xyzzy uncertain gibberish private notes",
     )
     assert get_privacy_safe_recent_topic_label(db, user.id) is None
+
+
+def test_a4_brand_copy_canonical_sedi():
+    """A4 localized prose brand: EN=Sedi, FA/AR=صدی; no سدی/سدي; no واحدةحدةحدة."""
+    from pathlib import Path
+
+    from backend.app.services.gate4.notification_contract import ACTION_LABELS, get_action_label
+    from backend.app.services.i10.daily_wellness_digest import (
+        _DIGEST_TITLES,
+        _GENERAL_BODIES,
+        _I6_I7_BODIES,
+        _I8_BODIES,
+        _I9_PARTIAL_BODIES,
+        _I9_STALE_BODIES,
+        _I9_SUFFICIENT_BODIES,
+        _NO_DATA_BODIES,
+        _SAFETY_BODIES,
+    )
+    from backend.app.services.notification_runtime.templates_v1 import TEMPLATES_V1
+
+    fa_wrong = "سدی"
+    ar_wrong = "سدي"
+    brand_fa_ar = "صدی"
+    typo = "واحدةحدة"
+
+    pools = (
+        _DIGEST_TITLES,
+        _GENERAL_BODIES,
+        _NO_DATA_BODIES,
+        _SAFETY_BODIES,
+        _I9_SUFFICIENT_BODIES,
+        _I9_PARTIAL_BODIES,
+        _I9_STALE_BODIES,
+        _I8_BODIES,
+        _I6_I7_BODIES,
+    )
+    fa_blob = " ".join(" ".join(p.get("fa", ())) for p in pools)
+    ar_blob = " ".join(" ".join(p.get("ar", ())) for p in pools)
+    en_blob = " ".join(" ".join(p.get("en", ())) for p in pools)
+
+    assert fa_wrong not in fa_blob
+    assert brand_fa_ar in fa_blob
+    assert ar_wrong not in ar_blob
+    assert brand_fa_ar in ar_blob
+    assert "Sedi" in en_blob
+    assert typo not in ar_blob
+    assert typo not in fa_blob
+
+    for tpl in TEMPLATES_V1:
+        texts = tpl.get("texts") or {}
+        for lang, block in texts.items():
+            msg = " ".join(str(v) for v in (block or {}).values())
+            assert fa_wrong not in msg
+            assert ar_wrong not in msg
+            assert typo not in msg
+            if lang == "en" and "Sedi" in msg:
+                assert "Sedi" in msg
+
+    ar_open = get_action_label("open_chat", "ar")
+    en_open = get_action_label("open_chat", "en")
+    assert ar_wrong not in ar_open
+    assert brand_fa_ar in ar_open
+    assert "Sedi" in en_open
+    assert fa_wrong not in ACTION_LABELS["open_chat"]["fa"]
+
+    # Source files under Gate1 A4 copy scope must not reintroduce defects.
+    root = Path(__file__).resolve().parents[1] / "app" / "services"
+    for rel in (
+        "i10/daily_wellness_digest.py",
+        "notification_runtime/templates_v1.py",
+        "gate4/notification_contract.py",
+    ):
+        text = (root / rel).read_text(encoding="utf-8")
+        assert fa_wrong not in text
+        assert ar_wrong not in text
+        assert typo not in text

@@ -133,7 +133,7 @@ ACTION_LABELS: Final[Mapping[str, Mapping[str, str]]] = {
     "open_chat": {
         SmartNotificationLanguage.FA.value: "صحبت کنیم",
         SmartNotificationLanguage.EN.value: "Talk to Sedi",
-        SmartNotificationLanguage.AR.value: "لنتحدث مع سدي",
+        SmartNotificationLanguage.AR.value: "لنتحدث مع صدی",
     },
 }
 
