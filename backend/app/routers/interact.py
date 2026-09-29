@@ -8,7 +8,7 @@ RESPONSIBILITY:
 - NO logic, NO decisions
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -24,7 +24,7 @@ from backend.app.database import get_db
 from backend.app.models import User, Memory
 from backend.app.core.conversation.brain import ConversationBrain, _is_gpt_related_error, _redact_secrets
 from backend.app.schemas import InteractionResponse
-from backend.app.schemas.chat import ChatRequest
+from backend.app.schemas.chat import ChatRequest, SessionOpenRequest
 from backend.app.schemas.onboarding import OnboardingRequest
 from backend.app.routers.auth_otp import get_current_user
 
@@ -101,13 +101,30 @@ def introduce_user(
 # ---------------- A3 session open (first contact + proactive opener) ----------------
 @router.post("/session/open", response_model=InteractionResponse)
 def open_session(
+    payload: SessionOpenRequest = Body(default_factory=SessionOpenRequest),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Server-authoritative A3 open: durable intro once + optional proactive opener."""
+    """Server-authoritative A3 open: durable intro once + optional proactive opener.
+
+    Optional ``source_notification_id`` verifies ownership and yields a bounded
+    notification-origin continuation (after first-intro priority). Does not mint Memory.
+    """
     from backend.app.services.a3_session_open import open_a3_session
 
-    data = open_a3_session(db, user)
+    try:
+        data = open_a3_session(
+            db,
+            user,
+            source_notification_id=payload.source_notification_id,
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    except PermissionError:
+        raise HTTPException(
+            status_code=403,
+            detail="Notification does not belong to user",
+        )
     return InteractionResponse(
         message=data["message"],
         language=data["language"],
@@ -116,6 +133,8 @@ def open_session(
         first_intro=data["first_intro"],
         intro_completed=data["intro_completed"],
         proactive_opener=data.get("proactive_opener"),
+        continued_from_notification=data.get("continued_from_notification") or None,
+        source_notification_id=data.get("source_notification_id"),
     )
 
 

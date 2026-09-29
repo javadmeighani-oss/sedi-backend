@@ -167,17 +167,134 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
     return pick.format(name_part=name_part)
 
 
-def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
+def _notification_name_prefix(name: Optional[str], lang: str) -> str:
+    cleaned = (name or "").strip()
+    if not cleaned:
+        return ""
+    if lang in ("fa", "ar"):
+        return f"{cleaned}، "
+    return f"{cleaned}, "
+
+
+def _presence_continuation_opener(
+    *,
+    lang: str,
+    name: Optional[str],
+    topic_phrase: Optional[str],
+) -> str:
+    prefix = _notification_name_prefix(name, lang)
+    if topic_phrase:
+        templates = {
+            "en": (
+                "{prefix}last time we were talking about {topic}. "
+                "Would you like to continue?"
+            ),
+            "fa": (
+                "{prefix}آخرین بار درباره {topic} صحبت می‌کردیم. "
+                "می‌خواهی ادامه بدهیم؟"
+            ),
+            "ar": (
+                "{prefix}آخر مرة كنا نتحدث عن {topic}. "
+                "هل تريد المتابعة؟"
+            ),
+        }
+        return templates.get(lang, templates["en"]).format(
+            prefix=prefix, topic=topic_phrase
+        )
+    generics = {
+        "en": f"{prefix}Would you like to continue from where we left off?".strip(),
+        "fa": f"{prefix}می‌خواهی از جایی که بودیم ادامه بدهیم؟".strip(),
+        "ar": f"{prefix}هل تريد المتابعة من حيث توقفنا؟".strip(),
+    }
+    return generics.get(lang, generics["en"])
+
+
+def _generic_notification_origin_opener(*, lang: str, name: Optional[str]) -> str:
+    prefix = _notification_name_prefix(name, lang)
+    templates = {
+        "en": f"{prefix}You opened this from a Sedi notification. How would you like to continue?".strip(),
+        "fa": f"{prefix}از اعلان صدی آمدی. می‌خواهی از همین‌جا ادامه بدهیم؟".strip(),
+        "ar": f"{prefix}فتحت هذا من إشعار صدی. كيف تريد المتابعة؟".strip(),
+    }
+    return templates.get(lang, templates["en"])
+
+
+def build_notification_origin_opener(
+    db: Session,
+    user: models.User,
+    notification: models.Notification,
+    *,
+    language: str,
+    preferred_name: Optional[str] = None,
+) -> str:
+    """Bounded localized opener from verified notification origin.
+
+    Uses privacy-safe I7 coarse topic for PRESENCE_REENGAGEMENT when available.
+    Never injects raw notification body/context_json.
+    """
+    from backend.app.services.i10.policy_types import I10SemanticFamily
+
+    lang = language if language in ("en", "fa", "ar") else "en"
+    name = preferred_name if preferred_name is not None else getattr(user, "name", None)
+    family = (notification.semantic_family or "").strip()
+
+    if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:
+        topic_phrase = None
+        try:
+            from backend.app.services.i7.privacy_safe_recent_topic import (
+                display_phrase_for_topic_label,
+                get_privacy_safe_recent_topic_label,
+            )
+
+            label = get_privacy_safe_recent_topic_label(db, int(user.id))
+            topic_phrase = display_phrase_for_topic_label(label, lang)
+        except Exception:
+            topic_phrase = None
+        return _presence_continuation_opener(
+            lang=lang, name=name, topic_phrase=topic_phrase
+        )
+
+    # Other families: short localized acknowledgment only (no clinical reinterpretation).
+    return _generic_notification_origin_opener(lang=lang, name=name)
+
+
+def open_a3_session(
+    db: Session,
+    user: models.User,
+    *,
+    source_notification_id: Optional[int] = None,
+) -> Dict[str, Any]:
     """Return first-intro or proactive opener; mark intro durable when first.
 
-    NEW_DAY is lifecycle context for chat — not a forced session/open greeting.
-    Engagement cooldown may still supply a bounded returning opener.
+    Optional ``source_notification_id`` (JWT-owned) yields a notification-origin
+    continuation opener after intro priority. Does not write Memory / fake user turns.
     """
     from backend.app.services.a3_interaction_lifecycle import resolve_interaction_lifecycle
     from backend.app.services.i6.consent_service import ensure_default_memory_enabled
     from backend.app.services.user_context import UserContextService
 
     ensure_default_memory_enabled(db, int(user.id), commit=True)
+
+    verified_notification: Optional[models.Notification] = None
+    if source_notification_id is not None:
+        from backend.app.services.gate4.interaction_event_service import (
+            verify_notification_belongs_to_user,
+        )
+        from backend.app.services.gate4.notification_chat_context import (
+            build_safe_chat_context,
+        )
+
+        verified_notification = verify_notification_belongs_to_user(
+            db,
+            user_id=int(user.id),
+            notification_id=int(source_notification_id),
+        )
+        # Build safe context for authority/leakage guarantees (never returned raw).
+        build_safe_chat_context(
+            verified_notification,
+            db=db,
+            viewer_user_id=int(user.id),
+        )
 
     lang = _lang(user)
     first_intro = user.sedi_intro_completed_at is None
@@ -210,6 +327,16 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
         db.refresh(user)
         # Re-resolve after stamp so response reflects completed intro.
         lifecycle = resolve_interaction_lifecycle(db, user, user_context_pack=pack)
+    elif verified_notification is not None:
+        # Explicit notification-origin open bypasses ordinary 12h proactive cooldown.
+        message = build_notification_origin_opener(
+            db,
+            user,
+            verified_notification,
+            language=lang,
+            preferred_name=preferred_name,
+        )
+        proactive = message
     else:
         # Cooldown engagement only — calendar NEW_DAY does not force greeting.
         proactive = maybe_proactive_opener(db, user)
@@ -224,6 +351,7 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
     except Exception:
         pass
 
+    continued = verified_notification is not None
     return {
         "message": message,
         "language": lang,
@@ -234,6 +362,10 @@ def open_a3_session(db: Session, user: models.User) -> Dict[str, Any]:
         "interaction_lifecycle": lifecycle.as_dict(),
         "known_profile_keys": list(lifecycle.known_profile_keys),
         "timezone_authority_gap": lifecycle.timezone_authority_gap,
+        "continued_from_notification": continued,
+        "source_notification_id": (
+            int(verified_notification.id) if verified_notification is not None else None
+        ),
     }
 
 
