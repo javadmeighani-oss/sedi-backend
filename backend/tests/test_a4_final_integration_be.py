@@ -108,6 +108,7 @@ def test_freeform_ai_disabled_for_canonical_v1_even_if_env_true(monkeypatch):
         title="Hello from Sedi",
         body="How are you?",
         priority="low",
+        dedupe_key="test-connection-ping-1",
         metadata={"language": "en"},
     )
     assert ai._is_canonical_v1_push(payload) is True
@@ -127,6 +128,7 @@ def test_freeform_ai_disabled_for_canonical_v1_even_if_env_true(monkeypatch):
         title="Daily Sedi check-in",
         body=_GENERAL_CHECKIN_BODIES["en"],
         priority="normal",
+        dedupe_key="test-digest-1",
         metadata={"language": "en", "alert_code": "daily_wellness_digest"},
         template_key="daily_wellness_digest",
     )
