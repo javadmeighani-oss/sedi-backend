@@ -45,7 +45,7 @@ def test_g13_static_safety():
     )
     for token in ("37.5", "TACHYCARDIA", "FEVER", "enqueue_i10", "hr > 100"):
         assert token not in src
-    assert ALEMBIC_HEAD == "086_i9_vital_observation_context_authority"
+    assert ALEMBIC_HEAD == "087_a4_notification_inbox_visibility"
 
 
 def test_g13_alembic_single_head_086():

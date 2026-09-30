@@ -31,7 +31,8 @@ _REV_083 = "083_otp_purpose_phone_change"
 _REV_084 = "084_device_category_setup_code_authority"
 _REV_085 = "085_i9_absolute_vital_policy_schema_scaffold"
 _REV_086 = "086_i9_vital_observation_context_authority"
-ALEMBIC_HEAD = _REV_086
+_REV_087 = "087_a4_notification_inbox_visibility"
+ALEMBIC_HEAD = _REV_087
 
 
 def i10_test_database_url() -> str | None:

@@ -19,6 +19,7 @@ from backend.tests.helpers.i10_postgresql_harness import (
     I10IsolatedPgDb,
     _REV_085,
     _REV_086,
+    _REV_087,
     pg_table_exists,
 )
 
@@ -47,8 +48,9 @@ def test_g12_static_alembic_single_head():
     cfg = Config("backend/alembic.ini")
     cfg.set_main_option("script_location", "backend/alembic")
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == [_REV_086]
-    assert ALEMBIC_HEAD == _REV_086
+    assert script.get_heads() == [_REV_087]
+    assert ALEMBIC_HEAD == _REV_087
+    assert script.get_revision(_REV_087).down_revision == _REV_086
     assert script.get_revision(_REV_086).down_revision == _REV_085
 
 

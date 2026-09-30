@@ -68,7 +68,7 @@ def test_alembic_single_head_is_086():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["086_i9_vital_observation_context_authority"]
+    assert script.get_heads() == ["087_a4_notification_inbox_visibility"]
 
 
 def test_evaluation_identity_families():

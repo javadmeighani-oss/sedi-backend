@@ -85,11 +85,20 @@ def test_ten_day_inclusive_boundary_and_older_excluded(client, db):
         sent_at=now - timedelta(days=11),
         created_at=now - timedelta(days=11),
     )
+    clearly_visible = _notif(
+        db,
+        u.id,
+        title="clearly_visible_9d",
+        sent_at=now - timedelta(days=9),
+        created_at=now - timedelta(days=9),
+    )
 
+    # Inclusive boundary uses a pinned `now` (same clock as projection).
     page = fetch_sent_history_page(db, user_id=u.id, limit=50, now=now)
     ids = [n.id for n in page["notifications"]]
     assert at_boundary.id in ids
     assert just_inside.id in ids
+    assert clearly_visible.id in ids
     assert just_outside.id not in ids
     assert older.id not in ids
 
@@ -100,13 +109,14 @@ def test_ten_day_inclusive_boundary_and_older_excluded(client, db):
         is not None
     )
 
+    # HTTP path uses live utcnow — assert stable inside/outside points only.
     resp = client.get(
         f"/notifications/?user_id={u.id}&limit=50",
         headers=_auth_header(u.id),
     )
     assert resp.status_code == 200
     api_ids = [n["id"] for n in resp.json()["data"]["notifications"]]
-    assert at_boundary.id in api_ids
+    assert clearly_visible.id in api_ids
     assert older.id not in api_ids
 
 

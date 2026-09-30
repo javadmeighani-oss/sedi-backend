@@ -588,4 +588,4 @@ def test_l31_alembic_single_head_073():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["086_i9_vital_observation_context_authority"]
+    assert heads == ["087_a4_notification_inbox_visibility"]
