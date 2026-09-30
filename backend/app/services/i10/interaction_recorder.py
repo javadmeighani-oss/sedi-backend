@@ -31,6 +31,16 @@ NOTIFICATION_PRESENCE_EVENT_TYPES = frozenset(
     if verb is not CanonicalInteractionVerb.READ
 )
 
+# A4 P2A: successful canonical actions mark Inbox item read (not dismiss/hide).
+_READ_ON_SUCCESS_VERBS = frozenset(
+    {
+        CanonicalInteractionVerb.LIKE,
+        CanonicalInteractionVerb.DISLIKE,
+        CanonicalInteractionVerb.DISLIKE_REASON,
+        CanonicalInteractionVerb.TALK_TO_SEDI,
+    }
+)
+
 
 @dataclass(frozen=True)
 class InteractionRecordResult:
@@ -68,6 +78,79 @@ def _bounded_feedback_meta(
     return meta
 
 
+def _meta_canonical_verb(meta_json: Optional[str]) -> Optional[str]:
+    if not meta_json:
+        return None
+    try:
+        parsed = json.loads(meta_json)
+    except Exception:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    raw = parsed.get("canonical_verb")
+    return str(raw) if raw else None
+
+
+def _find_existing_action_event(
+    db: Session,
+    *,
+    user_id: int,
+    notification_id: int,
+    event_type: str,
+) -> Optional[InteractionEvent]:
+    return (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.source_notification_id == notification_id,
+            InteractionEvent.event_type == event_type,
+            InteractionEvent.source == "notification",
+        )
+        .order_by(InteractionEvent.id.asc())
+        .first()
+    )
+
+
+def _find_existing_feedback(
+    db: Session,
+    *,
+    user_id: int,
+    notification_id: int,
+    resolved,
+) -> Optional[NotificationFeedback]:
+    rows = (
+        db.query(NotificationFeedback)
+        .filter(
+            NotificationFeedback.notification_id == notification_id,
+            NotificationFeedback.user_id == user_id,
+            NotificationFeedback.action == resolved.feedback_action,
+        )
+        .order_by(NotificationFeedback.id.asc())
+        .all()
+    )
+    if not rows:
+        return None
+    for row in rows:
+        meta_verb = _meta_canonical_verb(row.meta_json)
+        if meta_verb == resolved.verb.value:
+            return row
+    # Legacy rows without canonical_verb: only safe for non-ambiguous feedback_action.
+    if resolved.verb is CanonicalInteractionVerb.DISLIKE_REASON:
+        return None
+    if resolved.verb in (
+        CanonicalInteractionVerb.LIKE,
+        CanonicalInteractionVerb.DISLIKE,
+        CanonicalInteractionVerb.TALK_TO_SEDI,
+        CanonicalInteractionVerb.ACKNOWLEDGE,
+        CanonicalInteractionVerb.NOT_NOW,
+        CanonicalInteractionVerb.TALK_LATER,
+        CanonicalInteractionVerb.DONE,
+        CanonicalInteractionVerb.READ,
+    ):
+        return rows[0]
+    return None
+
+
 def _apply_gate4_policy(
     db: Session,
     *,
@@ -95,6 +178,23 @@ def _apply_gate4_policy(
         return None
 
 
+def _maybe_mark_read_after_success(
+    db: Session,
+    *,
+    notification: Notification,
+    recipient_user_id: int,
+    verb: CanonicalInteractionVerb,
+) -> None:
+    """Mark read + one READ event after successful LIKE/DISLIKE/TALK_TO_SEDI."""
+    if verb not in _READ_ON_SUCCESS_VERBS:
+        return
+    record_notification_read(
+        db,
+        notification=notification,
+        recipient_user_id=recipient_user_id,
+    )
+
+
 def record_notification_interaction(
     db: Session,
     *,
@@ -109,6 +209,9 @@ def record_notification_interaction(
     Domain completion (medication taken, I8 action completed, etc.) remains on
     authorized source-domain endpoints only. Pass domain_completion_authorized=True
     only after an I8-owned (or other domain-owner) completion command has succeeded.
+
+    A4 P2A: LIKE / DISLIKE / DISLIKE_REASON / TALK_TO_SEDI mark is_read atomically
+    after successful ledger write; sequential retries reuse existing rows.
     """
     resolved = resolve_interaction_verb(payload)
     if resolved.verb is CanonicalInteractionVerb.DONE:
@@ -128,24 +231,65 @@ def record_notification_interaction(
                 ) from exc
             raise
 
+    event_type = event_type_for_verb(resolved.verb)
+    existing_event = _find_existing_action_event(
+        db,
+        user_id=recipient_user_id,
+        notification_id=notification.id,
+        event_type=event_type,
+    )
+    existing_feedback = _find_existing_feedback(
+        db,
+        user_id=recipient_user_id,
+        notification_id=notification.id,
+        resolved=resolved,
+    )
+
+    if existing_event is not None:
+        gate4_summary = None
+        if resolved.gate4_policy_action:
+            gate4_summary = _apply_gate4_policy(
+                db,
+                user_id=recipient_user_id,
+                notification=notification,
+                canonical_action=resolved.gate4_policy_action,
+            )
+        _maybe_mark_read_after_success(
+            db,
+            notification=notification,
+            recipient_user_id=recipient_user_id,
+            verb=resolved.verb,
+        )
+        return InteractionRecordResult(
+            feedback_id=existing_feedback.id if existing_feedback is not None else None,
+            interaction_event_id=existing_event.id,
+            canonical_verb=resolved.verb.value,
+            event_type=existing_event.event_type,
+            gate4_feedback_summary=gate4_summary,
+        )
+
     meta = _bounded_feedback_meta(payload, resolved)
     if domain_completion_authorized and resolved.verb is CanonicalInteractionVerb.DONE:
         meta["domain_completion_authorized"] = True
         meta["completion_authority"] = "I8_OPERATIONAL_PLAN_ACTION_DOMAIN"
-    feedback_row = NotificationFeedback(
-        notification_id=notification.id,
-        user_id=recipient_user_id,
-        action=resolved.feedback_action,
-        meta_json=json.dumps(meta, ensure_ascii=False),
-    )
-    db.add(feedback_row)
-    db.flush()
+
+    if existing_feedback is None:
+        feedback_row = NotificationFeedback(
+            notification_id=notification.id,
+            user_id=recipient_user_id,
+            action=resolved.feedback_action,
+            meta_json=json.dumps(meta, ensure_ascii=False),
+        )
+        db.add(feedback_row)
+        db.flush()
+    else:
+        feedback_row = existing_feedback
 
     event_meta = dict(meta)
     event = create_interaction_event(
         db,
         user_id=recipient_user_id,
-        event_type=event_type_for_verb(resolved.verb),
+        event_type=event_type,
         source="notification",
         source_notification_id=notification.id,
         source_type=notification.source_type,
@@ -156,12 +300,19 @@ def record_notification_interaction(
     gate4_summary = None
     if resolved.gate4_policy_action:
         gate4_summary = _apply_gate4_policy(
-
             db,
             user_id=recipient_user_id,
             notification=notification,
             canonical_action=resolved.gate4_policy_action,
         )
+
+    # Mark read only after action ledger rows are flushed successfully.
+    _maybe_mark_read_after_success(
+        db,
+        notification=notification,
+        recipient_user_id=recipient_user_id,
+        verb=resolved.verb,
+    )
 
     return InteractionRecordResult(
         feedback_id=feedback_row.id,

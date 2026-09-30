@@ -182,11 +182,23 @@ def test_self_like_persists_feedback_and_interaction_event(client, db, b17_patch
     assert r.status_code == 200
     fb = db.query(models.NotificationFeedback).filter_by(notification_id=notif.id).one()
     assert fb.action == "like"
-    evt = db.query(models.InteractionEvent).filter_by(source_notification_id=notif.id).one()
+    evt = (
+        db.query(models.InteractionEvent)
+        .filter_by(source_notification_id=notif.id, event_type="notification_like")
+        .one()
+    )
     assert evt.event_type == "notification_like"
     meta = json.loads(evt.metadata_json)
     assert meta["canonical_verb"] == "LIKE"
     assert meta["vocabulary_version"] == VOCABULARY_VERSION
+    db.refresh(notif)
+    assert notif.is_read is True
+    assert (
+        db.query(models.InteractionEvent)
+        .filter_by(source_notification_id=notif.id, event_type="notification_read")
+        .count()
+        == 1
+    )
 
 
 def test_mark_read_records_read_event_once(client, db, b17_patches):
@@ -255,10 +267,19 @@ def test_medication_dislike_does_not_confirm_taken(client, db, b17_patches):
     assert r.status_code == 200
     occ = db.query(models.MedicationDoseOccurrence).filter_by(source_notification_id=notif.id).one()
     assert occ.state == MedicationAdherenceState.DUE.value
-    evt = db.query(models.InteractionEvent).filter_by(source_notification_id=notif.id).one()
+    evt = (
+        db.query(models.InteractionEvent)
+        .filter_by(
+            source_notification_id=notif.id,
+            event_type="notification_dislike_reason",
+        )
+        .one()
+    )
     assert evt.event_type == "notification_dislike_reason"
     meta = json.loads(evt.metadata_json)
     assert meta["dislike_reason_bounded"] is True
+    db.refresh(notif)
+    assert notif.is_read is True
 
 
 def test_medication_confirm_taken_requires_b09_endpoint(client, db, b17_patches):
@@ -501,9 +522,15 @@ def test_caregiver_authorized_feedback_allowed(client, db, b17_patches):
     _, cg, subject, _, notif = _care_action_notification(db)
     r = _feedback(client, cg, notif.id, {"reaction": "like"})
     assert r.status_code == 200
-    evt = db.query(models.InteractionEvent).filter_by(source_notification_id=notif.id).one()
+    evt = (
+        db.query(models.InteractionEvent)
+        .filter_by(source_notification_id=notif.id, event_type="notification_like")
+        .one()
+    )
     assert evt.user_id == cg.id
     assert notif.health_subject_id == subject.id
+    db.refresh(notif)
+    assert notif.is_read is True
 
 
 def test_revoked_caregiver_chat_fail_closed(client, db, b17_patches):
@@ -590,10 +617,10 @@ def test_duplicate_ack_creates_ledger_rows_without_corruption(client, db, b17_pa
     payload = {"reaction": "interact", "action_id": "ACK_THANKS"}
     assert _feedback(client, user, notif.id, payload).status_code == 200
     assert _feedback(client, user, notif.id, payload).status_code == 200
-    assert db.query(models.NotificationFeedback).filter_by(notification_id=notif.id).count() == 2
+    assert db.query(models.NotificationFeedback).filter_by(notification_id=notif.id).count() == 1
     events = db.query(models.InteractionEvent).filter_by(source_notification_id=notif.id).all()
-    assert len(events) == 2
-    assert all(e.event_type == "notification_ack" for e in events)
+    assert len(events) == 1
+    assert events[0].event_type == "notification_ack"
 
 
 def test_dislike_separate_from_not_now_event_type(client, db, b17_patches):
@@ -621,7 +648,7 @@ def test_dislike_separate_from_not_now_event_type(client, db, b17_patches):
         .order_by(models.InteractionEvent.id.asc())
         .all()
     ]
-    assert types == ["notification_dislike", "notification_not_now"]
+    assert types == ["notification_dislike", "notification_read", "notification_not_now"]
 
 
 # J — transaction failure
