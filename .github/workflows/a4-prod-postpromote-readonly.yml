@@ -54,7 +54,7 @@ jobs:
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_TAG=${TAG_Q} EXPECTED_DIGEST=${DIGEST_Q} EXPECTED_ALEMBIC=${ALEMBIC_Q} EXPECTED_FA_TITLE=${TITLE_Q} EXPECTED_FA_BODY=${BODY_Q} bash -s" \
-            2>&1 | tee /tmp/a4_postpromote_readonly.log <<'REMOTE'
+            <<'REMOTE' | tee /tmp/a4_postpromote_readonly.log
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
           summary() { echo "A4VERIFY_SUMMARY|$1|$2"; }
