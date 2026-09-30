@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from typing import List, Optional, Literal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json as _json
 import logging
@@ -24,6 +24,7 @@ from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1, Notificat
 from backend.app.schemas.notification import (
     NotificationCreate,
     NotificationFeedbackRequest,
+    NotificationInboxHideRequest,
     PushRegisterRequest,
     PushFeedbackActionRequest,
     TestPushRequest,
@@ -928,8 +929,8 @@ def get_notifications(
     """
     A3 Smart Notifications Inbox (G1): successfully sent history only.
 
-    Filters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.
-    Order: sent_at DESC, id DESC. Cursor pagination (no offset).
+    Filters: is_sent=true, sent_at IS NOT NULL, within 10-day visible window,
+    inbox_hidden_at IS NULL. Order: sent_at DESC, id DESC. Cursor pagination (no offset).
     """
     from backend.app.services.notifications.inbox_projection import fetch_sent_history_page
 
@@ -1027,6 +1028,63 @@ def get_unread_notifications(
             "limit": page["limit"],
             "next_cursor": page["next_cursor"],
             "has_more": page["has_more"],
+        },
+    )
+
+
+# ------------------ POST /notifications/inbox/hide (A4 projection hide) ------------------
+@router.post("/inbox/hide", response_model=ApiResponseV1)
+def hide_inbox_notifications(
+    body: NotificationInboxHideRequest,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Hide owned notifications from Inbox (sets inbox_hidden_at).
+
+    Never hard-deletes Notification / Feedback / InteractionEvent rows.
+    Does not mark read and does not invent READ interactions.
+    Fail-closed on any cross-user or missing id (no partial mutation).
+    """
+    unique_ids = list(dict.fromkeys(int(x) for x in body.notification_ids))
+    rows = (
+        db.query(Notification)
+        .filter(Notification.id.in_(unique_ids))
+        .all()
+    )
+    by_id = {row.id: row for row in rows}
+
+    # Fail-closed: reject before any mutation if any id is foreign or missing.
+    for nid in unique_ids:
+        row = by_id.get(nid)
+        if row is not None and row.user_id != auth_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to hide this notification.",
+            )
+    for nid in unique_ids:
+        if nid not in by_id:
+            raise HTTPException(status_code=404, detail="Notification not found.")
+
+    now = datetime.now(timezone.utc)
+    newly_hidden = 0
+    already_hidden = 0
+    for nid in unique_ids:
+        row = by_id[nid]
+        if row.inbox_hidden_at is None:
+            row.inbox_hidden_at = now
+            newly_hidden += 1
+        else:
+            already_hidden += 1
+
+    db.commit()
+    return APIResponse(
+        ok=True,
+        data={
+            "hidden_ids": unique_ids,
+            "newly_hidden": newly_hidden,
+            "already_hidden": already_hidden,
+            "count": len(unique_ids),
         },
     )
 

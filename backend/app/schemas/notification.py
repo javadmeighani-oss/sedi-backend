@@ -174,6 +174,19 @@ class PushFeedbackActionRequest(BaseModel):
     meta: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
 
 
+# -------------------- A4: Inbox hide (projection only; no hard delete) --------------------
+
+class NotificationInboxHideRequest(BaseModel):
+    """Request body for POST /notifications/inbox/hide."""
+
+    notification_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Owner notification IDs to hide from Inbox (max 50, duplicates ok)",
+    )
+
+
 # -------------------- Stage 16.6.1: Admin Test Push --------------------
 
 class TestPushRequest(BaseModel):

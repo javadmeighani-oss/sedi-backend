@@ -192,6 +192,8 @@ class Notification(Base):
         nullable=True,
         index=True,
     )
+    # A4: user hide-from-Inbox only (NULL = visible). Never hard-delete via inbox hide.
+    inbox_hidden_at = Column(DateTime(timezone=True), nullable=True)
 
 
 # -------------------- PushDevice (Stage 16.6) --------------------

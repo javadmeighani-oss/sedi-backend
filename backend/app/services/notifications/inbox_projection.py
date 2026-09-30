@@ -1,7 +1,8 @@
-"""A3 Smart Notifications sent-history projection (G1).
+"""A3/A4 Smart Notifications sent-history projection.
 
 Canonical user Inbox = successfully FCM-sent notifications within the visible
-retention window. Queued/future/failed/db-only rows remain in DB but are excluded.
+window that are not user-hidden. Queued/future/failed/db-only rows remain in DB
+but are excluded. Hide is projection-only (inbox_hidden_at); never hard-delete.
 """
 
 from __future__ import annotations
@@ -16,11 +17,11 @@ from sqlalchemy.orm import Query, Session
 
 from backend.app.models import Notification
 
-# Locked G1 policy (runtime defaults; env override for tests only).
+# Locked A4 inbox policy (runtime defaults; env override for tests only).
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50
 USER_VISIBLE_HISTORY_DAYS = int(
-    os.getenv("SEDI_A3_INBOX_VISIBLE_DAYS", "180")
+    os.getenv("SEDI_A3_INBOX_VISIBLE_DAYS", "10")
 )
 
 
@@ -64,7 +65,7 @@ def apply_sent_history_filters(
     *,
     now: Optional[datetime] = None,
 ) -> Query:
-    """Filter to normal A3 user history: FCM sent + sent_at present + within window."""
+    """Filter to Inbox: FCM sent + sent_at present + within window + not hidden."""
     cutoff = visible_cutoff(now)
     return query.filter(
         Notification.is_sent.is_(True),
@@ -72,6 +73,7 @@ def apply_sent_history_filters(
         Notification.provider == "fcm",
         Notification.sent_at.isnot(None),
         Notification.sent_at >= cutoff,
+        Notification.inbox_hidden_at.is_(None),
     )
 
 

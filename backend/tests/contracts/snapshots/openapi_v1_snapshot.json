@@ -5965,6 +5965,26 @@
         "title": "NotificationChannelsUpdate",
         "type": "object"
       },
+      "NotificationInboxHideRequest": {
+        "description": "Request body for POST /notifications/inbox/hide.",
+        "properties": {
+          "notification_ids": {
+            "description": "Owner notification IDs to hide from Inbox (max 50, duplicates ok)",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Notification Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notification_ids"
+        ],
+        "title": "NotificationInboxHideRequest",
+        "type": "object"
+      },
       "NotificationPrefsUpdate": {
         "properties": {
           "channels": {
@@ -14885,7 +14905,7 @@
     },
     "/notifications": {
       "get": {
-        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.\nOrder: sent_at DESC, id DESC. Cursor pagination (no offset).",
+        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 10-day visible window,\ninbox_hidden_at IS NULL. Order: sent_at DESC, id DESC. Cursor pagination (no offset).",
         "operationId": "get_notifications_notifications_get",
         "parameters": [
           {
@@ -14967,7 +14987,7 @@
     },
     "/notifications/": {
       "get": {
-        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 180-day visible window.\nOrder: sent_at DESC, id DESC. Cursor pagination (no offset).",
+        "description": "A3 Smart Notifications Inbox (G1): successfully sent history only.\n\nFilters: is_sent=true, sent_at IS NOT NULL, within 10-day visible window,\ninbox_hidden_at IS NULL. Order: sent_at DESC, id DESC. Cursor pagination (no offset).",
         "operationId": "get_notifications_notifications__get",
         "parameters": [
           {
@@ -15637,6 +15657,53 @@
           }
         },
         "summary": "Deliver Pending Notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/inbox/hide": {
+      "post": {
+        "description": "Hide owned notifications from Inbox (sets inbox_hidden_at).\n\nNever hard-deletes Notification / Feedback / InteractionEvent rows.\nDoes not mark read and does not invent READ interactions.\nFail-closed on any cross-user or missing id (no partial mutation).",
+        "operationId": "hide_inbox_notifications_notifications_inbox_hide_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationInboxHideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Hide Inbox Notifications",
         "tags": [
           "Notifications"
         ]
