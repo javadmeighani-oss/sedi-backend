@@ -106,7 +106,7 @@ jobs:
           START_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.start_scheduler))")"
           MORNING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_morning_notifications))")"
           INACT_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_inactivity_notifications))")"
-          PING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.services.notification_engine import NotificationEngine; print(inspect.getsource(NotificationEngine.create_connection_ping))")"
+          PING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.services.notification_engine import DecisionEngine; print(inspect.getsource(DecisionEngine.create_connection_ping))" )"
           MAX_PER_DAY="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_MAX_PER_DAY)")"
           IDLE_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.INACTIVE_HOURS)")"
           COOL_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_COOLDOWN_HOURS)")"
