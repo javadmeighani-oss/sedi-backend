@@ -24,15 +24,15 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "texts": {
             "fa": {
                 "title": "سلام",
-                "message": "یک لحظه سراغت اومدم؛ امروز حالت چطوره؟ 🌿",
+                "message": "امروز حالت چطور است؟ هر وقت آماده بودی با صدی ادامه بده.",
             },
             "en": {
                 "title": "Hello",
-                "message": "Just checking in — how are you feeling today? 🌿",
+                "message": "How are you today? Continue with Sedi when ready.",
             },
             "ar": {
                 "title": "مرحباً",
-                "message": "مررت لأطمئن عليك؛ كيف حالك اليوم؟ 🌿",
+                "message": "كيف حالك اليوم؟ تابع مع صدی عندما تكون مستعدًا.",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,
@@ -47,15 +47,15 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "texts": {
             "fa": {
                 "title": "تحرک",
-                "message": "یه قدم کوچیک بردار؛ بدنت ممنون میشه. 💚",
+                "message": "یک قدم کوچک بردار؛ بدنت ممنون می‌شود.",
             },
             "en": {
                 "title": "Move a little",
-                "message": "Take a small step; your body will thank you. 💚",
+                "message": "Take a small step when you can.",
             },
             "ar": {
                 "title": "تحرك قليلاً",
-                "message": "خذ خطوة صغيرة؛ سيشكرك جسدك. 💚",
+                "message": "خذ خطوة صغيرة عندما تستطيع.",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,

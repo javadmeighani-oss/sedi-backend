@@ -209,6 +209,17 @@ def _presence_continuation_opener(
     return generics.get(lang, generics["en"])
 
 
+def _daily_digest_opener(*, lang: str, name: Optional[str]) -> str:
+    """Calm family-specific opener for DAILY_WELLNESS_DIGEST (no raw body)."""
+    prefix = _notification_name_prefix(name, lang)
+    templates = {
+        "en": f"{prefix}Ready for your daily Sedi check-in?".strip(),
+        "fa": f"{prefix}برای پیگیری روزانه صدی آماده‌ای؟".strip(),
+        "ar": f"{prefix}هل أنت مستعد للمتابعة اليومية مع صدی؟".strip(),
+    }
+    return templates.get(lang, templates["en"])
+
+
 def _generic_notification_origin_opener(*, lang: str, name: Optional[str]) -> str:
     prefix = _notification_name_prefix(name, lang)
     templates = {
@@ -230,6 +241,7 @@ def build_notification_origin_opener(
     """Bounded localized opener from verified notification origin.
 
     Uses privacy-safe I7 coarse topic for PRESENCE_REENGAGEMENT when available.
+    DAILY_WELLNESS_DIGEST gets a calm family-specific opener.
     Never injects raw notification body/context_json.
     """
     from backend.app.services.i10.policy_types import I10SemanticFamily
@@ -237,6 +249,9 @@ def build_notification_origin_opener(
     lang = language if language in ("en", "fa", "ar") else "en"
     name = preferred_name if preferred_name is not None else getattr(user, "name", None)
     family = (notification.semantic_family or "").strip()
+
+    if family == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value:
+        return _daily_digest_opener(lang=lang, name=name)
 
     if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:
         topic_phrase = None

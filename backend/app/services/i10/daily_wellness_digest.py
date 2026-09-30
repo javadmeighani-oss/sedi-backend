@@ -84,6 +84,26 @@ _DIGEST_TITLES = {
     "ar": ("متابعة الصحة اليومية", "تفقدك اليومي مع صدی", "اليوم مع صدی"),
 }
 
+# A4 final: GENERAL_CHECKIN is a single deterministic check-in (no rotation).
+_GENERAL_CHECKIN_TITLES = {
+    "en": "Daily Sedi check-in",
+    "fa": "پیگیری روزانه صدی",
+    "ar": "المتابعة اليومية مع صدی",
+}
+
+_GENERAL_CHECKIN_BODIES = {
+    "en": "One calm touchpoint for today. Continue with Sedi when ready.",
+    "fa": "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده.",
+    "ar": "لمسة هادئة واحدة لليوم. تابع مع صدی عندما تكون مستعدًا.",
+}
+
+# Legacy multi-variant pools kept only for non-general families / compatibility imports.
+_GENERAL_BODIES = {
+    "en": (_GENERAL_CHECKIN_BODIES["en"],),
+    "fa": (_GENERAL_CHECKIN_BODIES["fa"],),
+    "ar": (_GENERAL_CHECKIN_BODIES["ar"],),
+}
+
 _NO_DATA_BODIES = {
     "en": (
         "No new health observations are available yet today. Open Sedi when you are ready to check in.",
@@ -568,7 +588,8 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
     if facts.content_family == DailySmartContentFamily.I6_I7_CONTEXT:
         return _body(_I6_I7_BODIES)
     if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
-        return _body(_GENERAL_BODIES)
+        lang = _norm_lang(language)
+        return _GENERAL_CHECKIN_BODIES.get(lang) or _GENERAL_CHECKIN_BODIES["en"]
 
     # I9_OBSERVATION
     if facts.data_status == DailyWellnessDataStatus.NO_DATA:
@@ -590,6 +611,9 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
 
 
 def render_digest_title(facts: DailyWellnessDigestFacts, language: str = "en") -> str:
+    lang = _norm_lang(language)
+    if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
+        return _GENERAL_CHECKIN_TITLES.get(lang) or _GENERAL_CHECKIN_TITLES["en"]
     local_day = facts.local_period_date or facts.observation_period_start.date()
     return _pick_variant(
         _DIGEST_TITLES,

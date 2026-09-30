@@ -148,6 +148,7 @@ def test_a4_deterministic_variant_stable_same_seed(db, gate4_patch):
 
 
 def test_a4_variant_differs_across_dates(db, gate4_patch):
+    """GENERAL_CHECKIN is fixed; same body across adjacent days."""
     user = _user(db, "var2")
     f1 = assemble_daily_wellness_digest_facts(
         db, user_id=user.id, when=datetime(2026, 9, 9, 9, 0, 0)
@@ -155,9 +156,7 @@ def test_a4_variant_differs_across_dates(db, gate4_patch):
     f2 = assemble_daily_wellness_digest_facts(
         db, user_id=user.id, when=datetime(2026, 9, 10, 9, 0, 0)
     )
-    # Same family general → variant seed includes date; may differ across dates
-    bodies = {render_digest_body(f1, "en"), render_digest_body(f2, "en")}
-    assert len(bodies) >= 1
+    assert render_digest_body(f1, "en") == render_digest_body(f2, "en")
 
 
 def test_a4_reengagement_4h_chat_only(db, gate4_patch):

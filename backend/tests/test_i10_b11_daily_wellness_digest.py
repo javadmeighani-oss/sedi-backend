@@ -693,10 +693,13 @@ def test_a4_closure_occurrence_uses_user_local_date_tehran(db, gate4_patch, morn
 
 
 def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
+    """GENERAL_CHECKIN uses fixed canonical copy (stable across adjacent local days)."""
     from backend.app.services.i10.daily_wellness_digest import (
         DailySmartContentFamily,
+        _GENERAL_CHECKIN_BODIES,
         assemble_daily_wellness_digest_facts,
         render_digest_body,
+        render_digest_title,
     )
 
     user, _ = _self_setup(db, name="adj-var")
@@ -708,9 +711,9 @@ def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
     )
     assert f1.content_family == DailySmartContentFamily.GENERAL_CHECKIN
     assert f2.content_family == DailySmartContentFamily.GENERAL_CHECKIN
-    b1 = render_digest_body(f1, "en")
-    b2 = render_digest_body(f2, "en")
-    assert b1 != b2
+    assert render_digest_body(f1, "en") == render_digest_body(f2, "en") == _GENERAL_CHECKIN_BODIES["en"]
+    assert render_digest_title(f1, "fa") == "پیگیری روزانه صدی"
+    assert render_digest_body(f1, "fa") == _GENERAL_CHECKIN_BODIES["fa"]
 
 
 def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):
@@ -1082,6 +1085,8 @@ def test_a4_brand_copy_canonical_sedi():
     from backend.app.services.i10.daily_wellness_digest import (
         _DIGEST_TITLES,
         _GENERAL_BODIES,
+        _GENERAL_CHECKIN_BODIES,
+        _GENERAL_CHECKIN_TITLES,
         _I6_I7_BODIES,
         _I8_BODIES,
         _I9_PARTIAL_BODIES,
@@ -1111,6 +1116,9 @@ def test_a4_brand_copy_canonical_sedi():
     fa_blob = " ".join(" ".join(p.get("fa", ())) for p in pools)
     ar_blob = " ".join(" ".join(p.get("ar", ())) for p in pools)
     en_blob = " ".join(" ".join(p.get("en", ())) for p in pools)
+    fa_blob += " " + _GENERAL_CHECKIN_TITLES["fa"] + " " + _GENERAL_CHECKIN_BODIES["fa"]
+    ar_blob += " " + _GENERAL_CHECKIN_TITLES["ar"] + " " + _GENERAL_CHECKIN_BODIES["ar"]
+    en_blob += " " + _GENERAL_CHECKIN_TITLES["en"] + " " + _GENERAL_CHECKIN_BODIES["en"]
 
     assert fa_wrong not in fa_blob
     assert brand_fa_ar in fa_blob

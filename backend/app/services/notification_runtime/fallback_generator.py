@@ -47,13 +47,10 @@ def generate_fallback_text(
         else:
             lang = "fa"
 
-        # Resolve greeting name based on language
-        if lang == "fa":
-            greeting_name = user_name or "عزیزم"
-        elif lang == "ar":
-            greeting_name = user_name or "عزيزي"
-        else:  # en
-            greeting_name = user_name or "dear"
+        # Prefer real name; never default to عزیزم / dear / عزيزي.
+        greeting_name = (user_name or "").strip() or (
+            "friend" if lang == "en" else ""
+        )
 
         if payload.type == "morning_brief":
             return _generate_morning_brief(greeting_name, lang, memory_context)
@@ -77,7 +74,7 @@ def _generate_morning_brief(
     """Generate morning brief notification text in specified language"""
     
     if language == "fa":
-        base = f"صبح بخیر {greeting_name} 🌅"
+        base = f"صبح بخیر {greeting_name}"
         hints = []
         
         if memory_context:
@@ -102,7 +99,7 @@ def _generate_morning_brief(
             return f"{base} روز خوبی داشته باشی."
     
     elif language == "ar":
-        base = f"صباح الخير {greeting_name} 🌅"
+        base = f"صباح الخير {greeting_name}"
         hints = []
         
         if memory_context:
@@ -127,7 +124,7 @@ def _generate_morning_brief(
             return f"{base} أتمنى لك يوماً جميلاً."
     
     else:  # en
-        base = f"Good morning {greeting_name} 🌅"
+        base = f"Good morning {greeting_name}"
         hints = []
         
         if memory_context:
@@ -158,30 +155,31 @@ def _generate_connection_ping(
     memory_context: Optional[MemoryContext]
 ) -> str:
     """Generate connection ping notification text in specified language"""
-    
+    name = (greeting_name or "").strip()
+
     if language == "fa":
-        base = f"سلام {greeting_name}"
+        prefix = f"سلام {name}، " if name else "سلام، "
         if memory_context and memory_context.has_activity_data():
-            check_in = "چطوره؟ یه کم حرکت کنی خوبه"
+            check_in = "چطوره؟ کمی حرکت هم می‌تواند کمک کند"
         else:
-            check_in = "همه چی خوبه؟"
-        return f"{base}، {check_in} 🌿"
-    
+            check_in = "همه چیز خوب است؟ هر وقت آماده بودی با صدی ادامه بده"
+        return f"{prefix}{check_in}."
+
     elif language == "ar":
-        base = f"مرحباً {greeting_name}"
+        prefix = f"مرحباً {name}، " if name else "مرحباً، "
         if memory_context and memory_context.has_activity_data():
-            check_in = "كيف حالك؟ القليل من الحركة سيكون جيداً"
+            check_in = "كيف حالك؟ القليل من الحركة قد يساعد"
         else:
-            check_in = "هل كل شيء على ما يرام؟"
-        return f"{base}، {check_in} 🌿"
-    
+            check_in = "هل كل شيء على ما يرام؟ تابع مع صدی عندما تكون مستعدًا"
+        return f"{prefix}{check_in}."
+
     else:  # en
-        base = f"Hello {greeting_name}"
+        prefix = f"Hello {name}, " if name else "Hello, "
         if memory_context and memory_context.has_activity_data():
-            check_in = "how are you? a little movement would be good"
+            check_in = "how are you? a little movement can help"
         else:
-            check_in = "is everything okay?"
-        return f"{base}, {check_in} 🌿"
+            check_in = "how are you? Continue with Sedi when ready"
+        return f"{prefix}{check_in}."
 
 
 def _generate_health_alert(
@@ -203,7 +201,7 @@ def _generate_health_alert(
         base = f"سلام {greeting_name}، یه نکته مهم"
         
         if alert_reason:
-            return f"{base}: {alert_reason} 🌿"
+            return f"{base}: {alert_reason}"
         elif alert_code:
             alert_messages = {
                 "heart_rate_high": "ضربان قلبت بالاست",
@@ -216,15 +214,15 @@ def _generate_health_alert(
             alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
             alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "یه تغییر در وضعیت سلامتت دیده شده")
-            return f"{base}: {reason}. بهتره بررسی کنی 🌿"
+            return f"{base}: {reason}. بهتره بررسی کنی"
         else:
-            return f"{base}: بهتره وضعیت سلامتت رو بررسی کنی 🌿"
+            return f"{base}: بهتره وضعیت سلامتت رو بررسی کنی"
     
     elif language == "ar":
         base = f"مرحباً {greeting_name}، ملاحظة مهمة"
         
         if alert_reason:
-            return f"{base}: {alert_reason} 🌿"
+            return f"{base}: {alert_reason}"
         elif alert_code:
             alert_messages = {
                 "heart_rate_high": "نبضك مرتفع",
@@ -237,15 +235,15 @@ def _generate_health_alert(
             alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
             alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "تم ملاحظة تغيير في حالتك الصحية")
-            return f"{base}: {reason}. من الأفضل أن تتحقق 🌿"
+            return f"{base}: {reason}. من الأفضل أن تتحقق"
         else:
-            return f"{base}: من الأفضل أن تتحقق من حالتك الصحية 🌿"
+            return f"{base}: من الأفضل أن تتحقق من حالتك الصحية"
     
     else:  # en
         base = f"Hello {greeting_name}, an important note"
         
         if alert_reason:
-            return f"{base}: {alert_reason} 🌿"
+            return f"{base}: {alert_reason}"
         elif alert_code:
             alert_messages = {
                 "heart_rate_high": "your heart rate is elevated",
@@ -258,9 +256,9 @@ def _generate_health_alert(
             alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
             alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "a change in your health status was detected")
-            return f"{base}: {reason}. you should check 🌿"
+            return f"{base}: {reason}. you should check"
         else:
-            return f"{base}: you should check your health status 🌿"
+            return f"{base}: you should check your health status"
 
 
 def _generate_device_disconnected(
@@ -271,18 +269,18 @@ def _generate_device_disconnected(
     """Generate device disconnected notification text in specified language"""
     device_id = (metadata or {}).get("device_id", "device")
     if language == "fa":
-        return f"سلام {greeting_name}، اتصال دستگاه ({device_id}) قطع شده. وقتی می‌تونی دوباره وصلش کن 🌿"
+        return f"سلام {greeting_name}، اتصال دستگاه ({device_id}) قطع شده. وقتی می‌تونی دوباره وصلش کن"
     elif language == "ar":
-        return f"مرحباً {greeting_name}، انقطع اتصال الجهاز ({device_id}). أعد الاتصال عندما تستطيع 🌿"
+        return f"مرحباً {greeting_name}، انقطع اتصال الجهاز ({device_id}). أعد الاتصال عندما تستطيع"
     else:  # en
-        return f"Hello {greeting_name}, your device ({device_id}) has been disconnected. Reconnect when you can 🌿"
+        return f"Hello {greeting_name}, your device ({device_id}) has been disconnected. Reconnect when you can"
 
 
 def _get_fallback_greeting(greeting_name: str, language: SupportedLanguage) -> str:
     """Get fallback greeting for unknown notification types"""
     if language == "fa":
-        return f"سلام {greeting_name}، امیدوارم حالت خوب باشه 🌿"
+        return f"سلام {greeting_name}، امیدوارم حالت خوب باشه"
     elif language == "ar":
-        return f"مرحباً {greeting_name}، أتمنى أن تكون بخير 🌿"
+        return f"مرحباً {greeting_name}، أتمنى أن تكون بخير"
     else:  # en
-        return f"Hello {greeting_name}, I hope you're doing well 🌿"
+        return f"Hello {greeting_name}, I hope you're doing well"

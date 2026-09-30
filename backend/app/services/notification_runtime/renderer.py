@@ -184,12 +184,21 @@ def _morning_title(lang: str) -> str:
 
 
 def _morning_greeting(lang: str, name: Optional[str]) -> str:
-    n = name or ({"fa": "عزیزم", "ar": "عزيزي", "en": "dear"}.get(lang, "dear"))
-    return {"fa": f"صبح بخیر {n} 🌅", "ar": f"صباح الخير {n} 🌅", "en": f"Good morning {n} 🌅"}.get(lang, f"Good morning {n} 🌅")
+    """Calm morning greeting — no default pet-name, no decorative emoji."""
+    n = (name or "").strip()
+    if lang == "fa":
+        return f"صبح بخیر {n}".strip()
+    if lang == "ar":
+        return f"صباح الخير {n}".strip()
+    return f"Good morning {n}".strip() if n else "Good morning"
 
 
 def _morning_cta(lang: str) -> str:
-    return {"fa": " روز خوبی داشته باشی.", "ar": " أتمنى لك يوماً جميلاً.", "en": " Have a wonderful day."}.get(lang, " Have a wonderful day.")
+    return {
+        "fa": " روز خوبی داشته باشی.",
+        "ar": " أتمنى لك يوماً جميلاً.",
+        "en": " Have a good day.",
+    }.get(lang, " Have a good day.")
 
 
 def _render_engagement(lang: str, name: Optional[str], inputs: Dict[str, Any]) -> tuple:
@@ -198,29 +207,35 @@ def _render_engagement(lang: str, name: Optional[str], inputs: Dict[str, Any]) -
         body = _engagement_with_topic(lang, name, topic)
     else:
         body = _engagement_short(lang, name)
-    title = {"fa": "سلام", "ar": "مرحباً", "en": "Hello"}.get(lang, "Hello")
+    title = {"fa": "سلام از صدی", "ar": "تحية من صدی", "en": "Hello from Sedi"}.get(lang, "Hello from Sedi")
     return title, body
 
 
 def _engagement_short(lang: str, name: Optional[str]) -> str:
-    n = name or ({"fa": "عزیزم", "ar": "عزيزي", "en": "dear"}.get(lang, "dear"))
-    texts = {
-        "fa": f"سلام {n}، همه چی خوبه؟ 🌿",
-        "ar": f"مرحباً {n}، هل كل شيء على ما يرام؟ 🌿",
-        "en": f"Hello {n}, how are you? 🌿",
-    }
-    return texts.get(lang, texts["en"])
+    """Presence reengagement body — calm, no pet-name default, no emoji."""
+    n = (name or "").strip()
+    if lang == "fa":
+        prefix = f"{n}، " if n else ""
+        return f"{prefix}همه چیز خوب است؟ هر وقت آماده بودی با صدی ادامه بده."
+    if lang == "ar":
+        prefix = f"{n}، " if n else ""
+        return f"{prefix}هل كل شيء على ما يرام؟ تابع مع صدی عندما تكون مستعدًا."
+    prefix = f"{n}, " if n else ""
+    return f"{prefix}How are you? Continue with Sedi when ready."
 
 
 def _engagement_with_topic(lang: str, name: Optional[str], topic: str) -> str:
     """Natural continuation with a privacy-safe coarse topic only (never raw chat)."""
-    n = name or ({"fa": "عزیزم", "ar": "عزيزي", "en": "dear"}.get(lang, "dear"))
+    n = (name or "").strip()
     t = topic[:40]
     if lang == "fa":
-        return f"{n}، آخرین بار درباره {t} صحبت می‌کردیم. می‌خوای ادامه بدیم؟"
+        prefix = f"{n}، " if n else ""
+        return f"{prefix}آخرین بار درباره {t} صحبت می‌کردیم. می‌خواهی ادامه بدهیم؟"
     if lang == "ar":
-        return f"{n}، آخر مرة تحدثنا عن {t}. هل تريد أن نكمل؟"
-    return f"{n}, last time we were talking about {t}. Want to continue?"
+        prefix = f"{n}، " if n else ""
+        return f"{prefix}آخر مرة تحدثنا عن {t}. هل تريد أن نكمل؟"
+    prefix = f"{n}, " if n else ""
+    return f"{prefix}last time we were talking about {t}. Want to continue?"
 
 
 def _render_health_alert(lang: str, name: Optional[str], inputs: Dict[str, Any], priority: str) -> tuple:

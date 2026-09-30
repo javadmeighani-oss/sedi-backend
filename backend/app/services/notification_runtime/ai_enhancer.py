@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 # Environment flag for AI enhancement (default: False)
 NOTIF_AI_ENHANCE = os.getenv("NOTIF_AI_ENHANCE", "false").lower() in ("true", "1", "yes")
 
+# Canonical V1 Smart Notification types — never free-form AI rewritten.
+_V1_CANONICAL_NO_AI_TYPES = frozenset(
+    {
+        "connection_ping",
+        "morning_brief",
+        "engagement_nudge",
+    }
+)
+
 
 def _payload_language(payload: NotificationPayload) -> str:
     """Prefer persisted payload language; never hard-code FA."""
@@ -27,15 +36,32 @@ def _payload_language(payload: NotificationPayload) -> str:
     return "en"
 
 
+def _is_canonical_v1_push(payload: NotificationPayload) -> bool:
+    """True when payload is a V1 smart-notification path that must keep deterministic copy."""
+    if payload.type in _V1_CANONICAL_NO_AI_TYPES:
+        return True
+    meta = payload.metadata or {}
+    if str(meta.get("alert_code") or "").strip() == "daily_wellness_digest":
+        return True
+    if str(getattr(payload, "template_key", None) or "").strip() == "daily_wellness_digest":
+        return True
+    return False
+
+
 def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
     """
     Safely enhance notification payload with AI if enabled (Stage 16.6.4).
 
     Guardrails: health_alert with priority high/critical -> no AI.
+    Canonical V1 smart notifications (daily digest / presence / legacy morning
+    & engagement nudge) are never rewritten even when NOTIF_AI_ENHANCE=true.
     Never changes medical meaning; tone only; bounded length.
     Language follows payload metadata (en/fa/ar) — not hard-coded FA.
     """
     if not NOTIF_AI_ENHANCE:
+        return payload
+
+    if _is_canonical_v1_push(payload):
         return payload
 
     # Stage 16.6.4: Health alerts - AI disabled unless priority=normal
@@ -56,8 +82,8 @@ def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
         ai_type = ai_type_map.get(payload.type, "health_check")
         language = _payload_language(payload)
 
-        # Neutral default name by language (not FA-only).
-        user_name = {"fa": "عزیزم", "ar": "عزيزي", "en": "friend"}.get(language, "friend")
+        # Neutral default — never عزیزم / dear / عزيزي.
+        user_name = "friend"
 
         health_summary = None
         hours_since = None

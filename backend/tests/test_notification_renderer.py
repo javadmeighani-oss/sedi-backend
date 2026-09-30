@@ -26,18 +26,23 @@ def test_render_morning_returns_valid_for_en_fa_ar():
     # en-specific check
     en_out = render("morning", "en", inputs={})
     assert "Good Morning" in en_out["title"]
-    assert "dear" in en_out["body"] or "Good morning" in en_out["body"]
+    assert "Good morning" in en_out["body"]
+    assert "dear" not in en_out["body"].lower()
+    assert "🌅" not in en_out["body"]
 
 
 def test_render_engagement_with_and_without_topic():
     """Test engagement channel with optional last_topic_hint."""
     out = render("engagement", "en", inputs={})
-    assert out["title"] == "Hello"
+    assert "Sedi" in out["title"]
     assert len(out["body"]) > 0
+    assert "🌿" not in out["body"]
+    assert "dear" not in out["body"].lower()
     assert "actions_json" in out
 
     out_with_topic = render("engagement", "fa", inputs={"last_topic_hint": "sleep"})
     assert "sleep" in out_with_topic["body"]
+    assert "عزیزم" not in out_with_topic["body"]
     assert "سلام" in out_with_topic["title"]
 
 
