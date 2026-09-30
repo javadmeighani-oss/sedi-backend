@@ -8,7 +8,6 @@ but are excluded. Hide is projection-only (inbox_hidden_at); never hard-delete.
 from __future__ import annotations
 
 import base64
-import os
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -17,12 +16,10 @@ from sqlalchemy.orm import Query, Session
 
 from backend.app.models import Notification
 
-# Locked A4 inbox policy (runtime defaults; env override for tests only).
+# Locked A4 inbox policy — fixed 10-day visible window (no env override).
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50
-USER_VISIBLE_HISTORY_DAYS = int(
-    os.getenv("SEDI_A3_INBOX_VISIBLE_DAYS", "10")
-)
+USER_VISIBLE_HISTORY_DAYS = 10
 
 
 def visible_cutoff(now: Optional[datetime] = None) -> datetime:
