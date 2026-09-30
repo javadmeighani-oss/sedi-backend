@@ -1,0 +1,230 @@
+# A4 post-promote production readonly verification (workflow_dispatch only).
+# No env mutation, no FCM send, no synthetic notifications, no DB mutation.
+name: A4 Post-Promote Production Readonly
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_IMAGE_TAG: 49f602d0fa50f4a2b1db50dd559f3cf44fb9ac7c
+  EXPECTED_REGISTRY_DIGEST: sha256:7fc38ca0e85e1b4305ffb76ec51c562a6ba983405278fedf7a3cb4f81c0e5a3c
+  EXPECTED_ALEMBIC: 087_a4_notification_inbox_visibility
+  EXPECTED_FA_TITLE: "پیگیری روزانه صدی"
+  EXPECTED_FA_BODY: "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
+
+jobs:
+  a4-readonly-verify:
+    name: A4 production readonly verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run A4 readonly production verify
+        env:
+          EXPECTED_IMAGE_TAG: ${{ env.EXPECTED_IMAGE_TAG }}
+          EXPECTED_REGISTRY_DIGEST: ${{ env.EXPECTED_REGISTRY_DIGEST }}
+          EXPECTED_ALEMBIC: ${{ env.EXPECTED_ALEMBIC }}
+          EXPECTED_FA_TITLE: ${{ env.EXPECTED_FA_TITLE }}
+          EXPECTED_FA_BODY: ${{ env.EXPECTED_FA_BODY }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          TAG_Q="$(printf '%q' "${EXPECTED_IMAGE_TAG}")"
+          DIGEST_Q="$(printf '%q' "${EXPECTED_REGISTRY_DIGEST}")"
+          ALEMBIC_Q="$(printf '%q' "${EXPECTED_ALEMBIC}")"
+          TITLE_Q="$(printf '%q' "${EXPECTED_FA_TITLE}")"
+          BODY_Q="$(printf '%q' "${EXPECTED_FA_BODY}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_TAG=${TAG_Q} EXPECTED_DIGEST=${DIGEST_Q} EXPECTED_ALEMBIC=${ALEMBIC_Q} EXPECTED_FA_TITLE=${TITLE_Q} EXPECTED_FA_BODY=${BODY_Q} bash -s" \
+            2>&1 | tee /tmp/a4_postpromote_readonly.log <<'REMOTE'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "A4VERIFY_SUMMARY|$1|$2"; }
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          cd "${DEPLOY_PATH}"
+
+          RUNNING_IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          RUNNING_ID="$(docker inspect sedi-backend --format '{{.Image}}')"
+          OCI_REV="$(docker image inspect "${RUNNING_ID}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || true)"
+          summary "running_image" "${RUNNING_IMG}"
+          summary "running_image_id" "${RUNNING_ID}"
+          summary "oci_revision" "${OCI_REV:-none}"
+          echo "${RUNNING_IMG}" | grep -Fq ":${EXPECTED_TAG}"
+          [ "${OCI_REV}" = "${EXPECTED_TAG}" ] || [ -z "${OCI_REV}" ]
+
+          PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+          PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_REV="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_count" "${ALEMBIC_COUNT}"
+          summary "alembic_revision" "${ALEMBIC_REV}"
+          [ "${ALEMBIC_COUNT}" = "1" ]
+          [ "${ALEMBIC_REV}" = "${EXPECTED_ALEMBIC}" ]
+
+          HIDDEN_COL="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='inbox_hidden_at') THEN 'YES' ELSE 'NO' END")"
+          summary "inbox_hidden_at" "${HIDDEN_COL}"
+          [ "${HIDDEN_COL}" = "YES" ]
+
+          curl -fsS http://127.0.0.1:8000/health; echo
+          curl -fsS http://127.0.0.1:8000/healthz; echo
+          curl -fsS https://api.sedi-ai.com/health; echo
+          curl -fsS https://api.sedi-ai.com/healthz; echo
+          summary "health" "PASS"
+          summary "healthz" "PASS"
+
+          PROVIDER="$(docker exec sedi-backend printenv SEDI_NOTIFICATION_PROVIDER_DELIVERY_ENABLED 2>/dev/null || true)"
+          summary "provider_delivery_enabled" "${PROVIDER}"
+          [ "${PROVIDER}" = "true" ]
+
+          # Scheduler enabled: APScheduler running inside container (no flag flip).
+          SCHED_LOG="$(docker logs --since 2h sedi-backend 2>&1 | grep -F 'Background scheduler started successfully' | tail -n1 || true)"
+          summary "scheduler_started_line_present" "$([ -n "${SCHED_LOG}" ] && echo YES || echo NO)"
+          [ -n "${SCHED_LOG}" ]
+
+          JOBS="$(docker exec sedi-backend python - <<'PY'
+          from backend.app.core.scheduler import scheduler
+          ids = sorted(j.id for j in scheduler.get_jobs())
+          print("JOBS=" + ",".join(ids))
+          print("HAS_ENGAGEMENT_NUDGE=" + ("YES" if "engagement_nudge" in ids else "NO"))
+          print("HAS_MORNING_NOTIFICATIONS=" + ("YES" if "morning_notifications" in ids else "NO"))
+          print("HAS_INACTIVITY=" + ("YES" if "inactivity_notifications" in ids else "NO"))
+          PY
+          )"
+          echo "${JOBS}"
+          summary "scheduler_jobs" "$(echo "${JOBS}" | grep '^JOBS=' | cut -d= -f2-)"
+          echo "${JOBS}" | grep -Fq 'HAS_ENGAGEMENT_NUDGE=NO'
+          echo "${JOBS}" | grep -Fq 'HAS_MORNING_NOTIFICATIONS=YES'
+          echo "${JOBS}" | grep -Fq 'HAS_INACTIVITY=YES'
+          summary "legacy_engagement_nudge_scheduled" "NO"
+          # morning_brief job id is not scheduled; morning_notifications runs daily digest only.
+          MORNING_SRC="$(docker exec sedi-backend python - <<'PY'
+          import inspect
+          from backend.app.core import scheduler as sched
+          src = inspect.getsource(sched.run_morning_notifications)
+          print("CREATES_MORNING_BRIEF=" + ("YES" if "create_morning_brief" in src else "NO"))
+          print("CREATES_DAILY_DIGEST=" + ("YES" if "create_daily_wellness_digest" in src else "NO"))
+          PY
+          )"
+          echo "${MORNING_SRC}"
+          echo "${MORNING_SRC}" | grep -Fq 'CREATES_MORNING_BRIEF=NO'
+          echo "${MORNING_SRC}" | grep -Fq 'CREATES_DAILY_DIGEST=YES'
+          summary "legacy_morning_brief_scheduled" "NO"
+
+          REENG="$(docker exec sedi-backend python - <<'PY'
+          import inspect
+          from backend.app.core import scheduler as sched
+          from backend.app.services import notification_engine as ne
+          print("REENGAGEMENT_MAX_PER_DAY=" + str(sched.REENGAGEMENT_MAX_PER_DAY))
+          src_inact = inspect.getsource(sched.run_inactivity_notifications)
+          src_ping = inspect.getsource(ne.NotificationEngine.create_connection_ping)
+          print("HAS_4H=" + ("YES" if ("hours=4" in src_ping or "timedelta(hours=4)" in src_ping or "4h" in src_ping.lower() or "hours = 4" in src_ping) else "CHECK"))
+          print("HAS_6H_COOLDOWN=" + ("YES" if ("reengagement_cooldown_hours = 6" in src_ping or "hours=6" in src_ping or "timedelta(hours=6)" in src_ping) else "NO"))
+          print("MAX2_IN_SCHED=" + ("YES" if "REENGAGEMENT_MAX_PER_DAY" in src_inact or "max 2" in src_inact.lower() else "NO"))
+          print("IDLE_4H_GATE=" + ("YES" if "timedelta(hours=4)" in src_inact or "hours=4" in src_inact else "NO"))
+          PY
+          )"
+          echo "${REENG}"
+          echo "${REENG}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY=2'
+          echo "${REENG}" | grep -Fq 'HAS_6H_COOLDOWN=YES'
+          echo "${REENG}" | grep -Eq 'IDLE_4H_GATE=YES|HAS_4H=YES'
+          echo "${REENG}" | grep -Fq 'MAX2_IN_SCHED=YES'
+          summary "reengagement_4h_2pd_6h" "YES"
+
+          # FCM ready: project id + service account present; FCM_DISABLED not true; do not send.
+          FCM_PROJECT="$(docker exec sedi-backend printenv FCM_PROJECT_ID 2>/dev/null || true)"
+          FCM_SA="$(docker exec sedi-backend printenv FCM_SERVICE_ACCOUNT_JSON 2>/dev/null || true)"
+          FCM_DISABLED="$(docker exec sedi-backend printenv FCM_DISABLED 2>/dev/null || true)"
+          FCM_READY=NO
+          case "$(printf '%s' "${FCM_DISABLED}" | tr '[:upper:]' '[:lower:]')" in
+            1|true|yes|on) FCM_DISABLED_ON=YES ;;
+            *) FCM_DISABLED_ON=NO ;;
+          esac
+          if [ -n "${FCM_PROJECT}" ] && [ -n "${FCM_SA}" ] && [ "${FCM_DISABLED_ON}" = "NO" ]; then
+            FCM_READY=YES
+          fi
+          summary "fcm_project_present" "$([ -n "${FCM_PROJECT}" ] && echo YES || echo NO)"
+          summary "fcm_sa_present" "$([ -n "${FCM_SA}" ] && echo YES || echo NO)"
+          summary "fcm_disabled_on" "${FCM_DISABLED_ON}"
+          summary "fcm_ready" "${FCM_READY}"
+          [ "${FCM_READY}" = "YES" ]
+
+          # Inbox 10d + routes from OpenAPI / live module.
+          INBOX="$(docker exec sedi-backend python - <<'PY'
+          from backend.app.services.notifications.inbox_projection import USER_VISIBLE_HISTORY_DAYS
+          print(f"VISIBLE_DAYS={USER_VISIBLE_HISTORY_DAYS}")
+          PY
+          )"
+          echo "${INBOX}"
+          echo "${INBOX}" | grep -Fq 'VISIBLE_DAYS=10'
+          summary "inbox_10d" "YES"
+
+          OPENAPI="$(curl -fsS http://127.0.0.1:8000/openapi.json)"
+          echo "${OPENAPI}" | grep -Fq '"/notifications/inbox/hide"'
+          echo "${OPENAPI}" | grep -Fq '"/notifications/{notification_id}/feedback"'
+          echo "${OPENAPI}" | grep -Fq '"/notifications/unread"'
+          echo "${OPENAPI}" | grep -Fq '"/notifications"'
+          summary "hide_route" "YES"
+          summary "interaction_route" "YES"
+          summary "unread_route" "YES"
+
+          # Canonical FA daily copy exact in deployed image modules.
+          FA="$(docker exec sedi-backend python - <<'PY'
+          import inspect
+          from backend.app.services.i10 import daily_wellness_digest as d
+          src = inspect.getsource(d)
+          title = "پیگیری روزانه صدی"
+          body = "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
+          print("SRC_HAS_TITLE=" + ("YES" if title in src else "NO"))
+          print("SRC_HAS_BODY=" + ("YES" if body in src else "NO"))
+          print("GENERAL_TITLE_FA=" + d._GENERAL_CHECKIN_TITLES.get("fa", ""))
+          print("GENERAL_BODY_FA=" + d._GENERAL_CHECKIN_BODIES.get("fa", ""))
+          PY
+          )"
+          echo "${FA}"
+          echo "${FA}" | grep -Fq 'SRC_HAS_TITLE=YES'
+          echo "${FA}" | grep -Fq 'SRC_HAS_BODY=YES'
+          echo "${FA}" | grep -Fq "GENERAL_TITLE_FA=پیگیری روزانه صدی"
+          echo "${FA}" | grep -Fq "GENERAL_BODY_FA=یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
+          summary "daily_fa_copy_exact" "YES"
+
+          # No FCM send / no synthetic notification creation during this verify.
+          summary "fcm_send_performed" "NO"
+          summary "env_mutated" "NO"
+          summary "registry_digest_expected" "${EXPECTED_DIGEST}"
+          summary "deploy_path_backup_hint" "${DEPLOY_PATH}/backups/postgres"
+
+          log "A4_POSTPROMOTE_READONLY_PASS"
+          REMOTE
+
+          grep -Fq 'A4_POSTPROMOTE_READONLY_PASS' /tmp/a4_postpromote_readonly.log
+          grep -Fq 'A4VERIFY_SUMMARY|alembic_revision|087_a4_notification_inbox_visibility' /tmp/a4_postpromote_readonly.log
+          grep -Fq 'A4VERIFY_SUMMARY|provider_delivery_enabled|true' /tmp/a4_postpromote_readonly.log
+          grep -Fq 'A4VERIFY_SUMMARY|daily_fa_copy_exact|YES' /tmp/a4_postpromote_readonly.log
+          grep -Fq 'A4VERIFY_SUMMARY|fcm_send_performed|NO' /tmp/a4_postpromote_readonly.log
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: a4-postpromote-readonly
+          path: /tmp/a4_postpromote_readonly.log
+          retention-days: 30
