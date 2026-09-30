@@ -1309,10 +1309,18 @@ def submit_notification_feedback(
             status_code=422,
             detail="action_id is required when reaction is 'interact'"
         )
-    from backend.app.services.i10.interaction_recorder import record_notification_interaction
+    from backend.app.services.i10.interaction_recorder import (
+        lock_notification_for_interaction_mutation,
+        record_notification_interaction,
+    )
     from backend.app.services.i10.interaction_vocabulary import (
         CanonicalInteractionVerb,
         resolve_interaction_verb,
+    )
+
+    # After ownership: serialize mutations before dedupe / ledger / read transition.
+    notification = lock_notification_for_interaction_mutation(
+        db, notification_id=notification_id
     )
 
     if resolve_interaction_verb(payload).verb is CanonicalInteractionVerb.DONE:

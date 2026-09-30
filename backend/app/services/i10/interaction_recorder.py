@@ -178,6 +178,29 @@ def _apply_gate4_policy(
         return None
 
 
+def lock_notification_for_interaction_mutation(
+    db: Session,
+    *,
+    notification_id: int,
+) -> Notification:
+    """
+    Serialize interaction mutations on one Notification row (SELECT FOR UPDATE).
+
+    Call after ownership is established and before dedupe / ledger writes, inside
+    the same transaction the feedback endpoint commits.
+    """
+    locked = (
+        db.query(Notification)
+        .filter(Notification.id == notification_id)
+        .with_for_update()
+        .populate_existing()
+        .one_or_none()
+    )
+    if locked is None:
+        raise HTTPException(status_code=404, detail="Notification not found.")
+    return locked
+
+
 def _maybe_mark_read_after_success(
     db: Session,
     *,
@@ -212,7 +235,12 @@ def record_notification_interaction(
 
     A4 P2A: LIKE / DISLIKE / DISLIKE_REASON / TALK_TO_SEDI mark is_read atomically
     after successful ledger write; sequential retries reuse existing rows.
+    A4 P2A.1: row lock serializes concurrent identical actions without schema change.
     """
+    # Hold the notification row lock before any dedupe read or ledger write.
+    notification = lock_notification_for_interaction_mutation(
+        db, notification_id=notification.id
+    )
     resolved = resolve_interaction_verb(payload)
     if resolved.verb is CanonicalInteractionVerb.DONE:
         if not domain_completion_authorized:
@@ -330,6 +358,10 @@ def record_notification_read(
     recipient_user_id: int,
 ) -> Optional[InteractionRecordResult]:
     """Mark notification read and record a single READ interaction event on first transition."""
+    # Re-lock / refresh so concurrent mark-read or action paths see committed state.
+    notification = lock_notification_for_interaction_mutation(
+        db, notification_id=notification.id
+    )
     was_unread = not notification.is_read
     notification.is_read = True
     if not was_unread:

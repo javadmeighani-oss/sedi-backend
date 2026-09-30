@@ -209,6 +209,7 @@ jobs:
             backend/tests/test_notification_inbox_gate4_v1.py \
             backend/tests/test_a4_inbox_visibility_hide.py \
             backend/tests/test_a4_interaction_reliability.py \
+            backend/tests/test_a4_interaction_concurrent_idempotency.py \
             backend/tests/test_gate4_push_channel_routing_v1.py \
             backend/tests/test_gate4_android_data_only_transport.py \
             backend/tests/test_notification_api_b2.py \
