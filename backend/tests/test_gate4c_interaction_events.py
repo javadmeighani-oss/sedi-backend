@@ -451,12 +451,26 @@ def test_feedback_creates_interaction_event(db, user_a, notification_for_a):
     assert fb.action == "like"
     evt = (
         db.query(InteractionEvent)
-        .filter(InteractionEvent.source_notification_id == notification_for_a.id)
+        .filter(
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.event_type == "notification_like",
+        )
         .one()
     )
     assert evt.event_type == "notification_like"
     meta = json.loads(evt.metadata_json)
     assert meta["canonical_verb"] == "LIKE"
+    db.refresh(notification_for_a)
+    assert notification_for_a.is_read is True
+    assert (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.event_type == "notification_read",
+        )
+        .count()
+        == 1
+    )
 
 
 def test_feedback_open_chat_legacy_creates_open_chat_event(db, user_a, notification_for_a):
@@ -471,11 +485,15 @@ def test_feedback_open_chat_legacy_creates_open_chat_event(db, user_a, notificat
     )
     evt = (
         db.query(InteractionEvent)
-        .filter(InteractionEvent.source_notification_id == notification_for_a.id)
-        .order_by(InteractionEvent.id.desc())
-        .first()
+        .filter(
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.event_type == "notification_open_chat",
+        )
+        .one()
     )
     assert evt.event_type == "notification_open_chat"
+    db.refresh(notification_for_a)
+    assert notification_for_a.is_read is True
 
 
 def test_chat_message_event_defaults_text_channel(db, user_a):

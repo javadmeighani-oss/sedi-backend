@@ -140,6 +140,8 @@ def test_failed_interaction_leaves_unread(db):
     u = _user(db, "p2a-fail")
     n = _notif(db, u.id)
     notif_id = n.id
+    assert n.is_read is False
+
     with patch(
         "backend.app.services.i10.interaction_recorder.create_interaction_event",
         side_effect=RuntimeError("forced_ledger_failure"),
@@ -152,12 +154,22 @@ def test_failed_interaction_leaves_unread(db):
                 user_id=None,
                 db=db,
             )
-    db.rollback()
-    n2 = db.query(Notification).filter(Notification.id == notif_id).one()
-    assert n2.is_read is False
-    assert len(_action_events(db, notif_id, "notification_like")) == 0
-    assert len(_action_events(db, notif_id, "notification_read")) == 0
-    assert len(_feedback_rows(db, notif_id, "like")) == 0
+        # Mark-read must not run when the action ledger write fails.
+        assert n.is_read is False
+        db.rollback()
+
+    assert (
+        db.query(NotificationFeedback)
+        .filter(NotificationFeedback.notification_id == notif_id)
+        .count()
+        == 0
+    )
+    assert (
+        db.query(InteractionEvent)
+        .filter(InteractionEvent.source_notification_id == notif_id)
+        .count()
+        == 0
+    )
 
 
 def test_dismiss_does_not_mark_read(client, db):
