@@ -96,58 +96,50 @@ jobs:
           summary "provider_delivery_enabled" "${PROVIDER}"
           [ "${PROVIDER}" = "true" ]
 
-          # Scheduler enabled: APScheduler running inside container (no flag flip).
+          # Scheduler enabled: APScheduler started in running process (log evidence; no flag flip).
           SCHED_LOG="$(docker logs --since 2h sedi-backend 2>&1 | grep -F 'Background scheduler started successfully' | tail -n1 || true)"
           summary "scheduler_started_line_present" "$([ -n "${SCHED_LOG}" ] && echo YES || echo NO)"
           [ -n "${SCHED_LOG}" ]
+          summary "scheduler_enabled" "YES"
 
-          JOBS="$(docker exec sedi-backend python - <<'PY'
-          from backend.app.core.scheduler import scheduler
-          ids = sorted(j.id for j in scheduler.get_jobs())
-          print("JOBS=" + ",".join(ids))
-          print("HAS_ENGAGEMENT_NUDGE=" + ("YES" if "engagement_nudge" in ids else "NO"))
-          print("HAS_MORNING_NOTIFICATIONS=" + ("YES" if "morning_notifications" in ids else "NO"))
-          print("HAS_INACTIVITY=" + ("YES" if "inactivity_notifications" in ids else "NO"))
-          PY
-          )"
-          echo "${JOBS}"
-          summary "scheduler_jobs" "$(echo "${JOBS}" | grep '^JOBS=' | cut -d= -f2-)"
-          echo "${JOBS}" | grep -Fq 'HAS_ENGAGEMENT_NUDGE=NO'
-          echo "${JOBS}" | grep -Fq 'HAS_MORNING_NOTIFICATIONS=YES'
-          echo "${JOBS}" | grep -Fq 'HAS_INACTIVITY=YES'
+          # Job schedule authority from deployed image source (live APScheduler is in-process only).
+          START_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.start_scheduler))")"
+          MORNING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_morning_notifications))")"
+          INACT_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_inactivity_notifications))")"
+          PING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.services.notification_engine import NotificationEngine; print(inspect.getsource(NotificationEngine.create_connection_ping))")"
+          MAX_PER_DAY="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_MAX_PER_DAY)")"
+          IDLE_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.INACTIVE_HOURS)")"
+          COOL_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_COOLDOWN_HOURS)")"
+          summary "inactive_hours" "${IDLE_H}"
+          summary "reengagement_cooldown_hours" "${COOL_H}"
+          summary "reengagement_max_per_day" "${MAX_PER_DAY}"
+          [ "${IDLE_H}" = "4" ]
+          [ "${COOL_H}" = "6" ]
+          [ "${MAX_PER_DAY}" = "2" ]
+
+          echo "${START_SRC}" | grep -Fq 'id="morning_notifications"'
+          echo "${START_SRC}" | grep -Fq 'id="inactivity_notifications"'
+          echo "${START_SRC}" | grep -Fq 'remove_job("engagement_nudge")'
+          # Must not independently schedule engagement_nudge
+          if echo "${START_SRC}" | grep -F 'add_job(' | grep -Fq 'run_engagement_nudge'; then
+            log "engagement_nudge unexpectedly add_job'd"
+            exit 40
+          fi
           summary "legacy_engagement_nudge_scheduled" "NO"
-          # morning_brief job id is not scheduled; morning_notifications runs daily digest only.
-          MORNING_SRC="$(docker exec sedi-backend python - <<'PY'
-          import inspect
-          from backend.app.core import scheduler as sched
-          src = inspect.getsource(sched.run_morning_notifications)
-          print("CREATES_MORNING_BRIEF=" + ("YES" if "create_morning_brief" in src else "NO"))
-          print("CREATES_DAILY_DIGEST=" + ("YES" if "create_daily_wellness_digest" in src else "NO"))
-          PY
-          )"
-          echo "${MORNING_SRC}"
-          echo "${MORNING_SRC}" | grep -Fq 'CREATES_MORNING_BRIEF=NO'
-          echo "${MORNING_SRC}" | grep -Fq 'CREATES_DAILY_DIGEST=YES'
+
+          echo "${MORNING_SRC}" | grep -Fq 'create_daily_wellness_digest'
+          if echo "${MORNING_SRC}" | grep -Fq 'create_morning_brief'; then
+            log "morning_brief unexpectedly created by morning job"
+            exit 41
+          fi
           summary "legacy_morning_brief_scheduled" "NO"
 
-          REENG="$(docker exec sedi-backend python - <<'PY'
-          import inspect
-          from backend.app.core import scheduler as sched
-          from backend.app.services import notification_engine as ne
-          print("REENGAGEMENT_MAX_PER_DAY=" + str(sched.REENGAGEMENT_MAX_PER_DAY))
-          src_inact = inspect.getsource(sched.run_inactivity_notifications)
-          src_ping = inspect.getsource(ne.NotificationEngine.create_connection_ping)
-          print("HAS_4H=" + ("YES" if ("hours=4" in src_ping or "timedelta(hours=4)" in src_ping or "4h" in src_ping.lower() or "hours = 4" in src_ping) else "CHECK"))
-          print("HAS_6H_COOLDOWN=" + ("YES" if ("reengagement_cooldown_hours = 6" in src_ping or "hours=6" in src_ping or "timedelta(hours=6)" in src_ping) else "NO"))
-          print("MAX2_IN_SCHED=" + ("YES" if "REENGAGEMENT_MAX_PER_DAY" in src_inact or "max 2" in src_inact.lower() else "NO"))
-          print("IDLE_4H_GATE=" + ("YES" if "timedelta(hours=4)" in src_inact or "hours=4" in src_inact else "NO"))
-          PY
-          )"
-          echo "${REENG}"
-          echo "${REENG}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY=2'
-          echo "${REENG}" | grep -Fq 'HAS_6H_COOLDOWN=YES'
-          echo "${REENG}" | grep -Eq 'IDLE_4H_GATE=YES|HAS_4H=YES'
-          echo "${REENG}" | grep -Fq 'MAX2_IN_SCHED=YES'
+          [ "${MAX_PER_DAY}" = "2" ]
+          echo "${PING_SRC}" | grep -Fq 'presence_inactive_hours = 4'
+          echo "${PING_SRC}" | grep -Fq 'reengagement_cooldown_hours = 6'
+          echo "${PING_SRC}" | grep -Fq 'reengagement_max_per_local_day = 2'
+          echo "${INACT_SRC}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY'
+          echo "${INACT_SRC}" | grep -Fq 'REENGAGEMENT_COOLDOWN_HOURS'
           summary "reengagement_4h_2pd_6h" "YES"
 
           # FCM ready: project id + service account present; FCM_DISABLED not true; do not send.
@@ -169,13 +161,9 @@ jobs:
           [ "${FCM_READY}" = "YES" ]
 
           # Inbox 10d + routes from OpenAPI / live module.
-          INBOX="$(docker exec sedi-backend python - <<'PY'
-          from backend.app.services.notifications.inbox_projection import USER_VISIBLE_HISTORY_DAYS
-          print(f"VISIBLE_DAYS={USER_VISIBLE_HISTORY_DAYS}")
-          PY
-          )"
-          echo "${INBOX}"
-          echo "${INBOX}" | grep -Fq 'VISIBLE_DAYS=10'
+          INBOX_DAYS="$(docker exec sedi-backend python -c "from backend.app.services.notifications.inbox_projection import USER_VISIBLE_HISTORY_DAYS; print(USER_VISIBLE_HISTORY_DAYS)")"
+          summary "visible_days" "${INBOX_DAYS}"
+          [ "${INBOX_DAYS}" = "10" ]
           summary "inbox_10d" "YES"
 
           OPENAPI="$(curl -fsS http://127.0.0.1:8000/openapi.json)"
@@ -187,24 +175,20 @@ jobs:
           summary "interaction_route" "YES"
           summary "unread_route" "YES"
 
+          # Unread + list share same projection authority.
+          NOTIF_MOD="$(docker exec sedi-backend python -c "import inspect; from backend.app.routers import notifications as n; print(inspect.getsource(n))")"
+          FETCH_COUNT="$(printf '%s' "${NOTIF_MOD}" | grep -c 'fetch_sent_history_page' || true)"
+          summary "fetch_sent_history_page_refs" "${FETCH_COUNT}"
+          [ "${FETCH_COUNT}" -ge 2 ]
+          summary "unread_same_visibility_authority" "YES"
+
           # Canonical FA daily copy exact in deployed image modules.
-          FA="$(docker exec sedi-backend python - <<'PY'
-          import inspect
-          from backend.app.services.i10 import daily_wellness_digest as d
-          src = inspect.getsource(d)
-          title = "پیگیری روزانه صدی"
-          body = "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
-          print("SRC_HAS_TITLE=" + ("YES" if title in src else "NO"))
-          print("SRC_HAS_BODY=" + ("YES" if body in src else "NO"))
-          print("GENERAL_TITLE_FA=" + d._GENERAL_CHECKIN_TITLES.get("fa", ""))
-          print("GENERAL_BODY_FA=" + d._GENERAL_CHECKIN_BODIES.get("fa", ""))
-          PY
-          )"
-          echo "${FA}"
-          echo "${FA}" | grep -Fq 'SRC_HAS_TITLE=YES'
-          echo "${FA}" | grep -Fq 'SRC_HAS_BODY=YES'
-          echo "${FA}" | grep -Fq "GENERAL_TITLE_FA=پیگیری روزانه صدی"
-          echo "${FA}" | grep -Fq "GENERAL_BODY_FA=یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
+          FA_TITLE="$(docker exec sedi-backend python -c "from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_TITLES; print(_GENERAL_CHECKIN_TITLES['fa'])")"
+          FA_BODY="$(docker exec sedi-backend python -c "from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_BODIES; print(_GENERAL_CHECKIN_BODIES['fa'])")"
+          summary "fa_title" "${FA_TITLE}"
+          summary "fa_body" "${FA_BODY}"
+          [ "${FA_TITLE}" = "${EXPECTED_FA_TITLE}" ]
+          [ "${FA_BODY}" = "${EXPECTED_FA_BODY}" ]
           summary "daily_fa_copy_exact" "YES"
 
           # No FCM send / no synthetic notification creation during this verify.
