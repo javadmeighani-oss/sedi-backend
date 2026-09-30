@@ -102,68 +102,64 @@ jobs:
           [ -n "${SCHED_LOG}" ]
           summary "scheduler_enabled" "YES"
 
-          # Job schedule authority from deployed image source (live APScheduler is in-process only).
-          START_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.start_scheduler))")"
-          MORNING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_morning_notifications))")"
-          INACT_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.core import scheduler as s; print(inspect.getsource(s.run_inactivity_notifications))")"
-          PING_SRC="$(docker exec sedi-backend python -c "import inspect; from backend.app.services.notification_engine import DecisionEngine; print(inspect.getsource(DecisionEngine.create_connection_ping))" )"
-          MAX_PER_DAY="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_MAX_PER_DAY)")"
-          IDLE_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.INACTIVE_HOURS)")"
-          COOL_H="$(docker exec sedi-backend python -c "from backend.app.core import scheduler as s; print(s.REENGAGEMENT_COOLDOWN_HOURS)")"
-          summary "inactive_hours" "${IDLE_H}"
-          summary "reengagement_cooldown_hours" "${COOL_H}"
-          summary "reengagement_max_per_day" "${MAX_PER_DAY}"
-          [ "${IDLE_H}" = "4" ]
-          [ "${COOL_H}" = "6" ]
-          [ "${MAX_PER_DAY}" = "2" ]
+          # Job schedule / contract authority from deployed image files (no Python import side-effects).
+          CONST_FILE="$(docker exec sedi-backend grep -E '^(INACTIVE_HOURS|REENGAGEMENT_COOLDOWN_HOURS|REENGAGEMENT_MAX_PER_DAY) =' backend/app/core/scheduler.py)"
+          START_FILE="$(docker exec sedi-backend sed -n '/^def start_scheduler/,/^def [a-z]/p' backend/app/core/scheduler.py)"
+          MORNING_FILE="$(docker exec sedi-backend sed -n '/^def run_morning_notifications/,/^def [a-z]/p' backend/app/core/scheduler.py)"
+          INACT_FILE="$(docker exec sedi-backend sed -n '/^def run_inactivity_notifications/,/^def [a-z]/p' backend/app/core/scheduler.py)"
+          PING_FILE="$(docker exec sedi-backend sed -n '/def create_connection_ping/,/def create_/p' backend/app/services/notification_engine.py)"
 
-          echo "${START_SRC}" | grep -Fq 'id="morning_notifications"'
-          echo "${START_SRC}" | grep -Fq 'id="inactivity_notifications"'
-          echo "${START_SRC}" | grep -Fq 'remove_job("engagement_nudge")'
-          # Must not independently schedule engagement_nudge
-          if echo "${START_SRC}" | grep -F 'add_job(' | grep -Fq 'run_engagement_nudge'; then
+          echo "${CONST_FILE}" | grep -Fq 'INACTIVE_HOURS = 4'
+          echo "${CONST_FILE}" | grep -Fq 'REENGAGEMENT_COOLDOWN_HOURS = 6'
+          echo "${CONST_FILE}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY = 2'
+          summary "inactive_hours" "4"
+          summary "reengagement_cooldown_hours" "6"
+          summary "reengagement_max_per_day" "2"
+
+          echo "${START_FILE}" | grep -Fq 'id="morning_notifications"'
+          echo "${START_FILE}" | grep -Fq 'id="inactivity_notifications"'
+          echo "${START_FILE}" | grep -Fq 'remove_job("engagement_nudge")'
+          if echo "${START_FILE}" | grep -E 'add_job\([[:space:]]*run_engagement_nudge'; then
             log "engagement_nudge unexpectedly add_job'd"
             exit 40
           fi
           summary "legacy_engagement_nudge_scheduled" "NO"
 
-          echo "${MORNING_SRC}" | grep -Fq 'create_daily_wellness_digest'
-          if echo "${MORNING_SRC}" | grep -Fq 'create_morning_brief'; then
+          echo "${MORNING_FILE}" | grep -Fq 'create_daily_wellness_digest'
+          if echo "${MORNING_FILE}" | grep -Fq 'create_morning_brief'; then
             log "morning_brief unexpectedly created by morning job"
             exit 41
           fi
           summary "legacy_morning_brief_scheduled" "NO"
 
-          [ "${MAX_PER_DAY}" = "2" ]
-          echo "${PING_SRC}" | grep -Fq 'presence_inactive_hours = 4'
-          echo "${PING_SRC}" | grep -Fq 'reengagement_cooldown_hours = 6'
-          echo "${PING_SRC}" | grep -Fq 'reengagement_max_per_local_day = 2'
-          echo "${INACT_SRC}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY'
-          echo "${INACT_SRC}" | grep -Fq 'REENGAGEMENT_COOLDOWN_HOURS'
+          echo "${PING_FILE}" | grep -Fq 'presence_inactive_hours = 4'
+          echo "${PING_FILE}" | grep -Fq 'reengagement_cooldown_hours = 6'
+          echo "${PING_FILE}" | grep -Fq 'reengagement_max_per_local_day = 2'
+          echo "${INACT_FILE}" | grep -Fq 'REENGAGEMENT_MAX_PER_DAY'
+          echo "${INACT_FILE}" | grep -Fq 'REENGAGEMENT_COOLDOWN_HOURS'
           summary "reengagement_4h_2pd_6h" "YES"
 
-          # FCM ready: project id + service account present; FCM_DISABLED not true; do not send.
-          FCM_PROJECT="$(docker exec sedi-backend printenv FCM_PROJECT_ID 2>/dev/null || true)"
-          FCM_SA="$(docker exec sedi-backend printenv FCM_SERVICE_ACCOUNT_JSON 2>/dev/null || true)"
-          FCM_DISABLED="$(docker exec sedi-backend printenv FCM_DISABLED 2>/dev/null || true)"
+          # FCM ready: presence only (never print credential payload).
+          FCM_PROJECT_PRESENT="$(docker exec sedi-backend sh -c 'if [ -n "${FCM_PROJECT_ID:-}" ]; then echo YES; else echo NO; fi')"
+          FCM_SA_PRESENT="$(docker exec sedi-backend sh -c 'if [ -n "${FCM_SERVICE_ACCOUNT_JSON:-}" ]; then echo YES; else echo NO; fi')"
+          FCM_DISABLED_RAW="$(docker exec sedi-backend sh -c 'printf %s "${FCM_DISABLED:-}"')"
           FCM_READY=NO
-          case "$(printf '%s' "${FCM_DISABLED}" | tr '[:upper:]' '[:lower:]')" in
+          case "$(printf '%s' "${FCM_DISABLED_RAW}" | tr '[:upper:]' '[:lower:]')" in
             1|true|yes|on) FCM_DISABLED_ON=YES ;;
             *) FCM_DISABLED_ON=NO ;;
           esac
-          if [ -n "${FCM_PROJECT}" ] && [ -n "${FCM_SA}" ] && [ "${FCM_DISABLED_ON}" = "NO" ]; then
+          if [ "${FCM_PROJECT_PRESENT}" = "YES" ] && [ "${FCM_SA_PRESENT}" = "YES" ] && [ "${FCM_DISABLED_ON}" = "NO" ]; then
             FCM_READY=YES
           fi
-          summary "fcm_project_present" "$([ -n "${FCM_PROJECT}" ] && echo YES || echo NO)"
-          summary "fcm_sa_present" "$([ -n "${FCM_SA}" ] && echo YES || echo NO)"
+          summary "fcm_project_present" "${FCM_PROJECT_PRESENT}"
+          summary "fcm_sa_present" "${FCM_SA_PRESENT}"
           summary "fcm_disabled_on" "${FCM_DISABLED_ON}"
           summary "fcm_ready" "${FCM_READY}"
           [ "${FCM_READY}" = "YES" ]
 
-          # Inbox 10d + routes from OpenAPI / live module.
-          INBOX_DAYS="$(docker exec sedi-backend python -c "from backend.app.services.notifications.inbox_projection import USER_VISIBLE_HISTORY_DAYS; print(USER_VISIBLE_HISTORY_DAYS)")"
-          summary "visible_days" "${INBOX_DAYS}"
-          [ "${INBOX_DAYS}" = "10" ]
+          INBOX_LINE="$(docker exec sedi-backend grep -E '^USER_VISIBLE_HISTORY_DAYS =' backend/app/services/notifications/inbox_projection.py)"
+          echo "${INBOX_LINE}" | grep -Fq 'USER_VISIBLE_HISTORY_DAYS = 10'
+          summary "visible_days" "10"
           summary "inbox_10d" "YES"
 
           OPENAPI="$(curl -fsS http://127.0.0.1:8000/openapi.json)"
@@ -175,20 +171,18 @@ jobs:
           summary "interaction_route" "YES"
           summary "unread_route" "YES"
 
-          # Unread + list share same projection authority.
-          NOTIF_MOD="$(docker exec sedi-backend python -c "import inspect; from backend.app.routers import notifications as n; print(inspect.getsource(n))")"
-          FETCH_COUNT="$(printf '%s' "${NOTIF_MOD}" | grep -c 'fetch_sent_history_page' || true)"
+          FETCH_COUNT="$(docker exec sedi-backend grep -c fetch_sent_history_page backend/app/routers/notifications.py | tr -d '\r')"
           summary "fetch_sent_history_page_refs" "${FETCH_COUNT}"
           [ "${FETCH_COUNT}" -ge 2 ]
           summary "unread_same_visibility_authority" "YES"
 
-          # Canonical FA daily copy exact in deployed image modules.
-          FA_TITLE="$(docker exec sedi-backend python -c "from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_TITLES; print(_GENERAL_CHECKIN_TITLES['fa'])")"
-          FA_BODY="$(docker exec sedi-backend python -c "from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_BODIES; print(_GENERAL_CHECKIN_BODIES['fa'])")"
-          summary "fa_title" "${FA_TITLE}"
-          summary "fa_body" "${FA_BODY}"
-          [ "${FA_TITLE}" = "${EXPECTED_FA_TITLE}" ]
-          [ "${FA_BODY}" = "${EXPECTED_FA_BODY}" ]
+          FA_MOD="$(docker exec sedi-backend cat backend/app/services/i10/daily_wellness_digest.py)"
+          echo "${FA_MOD}" | grep -Fq "${EXPECTED_FA_TITLE}"
+          echo "${FA_MOD}" | grep -Fq "${EXPECTED_FA_BODY}"
+          echo "${FA_MOD}" | grep -Fq '_GENERAL_CHECKIN_TITLES'
+          echo "${FA_MOD}" | grep -Fq '_GENERAL_CHECKIN_BODIES'
+          summary "fa_title" "${EXPECTED_FA_TITLE}"
+          summary "fa_body" "${EXPECTED_FA_BODY}"
           summary "daily_fa_copy_exact" "YES"
 
           # No FCM send / no synthetic notification creation during this verify.
