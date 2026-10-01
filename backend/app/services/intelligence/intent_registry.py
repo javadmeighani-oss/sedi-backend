@@ -325,7 +325,14 @@ _RULES: tuple[_Rule, ...] = (
         request_kind=RequestKind.INFORMATIONAL,
         confidence_band=IntentConfidenceBand.MEDIUM,
         priority=65,
-        phrases_en=("steps today", "workout", "exercise", "activity level", "walked"),
+        phrases_en=(
+            "steps today",
+            "workout",
+            "exercise",
+            "activity level",
+            "walked",
+            "how active",
+        ),
         phrases_fa=("تعداد قدم", "تمرین", "ورزش", "سطح فعالیت", "پیاده‌روی"),
         phrases_ar=("خطوات اليوم", "تمرين", "رياضة", "مستوى النشاط"),
     ),
@@ -354,6 +361,28 @@ _RULES: tuple[_Rule, ...] = (
 
 DISCOVERY_REPLY_RULE_ID = "i3.rule.relationship_discovery_reply.v1"
 
+# CR-03.5: protected raw intents — never overridden by discovery ANSWER/SKIP.
+_PROTECTED_DISCOVERY_RAW_INTENTS: frozenset[IntentId] = frozenset(
+    {
+        IntentId.HEALTH,
+        IntentId.SYMPTOM,
+        IntentId.MEDICATION,
+        IntentId.VITALS,
+        IntentId.REMINDER,
+        IntentId.NOTIFICATION_FOLLOW_UP,
+    }
+)
+
+# Only these may become contextual relationship-discovery replies.
+_DISCOVERY_CONTEXT_CANDIDATE_INTENTS: frozenset[IntentId] = frozenset(
+    {
+        IntentId.GENERAL,
+        IntentId.SLEEP,
+        IntentId.NUTRITION,
+        IntentId.ACTIVITY,
+    }
+)
+
 
 class IntentResolutionError(Exception):
     """Fail-closed intent resolver failure (no raw content)."""
@@ -379,6 +408,11 @@ def _apply_relationship_discovery_disposition(
         return raw
     d = str(disposition).strip().upper()
     if d in ("ANSWER", "SKIP"):
+        # CR-03.5: protected / non-candidate raw intents keep current-need authority.
+        if raw.intent_id in _PROTECTED_DISCOVERY_RAW_INTENTS:
+            return raw
+        if raw.intent_id not in _DISCOVERY_CONTEXT_CANDIDATE_INTENTS:
+            return raw
         return IntentResult(
             registry_version=REGISTRY_VERSION,
             intent_id=IntentId.GENERAL,

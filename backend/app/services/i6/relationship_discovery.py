@@ -155,6 +155,85 @@ _UNRELATED_REQUEST_CUES: tuple[str, ...] = (
     "اعمل لي خطة",
 )
 
+# CR-03.5: explicit current-need / new-request cues (boundary-safe).
+# Do NOT treat bare "please" as new-request evidence.
+_EXPLICIT_NEW_REQUEST_CUES: tuple[str, ...] = (
+    # EN interrogatives / request verbs
+    "what",
+    "how",
+    "why",
+    "when",
+    "where",
+    "who",
+    "can you",
+    "could you",
+    "would you",
+    "should i",
+    "do i",
+    "is it",
+    "are there",
+    "tell me",
+    "explain",
+    "help me",
+    "create",
+    "make",
+    "build",
+    "plan",
+    "remind me",
+    # FA
+    "چی",
+    "چه",
+    "چطور",
+    "چگونه",
+    "چقدر",
+    "چند",
+    "چرا",
+    "کی",
+    "کجا",
+    "آیا",
+    "میشه",
+    "می\u200cشه",
+    "میتونی",
+    "می\u200cتونی",
+    "بگو",
+    "توضیح بده",
+    "کمکم کن",
+    "برنامه بساز",
+    "یادآوری کن",
+    # AR
+    "ما",
+    "ماذا",
+    "كيف",
+    "كم",
+    "لماذا",
+    "متى",
+    "أين",
+    "هل",
+    "يمكن",
+    "هل يمكنك",
+    "أخبرني",
+    "اشرح",
+    "ساعدني",
+    "أنشئ",
+    "اعمل",
+    "خطط",
+    "ذكرني",
+)
+
+_EXPLICIT_NEW_REQUEST_RE = re.compile(
+    r"(?:"
+    r"^\s*(?:what|how|why|when|where|who)\b"
+    r"|\b(?:can|could|would)\s+you\b"
+    r"|\b(?:should|do)\s+i\b"
+    r"|\bis\s+it\b"
+    r"|\bare\s+there\b"
+    r"|\btell\s+me\b"
+    r"|\bhelp\s+me\b"
+    r"|\bremind\s+me\b"
+    r")",
+    re.IGNORECASE | re.UNICODE,
+)
+
 _SLEEP_QUALITY_CUES: tuple[str, ...] = (
     "sleep",
     "slept",
@@ -489,6 +568,31 @@ def _looks_unrelated_request(text: str) -> bool:
     return _contains_any(text, _UNRELATED_REQUEST_CUES)
 
 
+def is_explicit_new_request(message: str, language: LanguageCode) -> bool:
+    """
+    CR-03.5 — pure deterministic current-need / new-request guard.
+    No DB / network / LLM / writes. Boundary-safe cues.
+    Bare 'please' alone is NOT evidence.
+    """
+    raw = (message or "").strip()
+    if not raw:
+        return False
+    # Explicit question mark (EN/FA/AR) — treat as plausible new question (safe bias).
+    if "?" in raw or "؟" in raw:
+        return True
+    text = _norm_msg(raw)
+    if not text:
+        return False
+    if _EXPLICIT_NEW_REQUEST_RE.search(text):
+        return True
+    if _contains_any_boundary(text, _EXPLICIT_NEW_REQUEST_CUES):
+        return True
+    # Preserve prior meal-plan / reminder cue coverage.
+    if _looks_unrelated_request(text):
+        return True
+    return False
+
+
 # Software/device phrases that must not count as personal activity (CR-03.3).
 _NONPERSONAL_ACTIVITY_CUES: tuple[str, ...] = (
     "app is running",
@@ -543,6 +647,12 @@ def classify_discovery_reply(
             DiscoveryDisposition.SKIP,
             target_key=target_key,
             skip_outcome=skip,
+        )
+
+    # CR-03.5: current user request > relationship discovery.
+    if is_explicit_new_request(message, language):
+        return DiscoveryClassification(
+            DiscoveryDisposition.UNRELATED, target_key=target_key
         )
 
     if not looks_substantive_discovery_answer(message) or is_ambiguous_open_text_answer(
