@@ -61,7 +61,7 @@ def test_be_heard_en_fa_ar():
 def test_decide_act_motivate_cues():
     assert (
         classify_interaction_need(
-            message="Should I choose walking or swimming?",
+            message="Which option is better, walking or swimming?",
             intent=_intent(),
             language="en",
         )

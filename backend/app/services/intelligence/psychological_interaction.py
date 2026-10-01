@@ -1,6 +1,7 @@
 """CR-02 — Pure request-local interaction-need classification.
 
-Deterministic. No DB, network, LLM, writes, or diagnosis/personality inference.
+Deterministic. No DB, network, LLM, or writes.
+No clinical labeling and no personality inference.
 """
 
 from __future__ import annotations
@@ -80,17 +81,17 @@ _BE_HEARD_CUES: dict[str, tuple[str, ...]] = {
 
 _DECIDE_CUES: dict[str, tuple[str, ...]] = {
     "en": (
-        "should i",
-        "which",
+        "which option",
+        "which one",
         "or not",
-        "decide",
-        "decision",
+        "decide between",
+        "decision between",
         "better option",
         "pros and cons",
         "tradeoff",
         "trade-off",
         "choose between",
-        "what do you recommend",
+        "what do you recommend between",
     ),
     "fa": (
         "کدام",
@@ -230,12 +231,13 @@ def classify_interaction_need(
 
     if _has_cue(text, _BE_HEARD_CUES.get(lang, _BE_HEARD_CUES["en"])):
         return InteractionNeed.BE_HEARD
-    if _has_cue(text, _DECIDE_CUES.get(lang, _DECIDE_CUES["en"])):
-        return InteractionNeed.DECIDE
     if _has_cue(text, _MOTIVATE_CUES.get(lang, _MOTIVATE_CUES["en"])):
         return InteractionNeed.MOTIVATE
+    # ACT before DECIDE so "what should I do / next step" prefers action.
     if _has_cue(text, _ACT_CUES.get(lang, _ACT_CUES["en"])):
         return InteractionNeed.ACT
+    if _has_cue(text, _DECIDE_CUES.get(lang, _DECIDE_CUES["en"])):
+        return InteractionNeed.DECIDE
 
     # Intent / request-kind fallbacks (safe, non-diagnostic).
     if intent.request_kind is RequestKind.PERSONALIZED_PLAN:

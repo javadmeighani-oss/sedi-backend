@@ -542,7 +542,8 @@ def test_structured_mode_invokes_assembler_readiness_and_passes_projection(
     orch = IntelligenceOrchestrator(db=db, legacy_generator=gen)
     result = orch.process(authenticated_user_id=user_a.id, message="hello", language="en")
     assert result.rollout_mode == "structured"
-    assert result.message == "structured-ok"
+    # CR-02 may append one optional soft-discovery question after the primary answer.
+    assert result.message.split("\n\n", 1)[0] == "structured-ok"
     assert seen["use"] is True
     assert seen["n"] == 1
     assert seen["projection"] and "[STRUCTURED_CONTEXT]" in seen["projection"]
