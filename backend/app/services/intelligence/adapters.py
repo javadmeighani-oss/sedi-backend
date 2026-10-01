@@ -446,7 +446,7 @@ class LifestyleContextAdapter:
         """Project preferences/routines/work/education/social/values/barriers.
 
         Bounded: max 3 items per domain and max 12 items total.
-        Uses I6 readable list path only (never legacy UserFact/KcUserFact authority).
+        Uses the I6 readable list path only (canonical memory authority).
         """
         from backend.app.services.i6.memory_writes import list_facts_or_empty
         from backend.app.services.memory.memory_contract import MemoryContract
