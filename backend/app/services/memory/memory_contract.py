@@ -15,6 +15,12 @@ ALLOWED_DOMAINS = {
     "routines": "Daily and weekly routines",
     "goals": "Health and fitness goals",
     "vitals": "Vital signs data from devices (heart_rate_bpm, etc.)",
+    # CR-01 longitudinal user-understanding domains (non-medical; I6-canonical).
+    "work": "Work context (occupation, schedule, stressors)",
+    "education": "Education background (level, field of study)",
+    "social": "Social context (household, support, relationships, activity preference)",
+    "values": "Personal values and life priorities",
+    "barriers": "Practical barriers (time, financial, environmental, motivation)",
 }
 
 # Allowed keys per domain
@@ -44,6 +50,12 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "interests",
         "timezone",
         "quiet_hours",
+        # CR-01 interaction preferences (non-diagnostic).
+        "response_length",
+        "interaction_style",
+        "follow_up_preference",
+        "listen_before_advice",
+        "proactive_checkin_preference",
     ],
     "routines": [
         "wake_time",
@@ -62,6 +74,31 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "blood_pressure_dia",
         "glucose_mg_dl",
         "temperature_c",
+    ],
+    "work": [
+        "occupation",
+        "work_schedule",
+        "work_stressors",
+    ],
+    "education": [
+        "education_level",
+        "field_of_study",
+    ],
+    "social": [
+        "household_context",
+        "support_network",
+        "important_relationships",
+        "social_activity_preference",
+    ],
+    "values": [
+        "important_values",
+        "life_priorities",
+    ],
+    "barriers": [
+        "time_constraints",
+        "financial_constraints",
+        "environmental_constraints",
+        "motivation_barriers",
     ],
 }
 
@@ -102,6 +139,11 @@ DOMAIN_OWNERSHIP_DEFAULT: Dict[str, str] = {
     "lifestyle": CANONICAL_I6,
     "routines": CANONICAL_I6,
     "preferences": CANONICAL_I6,
+    "work": CANONICAL_I6,
+    "education": CANONICAL_I6,
+    "social": CANONICAL_I6,
+    "values": CANONICAL_I6,
+    "barriers": CANONICAL_I6,
     "goals": CANONICAL_GOALS_OR_LIFESTYLE,  # UserGoal is product owner; I6 goals are compatibility-only
     "medical": CANONICAL_HEALTH,
     "vitals": CANONICAL_VITALS_I9,

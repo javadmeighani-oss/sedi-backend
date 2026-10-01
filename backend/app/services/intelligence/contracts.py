@@ -260,6 +260,17 @@ class ClarificationResult:
 
 
 @dataclass(frozen=True)
+class DiscoveryDirective:
+    """CR-01 internal soft-discovery NBQ metadata (not user-visible until CR-02)."""
+
+    question_id: str
+    target_key: str
+    localized_question: str
+    sensitivity: Literal["low", "medium", "high"]
+    priority: int
+
+
+@dataclass(frozen=True)
 class ReadinessResult:
     status: ReadinessStatus
     intent_id: IntentId
@@ -412,6 +423,9 @@ class OrchestrationResult:
     safety_action: Optional[str] = None
     risk_domain: Optional[str] = None
     safety_rule_id: Optional[str] = None
+    # Internal CR-01 NBQ metadata (not exposed by public_brain_dict; not user-visible)
+    discovery_question_id: Optional[str] = None
+    discovery_target_key: Optional[str] = None
 
     def public_brain_dict(self) -> dict[str, Any]:
         """Map to the legacy router-compatible generation dict."""

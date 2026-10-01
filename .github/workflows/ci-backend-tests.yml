@@ -223,6 +223,9 @@ jobs:
             backend/tests/test_section15_i2_context_adapters.py \
             backend/tests/test_section15_i3_intent_missing_info.py \
             backend/tests/test_section15_i4_safety_risk.py \
+            backend/tests/test_cr01_user_understanding_contract.py \
+            backend/tests/test_cr01_nbq_selection.py \
+            backend/tests/test_cr01_i2_i3_integration.py \
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \

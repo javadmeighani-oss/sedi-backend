@@ -936,6 +936,32 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
+        # CR-01 NBQ: internal soft-discovery metadata only on normal structured
+        # generation path. Never inject into user-visible output (CR-02).
+        discovery_question_id: Optional[str] = None
+        discovery_target_key: Optional[str] = None
+        if (
+            not terminal_safety
+            and not skip_generator
+            and rollout_mode == "structured"
+            and snapshot is not None
+            and intent_meta is not None
+            and readiness_meta is not None
+        ):
+            from backend.app.services.intelligence.next_best_question import (
+                select_next_best_question,
+            )
+
+            directive = select_next_best_question(
+                snapshot=snapshot,
+                intent=intent_meta,
+                readiness=readiness_meta,
+                language=lang,
+            )
+            if directive is not None:
+                discovery_question_id = directive.question_id
+                discovery_target_key = directive.target_key
+
         # prepare
         t0 = time.perf_counter()
         if skip_generator and terminal_safety:
@@ -1195,4 +1221,6 @@ class IntelligenceOrchestrator:
             safety_action=assessment.action.value,
             risk_domain=assessment.domain.value,
             safety_rule_id=assessment.rule_id,
+            discovery_question_id=discovery_question_id,
+            discovery_target_key=discovery_target_key,
         )

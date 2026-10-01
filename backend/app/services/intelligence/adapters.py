@@ -403,15 +403,19 @@ class LifestyleContextAdapter:
                     )
 
         from backend.app.services.i6.memory_writes import list_facts_or_empty
+        from backend.app.services.memory.memory_contract import MemoryContract
 
+        # Existing I6 lifestyle projection (canonical domain.key for NBQ alignment).
         for row in list_facts_or_empty(db, authenticated_user_id, domain="lifestyle")[:6]:
             key = str(getattr(row, "key", "") or "").strip()
             raw = str(getattr(row, "value_json", "") or "").strip()
             if not key or not raw:
                 continue
+            if not MemoryContract.is_i6_context_projectable("lifestyle", key):
+                continue
             items.append(
                 _item(
-                    canonical_key=f"lifestyle.fact.{_slug(key)}",
+                    canonical_key=f"lifestyle.{key}",
                     section="lifestyle",
                     source=ContextSource.LIFESTYLE,
                     value=raw[:200],
@@ -424,10 +428,79 @@ class LifestyleContextAdapter:
                 )
             )
 
+        # CR-01: bounded consent-aware projection of additional I6 understanding domains.
+        items.extend(
+            self._load_i6_user_understanding_facts(
+                db, authenticated_user_id=authenticated_user_id
+            )
+        )
+
         items.extend(
             self._load_gate2_lifestyle(db, authenticated_user_id=authenticated_user_id)
         )
         return items
+
+    def _load_i6_user_understanding_facts(
+        self, db: Session, *, authenticated_user_id: int
+    ) -> list[ContextItem]:
+        """Project preferences/routines/work/education/social/values/barriers.
+
+        Bounded: max 3 items per domain and max 12 items total.
+        Uses I6 readable list path only (never legacy UserFact/KcUserFact authority).
+        """
+        from backend.app.services.i6.memory_writes import list_facts_or_empty
+        from backend.app.services.memory.memory_contract import MemoryContract
+
+        # (domain, section, sensitivity)
+        domain_specs: tuple[tuple[str, str, str], ...] = (
+            ("preferences", "profile", "medium"),
+            ("routines", "lifestyle", "medium"),
+            ("work", "lifestyle", "medium"),
+            ("education", "lifestyle", "medium"),
+            ("social", "lifestyle", "high"),
+            ("values", "lifestyle", "high"),
+            ("barriers", "lifestyle", "high"),
+        )
+        max_per_domain = 3
+        max_total = 12
+        out: list[ContextItem] = []
+        for domain, section, sensitivity in domain_specs:
+            if len(out) >= max_total:
+                break
+            domain_added = 0
+            for row in list_facts_or_empty(db, authenticated_user_id, domain=domain):
+                if domain_added >= max_per_domain or len(out) >= max_total:
+                    break
+                key = str(getattr(row, "key", "") or "").strip()
+                raw = str(getattr(row, "value_json", "") or "").strip()
+                if not key or not raw:
+                    continue
+                if not MemoryContract.is_i6_context_projectable(domain, key):
+                    continue
+                # High-sensitivity unknown-consent items stay out of LLM projection
+                # via is_llm_projection_eligible; still surface for readiness/NBQ.
+                may_send = sensitivity != "high"
+                out.append(
+                    _item(
+                        canonical_key=f"{domain}.{key}",
+                        section=section,  # type: ignore[arg-type]
+                        source=(
+                            ContextSource.PROFILE
+                            if section == "profile"
+                            else ContextSource.LIFESTYLE
+                        ),
+                        value=raw[:200],
+                        display_text=f"{key}={raw[:120]}",
+                        owner_user_id=authenticated_user_id,
+                        query_label="I6.list_facts_or_empty",
+                        observed_at=getattr(row, "updated_at", None),
+                        sensitivity=sensitivity,  # type: ignore[arg-type]
+                        may_send_to_llm=may_send,
+                        consent="legacy_scope",
+                    )
+                )
+                domain_added += 1
+        return out
 
     def _load_gate2_lifestyle(
         self, db: Session, *, authenticated_user_id: int
