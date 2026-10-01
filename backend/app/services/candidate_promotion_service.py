@@ -37,6 +37,8 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "diet_notes": ("lifestyle", "diet_notes"),
     "wake_time": ("routines", "wake_time"),
     "bedtime": ("routines", "bedtime"),
+    "exercise_schedule": ("routines", "exercise_schedule"),
+    "response_length": ("preferences", "response_length"),
     "daily_walk_minutes": ("lifestyle", "exercise_minutes"),
 }
 

@@ -717,7 +717,15 @@ class ConversationBrain:
                 "language": self.language,
                 "stage": new_stage.value,  # Return NEW stage (after save and transition)
                 "metadata": metadata,
-                "detected_name": detected_name  # Name detected from conversation (to update frontend)
+                "detected_name": detected_name,  # Name detected from conversation (to update frontend)
+                # Internal only — never expose via public_brain_dict / API.
+                **(
+                    {"durable_memory_id": int(mem.id)}
+                    if mem is not None
+                    and getattr(mem, "id", None) is not None
+                    and bool(getattr(mem, "durable_write", False))
+                    else {}
+                ),
             }
         except Exception as e:
             # Log the error for debugging

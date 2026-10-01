@@ -67,10 +67,16 @@ def accept_candidate(
     """
     Accept a pending candidate: insert into kc_user_facts, close previous valid_to
     for same (user_id, fact_type). Returns new KcUserFact or None if not found/invalid.
-    """
-    from backend.app.services.i6.legacy_fact_freeze import assert_legacy_write_allowed
 
-    assert_legacy_write_allowed("kc_user_facts")
+    CR-03: when legacy kc_user_facts writes are frozen and the candidate maps to an
+    I6 lifestyle/preference scalar, promote directly to UserMemoryFact (USER_CONFIRMED)
+    without writing KcUserFact. Candidate becomes accepted only after promotion succeeds.
+    """
+    from backend.app.services.i6.legacy_fact_freeze import (
+        assert_legacy_write_allowed,
+        legacy_fact_writes_frozen,
+    )
+
     cand = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id).first()
     if not cand:
         return None
@@ -80,6 +86,37 @@ def accept_candidate(
     vby = (verified_by or "system").strip().lower()
     if vby not in VERIFIED_BY:
         vby = "system"
+
+    if legacy_fact_writes_frozen():
+        from backend.app.services.candidate_promotion_service import (
+            LIFESTYLE_SCALAR_MAP,
+            promote_kc_candidate,
+        )
+
+        fact_type = (cand.fact_type or "").strip()
+        if fact_type in LIFESTYLE_SCALAR_MAP:
+            result = promote_kc_candidate(db, cand)
+            if result.get("target") == "user_memory_facts":
+                cand.status = "accepted"
+                db.commit()
+                logger.info(
+                    "kc_candidate_accepted_i6_direct id=%s user_id=%s fact_type=%s",
+                    candidate_id,
+                    cand.user_id,
+                    cand.fact_type,
+                )
+                return None
+            # Promotion did not land on I6 — leave pending; no legacy write.
+            logger.info(
+                "kc_accept_i6_promote_skipped id=%s target=%s",
+                candidate_id,
+                result.get("target"),
+            )
+            return None
+        # Non-I6-mapped types remain blocked while legacy stacks are frozen.
+        assert_legacy_write_allowed("kc_user_facts")
+
+    assert_legacy_write_allowed("kc_user_facts")
     now = datetime.utcnow()
     # Close any open fact for same user + fact_type
     prev = (

@@ -131,6 +131,9 @@ def write_fact(
     db.refresh(row)
     if superseded:
         _invalidate_i7(db, user_id, reason="correction", commit=commit)
+    else:
+        # Brand-new canonical fact must stale rebuildable I7 derived state.
+        _invalidate_i7(db, user_id, reason="new_fact", commit=commit)
     return row
 
 

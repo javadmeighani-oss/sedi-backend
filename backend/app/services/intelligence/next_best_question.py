@@ -54,9 +54,9 @@ _SOFT_DISCOVERY_CANDIDATES: dict[IntentId, tuple[tuple[str, str, str, int], ...]
     ),
     IntentId.GENERAL: (
         (
-            "preferences.interaction_style",
+            "preferences.response_length",
             "medium",
-            "nbq.general.interaction_style.v1",
+            "nbq.general.response_length.v1",
             10,
         ),
     ),
@@ -93,7 +93,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "fa": "اگر مایلید، معمولاً چه زمانی ورزش می‌کنید؟",
         "ar": "إن رغبت، متى تمارس الرياضة عادة؟",
     },
-    "nbq.general.interaction_style.v1": {
+    "nbq.general.response_length.v1": {
         "en": "Would you prefer brief answers, or a bit more detail?",
         "fa": "ترجیح می‌دهید پاسخ‌ها کوتاه باشد یا کمی مفصل‌تر؟",
         "ar": "هل تفضل إجابات مختصرة أم أكثر تفصيلاً قليلاً؟",

@@ -23,10 +23,12 @@ def db(monkeypatch):
         models.UserMemoryExportJob.__table__,
         models.Memory.__table__,
         models.UserProfileCore.__table__,
+        models.KcFactCandidate.__table__,
+        models.KcQuestionPolicyState.__table__,
+        models.KcUserFact.__table__,
     ]
     for name in (
         "UserProfileFact",
-        "KcUserFact",
         "UserGoal",
         "UserRestriction",
         "UserHabit",

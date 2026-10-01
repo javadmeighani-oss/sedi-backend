@@ -136,3 +136,71 @@ def try_durable_raw_write(
     else:
         db.flush()
     return GovernedRawResult(True, row, "DURABLE_WRITTEN")
+
+
+def finalize_durable_raw_response(
+    db: Session,
+    *,
+    user_id: int,
+    memory_id: int,
+    final_response: str,
+    actor_user_id: Optional[int] = None,
+    commit: bool = True,
+) -> GovernedRawResult:
+    """
+    Ownership-scoped finalization of an existing durable Memory row.
+
+    Sets sedi_response to the exact final orchestrator-visible response.
+    Recomputes auto: idempotency keys; preserves client: keys.
+    No second Memory row. No cross-user mutation.
+    """
+    if actor_user_id is not None and int(actor_user_id) != int(user_id):
+        return GovernedRawResult(False, None, "AUTH_IDENTITY_MISMATCH")
+
+    row = (
+        db.query(models.Memory)
+        .filter(models.Memory.id == int(memory_id), models.Memory.user_id == int(user_id))
+        .first()
+    )
+    if row is None:
+        return GovernedRawResult(False, None, "NOT_FOUND_OR_NOT_OWNED")
+    if not bool(getattr(row, "durable_write", False)):
+        return GovernedRawResult(False, row, "NOT_DURABLE")
+
+    row.sedi_response = final_response
+
+    existing_key = str(getattr(row, "idempotency_key", None) or "")
+    if existing_key.startswith("auto:"):
+        row.idempotency_key = build_idempotency_key(
+            user_id=user_id,
+            user_message=str(row.user_message or ""),
+            sedi_response=final_response,
+            client_key=None,
+        )
+    # client:* keys remain unchanged
+
+    prov: dict[str, Any]
+    try:
+        loaded = json.loads(row.provenance_json) if row.provenance_json else {}
+        prov = loaded if isinstance(loaded, dict) else {}
+    except (TypeError, ValueError, json.JSONDecodeError):
+        prov = {}
+    finalizations = prov.get("finalizations")
+    if not isinstance(finalizations, list):
+        finalizations = []
+    finalizations.append(
+        {
+            "at": _utcnow().isoformat(),
+            "generator": "i7-wave2-raw-finalize-v1",
+            "reason": "orchestrator_final_visible_response",
+        }
+    )
+    prov["finalizations"] = finalizations[-5:]
+    row.provenance_json = json.dumps(prov, sort_keys=True)
+
+    if commit:
+        db.commit()
+        db.refresh(row)
+    else:
+        db.flush()
+    return GovernedRawResult(True, row, "FINALIZED")

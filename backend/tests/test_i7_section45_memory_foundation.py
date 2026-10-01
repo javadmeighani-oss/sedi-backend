@@ -263,6 +263,8 @@ def test_memory_retain_until_set_on_orm_insert(db):
 
 
 def test_accept_candidate_frozen(db, monkeypatch):
+    """Unmapped candidate types remain frozen (no KcUserFact). I6-mapped scalars
+    use direct canonical promotion (covered by CR-03)."""
     monkeypatch.delenv("SEDI_LEGACY_FACT_WRITES_ENABLED", raising=False)
     user = _user(db, "s45-kc")
     from backend.app.services.knowledge.service import create_candidate
@@ -271,7 +273,7 @@ def test_accept_candidate_frozen(db, monkeypatch):
         db=db,
         user_id=user.id,
         source="chat_extraction_v1",
-        fact_type="sleep_quality",
+        fact_type="unmapped_legacy_only_type",
         value_json='"poor"',
         confidence=0.9,
     )

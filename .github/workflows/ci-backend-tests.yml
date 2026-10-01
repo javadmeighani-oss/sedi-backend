@@ -229,6 +229,7 @@ jobs:
             backend/tests/test_cr02_interaction_need.py \
             backend/tests/test_cr02_relationship_guidance.py \
             backend/tests/test_cr02_visible_nbq_integration.py \
+            backend/tests/test_cr03_longitudinal_continuity.py \
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \

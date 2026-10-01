@@ -136,41 +136,29 @@ def _apply_discovery_fatigue_response(
     user_id: int,
     message: str,
     language: LanguageCode,
+    allow_binding: bool,
 ) -> None:
-    """Update existing KC fatigue state for prior relationship_discovery only.
+    """CR-03: one-shot relationship discovery binding + fatigue consume.
 
-    Non-mutating when no prior state exists: never create/commit via ensure_state
-    merely to inspect.
+    When allow_binding is False (terminal/caution), marker is still consumed with
+    no fact write and no skip/reject streak update.
     """
     if db is None:
         return
     try:
-        from datetime import datetime, timezone
-
-        from backend.app.services.knowledge.kc_fatigue_policy import (
-            get_existing_state,
-            mark_answer,
-        )
-        from backend.app.services.intelligence.psychological_interaction import (
-            detect_discovery_skip_reject,
-            looks_substantive_discovery_answer,
+        from backend.app.services.i6.relationship_discovery import (
+            process_relationship_discovery_answer,
         )
 
-        state = get_existing_state(db, user_id)
-        if state is None:
-            return
-        last_type = getattr(state, "last_question_type", None) or ""
-        if not str(last_type).startswith("relationship_discovery:"):
-            return
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        skip = detect_discovery_skip_reject(message, language)
-        if skip is not None:
-            mark_answer(db, user_id, now, skip)
-            return
-        if looks_substantive_discovery_answer(message):
-            mark_answer(db, user_id, now, "accepted")
+        process_relationship_discovery_answer(
+            db,
+            user_id=user_id,
+            message=message,
+            language=language,
+            allow_binding=allow_binding,
+        )
     except Exception:
-        # Fatigue is best-effort; never fail the chat path.
+        # Discovery binding is best-effort; never fail the chat path.
         return
 
 
@@ -1027,15 +1015,16 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
-        # CR-02: prior relationship_discovery skip/reject → existing fatigue state only.
-        # Terminal I4 turns must not mutate relationship fatigue from this user message.
-        if not terminal_safety:
-            _apply_discovery_fatigue_response(
-                self._db,
-                user_id=authenticated_user_id,
-                message=message,
-                language=lang,
-            )
+        # CR-03: prior relationship_discovery → one-shot I6 binding (non-terminal/non-caution).
+        # Marker is always consumed on this next turn when present.
+        caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
+        _apply_discovery_fatigue_response(
+            self._db,
+            user_id=authenticated_user_id,
+            message=message,
+            language=lang,
+            allow_binding=(not terminal_safety and not caution_active),
+        )
 
         # CR-01/CR-02 NBQ: select directive on normal structured path.
         # Visible append is gated separately (fatigue/caution/specialized/BE_HEARD).
@@ -1045,7 +1034,6 @@ class IntelligenceOrchestrator:
         visible_nbq_eligible = False
         relationship_guidance: Optional[str] = None
         interaction_need_value: Optional[str] = None
-        caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
         if (
             not terminal_safety
             and not skip_generator
@@ -1274,6 +1262,13 @@ class IntelligenceOrchestrator:
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
 
+            durable_memory_id = raw.get("durable_memory_id")
+            if durable_memory_id is not None:
+                try:
+                    durable_memory_id = int(durable_memory_id)
+                except (TypeError, ValueError):
+                    durable_memory_id = None
+
             # CR-02: append at most one localized NBQ before I4 post-validation.
             nbq_was_appended = False
             if (
@@ -1327,6 +1322,25 @@ class IntelligenceOrchestrator:
                     user_id=authenticated_user_id,
                     target_key=discovery_target_key,
                 )
+
+            # CR-03: finalize durable raw to exact final user-visible response.
+            if durable_memory_id is not None and self._db is not None:
+                try:
+                    from backend.app.services.i7.governed_raw import (
+                        finalize_durable_raw_response,
+                    )
+
+                    finalize_durable_raw_response(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        memory_id=durable_memory_id,
+                        final_response=out_message,
+                        actor_user_id=authenticated_user_id,
+                        commit=True,
+                    )
+                except Exception:
+                    # Finalization is best-effort; chat remains functional.
+                    pass
 
         # complete
         t0 = time.perf_counter()
