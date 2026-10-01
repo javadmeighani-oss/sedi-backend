@@ -430,3 +430,264 @@ def test_stage_order_unchanged():
         "validate_generation_result",
         "complete",
     ]
+
+
+# ---- CR-02.1 closures ----
+
+
+def test_cr021_internal_typeerror_single_call_no_retry(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._fatigue_permits_discovery",
+        lambda *a, **k: True,
+    )
+    calls = {"n": 0}
+
+    def gen(uid, msg, name=None, **kw):
+        calls["n"] += 1
+        raise TypeError("internal generator boom")
+
+    orch, _ = _orch(gen=gen)
+    try:
+        orch.process(authenticated_user_id=1, message="sleep tips", language="en")
+        assert False, "expected TypeError"
+    except TypeError as exc:
+        assert "internal generator boom" in str(exc)
+    assert calls["n"] == 1
+
+
+def test_cr021_legacy_callable_without_guidance_kw_single_call(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._fatigue_permits_discovery",
+        lambda *a, **k: False,
+    )
+    calls = {"n": 0, "had_guidance": False}
+
+    def gen(
+        user_id,
+        user_message,
+        user_name=None,
+        *,
+        notification_context=None,
+        structured_context_projection=None,
+        structured_preferred_name=None,
+        use_structured_context=False,
+        use_intelligence_safety=False,
+        safety_constraints=None,
+    ):
+        calls["n"] += 1
+        return {"message": "legacy-ok", "language": "en"}
+
+    orch, _ = _orch(gen=gen)
+    result = orch.process(
+        authenticated_user_id=1, message="sleep tips", language="en"
+    )
+    assert calls["n"] == 1
+    assert result.message == "legacy-ok"
+
+
+def test_cr021_supported_callable_receives_guidance_once(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._fatigue_permits_discovery",
+        lambda *a, **k: True,
+    )
+    calls = {"n": 0, "guidance": None}
+
+    def gen(uid, msg, name=None, **kw):
+        calls["n"] += 1
+        calls["guidance"] = kw.get("relationship_guidance")
+        return {"message": "Primary helpful answer.", "language": "en"}
+
+    orch, _ = _orch(gen=gen)
+    orch.process(authenticated_user_id=1, message="sleep tips", language="en")
+    assert calls["n"] == 1
+    assert calls["guidance"] is not None
+    assert "RELATIONSHIP" in calls["guidance"] or "need" in calls["guidance"].lower()
+
+
+def test_cr021_no_fatigue_row_ordinary_message_no_create(monkeypatch):
+    commits = {"n": 0}
+    queries = {"ensure": 0, "get": 0}
+
+    class FakeDb:
+        def query(self, model):
+            queries["get"] += 1
+
+            class Q:
+                def filter(self, *_a, **_k):
+                    return self
+
+                def first(self):
+                    return None
+
+            return Q()
+
+        def commit(self):
+            commits["n"] += 1
+
+        def add(self, *_a, **_k):
+            raise AssertionError("must not create fatigue row")
+
+    def boom_ensure(*_a, **_k):
+        queries["ensure"] += 1
+        raise AssertionError("ensure_state must not run for response-side inspect")
+
+    monkeypatch.setattr(
+        "backend.app.services.knowledge.kc_fatigue_policy.ensure_state",
+        boom_ensure,
+    )
+    from backend.app.services.intelligence.orchestrator import (
+        _apply_discovery_fatigue_response,
+    )
+
+    _apply_discovery_fatigue_response(
+        FakeDb(), user_id=42, message="hello there", language="en"
+    )
+    assert commits["n"] == 0
+    assert queries["ensure"] == 0
+    assert queries["get"] == 1
+
+
+def test_cr021_unrelated_fatigue_state_no_answer_mutation(monkeypatch):
+    answers = []
+
+    class State:
+        last_question_type = "profile_question"
+
+    monkeypatch.setattr(
+        "backend.app.services.knowledge.kc_fatigue_policy.get_existing_state",
+        lambda db, uid: State(),
+    )
+    monkeypatch.setattr(
+        "backend.app.services.knowledge.kc_fatigue_policy.mark_answer",
+        lambda *a, **k: answers.append(k.get("outcome") if k else a[-1]),
+    )
+    from backend.app.services.intelligence.orchestrator import (
+        _apply_discovery_fatigue_response,
+    )
+
+    _apply_discovery_fatigue_response(
+        MagicMock(), user_id=1, message="later", language="en"
+    )
+    assert answers == []
+
+
+def test_cr021_prior_relationship_discovery_answer_still_works(monkeypatch):
+    answers = []
+
+    class State:
+        last_question_type = "relationship_discovery:routines.bedtime"
+
+    monkeypatch.setattr(
+        "backend.app.services.knowledge.kc_fatigue_policy.get_existing_state",
+        lambda db, uid: State(),
+    )
+    monkeypatch.setattr(
+        "backend.app.services.knowledge.kc_fatigue_policy.mark_answer",
+        lambda db, uid, now, outcome: answers.append(outcome),
+    )
+    from backend.app.services.intelligence.orchestrator import (
+        _apply_discovery_fatigue_response,
+    )
+
+    _apply_discovery_fatigue_response(
+        MagicMock(), user_id=1, message="not now", language="en"
+    )
+    assert answers == ["skipped"]
+    answers.clear()
+    _apply_discovery_fatigue_response(
+        MagicMock(), user_id=1, message="I sleep around eleven", language="en"
+    )
+    assert answers == ["accepted"]
+
+
+def test_cr021_terminal_i4_zero_relationship_fatigue_mutation(monkeypatch):
+    applied = {"n": 0}
+
+    def boom(*_a, **_k):
+        applied["n"] += 1
+        raise AssertionError("fatigue must not run on terminal safety")
+
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._apply_discovery_fatigue_response",
+        boom,
+    )
+    orch, _ = _orch(assess=lambda **k: _terminal())
+    result = orch.process(
+        authenticated_user_id=1, message="later", language="en"
+    )
+    assert result.message == "SAFETY-FIXED"
+    assert applied["n"] == 0
+
+
+def test_cr021_be_heard_suppresses_deterministic_nbq(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._fatigue_permits_discovery",
+        lambda *a, **k: True,
+    )
+    marked = {"n": 0}
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._mark_relationship_discovery_asked",
+        lambda *a, **k: marked.__setitem__("n", marked["n"] + 1),
+    )
+    calls = {"n": 0, "guidance": None}
+
+    def gen(uid, msg, name=None, **kw):
+        calls["n"] += 1
+        calls["guidance"] = kw.get("relationship_guidance")
+        return {"message": "I hear how hard this feels.", "language": "en"}
+
+    orch, _ = _orch(gen=gen)
+    result = orch.process(
+        authenticated_user_id=1,
+        message="I feel overwhelmed and just need someone to listen about sleep",
+        language="en",
+    )
+    assert calls["n"] == 1
+    assert "\n\n" not in result.message
+    assert result.message == "I hear how hard this feels."
+    assert marked["n"] == 0
+    # Metadata authority may still exist; visible append suppressed.
+    assert result.discovery_target_key is not None or result.discovery_question_id is not None
+    assert calls["guidance"] is not None
+    assert "be_heard" in calls["guidance"].lower() or "listen" in calls["guidance"].lower()
+    assert "nbq_scheduled" not in (calls["guidance"] or "").lower()
+    # Guidance must not claim an appended discovery question when suppressed.
+    assert "appended after your answer" not in (calls["guidance"] or "").lower()
+
+
+def test_cr021_safe_eligible_path_append_before_validate_mark_after_safe(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._fatigue_permits_discovery",
+        lambda *a, **k: True,
+    )
+    order = []
+    marked = {"n": 0}
+
+    def _mark(*a, **k):
+        marked["n"] += 1
+        order.append("mark")
+
+    monkeypatch.setattr(
+        "backend.app.services.intelligence.orchestrator._mark_relationship_discovery_asked",
+        _mark,
+    )
+
+    def validate(**k):
+        order.append("validate")
+        text = k["text"]
+        assert "\n\n" in text  # NBQ already appended before I4 validation
+        return PostGenerationSafetyResult(
+            status=PostGenerationSafetyStatus.SAFE,
+            violation_code=None,
+            message=text,
+        )
+
+    orch, calls = _orch(validate=validate)
+    result = orch.process(
+        authenticated_user_id=1, message="sleep tips please", language="en"
+    )
+    assert calls["n"] == 1
+    assert order == ["validate", "mark"]
+    assert marked["n"] == 1
+    assert result.message.startswith("Primary helpful answer.")
+    assert len(result.message.split("\n\n")) == 2

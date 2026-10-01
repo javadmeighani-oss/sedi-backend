@@ -8,6 +8,7 @@ I4 safety precheck runs in both modes (never skipped for compatibility).
 
 from __future__ import annotations
 
+import inspect
 import time
 from typing import Any, Callable, Dict, Mapping, Optional, Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -117,6 +118,18 @@ def _default_legacy_generator(
     return _generate
 
 
+def _generator_accepts_relationship_guidance(generator: Callable[..., Any]) -> bool:
+    """Inspect callable once; never retry after an execution-time TypeError."""
+    try:
+        sig = inspect.signature(generator)
+    except (TypeError, ValueError):
+        return False
+    params = sig.parameters
+    if "relationship_guidance" in params:
+        return True
+    return any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
 def _apply_discovery_fatigue_response(
     db: Optional[Session],
     *,
@@ -124,14 +137,18 @@ def _apply_discovery_fatigue_response(
     message: str,
     language: LanguageCode,
 ) -> None:
-    """Update existing KC fatigue state for prior relationship_discovery only."""
+    """Update existing KC fatigue state for prior relationship_discovery only.
+
+    Non-mutating when no prior state exists: never create/commit via ensure_state
+    merely to inspect.
+    """
     if db is None:
         return
     try:
         from datetime import datetime, timezone
 
         from backend.app.services.knowledge.kc_fatigue_policy import (
-            ensure_state,
+            get_existing_state,
             mark_answer,
         )
         from backend.app.services.intelligence.psychological_interaction import (
@@ -139,11 +156,13 @@ def _apply_discovery_fatigue_response(
             looks_substantive_discovery_answer,
         )
 
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        state = ensure_state(db, user_id, now)
+        state = get_existing_state(db, user_id)
+        if state is None:
+            return
         last_type = getattr(state, "last_question_type", None) or ""
         if not str(last_type).startswith("relationship_discovery:"):
             return
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         skip = detect_discovery_skip_reject(message, language)
         if skip is not None:
             mark_answer(db, user_id, now, skip)
@@ -1009,15 +1028,17 @@ class IntelligenceOrchestrator:
             clarification_message = None
 
         # CR-02: prior relationship_discovery skip/reject → existing fatigue state only.
-        _apply_discovery_fatigue_response(
-            self._db,
-            user_id=authenticated_user_id,
-            message=message,
-            language=lang,
-        )
+        # Terminal I4 turns must not mutate relationship fatigue from this user message.
+        if not terminal_safety:
+            _apply_discovery_fatigue_response(
+                self._db,
+                user_id=authenticated_user_id,
+                message=message,
+                language=lang,
+            )
 
         # CR-01/CR-02 NBQ: select directive on normal structured path.
-        # Visible append is gated separately (fatigue/caution/specialized).
+        # Visible append is gated separately (fatigue/caution/specialized/BE_HEARD).
         discovery_question_id: Optional[str] = None
         discovery_target_key: Optional[str] = None
         discovery_localized_question: Optional[str] = None
@@ -1038,8 +1059,15 @@ class IntelligenceOrchestrator:
                 select_next_best_question,
             )
             from backend.app.services.intelligence.psychological_interaction import (
+                InteractionNeed,
                 classify_interaction_need,
             )
+
+            # Context-fit: classify need before final visible-NBQ eligibility.
+            need = classify_interaction_need(
+                message=message, intent=intent_meta, language=lang
+            )
+            interaction_need_value = need.value
 
             directive = select_next_best_question(
                 snapshot=snapshot,
@@ -1052,16 +1080,13 @@ class IntelligenceOrchestrator:
                 discovery_target_key = directive.target_key
                 discovery_localized_question = directive.localized_question
                 if (
-                    not caution_active
+                    need is not InteractionNeed.BE_HEARD
+                    and not caution_active
                     and readiness_meta.status is ReadinessStatus.READY
                     and _fatigue_permits_discovery(self._db, authenticated_user_id)
                 ):
                     visible_nbq_eligible = True
 
-            need = classify_interaction_need(
-                message=message, intent=intent_meta, language=lang
-            )
-            interaction_need_value = need.value
             relationship_guidance = PersonaPolicyV1.relationship_guidance_block(
                 need.value,
                 lang,
@@ -1188,40 +1213,26 @@ class IntelligenceOrchestrator:
 
             t0 = time.perf_counter()
             try:
-                try:
-                    raw = generator(
-                        authenticated_user_id,
-                        message,
-                        None,
-                        notification_context=(
-                            None
-                            if use_structured_context
-                            else generation_notification_context
-                        ),
-                        structured_context_projection=structured_projection,
-                        structured_preferred_name=structured_preferred_name,
-                        use_structured_context=use_structured_context,
-                        use_intelligence_safety=True,
-                        safety_constraints=caution_constraints,
-                        relationship_guidance=relationship_guidance,
-                    )
-                except TypeError:
-                    # Older injected generators may not accept relationship_guidance.
-                    raw = generator(
-                        authenticated_user_id,
-                        message,
-                        None,
-                        notification_context=(
-                            None
-                            if use_structured_context
-                            else generation_notification_context
-                        ),
-                        structured_context_projection=structured_projection,
-                        structured_preferred_name=structured_preferred_name,
-                        use_structured_context=use_structured_context,
-                        use_intelligence_safety=True,
-                        safety_constraints=caution_constraints,
-                    )
+                call_kwargs: Dict[str, Any] = {
+                    "notification_context": (
+                        None
+                        if use_structured_context
+                        else generation_notification_context
+                    ),
+                    "structured_context_projection": structured_projection,
+                    "structured_preferred_name": structured_preferred_name,
+                    "use_structured_context": use_structured_context,
+                    "use_intelligence_safety": True,
+                    "safety_constraints": caution_constraints,
+                }
+                if _generator_accepts_relationship_guidance(generator):
+                    call_kwargs["relationship_guidance"] = relationship_guidance
+                raw = generator(
+                    authenticated_user_id,
+                    message,
+                    None,
+                    **call_kwargs,
+                )
             except Exception:
                 ctx.append_stage(
                     StageName.GENERATE_WITH_LEGACY_BRAIN,

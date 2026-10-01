@@ -69,6 +69,17 @@ def ensure_state(db: Session, user_id: int, now: datetime) -> models.KcQuestionP
     return row
 
 
+def get_existing_state(
+    db: Session, user_id: int
+) -> Optional[models.KcQuestionPolicyState]:
+    """Non-mutating read of existing fatigue state. No create/commit/day-reset."""
+    return (
+        db.query(models.KcQuestionPolicyState)
+        .filter(models.KcQuestionPolicyState.user_id == user_id)
+        .first()
+    )
+
+
 def _state_snapshot(
     state: models.KcQuestionPolicyState,
     daily_cap: int,
