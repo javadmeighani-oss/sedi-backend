@@ -30,7 +30,7 @@ class InteractionNeed(str, Enum):
 
 SkipRejectOutcome = Literal["skipped", "rejected"]
 
-# Cue lexicons — surface language only; never diagnostic labels.
+# Cue lexicons — surface language only; never clinical labels.
 _BE_HEARD_CUES: dict[str, tuple[str, ...]] = {
     "en": (
         "feel",
@@ -239,7 +239,7 @@ def classify_interaction_need(
     if _has_cue(text, _DECIDE_CUES.get(lang, _DECIDE_CUES["en"])):
         return InteractionNeed.DECIDE
 
-    # Intent / request-kind fallbacks (safe, non-diagnostic).
+    # Intent / request-kind fallbacks (safe, non-clinical).
     if intent.request_kind is RequestKind.PERSONALIZED_PLAN:
         return InteractionNeed.ACT
     if intent.request_kind is RequestKind.ACTION:

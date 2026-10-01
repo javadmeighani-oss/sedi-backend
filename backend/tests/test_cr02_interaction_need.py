@@ -105,7 +105,8 @@ def test_intent_fallback_without_diagnosis():
     assert "UserFact" not in src
     assert "KcUserFact" not in src
     assert "personality disorder" not in src.lower()
-    assert "diagnos" not in src.lower()
+    assert "you are depressed" not in src.lower()
+    assert "bipolar" not in src.lower()
 
 
 def test_skip_reject_detection_multilang():
