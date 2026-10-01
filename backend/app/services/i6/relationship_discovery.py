@@ -155,72 +155,8 @@ _UNRELATED_REQUEST_CUES: tuple[str, ...] = (
     "اعمل لي خطة",
 )
 
-# CR-03.5: explicit current-need / new-request cues (boundary-safe).
-# Do NOT treat bare "please" as new-request evidence.
-_EXPLICIT_NEW_REQUEST_CUES: tuple[str, ...] = (
-    # EN interrogatives / request verbs
-    "what",
-    "how",
-    "why",
-    "when",
-    "where",
-    "who",
-    "can you",
-    "could you",
-    "would you",
-    "should i",
-    "do i",
-    "is it",
-    "are there",
-    "tell me",
-    "explain",
-    "help me",
-    "create",
-    "make",
-    "build",
-    "plan",
-    "remind me",
-    # FA
-    "چی",
-    "چه",
-    "چطور",
-    "چگونه",
-    "چقدر",
-    "چند",
-    "چرا",
-    "کی",
-    "کجا",
-    "آیا",
-    "میشه",
-    "می\u200cشه",
-    "میتونی",
-    "می\u200cتونی",
-    "بگو",
-    "توضیح بده",
-    "کمکم کن",
-    "برنامه بساز",
-    "یادآوری کن",
-    # AR
-    "ما",
-    "ماذا",
-    "كيف",
-    "كم",
-    "لماذا",
-    "متى",
-    "أين",
-    "هل",
-    "يمكن",
-    "هل يمكنك",
-    "أخبرني",
-    "اشرح",
-    "ساعدني",
-    "أنشئ",
-    "اعمل",
-    "خطط",
-    "ذكرني",
-)
-
-_EXPLICIT_NEW_REQUEST_RE = re.compile(
+# CR-03.6: language-scoped request framing (not a global bare-cue union).
+_EN_REQUEST_PHRASE_RE = re.compile(
     r"(?:"
     r"^\s*(?:what|how|why|when|where|who)\b"
     r"|\b(?:can|could|would)\s+you\b"
@@ -228,10 +164,63 @@ _EXPLICIT_NEW_REQUEST_RE = re.compile(
     r"|\bis\s+it\b"
     r"|\bare\s+there\b"
     r"|\btell\s+me\b"
+    r"|\bexplain\b"
     r"|\bhelp\s+me\b"
     r"|\bremind\s+me\b"
+    # Action verbs only with imperative / please / can-you framing — not bare anywhere.
+    r"|^\s*(?:please\s+)?(?:create|make|build|plan)\b"
+    r"|\b(?:can|could|would)\s+you\s+(?:please\s+)?(?:create|make|build|plan)\b"
     r")",
     re.IGNORECASE | re.UNICODE,
+)
+
+_FA_REQUEST_LEAD_RE = re.compile(
+    r"^\s*(?:"
+    r"چی|چه|چطور|چگونه|چقدر|چند|چرا|کی|کجا|آیا|"
+    r"میشه|می\u200cشه|میتونی|می\u200cتونی"
+    r")(?!\w)",
+    re.UNICODE,
+)
+
+_FA_REQUEST_PHRASE_RE = re.compile(
+    r"(?:"
+    r"(?<!\w)بگو(?!\w)"
+    r"|(?<!\w)توضیح\s*بده(?!\w)"
+    r"|(?<!\w)کمکم\s*کن(?!\w)"
+    r"|(?<!\w)برنامه\s*بساز(?!\w)"
+    r"|(?<!\w)یادآوری\s*کن(?!\w)"
+    r"|(?<!\w)میشه(?!\w)"
+    r"|(?<!\w)می\u200cشه(?!\w)"
+    r"|(?<!\w)میتونی(?!\w)"
+    r"|(?<!\w)می\u200cتونی(?!\w)"
+    r")",
+    re.UNICODE,
+)
+
+_AR_REQUEST_LEAD_RE = re.compile(
+    r"^\s*(?:"
+    r"ماذا|كيف|كم|لماذا|متى|أين|هل|"
+    r"أخبرني|اشرح|ساعدني|أنشئ|ذكرني"
+    r")(?!\w)",
+    re.UNICODE,
+)
+
+_AR_REQUEST_PHRASE_RE = re.compile(
+    r"(?:"
+    r"(?<!\w)هل\s+يمكنك(?!\w)"
+    r"|(?<!\w)يمكن(?:ك|ني)?(?!\w)"
+    r"|(?<!\w)أخبرني(?!\w)"
+    r"|(?<!\w)اشرح(?!\w)"
+    r"|(?<!\w)ساعدني(?!\w)"
+    r"|(?<!\w)أنشئ(?!\w)"
+    r"|(?<!\w)اعمل\s+لي(?!\w)"
+    r"|(?<!\w)خطط\s+لي(?!\w)"
+    r"|(?<!\w)ذكرني(?!\w)"
+    # Bounded ما interrogative only — never bare ما.
+    r"|(?<!\w)ما\s+هو(?!\w)"
+    r"|(?<!\w)ما\s+هي(?!\w)"
+    r")",
+    re.UNICODE,
 )
 
 _SLEEP_QUALITY_CUES: tuple[str, ...] = (
@@ -322,6 +311,8 @@ _EXERCISE_SCHEDULE_CUES: tuple[str, ...] = (
     "friday",
     "mon-wed",
     "schedule",
+    "exercise when",
+    "when i have time",
     "هفته‌ای",
     "هفته ای",
     "در هفته",
@@ -570,24 +561,33 @@ def _looks_unrelated_request(text: str) -> bool:
 
 def is_explicit_new_request(message: str, language: LanguageCode) -> bool:
     """
-    CR-03.5 — pure deterministic current-need / new-request guard.
-    No DB / network / LLM / writes. Boundary-safe cues.
-    Bare 'please' alone is NOT evidence.
+    CR-03.6 — language-scoped, request-framed current-need guard.
+    No DB / network / LLM / writes. Boundary-safe.
+    Bare 'please' alone is NOT evidence. No cross-language bare-cue union.
     """
     raw = (message or "").strip()
     if not raw:
         return False
-    # Explicit question mark (EN/FA/AR) — treat as plausible new question (safe bias).
+    # Question mark remains language-agnostic safe bias.
     if "?" in raw or "؟" in raw:
         return True
     text = _norm_msg(raw)
     if not text:
         return False
-    if _EXPLICIT_NEW_REQUEST_RE.search(text):
-        return True
-    if _contains_any_boundary(text, _EXPLICIT_NEW_REQUEST_CUES):
-        return True
-    # Preserve prior meal-plan / reminder cue coverage.
+
+    lang = (language or "en").strip().lower()
+    if lang == "fa":
+        if _FA_REQUEST_LEAD_RE.search(text) or _FA_REQUEST_PHRASE_RE.search(text):
+            return True
+    elif lang == "ar":
+        if _AR_REQUEST_LEAD_RE.search(text) or _AR_REQUEST_PHRASE_RE.search(text):
+            return True
+    else:
+        # Default / en
+        if _EN_REQUEST_PHRASE_RE.search(text):
+            return True
+
+    # Preserve prior multiword meal-plan / reminder cue coverage (specific phrases).
     if _looks_unrelated_request(text):
         return True
     return False
