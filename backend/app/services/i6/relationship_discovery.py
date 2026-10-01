@@ -345,12 +345,50 @@ def _fact_type_for_key(key: str) -> str:
 
 
 def _norm_msg(message: str) -> str:
+    """Consistent normalization for boundary-safe cue matching."""
     text = (message or "").strip().lower()
-    return text.replace("\u200c", "").replace("\u200d", "")
+    text = text.replace("\u200c", "").replace("\u200d", "")
+    return text
+
+
+def _normalize_cue(phrase: str) -> str:
+    return _norm_msg(phrase)
+
+
+def _contains_phrase_boundary(text: str, phrase: str) -> bool:
+    """
+    Deterministic boundary-safe phrase match.
+    text must already be _norm_msg-normalized; phrase is normalized here.
+    Latin and FA/AR use Unicode-aware token boundaries via \\w.
+    """
+    needle = _normalize_cue(phrase)
+    if not needle:
+        return False
+    hay = text if text == _norm_msg(text) else _norm_msg(text)
+    if " " in needle:
+        # Multiword: require phrase with non-word boundaries around the whole span.
+        return bool(
+            re.search(
+                rf"(?<!\w){re.escape(needle)}(?!\w)",
+                hay,
+                flags=re.UNICODE,
+            )
+        )
+    return bool(
+        re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", hay, flags=re.UNICODE)
+    )
+
+
+def _contains_any_boundary(text: str, cues: tuple[str, ...]) -> bool:
+    hay = _norm_msg(text) if text != _norm_msg(text) else text
+    # Prefer longer cues first so multiword phrases win over fragments.
+    ordered = sorted((c for c in cues if c), key=len, reverse=True)
+    return any(_contains_phrase_boundary(hay, c) for c in ordered)
 
 
 def _contains_any(text: str, cues: tuple[str, ...]) -> bool:
-    return any(c and c in text for c in cues)
+    """Boundary-safe cue membership (CR-03.3)."""
+    return _contains_any_boundary(text, cues)
 
 
 def peek_relationship_discovery_marker(
@@ -451,6 +489,16 @@ def _looks_unrelated_request(text: str) -> bool:
     return _contains_any(text, _UNRELATED_REQUEST_CUES)
 
 
+# Software/device phrases that must not count as personal activity (CR-03.3).
+_NONPERSONAL_ACTIVITY_CUES: tuple[str, ...] = (
+    "app is running",
+    "software is running",
+    "server is running",
+    "process is running",
+    "service is running",
+)
+
+
 def _target_fit(target_key: str, message: str) -> bool:
     text = _norm_msg(message)
     if target_key == "lifestyle.sleep_quality":
@@ -460,6 +508,8 @@ def _target_fit(target_key: str, message: str) -> bool:
             return False
         return _contains_any(text, _FOOD_HABIT_CUES)
     if target_key == "lifestyle.activity_level":
+        if _contains_any_boundary(text, _NONPERSONAL_ACTIVITY_CUES):
+            return False
         return _contains_any(text, _ACTIVITY_LEVEL_CUES)
     if target_key == "routines.exercise_schedule":
         if _EXERCISE_FREQ_RE.search(text):

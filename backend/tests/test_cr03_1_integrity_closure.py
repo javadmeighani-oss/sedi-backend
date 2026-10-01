@@ -543,13 +543,28 @@ def test_cr031_orchestrator_structured_gate(monkeypatch):
         ),
     )
 
+    from backend.app.services.intelligence.intent_registry import DISCOVERY_REPLY_RULE_ID
+
     intent = IntentResult(
         registry_version="t",
         intent_id=IntentId.GENERAL,
         request_kind=RequestKind.INFORMATIONAL,
         confidence_band=IntentConfidenceBand.HIGH,
-        rule_id="t",
+        rule_id=DISCOVERY_REPLY_RULE_ID,
     )
+
+    def intent_resolver(**k):
+        # CR-03.3: I3 owns discovery-reply rule_id; stubs must not invent after readiness.
+        disp = k.get("relationship_discovery_disposition")
+        if disp in ("ANSWER", "SKIP", "AMBIGUOUS", "UNSUPPORTED"):
+            return intent
+        return IntentResult(
+            registry_version="t",
+            intent_id=IntentId.GENERAL,
+            request_kind=RequestKind.INFORMATIONAL,
+            confidence_band=IntentConfidenceBand.HIGH,
+            rule_id="t",
+        )
 
     class StubAsm:
         def assemble(self, *a, **k):
@@ -583,7 +598,7 @@ def test_cr031_orchestrator_structured_gate(monkeypatch):
         legacy_generator=lambda *a, **k: {"message": "ok", "language": "en"},
         structured_mode=True,
         context_assembler=StubAsm(),
-        intent_resolver=lambda **k: intent,
+        intent_resolver=intent_resolver,
         missing_information_engine=lambda **k: ReadinessResult(
             status=ReadinessStatus.READY,
             intent_id=intent.intent_id,
@@ -608,7 +623,7 @@ def test_cr031_orchestrator_structured_gate(monkeypatch):
         legacy_generator=lambda *a, **k: {"message": "ok", "language": "en"},
         structured_mode=False,
         context_assembler=StubAsm(),
-        intent_resolver=lambda **k: intent,
+        intent_resolver=intent_resolver,
         missing_information_engine=lambda **k: ReadinessResult(
             status=ReadinessStatus.READY,
             intent_id=intent.intent_id,

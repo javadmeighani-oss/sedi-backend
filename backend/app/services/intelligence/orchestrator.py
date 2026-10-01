@@ -475,6 +475,7 @@ class IntelligenceOrchestrator:
         use_structured_context = False
         snapshot = None
         caution_constraints: Optional[SafetyConstraints] = None
+        discovery_classification = None
 
         # Fix1 A04: CAUTION constraints in both structured and compatibility.
         if assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS:
@@ -616,6 +617,30 @@ class IntelligenceOrchestrator:
                     duration_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
+            # CR-03.3: classify pending discovery reply BEFORE I3 resolve/readiness.
+            # Request-local only; I3 applies contextual policy via disposition hint.
+            try:
+                from backend.app.services.i6.relationship_discovery import (
+                    classify_discovery_reply,
+                    peek_relationship_discovery_marker,
+                )
+
+                pending_target = peek_relationship_discovery_marker(
+                    self._db, authenticated_user_id
+                )
+                if pending_target:
+                    discovery_classification = classify_discovery_reply(
+                        pending_target, message, lang
+                    )
+            except Exception:
+                discovery_classification = None
+
+            discovery_disposition_hint = (
+                discovery_classification.disposition.value
+                if discovery_classification is not None
+                else None
+            )
+
             # 7–9) I3 stages
             if rollout_mode != "structured":
                 # Compatibility: full I3 skipped EXCEPT REMINDER/event request-local seam.
@@ -626,7 +651,18 @@ class IntelligenceOrchestrator:
                         message=message,
                         language=lang,
                         has_verified_notification_origin=ctx.notification is not None,
+                        relationship_discovery_disposition=discovery_disposition_hint,
                     )
+                except TypeError:
+                    # Backward-compatible stub resolvers without the disposition kwarg.
+                    try:
+                        _compat_intent = self._intent_resolver(
+                            message=message,
+                            language=lang,
+                            has_verified_notification_origin=ctx.notification is not None,
+                        )
+                    except Exception:
+                        _compat_intent = None
                 except Exception:
                     _compat_intent = None
 
@@ -703,11 +739,19 @@ class IntelligenceOrchestrator:
             else:
                 t0 = time.perf_counter()
                 try:
-                    intent_meta = self._intent_resolver(
-                        message=message,
-                        language=lang,
-                        has_verified_notification_origin=ctx.notification is not None,
-                    )
+                    try:
+                        intent_meta = self._intent_resolver(
+                            message=message,
+                            language=lang,
+                            has_verified_notification_origin=ctx.notification is not None,
+                            relationship_discovery_disposition=discovery_disposition_hint,
+                        )
+                    except TypeError:
+                        intent_meta = self._intent_resolver(
+                            message=message,
+                            language=lang,
+                            has_verified_notification_origin=ctx.notification is not None,
+                        )
                     ctx.append_stage(
                         StageName.RESOLVE_INTENT,
                         "ok",
@@ -816,7 +860,8 @@ class IntelligenceOrchestrator:
                     ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_CONNECTED.value
                 )
 
-        # CR-03.2: classify pending discovery reply BEFORE I5/I8/reminder side-effects.
+        # CR-03.3: observe final I3 discovery-reply rule; never fabricate IntentResult.
+        # Marker bind/consume happens here after readiness, using pre-resolve classification.
         discovery_reply_active = False
         caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
         discovery_allow_binding = (
@@ -825,7 +870,6 @@ class IntelligenceOrchestrator:
             and not caution_active
         )
         if terminal_safety:
-            # Lifecycle expiry only when terminal path still runs inside orchestrator.
             try:
                 from backend.app.services.i6.relationship_discovery import (
                     expire_relationship_discovery_marker_on_early_return,
@@ -836,70 +880,56 @@ class IntelligenceOrchestrator:
                 )
             except Exception:
                 pass
-        elif not terminal_safety:
+        elif discovery_classification is not None:
             try:
                 from backend.app.services.i6.relationship_discovery import (
                     DiscoveryDisposition,
-                    classify_discovery_reply,
-                    peek_relationship_discovery_marker,
                 )
                 from backend.app.services.intelligence.intent_registry import (
-                    REGISTRY_VERSION as _INTENT_REG_VER,
+                    DISCOVERY_REPLY_RULE_ID,
                 )
 
-                pending_target = peek_relationship_discovery_marker(
-                    self._db, authenticated_user_id
-                )
-                if pending_target:
-                    clf = classify_discovery_reply(pending_target, message, lang)
-                    if clf.disposition is DiscoveryDisposition.UNRELATED:
-                        # Consume stale marker; preserve normal I3/I5/I8/reminder routing.
+                if (
+                    intent_meta is not None
+                    and intent_meta.rule_id == DISCOVERY_REPLY_RULE_ID
+                ):
+                    if discovery_allow_binding:
+                        discovery_reply_active = True
                         _apply_discovery_fatigue_response(
                             self._db,
                             user_id=authenticated_user_id,
                             message=message,
                             language=lang,
                             allow_binding=True,
-                            classification=clf,
+                            classification=discovery_classification,
                         )
-                        extra_reason_codes.append("I6_DISCOVERY_MARKER_UNRELATED")
-                    elif clf.disposition in (
-                        DiscoveryDisposition.ANSWER,
-                        DiscoveryDisposition.SKIP,
-                        DiscoveryDisposition.AMBIGUOUS,
-                        DiscoveryDisposition.UNSUPPORTED,
+                        extra_reason_codes.append("I3_RELATIONSHIP_DISCOVERY_REPLY")
+                    else:
+                        _apply_discovery_fatigue_response(
+                            self._db,
+                            user_id=authenticated_user_id,
+                            message=message,
+                            language=lang,
+                            allow_binding=False,
+                            classification=discovery_classification,
+                        )
+                else:
+                    # Stale/unrelated marker: consume one-shot, no fact; preserve routing.
+                    _apply_discovery_fatigue_response(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        message=message,
+                        language=lang,
+                        allow_binding=False,
+                        classification=discovery_classification,
+                    )
+                    if (
+                        discovery_classification.disposition
+                        is DiscoveryDisposition.UNRELATED
                     ):
-                        if discovery_allow_binding:
-                            discovery_reply_active = True
-                            _apply_discovery_fatigue_response(
-                                self._db,
-                                user_id=authenticated_user_id,
-                                message=message,
-                                language=lang,
-                                allow_binding=True,
-                                classification=clf,
-                            )
-                            # I3 contextual reply — not a competing IntentId.
-                            intent_meta = IntentResult(
-                                registry_version=_INTENT_REG_VER,
-                                intent_id=IntentId.GENERAL,
-                                request_kind=RequestKind.INFORMATIONAL,
-                                confidence_band=IntentConfidenceBand.HIGH,
-                                rule_id="i3.rule.relationship_discovery_reply.v1",
-                            )
-                            extra_reason_codes.append(
-                                "I3_RELATIONSHIP_DISCOVERY_REPLY"
-                            )
-                        else:
-                            # Compatibility: consume one-shot, no fact, no side-effect suppress.
-                            _apply_discovery_fatigue_response(
-                                self._db,
-                                user_id=authenticated_user_id,
-                                message=message,
-                                language=lang,
-                                allow_binding=False,
-                                classification=clf,
-                            )
+                        extra_reason_codes.append("I6_DISCOVERY_MARKER_UNRELATED")
+                    else:
+                        extra_reason_codes.append("I6_DISCOVERY_MARKER_STALE")
             except Exception:
                 pass
 

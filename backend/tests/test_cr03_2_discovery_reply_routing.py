@@ -216,15 +216,10 @@ def test_cr032_response_length_and_time_strict():
 def test_cr032_exercise_answer_suppresses_i8(monkeypatch):
     from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
     from backend.app.services.intelligence.contracts import (
-        IntentConfidenceBand,
         IntentId,
-        IntentResult,
         PostGenerationSafetyResult,
         PostGenerationSafetyStatus,
-        ReadinessResult,
-        ReadinessStatus,
         ReasonCode,
-        RequestKind,
         RiskAssessment,
         RiskDomain,
         RiskLevel,
@@ -286,13 +281,8 @@ def test_cr032_exercise_answer_suppresses_i8(monkeypatch):
         ),
     )
 
-    intent = IntentResult(
-        registry_version="t",
-        intent_id=IntentId.ACTIVITY,
-        request_kind=RequestKind.PERSONALIZED_PLAN,
-        confidence_band=IntentConfidenceBand.HIGH,
-        rule_id="i3.rule.activity.personalized.v1",
-    )
+    from backend.app.services.intelligence.intent_registry import resolve_intent_safe
+    from backend.app.services.intelligence.missing_information import evaluate_readiness
 
     class StubAsm:
         def assemble(self, *a, **k):
@@ -316,14 +306,8 @@ def test_cr032_exercise_answer_suppresses_i8(monkeypatch):
         legacy_generator=lambda *a, **k: {"message": "ok", "language": "en"},
         structured_mode=True,
         context_assembler=StubAsm(),
-        intent_resolver=lambda **k: intent,
-        missing_information_engine=lambda **k: ReadinessResult(
-            status=ReadinessStatus.READY,
-            intent_id=intent.intent_id,
-            request_kind=intent.request_kind,
-            outcomes=(),
-            missing_fact_keys=(),
-        ),
+        intent_resolver=resolve_intent_safe,
+        missing_information_engine=evaluate_readiness,
         safety_assessor=lambda **k: RiskAssessment(
             registry_version="t",
             level=RiskLevel.NONE,

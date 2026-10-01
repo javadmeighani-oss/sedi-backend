@@ -352,6 +352,9 @@ _RULES: tuple[_Rule, ...] = (
 )
 
 
+DISCOVERY_REPLY_RULE_ID = "i3.rule.relationship_discovery_reply.v1"
+
+
 class IntentResolutionError(Exception):
     """Fail-closed intent resolver failure (no raw content)."""
 
@@ -363,9 +366,38 @@ def list_intent_ids() -> tuple[IntentId, ...]:
 def list_rule_ids() -> tuple[str, ...]:
     ids = [r.rule_id for r in _RULES]
     ids.append("i3.rule.notification_follow_up.origin.v1")
-    # Contextual I3 result for relationship-discovery replies (orchestrator-owned; no phrase match).
-    ids.append("i3.rule.relationship_discovery_reply.v1")
+    # Contextual I3 result for relationship-discovery replies (request-local hint).
+    ids.append(DISCOVERY_REPLY_RULE_ID)
     return tuple(ids)
+
+
+def _apply_relationship_discovery_disposition(
+    raw: IntentResult, disposition: Optional[str]
+) -> IntentResult:
+    """Request-local contextual policy. No DB. Notification origin already won."""
+    if disposition is None:
+        return raw
+    d = str(disposition).strip().upper()
+    if d in ("ANSWER", "SKIP"):
+        return IntentResult(
+            registry_version=REGISTRY_VERSION,
+            intent_id=IntentId.GENERAL,
+            request_kind=RequestKind.INFORMATIONAL,
+            confidence_band=IntentConfidenceBand.HIGH,
+            rule_id=DISCOVERY_REPLY_RULE_ID,
+        )
+    if d in ("AMBIGUOUS", "UNSUPPORTED"):
+        if raw.intent_id is IntentId.GENERAL:
+            return IntentResult(
+                registry_version=REGISTRY_VERSION,
+                intent_id=IntentId.GENERAL,
+                request_kind=RequestKind.INFORMATIONAL,
+                confidence_band=IntentConfidenceBand.HIGH,
+                rule_id=DISCOVERY_REPLY_RULE_ID,
+            )
+        return raw
+    # UNRELATED / NO_MARKER / unknown → preserve raw
+    return raw
 
 
 def resolve_intent(
@@ -373,6 +405,7 @@ def resolve_intent(
     message: str,
     language: LanguageCode,
     has_verified_notification_origin: bool = False,
+    relationship_discovery_disposition: Optional[str] = None,
 ) -> IntentResult:
     """
     Deterministic intent resolution.
@@ -380,7 +413,8 @@ def resolve_intent(
     Precedence:
     1) verified notification origin → notification_follow_up / follow_up
     2) matching rules by ascending priority then rule_id
-    3) general fallback
+    3) relationship-discovery contextual policy (request-local hint)
+    4) general fallback (via empty matches)
     """
     if not isinstance(message, str):
         raise IntentResolutionError("invalid_message")
@@ -424,22 +458,26 @@ def resolve_intent(
 
     if not matches:
         fallback = _RULES[-1]
-        return IntentResult(
+        raw = IntentResult(
             registry_version=REGISTRY_VERSION,
             intent_id=fallback.intent_id,
             request_kind=fallback.request_kind,
             confidence_band=fallback.confidence_band,
             rule_id=fallback.rule_id,
         )
+    else:
+        matches.sort(key=lambda r: (r.priority, r.rule_id))
+        winner = matches[0]
+        raw = IntentResult(
+            registry_version=REGISTRY_VERSION,
+            intent_id=winner.intent_id,
+            request_kind=winner.request_kind,
+            confidence_band=winner.confidence_band,
+            rule_id=winner.rule_id,
+        )
 
-    matches.sort(key=lambda r: (r.priority, r.rule_id))
-    winner = matches[0]
-    return IntentResult(
-        registry_version=REGISTRY_VERSION,
-        intent_id=winner.intent_id,
-        request_kind=winner.request_kind,
-        confidence_band=winner.confidence_band,
-        rule_id=winner.rule_id,
+    return _apply_relationship_discovery_disposition(
+        raw, relationship_discovery_disposition
     )
 
 
@@ -448,10 +486,12 @@ def resolve_intent_safe(
     message: str,
     language: LanguageCode,
     has_verified_notification_origin: bool = False,
+    relationship_discovery_disposition: Optional[str] = None,
 ) -> IntentResult:
     """Public seam used by orchestrator/tests."""
     return resolve_intent(
         message=message,
         language=language,
         has_verified_notification_origin=has_verified_notification_origin,
+        relationship_discovery_disposition=relationship_discovery_disposition,
     )
