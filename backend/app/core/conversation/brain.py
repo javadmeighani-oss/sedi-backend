@@ -443,6 +443,7 @@ class ConversationBrain:
         use_intelligence_safety: bool = False,
         safety_constraints=None,
         relationship_guidance: Optional[str] = None,
+        skip_generic_kc_extraction: bool = False,
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
@@ -457,6 +458,8 @@ class ConversationBrain:
         skipped — Section 15-I4 owns those operations.
 
         relationship_guidance: optional CR-02 internal system block (structured path).
+        skip_generic_kc_extraction: CR-03.4 internal — when True, skip Brain's generic
+        KC conversation_extraction_service only (governed I6 discovery binding unchanged).
         """
         # TEMP DEBUG: Log entry
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
@@ -683,17 +686,19 @@ class ConversationBrain:
                 # Continue - don't block chat response
 
             # Gate 2: KC extraction ingress (replaces legacy user_fact_candidates primary writes)
-            try:
-                from backend.app.services.knowledge.conversation_extraction_service import process_message as kc_process_message
-                kc_process_message(
-                    db=self.db,
-                    user_id=user_id,
-                    text=user_message,
-                    language=self.language or "fa",
-                    source_message_id=str(mem.id) if mem else None,
-                )
-            except Exception as extract_err:
-                print(f"[BRAIN] KC extract (non-critical): {extract_err}")
+            # CR-03.4: discovery-reply turns skip generic KC only; I6 relationship binding is separate.
+            if not skip_generic_kc_extraction:
+                try:
+                    from backend.app.services.knowledge.conversation_extraction_service import process_message as kc_process_message
+                    kc_process_message(
+                        db=self.db,
+                        user_id=user_id,
+                        text=user_message,
+                        language=self.language or "fa",
+                        source_message_id=str(mem.id) if mem else None,
+                    )
+                except Exception as extract_err:
+                    print(f"[BRAIN] KC extract (non-critical): {extract_err}")
 
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)

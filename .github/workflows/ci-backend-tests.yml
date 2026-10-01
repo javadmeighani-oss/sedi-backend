@@ -233,6 +233,7 @@ jobs:
             backend/tests/test_cr03_1_integrity_closure.py \
             backend/tests/test_cr03_2_discovery_reply_routing.py \
             backend/tests/test_cr03_3_contextual_discovery_boundary.py \
+            backend/tests/test_cr03_4_single_truth_discovery_extraction.py \
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \

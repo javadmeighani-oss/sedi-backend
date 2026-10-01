@@ -82,6 +82,7 @@ class LegacyGeneratorProtocol(Protocol):
         use_intelligence_safety: bool = False,
         safety_constraints: Optional[SafetyConstraints] = None,
         relationship_guidance: Optional[str] = None,
+        skip_generic_kc_extraction: bool = False,
     ) -> Dict[str, Any]:
         ...
 
@@ -102,6 +103,7 @@ def _default_legacy_generator(
         use_intelligence_safety: bool = True,
         safety_constraints: Optional[SafetyConstraints] = None,
         relationship_guidance: Optional[str] = None,
+        skip_generic_kc_extraction: bool = False,
     ) -> Dict[str, Any]:
         brain = ConversationBrain(db, language=language)
         return brain.process_message(
@@ -115,21 +117,26 @@ def _default_legacy_generator(
             use_intelligence_safety=True,
             safety_constraints=safety_constraints,
             relationship_guidance=relationship_guidance,
+            skip_generic_kc_extraction=skip_generic_kc_extraction,
         )
 
     return _generate
 
 
-def _generator_accepts_relationship_guidance(generator: Callable[..., Any]) -> bool:
+def _generator_accepts_kwarg(generator: Callable[..., Any], name: str) -> bool:
     """Inspect callable once; never retry after an execution-time TypeError."""
     try:
         sig = inspect.signature(generator)
     except (TypeError, ValueError):
         return False
     params = sig.parameters
-    if "relationship_guidance" in params:
+    if name in params:
         return True
     return any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
+def _generator_accepts_relationship_guidance(generator: Callable[..., Any]) -> bool:
+    return _generator_accepts_kwarg(generator, "relationship_guidance")
 
 
 def _apply_discovery_fatigue_response(
@@ -1321,6 +1328,15 @@ class IntelligenceOrchestrator:
 
             t0 = time.perf_counter()
             try:
+                from backend.app.services.intelligence.intent_registry import (
+                    DISCOVERY_REPLY_RULE_ID,
+                )
+
+                skip_generic_kc_extraction = bool(
+                    discovery_reply_active
+                    and intent_meta is not None
+                    and intent_meta.rule_id == DISCOVERY_REPLY_RULE_ID
+                )
                 call_kwargs: Dict[str, Any] = {
                     "notification_context": (
                         None
@@ -1333,8 +1349,12 @@ class IntelligenceOrchestrator:
                     "use_intelligence_safety": True,
                     "safety_constraints": caution_constraints,
                 }
-                if _generator_accepts_relationship_guidance(generator):
+                if _generator_accepts_kwarg(generator, "relationship_guidance"):
                     call_kwargs["relationship_guidance"] = relationship_guidance
+                if _generator_accepts_kwarg(generator, "skip_generic_kc_extraction"):
+                    call_kwargs["skip_generic_kc_extraction"] = (
+                        skip_generic_kc_extraction
+                    )
                 raw = generator(
                     authenticated_user_id,
                     message,
