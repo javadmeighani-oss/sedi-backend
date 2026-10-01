@@ -361,8 +361,8 @@ def test_skip_reject_updates_existing_fatigue_state(monkeypatch):
         last_question_type = "relationship_discovery:routines.bedtime"
 
     monkeypatch.setattr(
-        "backend.app.services.knowledge.kc_fatigue_policy.ensure_state",
-        lambda db, uid, now: State(),
+        "backend.app.services.knowledge.kc_fatigue_policy.get_existing_state",
+        lambda db, uid: State(),
     )
     monkeypatch.setattr(
         "backend.app.services.knowledge.kc_fatigue_policy.mark_answer",
