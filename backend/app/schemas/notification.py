@@ -45,6 +45,14 @@ class NotificationResponse(NotificationBase):
     user_id: int
     is_read: bool
     is_sent: bool
+    has_user_response: bool = Field(
+        False,
+        description=(
+            "True when InteractionEvent ledger has a successful explicit A4 "
+            "response (LIKE/DISLIKE/DISLIKE_REASON/TALK_TO_SEDI). READ alone "
+            "does not set this. Existing-ledger projection only."
+        ),
+    )
     created_at: datetime
     sent_at: Optional[datetime] = Field(
         None, description="Delivery timestamp; A3 Inbox orders by this when present"

@@ -14,12 +14,27 @@ from typing import Any, Optional
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query, Session
 
-from backend.app.models import Notification
+from backend.app.models import InteractionEvent, Notification
+from backend.app.services.i10.interaction_vocabulary import (
+    CanonicalInteractionVerb,
+    event_type_for_verb,
+)
 
 # Locked A4 inbox policy — fixed 10-day visible window (no env override).
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50
 USER_VISIBLE_HISTORY_DAYS = 10
+
+# Explicit A4 user responses only — READ alone does NOT count.
+# Derived from existing I10 vocabulary (no new authority).
+USER_RESPONSE_EVENT_TYPES = frozenset(
+    {
+        event_type_for_verb(CanonicalInteractionVerb.LIKE),
+        event_type_for_verb(CanonicalInteractionVerb.DISLIKE),
+        event_type_for_verb(CanonicalInteractionVerb.DISLIKE_REASON),
+        event_type_for_verb(CanonicalInteractionVerb.TALK_TO_SEDI),
+    }
+)
 
 
 def visible_cutoff(now: Optional[datetime] = None) -> datetime:
@@ -97,6 +112,32 @@ def order_sent_history(query: Query) -> Query:
     return query.order_by(Notification.sent_at.desc(), Notification.id.desc())
 
 
+def bulk_has_user_response_ids(
+    db: Session,
+    *,
+    user_id: int,
+    notification_ids: list[int],
+) -> set[int]:
+    """One-query projection: which inbox ids have an explicit A4 user response.
+
+    Uses InteractionEvent ledger only. No N+1. READ-only events excluded.
+    """
+    if not notification_ids:
+        return set()
+    rows = (
+        db.query(InteractionEvent.source_notification_id)
+        .filter(
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.source == "notification",
+            InteractionEvent.source_notification_id.in_(notification_ids),
+            InteractionEvent.event_type.in_(tuple(USER_RESPONSE_EVENT_TYPES)),
+        )
+        .distinct()
+        .all()
+    )
+    return {int(r[0]) for r in rows if r[0] is not None}
+
+
 def fetch_sent_history_page(
     db: Session,
     *,
@@ -110,7 +151,8 @@ def fetch_sent_history_page(
     """
     Return page payload for A3 Inbox / unread list.
 
-    Keys: notifications, next_cursor, has_more, limit, total, unread_count
+    Keys: notifications, next_cursor, has_more, limit, total, unread_count,
+    has_user_response_ids
     """
     page_size = clamp_limit(limit)
     base = db.query(Notification).filter(Notification.user_id == user_id)
@@ -135,6 +177,12 @@ def fetch_sent_history_page(
         last = page_rows[-1]
         next_cursor = encode_inbox_cursor(sent_at=last.sent_at, notification_id=last.id)
 
+    responded_ids = bulk_has_user_response_ids(
+        db,
+        user_id=user_id,
+        notification_ids=[n.id for n in page_rows],
+    )
+
     return {
         "notifications": page_rows,
         "next_cursor": next_cursor,
@@ -143,4 +191,5 @@ def fetch_sent_history_page(
         "total": total if not unread_only else unread_count,
         "unread_count": unread_count,
         "count": len(page_rows),
+        "has_user_response_ids": responded_ids,
     }

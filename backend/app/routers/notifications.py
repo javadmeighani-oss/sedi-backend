@@ -48,7 +48,11 @@ def _assert_user_id_matches(auth_user: User, user_id: int) -> None:
         )
 
 
-def _notification_to_response(notif: Notification) -> NotificationResponse:
+def _notification_to_response(
+    notif: Notification,
+    *,
+    has_user_response: bool = False,
+) -> NotificationResponse:
     """Map ORM notification to API response with Gate 4-B effective category/risk."""
     from backend.app.services.gate4.inbox_metadata import build_safe_inbox_metadata
     from backend.app.services.gate4.notification_context import (
@@ -68,6 +72,7 @@ def _notification_to_response(notif: Notification) -> NotificationResponse:
         priority=notif.priority,
         is_read=notif.is_read,
         is_sent=notif.is_sent,
+        has_user_response=bool(has_user_response),
         scheduled_for=notif.scheduled_for,
         created_at=notif.created_at,
         sent_at=notif.sent_at,
@@ -946,7 +951,13 @@ def get_notifications(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid cursor")
 
-    notification_list = [_notification_to_response(n) for n in page["notifications"]]
+    notification_list = [
+        _notification_to_response(
+            n,
+            has_user_response=n.id in page.get("has_user_response_ids", set()),
+        )
+        for n in page["notifications"]
+    ]
     return APIResponse(
         ok=True,
         data={
@@ -1017,7 +1028,13 @@ def get_unread_notifications(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid cursor")
 
-    notification_list = [_notification_to_response(n) for n in page["notifications"]]
+    notification_list = [
+        _notification_to_response(
+            n,
+            has_user_response=n.id in page.get("has_user_response_ids", set()),
+        )
+        for n in page["notifications"]
+    ]
     return APIResponse(
         ok=True,
         data={
