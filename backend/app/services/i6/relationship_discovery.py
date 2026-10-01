@@ -37,6 +37,58 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
     }
 )
 
+# Open-text targets: bare acknowledgements must not become fabricated facts.
+_OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
+    {
+        "lifestyle.sleep_quality",
+        "lifestyle.food_habits",
+        "lifestyle.activity_level",
+        "routines.exercise_schedule",
+    }
+)
+
+_AMBIGUOUS_ACKNOWLEDGEMENTS: frozenset[str] = frozenset(
+    {
+        # EN
+        "yes",
+        "no",
+        "yep",
+        "nope",
+        "unsure",
+        "don't know",
+        "dont know",
+        "do not know",
+        # FA
+        "بله",
+        "آره",
+        "نه",
+        "نمی‌دانم",
+        "نمیدانم",
+        "نمیدونم",
+        "نمی دانم",
+        # AR
+        "نعم",
+        "لا",
+        "لا أعرف",
+        "لا اعرف",
+        "مش عارف",
+        # existing trivial acknowledgements (also covered in looks_substantive)
+        "ok",
+        "okay",
+        "k",
+        "thanks",
+        "thank you",
+        "hi",
+        "hello",
+        "hey",
+        "سلام",
+        "مرسی",
+        "ممنون",
+        "حسنا",
+        "شكرا",
+    }
+)
+
 _MAX_BOUNDED_TEXT = 200
 _MAX_TIME_TEXT = 32
 
@@ -154,12 +206,22 @@ def _normalize_bounded_text(message: str) -> Optional[str]:
     return bounded or None
 
 
+def is_ambiguous_open_text_answer(message: str) -> bool:
+    """Bare acknowledgements / unsure replies — no fabricated semantic value."""
+    text = (message or "").strip().lower()
+    if not text:
+        return True
+    return text in _AMBIGUOUS_ACKNOWLEDGEMENTS
+
+
 def normalize_discovery_value(target_key: str, message: str) -> Optional[Any]:
     """Deterministic normalization. Never persist unbounded full message."""
     if target_key == "preferences.response_length":
         return _normalize_response_length(message)
     if target_key in ("routines.bedtime", "routines.wake_time"):
         return _normalize_time_text(message)
+    if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
+        return None
     return _normalize_bounded_text(message)
 
 
@@ -309,6 +371,11 @@ def process_relationship_discovery_answer(
             consume_relationship_discovery_marker(db, user_id)
             return
 
+        if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
+            # Ambiguous bare ack → consume, no fact, no conflict candidate.
+            consume_relationship_discovery_marker(db, user_id)
+            return
+
         if target_key not in SUPPORTED_TARGETS:
             # Unsupported / high-sensitivity: consume, no fact.
             mark_answer(db, user_id, now, "accepted")
@@ -317,7 +384,7 @@ def process_relationship_discovery_answer(
 
         value = normalize_discovery_value(target_key, message)
         if value is None:
-            # Ambiguous / unnormalizable → consume, no fact; still clear reject streak.
+            # Unnormalizable (non-ack) → consume, no fact; clear reject streak.
             mark_answer(db, user_id, now, "accepted")
             consume_relationship_discovery_marker(db, user_id)
             return

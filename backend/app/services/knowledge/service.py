@@ -63,6 +63,8 @@ def accept_candidate(
     db: Session,
     candidate_id: int,
     verified_by: str = "system",
+    *,
+    owner_user_id: Optional[int] = None,
 ) -> Optional[models.KcUserFact]:
     """
     Accept a pending candidate: insert into kc_user_facts, close previous valid_to
@@ -71,13 +73,19 @@ def accept_candidate(
     CR-03: when legacy kc_user_facts writes are frozen and the candidate maps to an
     I6 lifestyle/preference scalar, promote directly to UserMemoryFact (USER_CONFIRMED)
     without writing KcUserFact. Candidate becomes accepted only after promotion succeeds.
+
+    When owner_user_id is supplied (user-scoped confirm), only that user's candidate
+    may be accepted. Foreign/missing candidates return None without leaking existence.
     """
     from backend.app.services.i6.legacy_fact_freeze import (
         assert_legacy_write_allowed,
         legacy_fact_writes_frozen,
     )
 
-    cand = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id).first()
+    q = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id)
+    if owner_user_id is not None:
+        q = q.filter(models.KcFactCandidate.user_id == int(owner_user_id))
+    cand = q.first()
     if not cand:
         return None
     if cand.status != "pending":
@@ -155,9 +163,21 @@ def accept_candidate(
     return fact
 
 
-def reject_candidate(db: Session, candidate_id: int) -> bool:
-    """Reject a pending candidate. Returns True if updated."""
-    cand = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id).first()
+def reject_candidate(
+    db: Session,
+    candidate_id: int,
+    *,
+    owner_user_id: Optional[int] = None,
+) -> bool:
+    """Reject a pending candidate. Returns True if updated.
+
+    When owner_user_id is supplied, only that user's candidate may be mutated.
+    Foreign/missing candidates return False without leaking existence.
+    """
+    q = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id)
+    if owner_user_id is not None:
+        q = q.filter(models.KcFactCandidate.user_id == int(owner_user_id))
+    cand = q.first()
     if not cand or cand.status != "pending":
         return False
     cand.status = "rejected"
@@ -265,16 +285,71 @@ def apply_answer(
     """
     Apply user answer: profile update, fact create+accept, or confirm_candidate Yes/No.
     Returns {"applied": "profile"|"fact"|"confirm_accepted"|"confirm_rejected", "fact_id"?: int}.
+
+    User-scoped confirm_candidate requires candidate ownership by user_id.
+    Foreign candidates yield the same opaque skipped outcome (no existence leak).
+    outcome=accepted is returned only when the candidate status is accepted after
+    canonical promotion succeeds.
     """
     # confirm_candidate flow
     if candidate_id is not None and (question_type or "").strip().lower() == "confirm_candidate":
+        owned = (
+            db.query(models.KcFactCandidate)
+            .filter(
+                models.KcFactCandidate.id == int(candidate_id),
+                models.KcFactCandidate.user_id == int(user_id),
+            )
+            .first()
+        )
+        # Opaque: missing and foreign look identical; no mutation.
+        if owned is None:
+            logger.info(
+                "kc_apply_answer user_id=%s candidate_id=%s applied=confirm_skipped",
+                user_id,
+                candidate_id,
+            )
+            return {"applied": "confirm_skipped", "outcome": "skipped"}
+
         if _is_yes_answer(value):
-            fact = accept_candidate(db=db, candidate_id=candidate_id, verified_by="user")
-            logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_accepted", user_id, candidate_id)
-            return {"applied": "confirm_accepted", "fact_id": fact.id if fact else None, "outcome": "accepted"}
+            fact = accept_candidate(
+                db=db,
+                candidate_id=candidate_id,
+                verified_by="user",
+                owner_user_id=user_id,
+            )
+            db.refresh(owned)
+            if owned.status != "accepted":
+                # Promotion blocked/failed/consent-denied — never claim accepted.
+                logger.info(
+                    "kc_apply_answer user_id=%s candidate_id=%s applied=confirm_skipped reason=promotion_incomplete",
+                    user_id,
+                    candidate_id,
+                )
+                return {"applied": "confirm_skipped", "outcome": "skipped"}
+            logger.info(
+                "kc_apply_answer user_id=%s candidate_id=%s applied=confirm_accepted",
+                user_id,
+                candidate_id,
+            )
+            return {
+                "applied": "confirm_accepted",
+                "fact_id": fact.id if fact else None,
+                "outcome": "accepted",
+            }
         if _is_no_answer(value):
-            ok = reject_candidate(db=db, candidate_id=candidate_id)
-            logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_rejected", user_id, candidate_id)
+            ok = reject_candidate(db=db, candidate_id=candidate_id, owner_user_id=user_id)
+            if not ok:
+                logger.info(
+                    "kc_apply_answer user_id=%s candidate_id=%s applied=confirm_skipped",
+                    user_id,
+                    candidate_id,
+                )
+                return {"applied": "confirm_skipped", "outcome": "skipped"}
+            logger.info(
+                "kc_apply_answer user_id=%s candidate_id=%s applied=confirm_rejected",
+                user_id,
+                candidate_id,
+            )
             return {"applied": "confirm_rejected", "outcome": "rejected"}
         # skipped: بعدا, فعلا نه, not now, empty/unknown — leave candidate pending
         logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_skipped", user_id, candidate_id)
@@ -330,6 +405,6 @@ def apply_answer(
         confidence=1.0,
         evidence=None,
     )
-    fact = accept_candidate(db=db, candidate_id=cand.id, verified_by="user")
+    fact = accept_candidate(db=db, candidate_id=cand.id, verified_by="user", owner_user_id=user_id)
     logger.info("kc_apply_answer user_id=%s field_key=%s applied=fact fact_id=%s", user_id, field_key, fact.id if fact else None)
     return {"applied": "fact", "fact_id": fact.id if fact else None}

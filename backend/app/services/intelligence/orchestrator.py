@@ -1015,15 +1015,19 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
-        # CR-03: prior relationship_discovery → one-shot I6 binding (non-terminal/non-caution).
-        # Marker is always consumed on this next turn when present.
+        # CR-03.1: relationship discovery binding only in structured + non-terminal + non-caution.
+        # Compatibility / terminal / caution: consume marker one-shot, NO I6 fact write.
         caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
         _apply_discovery_fatigue_response(
             self._db,
             user_id=authenticated_user_id,
             message=message,
             language=lang,
-            allow_binding=(not terminal_safety and not caution_active),
+            allow_binding=(
+                rollout_mode == "structured"
+                and not terminal_safety
+                and not caution_active
+            ),
         )
 
         # CR-01/CR-02 NBQ: select directive on normal structured path.
@@ -1323,14 +1327,16 @@ class IntelligenceOrchestrator:
                     target_key=discovery_target_key,
                 )
 
-            # CR-03: finalize durable raw to exact final user-visible response.
+            # CR-03.1: finalize durable raw to exact final user-visible response.
+            # Fail closed on history eligibility if finalization cannot achieve parity.
             if durable_memory_id is not None and self._db is not None:
                 try:
                     from backend.app.services.i7.governed_raw import (
                         finalize_durable_raw_response,
+                        mark_durable_raw_ineligible,
                     )
 
-                    finalize_durable_raw_response(
+                    fin = finalize_durable_raw_response(
                         self._db,
                         user_id=authenticated_user_id,
                         memory_id=durable_memory_id,
@@ -1338,9 +1344,49 @@ class IntelligenceOrchestrator:
                         actor_user_id=authenticated_user_id,
                         commit=True,
                     )
+                    if not fin.durable or fin.reason not in (
+                        "FINALIZED",
+                    ):
+                        # Collision / not-durable / unexpected: ensure draft is not eligible.
+                        if fin.reason not in (
+                            "MARKED_INELIGIBLE",
+                            "FINALIZE_KEY_COLLISION",
+                            "FINALIZE_INTEGRITY_CONFLICT",
+                            "FINALIZE_UNEXPECTED_ERROR",
+                        ):
+                            mark_durable_raw_ineligible(
+                                self._db,
+                                user_id=authenticated_user_id,
+                                memory_id=durable_memory_id,
+                                actor_user_id=authenticated_user_id,
+                                reason=str(fin.reason or "FINALIZATION_FAILED"),
+                                commit=True,
+                            )
+                        extra_reason_codes.append("I7_RAW_FINALIZATION_FAILED")
                 except Exception:
-                    # Finalization is best-effort; chat remains functional.
-                    pass
+                    try:
+                        self._db.rollback()
+                    except Exception:
+                        pass
+                    try:
+                        from backend.app.services.i7.governed_raw import (
+                            mark_durable_raw_ineligible,
+                        )
+
+                        mark_durable_raw_ineligible(
+                            self._db,
+                            user_id=authenticated_user_id,
+                            memory_id=durable_memory_id,
+                            actor_user_id=authenticated_user_id,
+                            reason="FINALIZE_ORCHESTRATOR_EXCEPTION",
+                            commit=True,
+                        )
+                    except Exception:
+                        try:
+                            self._db.rollback()
+                        except Exception:
+                            pass
+                    extra_reason_codes.append("I7_RAW_FINALIZATION_FAILED")
 
         # complete
         t0 = time.perf_counter()
