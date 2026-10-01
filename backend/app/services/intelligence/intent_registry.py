@@ -363,6 +363,8 @@ def list_intent_ids() -> tuple[IntentId, ...]:
 def list_rule_ids() -> tuple[str, ...]:
     ids = [r.rule_id for r in _RULES]
     ids.append("i3.rule.notification_follow_up.origin.v1")
+    # Contextual I3 result for relationship-discovery replies (orchestrator-owned; no phrase match).
+    ids.append("i3.rule.relationship_discovery_reply.v1")
     return tuple(ids)
 
 

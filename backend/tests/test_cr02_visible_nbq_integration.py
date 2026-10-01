@@ -385,7 +385,7 @@ def test_skip_reject_updates_existing_fatigue_state(monkeypatch):
     _apply_discovery_fatigue_response(
         MagicMock(),
         user_id=1,
-        message="I usually sleep around eleven",
+        message="I usually sleep around 11:00 pm",
         language="en",
         allow_binding=True,
     )
@@ -601,7 +601,7 @@ def test_cr021_prior_relationship_discovery_answer_still_works(monkeypatch):
     _apply_discovery_fatigue_response(
         MagicMock(),
         user_id=1,
-        message="I sleep around eleven",
+        message="I sleep around 11:00 pm",
         language="en",
         allow_binding=True,
     )
@@ -609,30 +609,23 @@ def test_cr021_prior_relationship_discovery_answer_still_works(monkeypatch):
 
 
 def test_cr021_terminal_i4_zero_relationship_fatigue_mutation(monkeypatch):
-    """Terminal turns still consume the one-shot marker but must not bind facts
-    or update skip/reject streaks (allow_binding=False)."""
-    calls = []
+    """Terminal turns expire the one-shot marker without binding facts or
+    inferring skip/reject/accepted fatigue outcomes from content."""
+    expired = {"n": 0}
 
-    def capture(db, *, user_id, message, language, allow_binding):
-        calls.append(
-            {
-                "user_id": user_id,
-                "message": message,
-                "allow_binding": allow_binding,
-            }
-        )
+    def capture_expire(db, user_id):
+        expired["n"] += 1
 
     monkeypatch.setattr(
-        "backend.app.services.intelligence.orchestrator._apply_discovery_fatigue_response",
-        capture,
+        "backend.app.services.i6.relationship_discovery.expire_relationship_discovery_marker_on_early_return",
+        capture_expire,
     )
     orch, _ = _orch(assess=lambda **k: _terminal())
     result = orch.process(
         authenticated_user_id=1, message="later", language="en"
     )
     assert result.message == "SAFETY-FIXED"
-    assert len(calls) == 1
-    assert calls[0]["allow_binding"] is False
+    assert expired["n"] == 1
 
 
 def test_cr021_be_heard_suppresses_deterministic_nbq(monkeypatch):

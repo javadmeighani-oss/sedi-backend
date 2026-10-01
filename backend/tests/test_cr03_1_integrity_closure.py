@@ -517,12 +517,30 @@ def test_cr031_orchestrator_structured_gate(monkeypatch):
 
     calls = []
 
-    def capture(db, *, user_id, message, language, allow_binding):
+    def capture(db, *, user_id, message, language, allow_binding, classification=None):
         calls.append({"allow_binding": allow_binding, "message": message})
+        return classification
 
     monkeypatch.setattr(
         "backend.app.services.intelligence.orchestrator._apply_discovery_fatigue_response",
         capture,
+    )
+    monkeypatch.setattr(
+        "backend.app.services.i6.relationship_discovery.peek_relationship_discovery_marker",
+        lambda db, uid: "routines.bedtime",
+    )
+    from backend.app.services.i6.relationship_discovery import (
+        DiscoveryClassification,
+        DiscoveryDisposition,
+    )
+
+    monkeypatch.setattr(
+        "backend.app.services.i6.relationship_discovery.classify_discovery_reply",
+        lambda target, message, language: DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target,
+            normalized_value="11:00 pm",
+        ),
     )
 
     intent = IntentResult(

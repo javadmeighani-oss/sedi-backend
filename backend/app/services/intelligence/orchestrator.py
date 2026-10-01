@@ -22,6 +22,7 @@ from backend.app.services.intelligence.contracts import (
     STAGE_ORDER,
     STRUCTURED_READINESS_REASON_CODES,
     ConversationOrigin,
+    IntentConfidenceBand,
     IntentId,
     IntentResult,
     LanguageCode,
@@ -32,6 +33,7 @@ from backend.app.services.intelligence.contracts import (
     ReadinessResult,
     ReadinessStatus,
     ReasonCode,
+    RequestKind,
     RiskAssessment,
     RiskLevel,
     SafetyAction,
@@ -137,29 +139,32 @@ def _apply_discovery_fatigue_response(
     message: str,
     language: LanguageCode,
     allow_binding: bool,
-) -> None:
-    """CR-03: one-shot relationship discovery binding + fatigue consume.
+    classification: Optional[Any] = None,
+) -> Any:
+    """CR-03.2: one-shot relationship discovery binding + fatigue consume.
 
-    When allow_binding is False (terminal/caution), marker is still consumed with
+    When allow_binding is False (compat/terminal/caution), marker is still consumed with
     no fact write and no skip/reject streak update.
+    Returns DiscoveryClassification when available.
     """
     if db is None:
-        return
+        return None
     try:
         from backend.app.services.i6.relationship_discovery import (
             process_relationship_discovery_answer,
         )
 
-        process_relationship_discovery_answer(
+        return process_relationship_discovery_answer(
             db,
             user_id=user_id,
             message=message,
             language=language,
             allow_binding=allow_binding,
+            classification=classification,
         )
     except Exception:
         # Discovery binding is best-effort; never fail the chat path.
-        return
+        return None
 
 
 def _fatigue_permits_discovery(db: Optional[Session], user_id: int) -> bool:
@@ -811,6 +816,93 @@ class IntelligenceOrchestrator:
                     ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_CONNECTED.value
                 )
 
+        # CR-03.2: classify pending discovery reply BEFORE I5/I8/reminder side-effects.
+        discovery_reply_active = False
+        caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
+        discovery_allow_binding = (
+            rollout_mode == "structured"
+            and not terminal_safety
+            and not caution_active
+        )
+        if terminal_safety:
+            # Lifecycle expiry only when terminal path still runs inside orchestrator.
+            try:
+                from backend.app.services.i6.relationship_discovery import (
+                    expire_relationship_discovery_marker_on_early_return,
+                )
+
+                expire_relationship_discovery_marker_on_early_return(
+                    self._db, authenticated_user_id
+                )
+            except Exception:
+                pass
+        elif not terminal_safety:
+            try:
+                from backend.app.services.i6.relationship_discovery import (
+                    DiscoveryDisposition,
+                    classify_discovery_reply,
+                    peek_relationship_discovery_marker,
+                )
+                from backend.app.services.intelligence.intent_registry import (
+                    REGISTRY_VERSION as _INTENT_REG_VER,
+                )
+
+                pending_target = peek_relationship_discovery_marker(
+                    self._db, authenticated_user_id
+                )
+                if pending_target:
+                    clf = classify_discovery_reply(pending_target, message, lang)
+                    if clf.disposition is DiscoveryDisposition.UNRELATED:
+                        # Consume stale marker; preserve normal I3/I5/I8/reminder routing.
+                        _apply_discovery_fatigue_response(
+                            self._db,
+                            user_id=authenticated_user_id,
+                            message=message,
+                            language=lang,
+                            allow_binding=True,
+                            classification=clf,
+                        )
+                        extra_reason_codes.append("I6_DISCOVERY_MARKER_UNRELATED")
+                    elif clf.disposition in (
+                        DiscoveryDisposition.ANSWER,
+                        DiscoveryDisposition.SKIP,
+                        DiscoveryDisposition.AMBIGUOUS,
+                        DiscoveryDisposition.UNSUPPORTED,
+                    ):
+                        if discovery_allow_binding:
+                            discovery_reply_active = True
+                            _apply_discovery_fatigue_response(
+                                self._db,
+                                user_id=authenticated_user_id,
+                                message=message,
+                                language=lang,
+                                allow_binding=True,
+                                classification=clf,
+                            )
+                            # I3 contextual reply — not a competing IntentId.
+                            intent_meta = IntentResult(
+                                registry_version=_INTENT_REG_VER,
+                                intent_id=IntentId.GENERAL,
+                                request_kind=RequestKind.INFORMATIONAL,
+                                confidence_band=IntentConfidenceBand.HIGH,
+                                rule_id="i3.rule.relationship_discovery_reply.v1",
+                            )
+                            extra_reason_codes.append(
+                                "I3_RELATIONSHIP_DISCOVERY_REPLY"
+                            )
+                        else:
+                            # Compatibility: consume one-shot, no fact, no side-effect suppress.
+                            _apply_discovery_fatigue_response(
+                                self._db,
+                                user_id=authenticated_user_id,
+                                message=message,
+                                language=lang,
+                                allow_binding=False,
+                                classification=clf,
+                            )
+            except Exception:
+                pass
+
         # I5 care-navigation — ONE canonical path via care_navigation_directory facade.
         # DIRECTORY_HIT → structured response; DIRECTORY_MISS → fail-safe.
         # Never fall through to LLM provider generation.
@@ -821,7 +913,11 @@ class IntelligenceOrchestrator:
             intent_meta is not None
             and intent_meta.intent_id is IntentId.REMINDER
         )
-        if not terminal_safety and not _reminder_owned:
+        if (
+            not terminal_safety
+            and not discovery_reply_active
+            and not _reminder_owned
+        ):
             from backend.app.services.i5.care_navigation_directory import (
                 CareNavEntity,
                 STATUS_NO_VERIFIED,
@@ -873,6 +969,7 @@ class IntelligenceOrchestrator:
         nutrition_message: Optional[str] = None
         if (
             not terminal_safety
+            and not discovery_reply_active
             and not care_nav_handled
             and not skip_generator
             and intent_meta is not None
@@ -924,6 +1021,7 @@ class IntelligenceOrchestrator:
         exercise_message: Optional[str] = None
         if (
             not terminal_safety
+            and not discovery_reply_active
             and not care_nav_handled
             and not skip_generator
             and intent_meta is not None
@@ -974,6 +1072,7 @@ class IntelligenceOrchestrator:
         reminder_message: Optional[str] = None
         if (
             not terminal_safety
+            and not discovery_reply_active
             and not care_nav_handled
             and intent_meta is not None
             and readiness_meta is not None
@@ -1015,20 +1114,7 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
-        # CR-03.1: relationship discovery binding only in structured + non-terminal + non-caution.
-        # Compatibility / terminal / caution: consume marker one-shot, NO I6 fact write.
-        caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
-        _apply_discovery_fatigue_response(
-            self._db,
-            user_id=authenticated_user_id,
-            message=message,
-            language=lang,
-            allow_binding=(
-                rollout_mode == "structured"
-                and not terminal_safety
-                and not caution_active
-            ),
-        )
+        # CR-03.2: discovery marker already classified/consumed above (before I5/I8/reminder).
 
         # CR-01/CR-02 NBQ: select directive on normal structured path.
         # Visible append is gated separately (fatigue/caution/specialized/BE_HEARD).

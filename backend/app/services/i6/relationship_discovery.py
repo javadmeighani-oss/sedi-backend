@@ -1,14 +1,18 @@
-"""CR-03 — One-shot relationship-discovery answer binding into I6.
+"""CR-03 / CR-03.2 — One-shot relationship-discovery answer binding into I6.
 
 Deterministic. No LLM/network. Structured relationship path only.
 Marker: kc_fatigue_policy last_question_type = relationship_discovery:<target_key>
+
+CR-03.2 adds pure target-aware classification (no writes during classify).
 """
 
 from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -37,7 +41,6 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
     }
 )
 
-# Open-text targets: bare acknowledgements must not become fabricated facts.
 _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
     {
         "lifestyle.sleep_quality",
@@ -49,7 +52,6 @@ _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
 
 _AMBIGUOUS_ACKNOWLEDGEMENTS: frozenset[str] = frozenset(
     {
-        # EN
         "yes",
         "no",
         "yep",
@@ -58,7 +60,6 @@ _AMBIGUOUS_ACKNOWLEDGEMENTS: frozenset[str] = frozenset(
         "don't know",
         "dont know",
         "do not know",
-        # FA
         "بله",
         "آره",
         "نه",
@@ -66,13 +67,11 @@ _AMBIGUOUS_ACKNOWLEDGEMENTS: frozenset[str] = frozenset(
         "نمیدانم",
         "نمیدونم",
         "نمی دانم",
-        # AR
         "نعم",
         "لا",
         "لا أعرف",
         "لا اعرف",
         "مش عارف",
-        # existing trivial acknowledgements (also covered in looks_substantive)
         "ok",
         "okay",
         "k",
@@ -131,6 +130,193 @@ _TIME_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Explicit new-request / topic-shift cues (not relationship answers).
+_UNRELATED_REQUEST_CUES: tuple[str, ...] = (
+    "create a meal plan",
+    "meal plan for me",
+    "make me a meal plan",
+    "make a meal plan",
+    "plan a diet for me",
+    "remind me",
+    "set a reminder",
+    "reminder to",
+    "schedule a reminder",
+    "برنامه غذایی",
+    "برنامه غذایی بساز",
+    "یک برنامه غذایی",
+    "یادآوری کن",
+    "یادآوری",
+    "بهم یادآوری",
+    "ذكرني",
+    "ذكرنى",
+    "ذكرني أن",
+    "خطة وجبات",
+    "اصنع لي خطة",
+    "اعمل لي خطة",
+)
+
+_SLEEP_QUALITY_CUES: tuple[str, ...] = (
+    "sleep",
+    "slept",
+    "restless",
+    "insomnia",
+    "poor sleep",
+    "good sleep",
+    "sleep quality",
+    "light sleeper",
+    "deep sleep",
+    "خواب",
+    "بی‌خوابی",
+    "بیخوابی",
+    "کیفیت خواب",
+    "خوابم",
+    "نوم",
+    "أرق",
+    "جودة النوم",
+    "نومي",
+)
+
+_FOOD_HABIT_CUES: tuple[str, ...] = (
+    "vegetarian",
+    "vegan",
+    "pescatarian",
+    "home-cooked",
+    "home cooked",
+    "eat",
+    "eating",
+    "diet",
+    "food habit",
+    "food habits",
+    "meals",
+    "mostly eat",
+    "گیاه‌خوار",
+    "گیاهخوار",
+    "وگان",
+    "عادت غذایی",
+    "غذا",
+    "می\u200cخورم",
+    "میخورم",
+    "نباتي",
+    "نباتية",
+    "آكل",
+)
+
+_ACTIVITY_LEVEL_CUES: tuple[str, ...] = (
+    "walk",
+    "walking",
+    "run",
+    "running",
+    "jog",
+    "active",
+    "activity",
+    "sedentary",
+    "steps",
+    "exercise",
+    "workout",
+    "gym",
+    "پیاده",
+    "پیاده‌روی",
+    "پیاده روی",
+    "می‌دوم",
+    "میدوم",
+    "فعال",
+    "کم‌تحرک",
+    "کم تحرک",
+    "أمشي",
+    "امشي",
+    "أركض",
+    "اركض",
+    "نشيط",
+    "خامل",
+    "تمارين",
+)
+
+_EXERCISE_SCHEDULE_CUES: tuple[str, ...] = (
+    "times a week",
+    "times per week",
+    "every day",
+    "daily",
+    "mornings",
+    "evenings",
+    "monday",
+    "wednesday",
+    "friday",
+    "mon-wed",
+    "schedule",
+    "هفته‌ای",
+    "هفته ای",
+    "در هفته",
+    "هر روز",
+    "صبح\u200cها",
+    "صبحها",
+    "عصرها",
+    "ثلاث مرات",
+    "مرات في الأسبوع",
+    "مرات في الاسبوع",
+    "كل يوم",
+    "صباحا",
+    "مساء",
+)
+
+_EXERCISE_FREQ_RE = re.compile(
+    r"(?:"
+    r"\b(?:\d+|one|two|three|four|five|six|seven)\s*times?\s*(?:a|per)?\s*week\b"
+    r"|\b(?:daily|every\s+day|mornings?|evenings?)\b"
+    r"|هفته\s*ای\s*(?:یک|دو|سه|چهار|پنج|\d+)"
+    r"|هفته\s*ای\s*\d+"
+    r"|(?:یک|دو|سه|چهار|پنج|\d+)\s*بار\s*(?:در\s*)?هفته"
+    r"|ثلاث\s*مرات"
+    r"|مرات\s*في\s*ال(?:ا)?سبوع"
+    r")",
+    re.IGNORECASE,
+)
+
+_TOPIC_SHIFT_BY_TARGET: dict[str, tuple[str, ...]] = {
+    "lifestyle.activity_level": (
+        "headache",
+        "migraine",
+        "fever",
+        "سردرد",
+        "تب",
+        "صداع",
+        "حمى",
+        "حمی",
+    ),
+    "lifestyle.food_habits": (
+        "headache",
+        "سردرد",
+        "صداع",
+    ),
+    "lifestyle.sleep_quality": (
+        "meal plan",
+        "برنامه غذایی",
+    ),
+    "routines.exercise_schedule": (
+        "headache",
+        "سردرد",
+        "صداع",
+        "meal plan",
+        "برنامه غذایی",
+    ),
+}
+
+
+class DiscoveryDisposition(str, Enum):
+    NO_MARKER = "NO_MARKER"
+    ANSWER = "ANSWER"
+    SKIP = "SKIP"
+    AMBIGUOUS = "AMBIGUOUS"
+    UNRELATED = "UNRELATED"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+@dataclass(frozen=True)
+class DiscoveryClassification:
+    disposition: DiscoveryDisposition
+    target_key: Optional[str] = None
+    normalized_value: Optional[Any] = None
+    skip_outcome: Optional[str] = None
+
 
 def _utcnow_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
@@ -158,6 +344,29 @@ def _fact_type_for_key(key: str) -> str:
     return key
 
 
+def _norm_msg(message: str) -> str:
+    text = (message or "").strip().lower()
+    return text.replace("\u200c", "").replace("\u200d", "")
+
+
+def _contains_any(text: str, cues: tuple[str, ...]) -> bool:
+    return any(c and c in text for c in cues)
+
+
+def peek_relationship_discovery_marker(
+    db: Optional[Session], user_id: int
+) -> Optional[str]:
+    """Non-mutating read of pending relationship_discovery:<target_key>."""
+    if db is None:
+        return None
+    from backend.app.services.knowledge.kc_fatigue_policy import get_existing_state
+
+    state = get_existing_state(db, user_id)
+    if state is None:
+        return None
+    return _parse_target_key(getattr(state, "last_question_type", None) or "")
+
+
 def consume_relationship_discovery_marker(db: Session, user_id: int) -> None:
     """Clear one-shot marker. Never leave marker active after the binding turn."""
     from backend.app.services.knowledge.kc_fatigue_policy import get_existing_state
@@ -170,11 +379,25 @@ def consume_relationship_discovery_marker(db: Session, user_id: int) -> None:
         db.commit()
 
 
+def expire_relationship_discovery_marker_on_early_return(
+    db: Optional[Session], user_id: int
+) -> None:
+    """
+    Lifecycle expiry for successful chat turns that return before orchestrator.
+    Consume marker only — no fact write, no fatigue outcome from content.
+    """
+    if db is None:
+        return
+    try:
+        consume_relationship_discovery_marker(db, user_id)
+    except Exception:
+        return
+
+
 def _normalize_response_length(message: str) -> Optional[str]:
     text = (message or "").strip().lower()
     if not text:
         return None
-    # Prefer multi-word detailed phrases first.
     for tok in sorted(_DETAILED_TOKENS, key=len, reverse=True):
         if tok in text:
             return "detailed"
@@ -190,7 +413,6 @@ def _normalize_time_text(message: str) -> Optional[str]:
         return None
     m = _TIME_RE.search(text)
     if not m:
-        # Bounded fallback: keep short user-stated fragment only when clearly time-like.
         lowered = text.lower()
         if any(x in lowered for x in (":", "am", "pm", "صبح", "شب", "عصر", "ظهر")):
             return text[:_MAX_TIME_TEXT].strip() or None
@@ -223,6 +445,122 @@ def normalize_discovery_value(target_key: str, message: str) -> Optional[Any]:
     if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
         return None
     return _normalize_bounded_text(message)
+
+
+def _looks_unrelated_request(text: str) -> bool:
+    return _contains_any(text, _UNRELATED_REQUEST_CUES)
+
+
+def _target_fit(target_key: str, message: str) -> bool:
+    text = _norm_msg(message)
+    if target_key == "lifestyle.sleep_quality":
+        return _contains_any(text, _SLEEP_QUALITY_CUES)
+    if target_key == "lifestyle.food_habits":
+        if _looks_unrelated_request(text):
+            return False
+        return _contains_any(text, _FOOD_HABIT_CUES)
+    if target_key == "lifestyle.activity_level":
+        return _contains_any(text, _ACTIVITY_LEVEL_CUES)
+    if target_key == "routines.exercise_schedule":
+        if _EXERCISE_FREQ_RE.search(text):
+            return True
+        return _contains_any(text, _EXERCISE_SCHEDULE_CUES)
+    return False
+
+
+def _looks_topic_shift(target_key: str, message: str) -> bool:
+    text = _norm_msg(message)
+    if _looks_unrelated_request(text):
+        return True
+    cues = _TOPIC_SHIFT_BY_TARGET.get(target_key, ())
+    return _contains_any(text, cues)
+
+
+def classify_discovery_reply(
+    target_key: Optional[str],
+    message: str,
+    language: LanguageCode,
+) -> DiscoveryClassification:
+    """
+    Pure target/message classification. No DB / network / writes.
+    """
+    if not target_key:
+        return DiscoveryClassification(DiscoveryDisposition.NO_MARKER)
+
+    skip = detect_discovery_skip_reject(message, language)
+    if skip is not None:
+        return DiscoveryClassification(
+            DiscoveryDisposition.SKIP,
+            target_key=target_key,
+            skip_outcome=skip,
+        )
+
+    if not looks_substantive_discovery_answer(message) or is_ambiguous_open_text_answer(
+        message
+    ):
+        return DiscoveryClassification(
+            DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+        )
+
+    if target_key not in SUPPORTED_TARGETS:
+        return DiscoveryClassification(
+            DiscoveryDisposition.UNSUPPORTED, target_key=target_key
+        )
+
+    if target_key == "preferences.response_length":
+        value = _normalize_response_length(message)
+        if value is None:
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
+    if target_key in ("routines.bedtime", "routines.wake_time"):
+        value = _normalize_time_text(message)
+        if value is None:
+            # Time-like targets: unnormalizable substantive text is ambiguous, not a write.
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
+    # Open-text lifestyle / schedule targets — require target-fit evidence.
+    if _looks_topic_shift(target_key, message) and not _target_fit(target_key, message):
+        return DiscoveryClassification(
+            DiscoveryDisposition.UNRELATED, target_key=target_key
+        )
+    if _looks_unrelated_request(_norm_msg(message)):
+        return DiscoveryClassification(
+            DiscoveryDisposition.UNRELATED, target_key=target_key
+        )
+    if not _target_fit(target_key, message):
+        # Explicit topic-shift cues without fit → unrelated; else ambiguous.
+        if _looks_topic_shift(target_key, message):
+            return DiscoveryClassification(
+                DiscoveryDisposition.UNRELATED, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+        )
+
+    value = _normalize_bounded_text(message)
+    if value is None:
+        return DiscoveryClassification(
+            DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+        )
+    return DiscoveryClassification(
+        DiscoveryDisposition.ANSWER,
+        target_key=target_key,
+        normalized_value=value,
+    )
 
 
 def _stage_conflict_candidate(
@@ -283,7 +621,6 @@ def _try_write_or_stage(
     if existing is not None:
         blob = json.dumps(value, ensure_ascii=False, default=str)
         if existing.value_json == blob:
-            # Same value → refresh only (write_fact identical path; no I7 invalidate).
             try:
                 write_fact(
                     db,
@@ -298,7 +635,6 @@ def _try_write_or_stage(
             except ConsentDenied:
                 return
             return
-        # Different value → NON-AUTHORITATIVE staging; keep old fact canonical.
         _stage_conflict_candidate(
             db,
             user_id=user_id,
@@ -332,80 +668,84 @@ def process_relationship_discovery_answer(
     message: str,
     language: LanguageCode,
     allow_binding: bool,
-) -> None:
+    classification: Optional[DiscoveryClassification] = None,
+) -> DiscoveryClassification:
     """
     Process one-shot relationship_discovery marker for this user turn.
 
     Always consumes the marker when present so it cannot survive the next turn.
-    Fact / fatigue binding writes run only when allow_binding is True
-    (I4 non-terminal and non-caution).
+    Fact / fatigue binding writes run only when allow_binding is True and
+    disposition is ANSWER (or SKIP updates fatigue only).
     """
+    empty = DiscoveryClassification(DiscoveryDisposition.NO_MARKER)
     if db is None:
-        return
+        return empty
     try:
-        from backend.app.services.knowledge.kc_fatigue_policy import (
-            get_existing_state,
-            mark_answer,
-        )
+        from backend.app.services.knowledge.kc_fatigue_policy import mark_answer
 
-        state = get_existing_state(db, user_id)
-        if state is None:
-            return
-        target_key = _parse_target_key(getattr(state, "last_question_type", None) or "")
-        if target_key is None:
-            return
+        target_key = None
+        if classification is not None and classification.target_key:
+            target_key = classification.target_key
+            clf = classification
+        else:
+            target_key = peek_relationship_discovery_marker(db, user_id)
+            if target_key is None:
+                return empty
+            clf = classify_discovery_reply(target_key, message, language)
+
+        if clf.disposition is DiscoveryDisposition.NO_MARKER:
+            return clf
 
         now = _utcnow_naive()
 
         if not allow_binding:
+            # Compatibility / caution / terminal: consume only, no fact/outcome.
             consume_relationship_discovery_marker(db, user_id)
-            return
+            return clf
 
-        skip = detect_discovery_skip_reject(message, language)
-        if skip is not None:
-            mark_answer(db, user_id, now, skip)
+        if clf.disposition is DiscoveryDisposition.UNRELATED:
             consume_relationship_discovery_marker(db, user_id)
-            return
+            return clf
 
-        if not looks_substantive_discovery_answer(message):
+        if clf.disposition is DiscoveryDisposition.SKIP:
+            mark_answer(db, user_id, now, clf.skip_outcome or "skipped")
             consume_relationship_discovery_marker(db, user_id)
-            return
+            return clf
 
-        if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
-            # Ambiguous bare ack → consume, no fact, no conflict candidate.
+        if clf.disposition in (
+            DiscoveryDisposition.AMBIGUOUS,
+            DiscoveryDisposition.UNSUPPORTED,
+        ):
             consume_relationship_discovery_marker(db, user_id)
-            return
+            return clf
 
-        if target_key not in SUPPORTED_TARGETS:
-            # Unsupported / high-sensitivity: consume, no fact.
+        if clf.disposition is DiscoveryDisposition.ANSWER:
+            value = clf.normalized_value
+            if value is None:
+                consume_relationship_discovery_marker(db, user_id)
+                return DiscoveryClassification(
+                    DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+                )
+            evidence = (message or "").strip()[:200]
+            try:
+                _try_write_or_stage(
+                    db,
+                    user_id=user_id,
+                    target_key=target_key or "",
+                    value=value,
+                    evidence=evidence,
+                )
+            except Exception:
+                pass
             mark_answer(db, user_id, now, "accepted")
             consume_relationship_discovery_marker(db, user_id)
-            return
+            return clf
 
-        value = normalize_discovery_value(target_key, message)
-        if value is None:
-            # Unnormalizable (non-ack) → consume, no fact; clear reject streak.
-            mark_answer(db, user_id, now, "accepted")
-            consume_relationship_discovery_marker(db, user_id)
-            return
-
-        evidence = (message or "").strip()[:200]
-        try:
-            _try_write_or_stage(
-                db,
-                user_id=user_id,
-                target_key=target_key,
-                value=value,
-                evidence=evidence,
-            )
-        except Exception:
-            # Consent / ownership / storage failures must not leave marker active.
-            pass
-        mark_answer(db, user_id, now, "accepted")
         consume_relationship_discovery_marker(db, user_id)
+        return clf
     except Exception:
-        # Best-effort; never fail the chat path. Still try to consume marker.
         try:
             consume_relationship_discovery_marker(db, user_id)
         except Exception:
-            return
+            pass
+        return empty

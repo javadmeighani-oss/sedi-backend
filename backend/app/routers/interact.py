@@ -221,6 +221,14 @@ async def chat(
                 ),
             }
             msg = blocked.get(lang, blocked["en"])
+            try:
+                from backend.app.services.i6.relationship_discovery import (
+                    expire_relationship_discovery_marker_on_early_return,
+                )
+
+                expire_relationship_discovery_marker_on_early_return(db, user.id)
+            except Exception:
+                pass
             return InteractionResponse(
                 message=msg,
                 language=lang,
@@ -275,6 +283,14 @@ async def chat(
                 db.rollback()
             except Exception:
                 logger.exception("I4_ESCALATION_SEAM_ROLLBACK_FAILED")
+        try:
+            from backend.app.services.i6.relationship_discovery import (
+                expire_relationship_discovery_marker_on_early_return,
+            )
+
+            expire_relationship_discovery_marker_on_early_return(db, user_id)
+        except Exception:
+            pass
         return InteractionResponse(
             message=safety_resp.localized_message,
             language=response_language,
@@ -370,6 +386,14 @@ async def chat(
                     language=response_language or "fa",
                     source_message_id=str(mem_obj.id) if mem_obj else None,
                 )
+            except Exception:
+                pass
+            try:
+                from backend.app.services.i6.relationship_discovery import (
+                    expire_relationship_discovery_marker_on_early_return,
+                )
+
+                expire_relationship_discovery_marker_on_early_return(db, user.id)
             except Exception:
                 pass
             return InteractionResponse(
