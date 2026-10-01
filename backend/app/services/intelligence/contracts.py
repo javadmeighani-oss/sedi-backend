@@ -426,6 +426,8 @@ class OrchestrationResult:
     # Internal CR-01 NBQ metadata (not exposed by public_brain_dict; not user-visible)
     discovery_question_id: Optional[str] = None
     discovery_target_key: Optional[str] = None
+    # Internal CR-02 interaction-need metadata (not exposed by public_brain_dict)
+    interaction_need: Optional[str] = None
 
     def public_brain_dict(self) -> dict[str, Any]:
         """Map to the legacy router-compatible generation dict."""

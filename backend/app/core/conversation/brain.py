@@ -442,6 +442,7 @@ class ConversationBrain:
         use_structured_context: bool = False,
         use_intelligence_safety: bool = False,
         safety_constraints=None,
+        relationship_guidance: Optional[str] = None,
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
@@ -454,6 +455,8 @@ class ConversationBrain:
         When use_intelligence_safety=True (product orchestrator path), legacy Gate3
         pre-generation RiskClassifier/templates and post-generation validator are
         skipped — Section 15-I4 owns those operations.
+
+        relationship_guidance: optional CR-02 internal system block (structured path).
         """
         # TEMP DEBUG: Log entry
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
@@ -515,6 +518,14 @@ class ConversationBrain:
                 messages.append(
                     {"role": "system", "content": structured_context_projection}
                 )
+                # CR-02: bounded relationship guidance (same generation call; no extra LLM).
+                if relationship_guidance and str(relationship_guidance).strip():
+                    messages.append(
+                        {
+                            "role": "system",
+                            "content": str(relationship_guidance).strip()[:1200],
+                        }
+                    )
             else:
                 # User Knowledge: stable baseline + facts (compact, after main system, before history)
                 user_knowledge_str = _build_user_knowledge_context(self.db, user_id)

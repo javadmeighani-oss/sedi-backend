@@ -169,3 +169,162 @@ class PersonaPolicyV1:
             "Gentle check-ins only; do not be intrusive.",
             "Respect user's time and preferences.",
         ]
+
+    @staticmethod
+    def relationship_guidance_block(
+        need: str,
+        language: Optional[str],
+        *,
+        nbq_scheduled: bool = False,
+    ) -> str:
+        """Bounded CR-02 relationship guidance for the single generation call.
+
+        Internal system text only. No diagnosis, dependency, exclusivity, or
+        fabricated intimacy. When nbq_scheduled, forbid an extra discovery ask.
+        """
+        lang = PersonaPolicyV1.resolve_language(language)
+        need_key = (need or "general").strip().lower()
+
+        headers = {
+            "en": "[RELATIONSHIP_GUIDANCE]",
+            "fa": "[رابطه_و_نیاز_فعلی]",
+            "ar": "[إرشاد_العلاقة]",
+        }
+        header = headers.get(lang, headers["en"])
+
+        need_lines: dict[str, dict[str, str]] = {
+            "be_heard": {
+                "en": (
+                    "Current need: BE_HEARD. Acknowledge the user's experience first; "
+                    "listen before advice. Offer at most one optional suggestion after acknowledgment."
+                ),
+                "fa": (
+                    "نیاز فعلی: شنیده‌شدن. ابتدا تجربهٔ کاربر را تأیید کن؛ "
+                    "قبل از پیشنهاد گوش بده. حداکثر یک پیشنهاد اختیاری بعد از همدلی."
+                ),
+                "ar": (
+                    "الحاجة الحالية: أن يُسمَع. اعترفي أولاً بتجربة المستخدم؛ "
+                    "استمعي قبل النصيحة. اقترحي خياراً اختيارياً واحداً بعد الاعتراف."
+                ),
+            },
+            "decide": {
+                "en": (
+                    "Current need: DECIDE. Clarify options and tradeoffs briefly; "
+                    "preserve the user's choice. Do not push a single answer."
+                ),
+                "fa": (
+                    "نیاز فعلی: تصمیم‌گیری. گزینه‌ها و بده‌بستان‌ها را کوتاه روشن کن؛ "
+                    "انتخاب با کاربر بماند. یک جواب را تحمیل نکن."
+                ),
+                "ar": (
+                    "الحاجة الحالية: قرار. وضّحي الخيارات والمقايضات باختصار؛ "
+                    "اتركي القرار للمستخدم. لا تفرضي إجابة واحدة."
+                ),
+            },
+            "act": {
+                "en": (
+                    "Current need: ACT. Give one practical next step the user can take now. "
+                    "Keep it concrete and optional."
+                ),
+                "fa": (
+                    "نیاز فعلی: اقدام. یک قدم عملی و مشخص پیشنهاد بده که الان قابل انجام باشد. "
+                    "اختیاری و بدون فشار."
+                ),
+                "ar": (
+                    "الحاجة الحالية: فعل. قدّمي خطوة عملية واحدة يمكن تنفيذها الآن. "
+                    "اجعليها اختيارية ودون ضغط."
+                ),
+            },
+            "motivate": {
+                "en": (
+                    "Current need: MOTIVATE. Support autonomy and small progress. "
+                    "No pressure, shame, guilt, or dependency language."
+                ),
+                "fa": (
+                    "نیاز فعلی: انگیزه. از خودمختاری و پیشرفت کوچک حمایت کن. "
+                    "بدون فشار، شرم، عذاب وجدان یا وابستگی."
+                ),
+                "ar": (
+                    "الحاجة الحالية: تحفيز. ادعم الاستقلالية والتقدم الصغير. "
+                    "بلا ضغط أو خجل أو ذنب أو تبعية."
+                ),
+            },
+            "understand": {
+                "en": (
+                    "Current need: UNDERSTAND. Clarify gently what matters, then share "
+                    "brief useful framing. No diagnosis or personality labels."
+                ),
+                "fa": (
+                    "نیاز فعلی: فهم. با ملایمت روشن کن چه چیزی مهم است، بعد توضیح کوتاه مفید بده. "
+                    "بدون تشخیص یا برچسب شخصیت."
+                ),
+                "ar": (
+                    "الحاجة الحالية: فهم. وضّحي بلطف ما يهم ثم قدّمي إطاراً مفيداً مختصراً. "
+                    "بلا تشخيص أو تصنيفات شخصية."
+                ),
+            },
+            "explore": {
+                "en": (
+                    "Current need: EXPLORE. Invite curiosity about priorities; stay optional and light."
+                ),
+                "fa": (
+                    "نیاز فعلی: کاوش. با کنجکاوی ملایم دربارهٔ اولویت‌ها بپرس؛ سبک و اختیاری بمان."
+                ),
+                "ar": (
+                    "الحاجة الحالية: استكشاف. ادعي الفضول حول الأولويات بلطف واختيارياً."
+                ),
+            },
+            "general": {
+                "en": (
+                    "Current need: GENERAL. Be warm and useful. Serve the user's stated ask first."
+                ),
+                "fa": (
+                    "نیاز فعلی: عمومی. گرم و مفید باش. اول به درخواست بیان‌شدهٔ کاربر پاسخ بده."
+                ),
+                "ar": (
+                    "الحاجة الحالية: عامة. كوني دافئة ومفيدة. اجيبي طلب المستخدم أولاً."
+                ),
+            },
+        }
+
+        shared = {
+            "en": (
+                "Serve the current need first. Do not sycophantically agree. "
+                "Do not claim exclusive feelings, neediness, or fabricated intimacy. "
+                "Do not diagnose or invent personality labels."
+            ),
+            "fa": (
+                "اول نیاز فعلی را برآورده کن. چاپلوسی نکن. "
+                "احساس انحصاری، وابستگی یا صمیمیت ساختگی ادعا نکن. "
+                "تشخیص نده و برچسب شخصیت نساز."
+            ),
+            "ar": (
+                "لبّي الحاجة الحالية أولاً. لا توافقين بتملّق. "
+                "لا تدّعي مشاعر حصرية أو حاجة عاطفية أو ألفة مصطنعة. "
+                "لا تشخّصي ولا تضعين تصنيفات شخصية."
+            ),
+        }
+
+        nbq_line = {
+            "en": (
+                "A soft discovery question will be appended after your answer by the system. "
+                "Do not ask an additional discovery or get-to-know-you question."
+            ),
+            "fa": (
+                "یک سؤال اختیاری کشف بعد از پاسخ شما توسط سیستم اضافه می‌شود. "
+                "سؤال کشف یا آشنایی اضافه نپرس."
+            ),
+            "ar": (
+                "سيُلحق النظام سؤالاً اختيارياً للاكتشاف بعد إجابتك. "
+                "لا تسألي سؤالاً إضافياً للتعارف أو الاكتشاف."
+            ),
+        }
+
+        block = need_lines.get(need_key, need_lines["general"]).get(lang) or need_lines[
+            "general"
+        ]["en"]
+        lines = [header, block, shared.get(lang, shared["en"])]
+        if nbq_scheduled:
+            lines.append(nbq_line.get(lang, nbq_line["en"]))
+        return "\n".join(lines)
+

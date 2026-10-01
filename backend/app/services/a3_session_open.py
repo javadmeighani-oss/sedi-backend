@@ -17,18 +17,21 @@ _OPENER_COOLDOWN = timedelta(hours=12)
 _INTRO: Dict[str, str] = {
     "en": (
         "Hello{name_part}. I'm Sedi, your personal health companion. "
-        "I'm here to listen, remember what matters to you, and help you stay on track. "
-        "How are you feeling today?"
+        "I listen and remember what matters under your privacy settings, "
+        "and I'm here to help you stay on track. "
+        "What feels most important or helpful to focus on right now?"
     ),
     "fa": (
         "سلام{name_part}. من صدی هستم، همراه سلامت شما. "
-        "اینجا هستم تا بشنوم، آنچه برای شما مهم است را به خاطر بسپارم و کمکتان کنم. "
-        "امروز حالتان چطور است؟"
+        "با رعایت حریم خصوصی‌تان می‌شنوم و آنچه مهم است را به خاطر می‌سپارم، "
+        "و اینجا هستم تا کمکتان کنم. "
+        "الان چه چیزی برایتان مهم‌تر یا مفیدتر است که روی آن تمرکز کنیم؟"
     ),
     "ar": (
         "مرحبًا{name_part}. أنا صدی، مرافقتك الصحية. "
-        "أنا هنا لأستمع وأحتفظ بما يهمك وأساعدك على المتابعة. "
-        "كيف تشعر اليوم؟"
+        "أستمع وأحتفظ بما يهمك وفق إعدادات خصوصيتك، "
+        "وأنا هنا لأساعدك على المتابعة. "
+        "ما الأمر الأهم أو الأكثر فائدة للتركيز عليه الآن؟"
     ),
 }
 

@@ -78,6 +78,7 @@ class LegacyGeneratorProtocol(Protocol):
         use_structured_context: bool = False,
         use_intelligence_safety: bool = False,
         safety_constraints: Optional[SafetyConstraints] = None,
+        relationship_guidance: Optional[str] = None,
     ) -> Dict[str, Any]:
         ...
 
@@ -97,6 +98,7 @@ def _default_legacy_generator(
         use_structured_context: bool = False,
         use_intelligence_safety: bool = True,
         safety_constraints: Optional[SafetyConstraints] = None,
+        relationship_guidance: Optional[str] = None,
     ) -> Dict[str, Any]:
         brain = ConversationBrain(db, language=language)
         return brain.process_message(
@@ -109,9 +111,79 @@ def _default_legacy_generator(
             use_structured_context=use_structured_context,
             use_intelligence_safety=True,
             safety_constraints=safety_constraints,
+            relationship_guidance=relationship_guidance,
         )
 
     return _generate
+
+
+def _apply_discovery_fatigue_response(
+    db: Optional[Session],
+    *,
+    user_id: int,
+    message: str,
+    language: LanguageCode,
+) -> None:
+    """Update existing KC fatigue state for prior relationship_discovery only."""
+    if db is None:
+        return
+    try:
+        from datetime import datetime, timezone
+
+        from backend.app.services.knowledge.kc_fatigue_policy import (
+            ensure_state,
+            mark_answer,
+        )
+        from backend.app.services.intelligence.psychological_interaction import (
+            detect_discovery_skip_reject,
+            looks_substantive_discovery_answer,
+        )
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        state = ensure_state(db, user_id, now)
+        last_type = getattr(state, "last_question_type", None) or ""
+        if not str(last_type).startswith("relationship_discovery:"):
+            return
+        skip = detect_discovery_skip_reject(message, language)
+        if skip is not None:
+            mark_answer(db, user_id, now, skip)
+            return
+        if looks_substantive_discovery_answer(message):
+            mark_answer(db, user_id, now, "accepted")
+    except Exception:
+        # Fatigue is best-effort; never fail the chat path.
+        return
+
+
+def _fatigue_permits_discovery(db: Optional[Session], user_id: int) -> bool:
+    if db is None:
+        return False
+    try:
+        from datetime import datetime, timezone
+
+        from backend.app.services.knowledge.kc_fatigue_policy import check_can_ask
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        allowed, _reason, _next, _snap = check_can_ask(db, user_id, now)
+        return bool(allowed)
+    except Exception:
+        return False
+
+
+def _mark_relationship_discovery_asked(
+    db: Optional[Session], *, user_id: int, target_key: str
+) -> None:
+    if db is None or not target_key:
+        return
+    try:
+        from datetime import datetime, timezone
+
+        from backend.app.services.knowledge.kc_fatigue_policy import mark_asked
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        mark_asked(db, user_id, now, f"relationship_discovery:{target_key}")
+    except Exception:
+        return
 
 
 def _normalize_language_code(raw: Optional[str]) -> LanguageCode:
@@ -936,10 +1008,23 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
-        # CR-01 NBQ: internal soft-discovery metadata only on normal structured
-        # generation path. Never inject into user-visible output (CR-02).
+        # CR-02: prior relationship_discovery skip/reject → existing fatigue state only.
+        _apply_discovery_fatigue_response(
+            self._db,
+            user_id=authenticated_user_id,
+            message=message,
+            language=lang,
+        )
+
+        # CR-01/CR-02 NBQ: select directive on normal structured path.
+        # Visible append is gated separately (fatigue/caution/specialized).
         discovery_question_id: Optional[str] = None
         discovery_target_key: Optional[str] = None
+        discovery_localized_question: Optional[str] = None
+        visible_nbq_eligible = False
+        relationship_guidance: Optional[str] = None
+        interaction_need_value: Optional[str] = None
+        caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
         if (
             not terminal_safety
             and not skip_generator
@@ -948,8 +1033,12 @@ class IntelligenceOrchestrator:
             and intent_meta is not None
             and readiness_meta is not None
         ):
+            from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
             from backend.app.services.intelligence.next_best_question import (
                 select_next_best_question,
+            )
+            from backend.app.services.intelligence.psychological_interaction import (
+                classify_interaction_need,
             )
 
             directive = select_next_best_question(
@@ -961,6 +1050,23 @@ class IntelligenceOrchestrator:
             if directive is not None:
                 discovery_question_id = directive.question_id
                 discovery_target_key = directive.target_key
+                discovery_localized_question = directive.localized_question
+                if (
+                    not caution_active
+                    and readiness_meta.status is ReadinessStatus.READY
+                    and _fatigue_permits_discovery(self._db, authenticated_user_id)
+                ):
+                    visible_nbq_eligible = True
+
+            need = classify_interaction_need(
+                message=message, intent=intent_meta, language=lang
+            )
+            interaction_need_value = need.value
+            relationship_guidance = PersonaPolicyV1.relationship_guidance_block(
+                need.value,
+                lang,
+                nbq_scheduled=visible_nbq_eligible,
+            )
 
         # prepare
         t0 = time.perf_counter()
@@ -1082,21 +1188,40 @@ class IntelligenceOrchestrator:
 
             t0 = time.perf_counter()
             try:
-                raw = generator(
-                    authenticated_user_id,
-                    message,
-                    None,
-                    notification_context=(
-                        None
-                        if use_structured_context
-                        else generation_notification_context
-                    ),
-                    structured_context_projection=structured_projection,
-                    structured_preferred_name=structured_preferred_name,
-                    use_structured_context=use_structured_context,
-                    use_intelligence_safety=True,
-                    safety_constraints=caution_constraints,
-                )
+                try:
+                    raw = generator(
+                        authenticated_user_id,
+                        message,
+                        None,
+                        notification_context=(
+                            None
+                            if use_structured_context
+                            else generation_notification_context
+                        ),
+                        structured_context_projection=structured_projection,
+                        structured_preferred_name=structured_preferred_name,
+                        use_structured_context=use_structured_context,
+                        use_intelligence_safety=True,
+                        safety_constraints=caution_constraints,
+                        relationship_guidance=relationship_guidance,
+                    )
+                except TypeError:
+                    # Older injected generators may not accept relationship_guidance.
+                    raw = generator(
+                        authenticated_user_id,
+                        message,
+                        None,
+                        notification_context=(
+                            None
+                            if use_structured_context
+                            else generation_notification_context
+                        ),
+                        structured_context_projection=structured_projection,
+                        structured_preferred_name=structured_preferred_name,
+                        use_structured_context=use_structured_context,
+                        use_intelligence_safety=True,
+                        safety_constraints=caution_constraints,
+                    )
             except Exception:
                 ctx.append_stage(
                     StageName.GENERATE_WITH_LEGACY_BRAIN,
@@ -1137,6 +1262,23 @@ class IntelligenceOrchestrator:
                     "empty_generation",
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
+
+            # CR-02: append at most one localized NBQ before I4 post-validation.
+            nbq_was_appended = False
+            if (
+                visible_nbq_eligible
+                and discovery_localized_question
+                and discovery_target_key
+            ):
+                from backend.app.services.intelligence.psychological_interaction import (
+                    append_discovery_question,
+                )
+
+                gen_message = append_discovery_question(
+                    gen_message, discovery_localized_question
+                )
+                nbq_was_appended = True
+
             validated = self._safety_validator(text=gen_message, language=lang)
             out_message = validated.message
             post_val_status = validated.status
@@ -1152,6 +1294,7 @@ class IntelligenceOrchestrator:
                     CareNavEntity.SPECIALIST, lang
                 )
                 extra_reason_codes.append("CARE_NAV_LLM_FALLTHROUGH_BLOCKED")
+                nbq_was_appended = False
             detected_name = raw.get("detected_name")
             if detected_name is not None and not isinstance(detected_name, str):
                 detected_name = None
@@ -1162,6 +1305,17 @@ class IntelligenceOrchestrator:
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
             extra_reason_codes.append(_post_validation_reason(post_val_status).value)
+            # Mark asked only after SAFE final validation (never on replace/fail-closed).
+            if (
+                nbq_was_appended
+                and post_val_status is PostGenerationSafetyStatus.SAFE
+                and discovery_target_key
+            ):
+                _mark_relationship_discovery_asked(
+                    self._db,
+                    user_id=authenticated_user_id,
+                    target_key=discovery_target_key,
+                )
 
         # complete
         t0 = time.perf_counter()
@@ -1223,4 +1377,5 @@ class IntelligenceOrchestrator:
             safety_rule_id=assessment.rule_id,
             discovery_question_id=discovery_question_id,
             discovery_target_key=discovery_target_key,
+            interaction_need=interaction_need_value,
         )
