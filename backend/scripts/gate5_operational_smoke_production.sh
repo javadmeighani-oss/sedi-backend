@@ -67,7 +67,7 @@ finally:
     db.close()
 
 token = create_access_token({"user_id": PRIMARY_USER_ID})
-qs = urllib.parse.urlencode({"limit": 50, "offset": 0})
+qs = urllib.parse.urlencode({"user_id": PRIMARY_USER_ID, "limit": 50})
 req = urllib.request.Request(
     f"{BASE}/notifications/?{qs}",
     headers={"Authorization": f"Bearer {token}"},
