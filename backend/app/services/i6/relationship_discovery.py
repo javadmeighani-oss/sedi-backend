@@ -28,7 +28,7 @@ from backend.app.services.memory.memory_contract import MemoryContract
 
 MARKER_PREFIX = "relationship_discovery:"
 
-# Direct-write targets only (CR-03). No social/values/barriers.
+# Direct-write targets only (CR-03 / CR-04B). No social/values/education/occupation expansion.
 SUPPORTED_TARGETS: frozenset[str] = frozenset(
     {
         "routines.bedtime",
@@ -38,6 +38,8 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
         "lifestyle.activity_level",
         "routines.exercise_schedule",
         "preferences.response_length",
+        "work.work_schedule",
+        "barriers.time_constraints",
     }
 )
 
@@ -47,6 +49,8 @@ _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
         "lifestyle.food_habits",
         "lifestyle.activity_level",
         "routines.exercise_schedule",
+        "work.work_schedule",
+        "barriers.time_constraints",
     }
 )
 
@@ -341,6 +345,52 @@ _EXERCISE_FREQ_RE = re.compile(
     re.IGNORECASE,
 )
 
+# CR-04B — open-text target-fit cues for contextual discovery answers.
+_WORK_SCHEDULE_CUES: tuple[str, ...] = (
+    "9 to 5",
+    "9-5",
+    "9–5",
+    "weekdays",
+    "weekday",
+    "night shift",
+    "night shifts",
+    "shift work",
+    "work schedule",
+    "work hours",
+    "office hours",
+    "shifts",
+    "shift",
+    "شیفت شب",
+    "شیفت کاری",
+    "شیفت",
+    "ساعات کاری",
+    "دوام ليلي",
+    "دوام لیلي",
+    "دوام العمل",
+    "دوام",
+)
+
+_TIME_CONSTRAINT_CUES: tuple[str, ...] = (
+    "20 minutes",
+    "thirty minutes",
+    "30 minutes",
+    "after work",
+    "only have",
+    "not enough time",
+    "no time",
+    "limited time",
+    "minutes after",
+    "وقت خیلی کمی",
+    "وقت کم",
+    "وقت ندارم",
+    "بعد از کار",
+    "نصف ساعة",
+    "ساعة فقط",
+    "دقيقة فقط",
+    "عندي نصف",
+    "ليس لدي وقت",
+)
+
 _TOPIC_SHIFT_BY_TARGET: dict[str, tuple[str, ...]] = {
     "lifestyle.activity_level": (
         "headache",
@@ -367,6 +417,24 @@ _TOPIC_SHIFT_BY_TARGET: dict[str, tuple[str, ...]] = {
         "صداع",
         "meal plan",
         "برنامه غذایی",
+    ),
+    "work.work_schedule": (
+        "headache",
+        "سردرد",
+        "صداع",
+        "meal plan",
+        "برنامه غذایی",
+        "remind me",
+        "یادآوری",
+    ),
+    "barriers.time_constraints": (
+        "headache",
+        "سردرد",
+        "صداع",
+        "meal plan",
+        "برنامه غذایی",
+        "remind me",
+        "یادآوری",
     ),
 }
 
@@ -619,6 +687,14 @@ def _target_fit(target_key: str, message: str) -> bool:
         if _EXERCISE_FREQ_RE.search(text):
             return True
         return _contains_any(text, _EXERCISE_SCHEDULE_CUES)
+    if target_key == "work.work_schedule":
+        if _looks_unrelated_request(text):
+            return False
+        return _contains_any(text, _WORK_SCHEDULE_CUES)
+    if target_key == "barriers.time_constraints":
+        if _looks_unrelated_request(text):
+            return False
+        return _contains_any(text, _TIME_CONSTRAINT_CUES)
     return False
 
 

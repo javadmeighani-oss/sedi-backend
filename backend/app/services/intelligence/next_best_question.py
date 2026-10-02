@@ -1,11 +1,15 @@
-"""CR-01 — Pure Next Best Question (NBQ) / soft-discovery selector.
+"""CR-01 / CR-04B — Pure Next Best Question (NBQ) / soft-discovery selector.
 
 Deterministic. No DB, network, LLM, writes, or legacy KC reads.
 CR-01 stores metadata only; user-visible discovery belongs to CR-02.
+CR-04B adds optional message-scoped contextual candidates that may outrank
+legacy NBQ only when relevance evidence is present in the current message.
 """
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from typing import Optional, Sequence
 
 from backend.app.services.intelligence.context_types import (
@@ -62,6 +66,83 @@ _SOFT_DISCOVERY_CANDIDATES: dict[IntentId, tuple[tuple[str, str, str, int], ...]
     ),
 }
 
+# CR-04B — contextual candidates. Lower priority number wins among relevant hits.
+# These outrank legacy NBQ only when message relevance is true.
+_WORK_SCHEDULE_RELEVANCE_CUES: tuple[str, ...] = (
+    "night shift",
+    "night shifts",
+    "shift work",
+    "work schedule",
+    "work shifts",
+    "my shifts",
+    "on shift",
+    "working nights",
+    "شیفت کاری",
+    "شیفت شب",
+    "شیفت",
+    "ساعات کاری",
+    "دوام العمل",
+    "دوام ليلي",
+    "دوام لیلي",
+    "ورديات",
+)
+
+_TIME_CONSTRAINT_RELEVANCE_CUES: tuple[str, ...] = (
+    "don't have enough time",
+    "do not have enough time",
+    "dont have enough time",
+    "not enough time",
+    "no time to",
+    "lack of time",
+    "limited time",
+    "too busy to",
+    "وقت کم",
+    "وقت ندارم",
+    "وقت خیلی کم",
+    "وقت کافی ندارم",
+    "ليس لدي وقت",
+    "ليس لدي وقت كاف",
+    "ما عندي وقت",
+    "لا وقت لدي",
+)
+
+
+@dataclass(frozen=True)
+class _ContextualCandidate:
+    target_key: str
+    sensitivity: str
+    template_id: str
+    priority: int
+    compatible_intents: frozenset[IntentId]
+    relevance_cues: tuple[str, ...]
+
+
+_CONTEXTUAL_CANDIDATES: tuple[_ContextualCandidate, ...] = (
+    _ContextualCandidate(
+        target_key="work.work_schedule",
+        sensitivity="medium",
+        template_id="nbq.contextual.work_schedule.v1",
+        priority=1,
+        compatible_intents=frozenset({IntentId.GENERAL, IntentId.SLEEP}),
+        relevance_cues=_WORK_SCHEDULE_RELEVANCE_CUES,
+    ),
+    _ContextualCandidate(
+        target_key="barriers.time_constraints",
+        sensitivity="high",
+        template_id="nbq.contextual.time_constraints.v1",
+        priority=2,
+        compatible_intents=frozenset(
+            {
+                IntentId.GENERAL,
+                IntentId.SLEEP,
+                IntentId.NUTRITION,
+                IntentId.ACTIVITY,
+            }
+        ),
+        relevance_cues=_TIME_CONSTRAINT_RELEVANCE_CUES,
+    ),
+)
+
 _TEMPLATES: dict[str, dict[str, str]] = {
     "nbq.sleep.bedtime.v1": {
         "en": "If you're open to it, what time do you usually go to bed?",
@@ -98,6 +179,16 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "fa": "ترجیح می‌دهید پاسخ‌ها کوتاه باشد یا کمی مفصل‌تر؟",
         "ar": "هل تفضل إجابات مختصرة أم أكثر تفصيلاً قليلاً؟",
     },
+    "nbq.contextual.work_schedule.v1": {
+        "en": "If you're open to it, what does your work schedule usually look like?",
+        "fa": "اگر مایلید بگویید، برنامه کاری‌تان معمولاً چگونه است؟",
+        "ar": "إن رغبت، كيف يبدو جدول عملك عادة؟",
+    },
+    "nbq.contextual.time_constraints.v1": {
+        "en": "Optional: how much time do you usually have for this?",
+        "fa": "اختیاری: معمولاً برای این کار چقدر وقت دارید؟",
+        "ar": "اختياري: كم من الوقت يتوفر لديك عادة لهذا؟",
+    },
 }
 
 
@@ -131,24 +222,99 @@ def _key_unavailable_for_discovery(
     return False
 
 
+def _norm_message(message: str) -> str:
+    text = (message or "").strip().lower()
+    text = text.replace("\u200c", "").replace("\u200d", "")
+    return text
+
+
+def _cue_present(text: str, cue: str) -> bool:
+    needle = _norm_message(cue)
+    if not needle:
+        return False
+    if " " in needle:
+        return bool(
+            re.search(
+                rf"(?<!\w){re.escape(needle)}(?!\w)",
+                text,
+                flags=re.UNICODE,
+            )
+        )
+    return bool(
+        re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", text, flags=re.UNICODE)
+    )
+
+
+def _message_relevant(message: str, cues: tuple[str, ...]) -> bool:
+    text = _norm_message(message)
+    if not text:
+        return False
+    ordered = sorted((c for c in cues if c), key=len, reverse=True)
+    return any(_cue_present(text, c) for c in ordered)
+
+
+def _select_contextual_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+    message: str,
+) -> Optional[DiscoveryDirective]:
+    """Return at most one contextual directive when message relevance is true."""
+    hits: list[_ContextualCandidate] = []
+    for cand in _CONTEXTUAL_CANDIDATES:
+        if intent.intent_id not in cand.compatible_intents:
+            continue
+        if not _message_relevant(message, cand.relevance_cues):
+            continue
+        if _key_unavailable_for_discovery(snapshot.items, cand.target_key):
+            continue
+        hits.append(cand)
+    if not hits:
+        return None
+    hits.sort(key=lambda c: (c.priority, c.target_key))
+    winner = hits[0]
+    question_id = f"nbq.q.{intent.intent_id.value}.{winner.target_key}.v1"
+    return DiscoveryDirective(
+        question_id=question_id,
+        target_key=winner.target_key,
+        localized_question=_localized(winner.template_id, language),
+        sensitivity=winner.sensitivity,  # type: ignore[arg-type]
+        priority=winner.priority,
+    )
+
+
 def select_next_best_question(
     *,
     snapshot: ContextSnapshot,
     intent: IntentResult,
     readiness: ReadinessResult,
     language: LanguageCode,
+    message: str = "",
 ) -> Optional[DiscoveryDirective]:
     """
     Select at most one soft-discovery directive.
 
-    Pure: reads only snapshot / intent / readiness / language.
+    Pure: reads only snapshot / intent / readiness / language / optional message.
     Hard I3 clarification always wins — caller must not invoke when
     readiness is not READY (also enforced here).
+
+    CR-04B: when ``message`` shows work/time-constraint relevance, a contextual
+    candidate may outrank legacy NBQ. Empty/default message preserves CR-01 behavior.
     """
     if readiness.status is not ReadinessStatus.READY:
         return None
     if intent.intent_id in _NBQ_SUPPRESSED_INTENTS:
         return None
+
+    contextual = _select_contextual_directive(
+        snapshot=snapshot,
+        intent=intent,
+        language=language,
+        message=message,
+    )
+    if contextual is not None:
+        return contextual
 
     candidates = _SOFT_DISCOVERY_CANDIDATES.get(intent.intent_id)
     if not candidates:

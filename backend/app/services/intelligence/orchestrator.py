@@ -1189,6 +1189,7 @@ class IntelligenceOrchestrator:
                 intent=intent_meta,
                 readiness=readiness_meta,
                 language=lang,
+                message=message,
             )
             if directive is not None:
                 discovery_question_id = directive.question_id
