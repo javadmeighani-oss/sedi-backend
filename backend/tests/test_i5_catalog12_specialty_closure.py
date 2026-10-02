@@ -62,19 +62,52 @@ def test_catalog12_know01_matrix_primary_not_partial():
     assert summary["entity_count"] == 19
 
 
-def test_catalog12_sources_not_in_weekly_allowlist():
+def test_catalog12_sources_weekly_activation_reconciliation():
+    """Reconcile Catalog-12 ∩ weekly allowlist against canonical manifest fields.
+
+    Per-source gate_authorized_activation is reported explicitly when absent —
+    do not invent that metadata here.
+    """
     from pathlib import Path
 
     import yaml
 
     from backend.app.services.i5.know01.catalog12_specialty_authorities import CATALOG12_CELLS
 
+    EXPECTED_GATE = (
+        "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+    )
+    GOVERNED_RIGHTS = frozenset({"OGL", "PUBLIC_DOMAIN", "ALLOWED", "GOVERNED"})
+
     path = Path("backend/config/i5/multisource_activation_allowlist_v1.yaml")
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    weekly_keys = {str(row["source_key"]) for row in data.get("sources") or []}
+    assert data.get("gate_id") == EXPECTED_GATE
+    weekly_rows = {str(row["source_key"]): row for row in (data.get("sources") or [])}
+    weekly_keys = set(weekly_rows)
     catalog12_keys = {c.source_key for c in CATALOG12_CELLS}
-    assert catalog12_keys.isdisjoint(weekly_keys)
+    overlaps = sorted(catalog12_keys & weekly_keys)
     assert "nhs_uk_live_well" in weekly_keys
+
+    authority_ambiguous: list[str] = []
+    for key in overlaps:
+        row = weekly_rows[key]
+        act = row.get("activation")
+        assert act is True or str(act).upper() == "YES", (key, act)
+        assert str(row.get("rights_terms_state")) in GOVERNED_RIGHTS, key
+        assert str(row.get("robots_access_state")) == "ALLOWED", key
+        if "live_qualification" in row and row.get("live_qualification") is not None:
+            assert str(row.get("live_qualification")) == "PASS", key
+        per_source_gate = row.get("gate_authorized_activation")
+        if not per_source_gate:
+            authority_ambiguous.append(key)
+        else:
+            assert str(per_source_gate) == EXPECTED_GATE, key
+
+    # Explicit governance finding — overlaps without per-source gate authority.
+    assert not authority_ambiguous, (
+        f"CATALOG12_OVERLAP={overlaps} "
+        f"CATALOG12_AUTHORITY_AMBIGUOUS={authority_ambiguous}"
+    )
 
 
 def test_catalog12_distill_never_keeps_html():

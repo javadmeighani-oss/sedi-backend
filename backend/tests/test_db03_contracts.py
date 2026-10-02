@@ -80,7 +80,21 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["080_i9_device_reported_vital_status"]
+    assert heads == ["087_a4_notification_inbox_visibility"]
+    rev087 = script.get_revision("087_a4_notification_inbox_visibility")
+    assert rev087.down_revision == "086_i9_vital_observation_context_authority"
+    rev086 = script.get_revision("086_i9_vital_observation_context_authority")
+    assert rev086.down_revision == "085_i9_absolute_vital_policy_schema_scaffold"
+    rev085 = script.get_revision("085_i9_absolute_vital_policy_schema_scaffold")
+    assert rev085.down_revision == "084_device_category_setup_code_authority"
+    rev084 = script.get_revision("084_device_category_setup_code_authority")
+    assert rev084.down_revision == "083_otp_purpose_phone_change"
+    rev083 = script.get_revision("083_otp_purpose_phone_change")
+    assert rev083.down_revision == "082_sedi_intro_completed_at"
+    rev082 = script.get_revision("082_sedi_intro_completed_at")
+    assert rev082.down_revision == "081_self_health_subject_1to1_hardening"
+    rev081 = script.get_revision("081_self_health_subject_1to1_hardening")
+    assert rev081.down_revision == "080_i9_device_reported_vital_status"
     rev080 = script.get_revision("080_i9_device_reported_vital_status")
     assert rev080.down_revision == "079_i10_cni_owner_provenance_nullable"
     rev079 = script.get_revision("079_i10_cni_owner_provenance_nullable")

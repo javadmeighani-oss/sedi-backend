@@ -621,14 +621,24 @@ def test_n56_i06_dislike_reason_bounded(db, gate4_patch, client):
     assert resp.status_code == 200
     evt = (
         db.query(models.InteractionEvent)
-        .filter(models.InteractionEvent.source_notification_id == notif.id)
-        .order_by(models.InteractionEvent.id.desc())
-        .first()
+        .filter(
+            models.InteractionEvent.event_type == "notification_dislike_reason",
+            models.InteractionEvent.source_notification_id == notif.id,
+        )
+        .one()
     )
     meta = json.loads(evt.metadata_json or "{}")
     assert meta.get("reason") == reason
     assert meta.get("dislike_reason_bounded") is True
-    assert "notification_dislike" in evt.event_type
+    read_evt = (
+        db.query(models.InteractionEvent)
+        .filter(
+            models.InteractionEvent.event_type == "notification_read",
+            models.InteractionEvent.source_notification_id == notif.id,
+        )
+        .one()
+    )
+    assert read_evt is not None
     _print_marker("N56-I06_DISLIKE_REASON_BOUNDED")
 
 

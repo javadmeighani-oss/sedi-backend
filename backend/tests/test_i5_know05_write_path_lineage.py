@@ -44,7 +44,7 @@ def _db_url():
 def _require_065(engine) -> None:
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "068_i7_wave2_governed_memory_lifecycle", head
+        assert head == "087_a4_notification_inbox_visibility", head
 
 
 def _json_transport(payload: dict | None = None):
