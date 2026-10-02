@@ -39,13 +39,13 @@ from backend.app.services.i8.context import load_trusted_context
 from backend.app.services.i8.knowledge_bridge import build_personalization, compose_grounded_action
 from backend.app.services.i8.unified_core import generate_operational_action
 from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
-from backend.tests.helpers.i10_postgresql_harness import I10IsolatedPgDb, _REV_081
+from backend.tests.helpers.i10_postgresql_harness import I10IsolatedPgDb
 from backend.tests.helpers.stage_b_family_fixture import SCENARIO_ID, seed_stage_b_family
 
 
 @pytest.fixture(scope="module")
 def g2_pg_db_module():
-    isolated = I10IsolatedPgDb.create(suffix="g2c01c04", revision=_REV_081)
+    isolated = I10IsolatedPgDb.create(suffix="g2c01c04")
     SessionLocal = isolated.session_factory()
     try:
         yield SessionLocal, isolated
