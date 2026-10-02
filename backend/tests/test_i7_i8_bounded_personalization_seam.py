@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -15,6 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from backend.app import models
 from backend.app.services.i5.runtime_knowledge_retrieval import STATUS_OK, RetrievedKnowledgeItem
 from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
+from backend.app.services.i6.memory_writes import write_fact
+from backend.app.services.i7.lifelong_profile import rebuild_lifelong_profile
 from backend.app.services.i8.context import (
     I8_PERSONAL_CONTEXT_TERM_SLICE,
     load_trusted_context,
@@ -25,6 +27,31 @@ from backend.app.services.i8.knowledge_bridge import (
 )
 from backend.app.services.i8.unified_core import generate_operational_action
 from backend.tests.helpers.stage_b_family_fixture import SCENARIO_ID, seed_stage_b_family
+
+# Canonical MemoryContract keys only (humanized by I8 as trailing segment).
+_LIFESTYLE_BOUNDED_KEYS: tuple[str, ...] = (
+    "activity_level",
+    "food_habits",
+    "exercise_minutes",
+    "sleep_quality",
+    "hydration_ml",
+    "steps_count",
+    "stress_level",
+    "diet_notes",
+    "sleep_duration_hours",
+    "mood",
+)
+_PREFERENCE_BOUNDED_KEYS: tuple[str, ...] = (
+    "response_length",
+    "interaction_style",
+    "communication_style",
+    "notification_preferences",
+    "interests",
+    "follow_up_preference",
+    "listen_before_advice",
+    "proactive_checkin_preference",
+    "language_preference",
+)
 
 
 @pytest.fixture(scope="session")
@@ -68,45 +95,19 @@ def _profile_tz(db, user_id: int) -> None:
     db.flush()
 
 
-def _insert_lifelong(
+def _build_lifelong_from_i6(
     db,
     user_id: int,
     *,
-    habits=None,
-    preferences=None,
-    goals=None,
-    version: int = 1,
-    status: str = "active",
-    consent_id: int | None = None,
+    lifestyle: dict[str, object] | None = None,
+    preferences: dict[str, object] | None = None,
 ):
-    now = datetime.now(timezone.utc)
-    payload = {
-        "authority": "I6_FACTS_ARE_SOT",
-        "profile_is_derived_only": True,
-        "not_diagnosis": True,
-        "generator_version": "i7-v1-lifelong-profile",
-        "fact_count": 3,
-        "keys": [],
-        "habits": habits or [],
-        "preferences": preferences or [],
-        "goals": goals or [],
-    }
-    row = models.UserLifelongProfile(
-        user_id=user_id,
-        version=version,
-        status=status,
-        structured_profile_json=json.dumps(payload, sort_keys=True),
-        narrative_compact="Derived compact profile; not source of truth.",
-        source_fact_ids_json="[]",
-        source_event_refs_json="[]",
-        consent_id=consent_id,
-        generator_version="i7-v1-lifelong-profile",
-        built_from_period_start=now - timedelta(days=365),
-        built_from_period_end=now,
-    )
-    db.add(row)
-    db.flush()
-    return row
+    """Canonical I6 facts → real I7 rebuild (no manual empty lineage)."""
+    for key, value in (lifestyle or {"activity_level": "moderate"}).items():
+        write_fact(db, user_id, "lifestyle", key, value, commit=False)
+    for key, value in (preferences or {"response_length": "brief"}).items():
+        write_fact(db, user_id, "preferences", key, value, commit=False)
+    return rebuild_lifelong_profile(db, user_id, commit=False)
 
 
 def _ok_item(*, statement: str = "Keep a steady daily movement pattern") -> RetrievedKnowledgeItem:
@@ -144,22 +145,21 @@ def test_case1_son_positive_personalization(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    consent = grant_memory_consent(db, son.id, commit=False)
-    prof = _insert_lifelong(
+    grant_memory_consent(db, son.id, commit=False)
+    prof = _build_lifelong_from_i6(
         db,
         son.id,
-        habits=["lifestyle.evening_stretch"],
-        preferences=["preferences.quiet_mornings"],
-        consent_id=consent.id,
+        lifestyle={"activity_level": "evening-focused"},
+        preferences={"response_length": "brief"},
     )
     ctx = load_trusted_context(db, son.id)
     assert ctx.lifelong_profile is not None
     assert ctx.lifelong_profile.profile_id == prof.id
-    assert "evening stretch" in ctx.lifelong_profile.habit_key_terms
+    assert "activity level" in ctx.lifelong_profile.habit_key_terms
     assert any(r.get("ref_type") == "user_lifelong_profile" for r in ctx.context_refs)
 
     pers = build_personalization(ctx, domain="routine")
-    assert any("evening stretch" in t or "quiet mornings" in t for t in pers.routine_terms)
+    assert any("activity level" in t or "response length" in t for t in pers.routine_terms)
 
     with patch(
         "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
@@ -177,7 +177,7 @@ def test_case1_son_positive_personalization(db):
     assert result.suggestions
     detail = " ".join(s.detail for s in result.suggestions)
     assert "I7 profile term" in detail
-    assert "evening stretch" in detail or "quiet mornings" in detail
+    assert "activity level" in detail or "response length" in detail
     assert fam.mother_hs.linked_user_id is None
 
 
@@ -209,13 +209,12 @@ def test_case3_revoked_consent_blocks_i7(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    consent = grant_memory_consent(db, son.id, commit=False)
-    _insert_lifelong(
+    grant_memory_consent(db, son.id, commit=False)
+    _build_lifelong_from_i6(
         db,
         son.id,
-        habits=["lifestyle.secret_habit"],
-        preferences=["preferences.secret_pref"],
-        consent_id=consent.id,
+        lifestyle={"diet_notes": "private-diet"},
+        preferences={"interests": "private-interest"},
     )
     revoke_memory_consent(db, son.id, commit=False)
     ctx = load_trusted_context(db, son.id)
@@ -230,8 +229,17 @@ def test_case4_cross_user_isolation(db):
     _profile_tz(db, son.id)
     grant_memory_consent(db, son.id, commit=False)
     grant_memory_consent(db, other.id, commit=False)
-    _insert_lifelong(db, other.id, habits=["lifestyle.other_user_only"], preferences=["preferences.leak"])
-    _insert_lifelong(db, son.id, habits=["lifestyle.son_stretch"])
+    _build_lifelong_from_i6(
+        db,
+        other.id,
+        lifestyle={"food_habits": "other-only-diet"},
+        preferences={"interests": "other-leak"},
+    )
+    _build_lifelong_from_i6(
+        db,
+        son.id,
+        lifestyle={"activity_level": "son-activity"},
+    )
     ctx = load_trusted_context(db, son.id)
     assert ctx.lifelong_profile is not None
     blob = json.dumps(
@@ -241,9 +249,9 @@ def test_case4_cross_user_isolation(db):
             "refs": ctx.context_refs,
         }
     )
-    assert "other user only" not in blob
-    assert "leak" not in blob
-    assert "son stretch" in blob
+    assert "food habits" not in blob
+    assert "interests" not in blob
+    assert "activity level" in blob
 
 
 def test_case5_managed_mother_isolation(db):
@@ -254,10 +262,14 @@ def test_case5_managed_mother_isolation(db):
     assert fam.son.id != fam.mother_hs.id
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
-    _insert_lifelong(db, fam.son.id, preferences=["preferences.son_only_memory"])
+    _build_lifelong_from_i6(
+        db,
+        fam.son.id,
+        preferences={"communication_style": "son-only"},
+    )
     ctx = load_trusted_context(db, fam.son.id)
     assert ctx.lifelong_profile is not None
-    assert "son only memory" in ctx.lifelong_profile.preference_terms
+    assert "communication style" in ctx.lifelong_profile.preference_terms
     # Mother has no Account — no lifelong profile owner substitution
     mother_profiles = (
         db.query(models.UserLifelongProfile)
@@ -272,8 +284,12 @@ def test_case5_managed_mother_isolation(db):
 def test_case6_provenance(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    consent = grant_memory_consent(db, fam.son.id, commit=False)
-    prof = _insert_lifelong(db, fam.son.id, habits=["lifestyle.walk"], consent_id=consent.id)
+    grant_memory_consent(db, fam.son.id, commit=False)
+    prof = _build_lifelong_from_i6(
+        db,
+        fam.son.id,
+        lifestyle={"steps_count": 8000},
+    )
     ctx = load_trusted_context(db, fam.son.id)
     refs = [r for r in ctx.context_refs if r.get("ref_type") == "user_lifelong_profile"]
     assert refs and refs[0]["ref_id"] == prof.id
@@ -284,13 +300,17 @@ def test_case7_boundedness(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
-    many = [f"lifestyle.habit_key_{i}" for i in range(40)]
-    prefs = [f"preferences.pref_key_{i}" for i in range(40)]
-    _insert_lifelong(db, fam.son.id, habits=many, preferences=prefs)
+    assert len(_LIFESTYLE_BOUNDED_KEYS) > I8_PERSONAL_CONTEXT_TERM_SLICE
+    assert len(_PREFERENCE_BOUNDED_KEYS) > I8_PERSONAL_CONTEXT_TERM_SLICE
+    lifestyle = {k: f"v-{k}" for k in _LIFESTYLE_BOUNDED_KEYS}
+    preferences = {k: f"p-{k}" for k in _PREFERENCE_BOUNDED_KEYS}
+    _build_lifelong_from_i6(db, fam.son.id, lifestyle=lifestyle, preferences=preferences)
     ctx = load_trusted_context(db, fam.son.id)
     assert ctx.lifelong_profile is not None
     assert len(ctx.lifelong_profile.habit_key_terms) <= I8_PERSONAL_CONTEXT_TERM_SLICE
     assert len(ctx.lifelong_profile.preference_terms) <= I8_PERSONAL_CONTEXT_TERM_SLICE
+    assert len(ctx.lifelong_profile.habit_key_terms) == I8_PERSONAL_CONTEXT_TERM_SLICE
+    assert len(ctx.lifelong_profile.preference_terms) == I8_PERSONAL_CONTEXT_TERM_SLICE
     pers = build_personalization(ctx, domain="routine")
     assert len(pers.routine_terms) <= I8_PERSONAL_CONTEXT_TERM_SLICE
     assert len(pers.lifestyle_terms) <= I8_PERSONAL_CONTEXT_TERM_SLICE

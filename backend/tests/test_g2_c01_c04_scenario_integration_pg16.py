@@ -16,7 +16,6 @@ C04 ledger → existing suite mapping (no rename/split):
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -35,6 +34,8 @@ from backend.app.services.i5.care_navigation_directory import (
 )
 from backend.app.services.i5.runtime_knowledge_retrieval import STATUS_OK, RetrievedKnowledgeItem
 from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
+from backend.app.services.i6.memory_writes import write_fact
+from backend.app.services.i7.lifelong_profile import rebuild_lifelong_profile
 from backend.app.services.i8.context import load_trusted_context
 from backend.app.services.i8.knowledge_bridge import build_personalization, compose_grounded_action
 from backend.app.services.i8.unified_core import generate_operational_action
@@ -74,32 +75,19 @@ def _profile_tz(db, user_id: int) -> None:
     db.flush()
 
 
-def _insert_lifelong(db, user_id: int, *, habits=None, preferences=None, consent_id=None):
-    now = datetime.now(timezone.utc)
-    payload = {
-        "authority": "I6_FACTS_ARE_SOT",
-        "profile_is_derived_only": True,
-        "not_diagnosis": True,
-        "habits": habits or [],
-        "preferences": preferences or [],
-        "goals": [],
-    }
-    row = models.UserLifelongProfile(
-        user_id=user_id,
-        version=1,
-        status="active",
-        structured_profile_json=json.dumps(payload, sort_keys=True),
-        narrative_compact="Derived compact profile; not source of truth.",
-        source_fact_ids_json="[]",
-        source_event_refs_json="[]",
-        consent_id=consent_id,
-        generator_version="i7-v1-lifelong-profile",
-        built_from_period_start=now - timedelta(days=30),
-        built_from_period_end=now,
-    )
-    db.add(row)
-    db.flush()
-    return row
+def _build_lifelong_from_i6(
+    db,
+    user_id: int,
+    *,
+    lifestyle: dict | None = None,
+    preferences: dict | None = None,
+):
+    """Canonical I6 facts → real I7 rebuild (no manual empty lineage)."""
+    for key, value in (lifestyle or {"activity_level": "moderate"}).items():
+        write_fact(db, user_id, "lifestyle", key, value, commit=False)
+    for key, value in (preferences or {"response_length": "brief"}).items():
+        write_fact(db, user_id, "preferences", key, value, commit=False)
+    return rebuild_lifelong_profile(db, user_id, commit=False)
 
 
 def _doc_item():
@@ -166,19 +154,18 @@ def test_g2_son_i7_to_i5_to_i8_bounded_path(db, monkeypatch):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    consent = grant_memory_consent(db, son.id, commit=False)
-    _insert_lifelong(
+    grant_memory_consent(db, son.id, commit=False)
+    _build_lifelong_from_i6(
         db,
         son.id,
-        habits=["lifestyle.evening_stretch"],
-        preferences=["preferences.quiet_mornings"],
-        consent_id=consent.id,
+        lifestyle={"activity_level": "evening-focused"},
+        preferences={"response_length": "brief"},
     )
 
     ctx = load_trusted_context(db, son.id)
     assert ctx.lifelong_profile is not None
     pers = build_personalization(ctx, domain="routine")
-    assert any("evening stretch" in t or "quiet mornings" in t for t in pers.routine_terms)
+    assert any("activity level" in t or "response length" in t for t in pers.routine_terms)
 
     assert PERSONAL_PROVIDER_CONTEXT != GOVERNED_DIRECTORY_PROVIDER
     assert CANONICAL_AUTHORITY == "I5_GOVERNED_CARE_DIRECTORY"
@@ -280,24 +267,36 @@ def test_g2_wrong_account_cannot_inject_personal_context(db):
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
     grant_memory_consent(db, fam.stranger.id, commit=False)
-    _insert_lifelong(db, fam.son.id, habits=["lifestyle.son_secret"])
-    _insert_lifelong(db, fam.stranger.id, habits=["lifestyle.stranger_only"])
+    _build_lifelong_from_i6(
+        db,
+        fam.son.id,
+        lifestyle={"activity_level": "son-activity"},
+    )
+    _build_lifelong_from_i6(
+        db,
+        fam.stranger.id,
+        lifestyle={"food_habits": "stranger-diet"},
+    )
 
     son_ctx = load_trusted_context(db, fam.son.id)
     stranger_ctx = load_trusted_context(db, fam.stranger.id)
     son_blob = json.dumps(list(son_ctx.lifelong_profile.habit_key_terms))
     stranger_blob = json.dumps(list(stranger_ctx.lifelong_profile.habit_key_terms))
-    assert "son secret" in son_blob
-    assert "stranger only" not in son_blob
-    assert "stranger only" in stranger_blob
-    assert "son secret" not in stranger_blob
+    assert "activity level" in son_blob
+    assert "food habits" not in son_blob
+    assert "food habits" in stranger_blob
+    assert "activity level" not in stranger_blob
 
 
 def test_g2_i7_cannot_mint_i8_action_without_governed_knowledge(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
-    _insert_lifelong(db, fam.son.id, habits=["lifestyle.evening_stretch"])
+    _build_lifelong_from_i6(
+        db,
+        fam.son.id,
+        lifestyle={"exercise_minutes": 30},
+    )
     ctx = load_trusted_context(db, fam.son.id)
     assert ctx.lifelong_profile is not None
     pers = build_personalization(ctx, domain="routine")
@@ -321,8 +320,12 @@ def test_g2_i7_cannot_mint_i8_action_without_governed_knowledge(db):
 def test_g2_consent_gate_and_i4_authority_preserved(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    consent = grant_memory_consent(db, fam.son.id, commit=False)
-    _insert_lifelong(db, fam.son.id, habits=["lifestyle.secret_habit"], consent_id=consent.id)
+    grant_memory_consent(db, fam.son.id, commit=False)
+    _build_lifelong_from_i6(
+        db,
+        fam.son.id,
+        lifestyle={"diet_notes": "private"},
+    )
     revoke_memory_consent(db, fam.son.id, commit=False)
     ctx = load_trusted_context(db, fam.son.id)
     assert ctx.lifelong_profile is None
