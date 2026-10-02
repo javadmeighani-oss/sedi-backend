@@ -95,6 +95,12 @@ def _profile_tz(db, user_id: int) -> None:
     db.flush()
 
 
+def _grant(db, user_id: int) -> None:
+    """Grant memory consent and flush scopes (harness uses autoflush=False)."""
+    grant_memory_consent(db, user_id, commit=False)
+    db.flush()
+
+
 def _build_lifelong_from_i6(
     db,
     user_id: int,
@@ -145,7 +151,7 @@ def test_case1_son_positive_personalization(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
+    _grant(db, son.id)
     prof = _build_lifelong_from_i6(
         db,
         son.id,
@@ -185,7 +191,7 @@ def test_case2_no_i7_data_safe_fallback(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
+    _grant(db, son.id)
     ctx = load_trusted_context(db, son.id)
     assert ctx.lifelong_profile is None
     with patch(
@@ -209,7 +215,7 @@ def test_case3_revoked_consent_blocks_i7(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
+    _grant(db, son.id)
     _build_lifelong_from_i6(
         db,
         son.id,
@@ -227,8 +233,8 @@ def test_case4_cross_user_isolation(db):
     son = fam.son
     other = fam.stranger
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
-    grant_memory_consent(db, other.id, commit=False)
+    _grant(db, son.id)
+    _grant(db, other.id)
     _build_lifelong_from_i6(
         db,
         other.id,
@@ -261,7 +267,7 @@ def test_case5_managed_mother_isolation(db):
     assert fam.son_self_hs.id != fam.mother_hs.id
     assert fam.son.id != fam.mother_hs.id
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
+    _grant(db, fam.son.id)
     _build_lifelong_from_i6(
         db,
         fam.son.id,
@@ -284,7 +290,7 @@ def test_case5_managed_mother_isolation(db):
 def test_case6_provenance(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
+    _grant(db, fam.son.id)
     prof = _build_lifelong_from_i6(
         db,
         fam.son.id,
@@ -299,7 +305,7 @@ def test_case6_provenance(db):
 def test_case7_boundedness(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
+    _grant(db, fam.son.id)
     assert len(_LIFESTYLE_BOUNDED_KEYS) > I8_PERSONAL_CONTEXT_TERM_SLICE
     assert len(_PREFERENCE_BOUNDED_KEYS) > I8_PERSONAL_CONTEXT_TERM_SLICE
     lifestyle = {k: f"v-{k}" for k in _LIFESTYLE_BOUNDED_KEYS}
@@ -320,7 +326,7 @@ def test_case8_habit_bridge_and_i5_still_work(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
+    _grant(db, son.id)
     now = datetime.utcnow()
     db.add(
         models.UserHabit(

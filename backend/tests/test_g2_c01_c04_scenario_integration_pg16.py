@@ -75,6 +75,12 @@ def _profile_tz(db, user_id: int) -> None:
     db.flush()
 
 
+def _grant(db, user_id: int) -> None:
+    """Grant memory consent and flush scopes (harness uses autoflush=False)."""
+    grant_memory_consent(db, user_id, commit=False)
+    db.flush()
+
+
 def _build_lifelong_from_i6(
     db,
     user_id: int,
@@ -154,7 +160,7 @@ def test_g2_son_i7_to_i5_to_i8_bounded_path(db, monkeypatch):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     son = fam.son
     _profile_tz(db, son.id)
-    grant_memory_consent(db, son.id, commit=False)
+    _grant(db, son.id)
     _build_lifelong_from_i6(
         db,
         son.id,
@@ -265,8 +271,8 @@ def test_g2_mother_managed_directory_context_no_fake_account(db, monkeypatch):
 def test_g2_wrong_account_cannot_inject_personal_context(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
-    grant_memory_consent(db, fam.stranger.id, commit=False)
+    _grant(db, fam.son.id)
+    _grant(db, fam.stranger.id)
     _build_lifelong_from_i6(
         db,
         fam.son.id,
@@ -291,7 +297,7 @@ def test_g2_wrong_account_cannot_inject_personal_context(db):
 def test_g2_i7_cannot_mint_i8_action_without_governed_knowledge(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
+    _grant(db, fam.son.id)
     _build_lifelong_from_i6(
         db,
         fam.son.id,
@@ -320,7 +326,7 @@ def test_g2_i7_cannot_mint_i8_action_without_governed_knowledge(db):
 def test_g2_consent_gate_and_i4_authority_preserved(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
-    grant_memory_consent(db, fam.son.id, commit=False)
+    _grant(db, fam.son.id)
     _build_lifelong_from_i6(
         db,
         fam.son.id,
