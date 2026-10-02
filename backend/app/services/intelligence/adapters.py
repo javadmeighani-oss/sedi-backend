@@ -488,12 +488,14 @@ class LifestyleContextAdapter:
         from backend.app.services.i6.memory_writes import list_facts_or_empty
         from backend.app.services.memory.memory_contract import MemoryContract
 
-        # Adaptive-control prefs stay in the snapshot for the pure resolver,
+        # Adaptive/control prefs stay in the snapshot for pure resolvers,
         # but must never enter generic LLM compatibility projection.
         adaptive_only_keys = frozenset(
             {
                 "preferences.response_length",
                 "preferences.listen_before_advice",
+                "preferences.follow_up_preference",
+                "preferences.proactive_checkin_preference",
             }
         )
 

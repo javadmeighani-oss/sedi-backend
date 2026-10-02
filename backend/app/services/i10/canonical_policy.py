@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -37,6 +38,22 @@ _REASON_ALIASES = {
     "do_not_notify": "DO_NOT_NOTIFY",
     "resolver_fail_open": "POLICY_FAIL_OPEN_ALLOW",
 }
+
+# CR-04E2 — I6 interruption prefs accepted only as typed suppress inputs.
+_I6_INTERRUPTION_PROVENANCE = frozenset({"USER_STATED", "USER_CONFIRMED"})
+_I6_BLOCKED_SENSITIVITY = frozenset({"high", "critical"})
+_FOLLOW_UP_PREF_KEY = "follow_up_preference"
+_PROACTIVE_PREF_KEY = "proactive_checkin_preference"
+_PROACTIVE_SUPPRESS_FAMILIES = frozenset(
+    {
+        I10SemanticFamily.PRESENCE_REENGAGEMENT,
+        I10SemanticFamily.ENGAGEMENT_NUDGE,
+    }
+)
+
+USER_FOLLOW_UP_PREFERENCE_SUPPRESS = "USER_FOLLOW_UP_PREFERENCE_SUPPRESS"
+USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS = "USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS"
+
 
 def _authorized_critical_policy_risk(metadata: Mapping[str, Any]) -> Optional[str]:
     """Accept CRITICAL only when B16 source contract explicitly provides it."""
@@ -102,6 +119,82 @@ def _map_gate4_to_i10(action: str) -> I10DecisionValue:
     return I10DecisionValue.SUPPRESS
 
 
+def _read_typed_boolean_preference(
+    db: Session,
+    *,
+    recipient_user_id: int,
+    key: str,
+) -> Optional[bool]:
+    """Read one canonical I6 preference as a typed bool, or None when unsupported.
+
+    Accepts only active/readable USER_STATED|USER_CONFIRMED facts whose decoded
+    value_json is an actual JSON boolean. High/critical, system-derived,
+    unknown provenance, and non-boolean values are ignored (fail open to
+    existing I10 policy). Never returns raw values for copy/LLM.
+    """
+    from backend.app.services.i6.memory_writes import get_readable_fact_or_none
+
+    row = get_readable_fact_or_none(db, recipient_user_id, "preferences", key)
+    if row is None:
+        return None
+    provenance = str(getattr(row, "provenance_class", "") or "").strip()
+    if provenance not in _I6_INTERRUPTION_PROVENANCE:
+        return None
+    sensitivity = str(getattr(row, "sensitivity_class", "") or "").strip().lower()
+    if sensitivity in _I6_BLOCKED_SENSITIVITY:
+        return None
+    raw = getattr(row, "value_json", None)
+    if raw is None:
+        return None
+    try:
+        decoded = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(decoded, bool):
+        return None
+    return decoded
+
+
+def _user_interruption_preference_suppress(
+    db: Session,
+    candidate: I10NotificationCandidate,
+) -> Optional[I10CanonicalPolicyOutcome]:
+    """False-only suppressions from typed I6 interruption preferences.
+
+    True never forces SEND — it only means this rule does not suppress.
+    Families outside the explicit maps are never suppressed by these prefs.
+    """
+    family = candidate.semantic_family
+
+    if family == I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP:
+        follow_up = _read_typed_boolean_preference(
+            db,
+            recipient_user_id=candidate.recipient_user_id,
+            key=_FOLLOW_UP_PREF_KEY,
+        )
+        if follow_up is False:
+            return I10CanonicalPolicyOutcome(
+                decision=I10DecisionValue.SUPPRESS,
+                reason_code=USER_FOLLOW_UP_PREFERENCE_SUPPRESS,
+                policy_version=I10_CANONICAL_POLICY_VERSION,
+            )
+
+    if family in _PROACTIVE_SUPPRESS_FAMILIES:
+        proactive = _read_typed_boolean_preference(
+            db,
+            recipient_user_id=candidate.recipient_user_id,
+            key=_PROACTIVE_PREF_KEY,
+        )
+        if proactive is False:
+            return I10CanonicalPolicyOutcome(
+                decision=I10DecisionValue.SUPPRESS,
+                reason_code=USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS,
+                policy_version=I10_CANONICAL_POLICY_VERSION,
+            )
+
+    return None
+
+
 def evaluate_i10_canonical_policy(
     db: Session,
     *,
@@ -114,7 +207,8 @@ def evaluate_i10_canonical_policy(
     """
     Single effective I10 interruption policy decision.
 
-    Order: expiry → B14 overlap → B06 prefs (fail-closed, including critical)
+    Order: expiry → B14 overlap → CR-04E2 I6 interruption prefs (false-only)
+    → B06 prefs (fail-closed, including critical)
     → Gate4 resolver (feedback/quiet/active conversation) → normalized outcome.
     """
     effective_now = _ensure_utc(now_utc or datetime.now(timezone.utc))
@@ -141,6 +235,10 @@ def evaluate_i10_canonical_policy(
                 reason_code=overlap.reason_code,
                 policy_version=I10_CANONICAL_POLICY_VERSION,
             )
+
+    pref_suppress = _user_interruption_preference_suppress(db, candidate)
+    if pref_suppress is not None:
+        return pref_suppress
 
     prefs_ok, prefs_reason = notification_prefs_allow_scope(
         db,
