@@ -76,7 +76,7 @@ jobs:
               print("POSTGRES_SERVER_VERSION", ver)
               assert str(ver).startswith("16."), ver
           PY
-      - name: Alembic single head 079
+      - name: Alembic single head 087
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -85,7 +85,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert heads == ["087_a4_notification_inbox_visibility"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head

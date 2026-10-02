@@ -1,7 +1,7 @@
 # G2 C01+C04 scenario-first PG16 revalidation.
 # GATE=SEDI-V1-BE-FINALCERT-G2-C01-C04-I5-DIRECTORY-I7-I8-SCENARIO-PG16-REVALIDATION-01
 # NO production. NO Smart-RAG reopen. NO DRVS reopen. NO C03 reopen. NO Real FCM. NO frontend.
-# NO schema/migration. Alembic head must remain 081.
+# NO schema/migration. Alembic head must remain 087.
 name: G2 C01 C04 Scenario PG16
 
 on:
@@ -87,7 +87,7 @@ jobs:
               print("PGVECTOR_VERSION", v)
               assert v
           PY
-      - name: Alembic single head 081
+      - name: Alembic single head 087
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -96,7 +96,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          assert heads == ["087_a4_notification_inbox_visibility"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head
