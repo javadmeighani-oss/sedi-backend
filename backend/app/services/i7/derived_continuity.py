@@ -10,7 +10,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
-from backend.app.services.i6.consent_service import PERM_READ, _active_consent, has_permission
+from backend.app.services.i6.consent_service import (
+    PERM_READ,
+    _active_consent,
+    has_permission_readonly,
+)
 from backend.app.services.i7.period_summaries import period_bounds, resolve_week_start
 from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
 
@@ -53,7 +57,7 @@ def parse_bounded_continuity(row: Optional[models.UserPeriodSummary]) -> dict:
 
 def should_project_derived_continuity(db: Session, user_id: int) -> bool:
     """Derived plane is supporting context only when no eligible raw remains."""
-    if not has_permission(db, user_id, PERM_READ):
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return False
     from backend.app.services.i7.retention import query_eligible_raw
 
@@ -64,7 +68,7 @@ def should_project_derived_continuity(db: Session, user_id: int) -> bool:
 
 def get_bounded_continuity_topic(db: Session, user_id: int) -> Optional[str]:
     """I6 read-governed derived topic from latest active DAILY summary."""
-    if not has_permission(db, user_id, PERM_READ):
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return None
     from backend.app.services.i7.hierarchy import get_canonical_daily
 

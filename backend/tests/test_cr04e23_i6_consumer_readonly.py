@@ -20,6 +20,10 @@ from backend.app.services.i6.memory_writes import (
     list_facts_readonly_or_empty,
     write_fact,
 )
+from backend.app.services.i7.derived_continuity import (
+    get_bounded_continuity_topic,
+    should_project_derived_continuity,
+)
 from backend.app.services.i7.lifelong_profile import (
     current_readable_fact_ids,
     is_lifelong_profile_fresh,
@@ -389,3 +393,25 @@ def test_cr04e23_e_rebuild_write_lifecycle_unchanged(db):
     write_fact(db, user.id, "routines", "wake_time", "07:00", commit=True)
     next_row = rebuild_lifelong_profile(db, user.id, commit=True)
     assert next_row.version == first.version + 1
+
+
+def test_cr04e231_derived_continuity_expired_consent_unmutated_after_commit(db):
+    """CR-04E2.3.1: derived continuity nominal reads must not dirty expired consent."""
+    user = _user(db, "derived-ro")
+    _grant(db, user.id)
+    consent = _memory_consent(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(hours=2)
+    consent.effective_until = past
+    db.flush()
+    db.refresh(consent)
+    assert consent.status == "active"
+    before = _snapshot_consent(consent)
+    consent_id = consent.id
+
+    assert should_project_derived_continuity(db, user.id) is False
+    assert get_bounded_continuity_topic(db, user.id) is None
+
+    db.commit()
+    consent = db.query(models.UserConsent).filter(models.UserConsent.id == consent_id).one()
+    assert consent.status == "active"
+    assert _snapshot_consent(consent) == before
