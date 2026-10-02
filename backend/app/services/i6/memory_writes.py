@@ -258,6 +258,43 @@ def get_readable_fact_or_none(
         return None
 
 
+def get_readonly_fact_or_none(
+    db: Session, user_id: int, domain: str, key: str
+) -> Optional[models.UserMemoryFact]:
+    """True read-only single-fact accessor for policy/control consumers.
+
+    Returns the active, non-invalidated, non-expired fact for (user, domain, key)
+    when PERM_READ holds. Expired valid_until yields None without mutating the row.
+    Never changes fact_status, valid_until, updated_at, or any other field; never
+    flushes/commits/writes. Missing or revoked read permission => None.
+    """
+    from backend.app.services.i6.consent_service import has_permission
+
+    domain, key = MemoryContract.canonicalize_key(domain, key)
+    if not has_permission(db, user_id, PERM_READ):
+        return None
+    now = _utcnow()
+    row = (
+        db.query(models.UserMemoryFact)
+        .filter(
+            models.UserMemoryFact.user_id == user_id,
+            models.UserMemoryFact.domain == domain,
+            models.UserMemoryFact.key == key,
+            models.UserMemoryFact.fact_status == "active",
+            models.UserMemoryFact.soft_invalidated_at.is_(None),
+        )
+        .first()
+    )
+    if row is None:
+        return None
+    until = row.valid_until
+    if until is not None:
+        cmp = until if until.tzinfo is not None else until.replace(tzinfo=timezone.utc)
+        if cmp <= now:
+            return None
+    return row
+
+
 def list_fact_history(
     db: Session, user_id: int, domain: str, key: str
 ) -> list[models.UserMemoryFact]:

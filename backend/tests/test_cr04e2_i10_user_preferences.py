@@ -4,18 +4,21 @@ from __future__ import annotations
 
 pytest_plugins = ["backend.tests.section42_sqlite_harness"]
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from backend.app import models
-from backend.app.services.i6.consent_service import grant_memory_consent
+from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
 from backend.app.services.i6.memory_writes import list_facts, write_fact
 from backend.app.services.i10.canonical_policy import (
+    I10_CANONICAL_POLICY_VERSION,
     USER_FOLLOW_UP_PREFERENCE_SUPPRESS,
     USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS,
     evaluate_i10_canonical_policy,
 )
 from backend.app.services.i10.contracts import I10NotificationCandidate
+from backend.app.services.i10.decision_ledger import record_notification_decision
 from backend.app.services.i10.policy_types import I10DecisionValue, I10NotificationScope, I10SemanticFamily
 from backend.app.services.intelligence.adapters import LifestyleContextAdapter
 from backend.app.services.intelligence.assembler import AuthorizedContextAssembler
@@ -257,6 +260,136 @@ def test_cr04e2_high_critical_ignored(db):
     pr = _eval(db, user.id, I10SemanticFamily.PRESENCE_REENGAGEMENT)
     assert fu.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS
     assert pr.reason_code != USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS
+
+
+def test_cr04e2_1_sensitivity_standard_and_medium_accepted(db):
+    u_std = _user(db, "sens-std")
+    u_med = _user(db, "sens-med")
+    _grant(db, u_std.id)
+    _grant(db, u_med.id)
+    _write_pref(db, u_std.id, "follow_up_preference", False, sensitivity_class="standard")
+    _write_pref(db, u_med.id, "follow_up_preference", False, sensitivity_class="medium")
+    assert (
+        _eval(db, u_std.id, I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP).reason_code
+        == USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+    )
+    assert (
+        _eval(db, u_med.id, I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP).reason_code
+        == USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+    )
+
+
+def test_cr04e2_1_sensitivity_null_empty_unknown_ignored(db):
+    user = _user(db, "sens-unk")
+    _grant(db, user.id)
+    for label, sens in (
+        ("null", None),
+        ("empty", ""),
+        ("unknown", "unknown"),
+        ("restricted", "restricted"),
+    ):
+        u = _user(db, f"sens-{label}")
+        _grant(db, u.id)
+        fact = _write_pref(db, u.id, "follow_up_preference", False, sensitivity_class="standard")
+        fact.sensitivity_class = sens
+        db.flush()
+        out = _eval(db, u.id, I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP)
+        assert out.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS, label
+
+
+def test_cr04e2_1_expired_fact_neutral(db):
+    user = _user(db, "exp-neut")
+    _grant(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(hours=2)
+    fact = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "follow_up_preference",
+        False,
+        provenance_class="USER_STATED",
+        sensitivity_class="standard",
+        valid_until=past,
+        commit=False,
+    )
+    assert fact.fact_status == "active"
+    out = _eval(db, user.id, I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP)
+    assert out.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+    assert out.decision == I10DecisionValue.SEND
+
+
+def test_cr04e2_1_expired_fact_unmutated_after_i10_decision_commit(db):
+    """I10 policy read must not expire/mutate I6 facts when decision ledger commits."""
+    from backend.app.services.i9.health_subject_service import ensure_self_subject_for_account
+
+    models.I10NotificationDecision.__table__.create(bind=db.get_bind(), checkfirst=True)
+    user = _user(db, "exp-mut")
+    _grant(db, user.id)
+    subject = ensure_self_subject_for_account(db, user.id, commit=False)
+    db.flush()
+    past = datetime.now(timezone.utc) - timedelta(hours=3)
+    fact = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "follow_up_preference",
+        False,
+        provenance_class="USER_STATED",
+        sensitivity_class="standard",
+        valid_until=past,
+        commit=False,
+    )
+    db.flush()
+    before_status = fact.fact_status
+    before_until = fact.valid_until
+    before_updated = fact.updated_at
+    before_soft = fact.soft_invalidated_at
+    assert before_status == "active"
+
+    cand = _candidate(
+        user.id,
+        I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP,
+        subject_id=int(subject.id),
+    )
+    with patch(
+        "backend.app.services.i10.canonical_policy.resolve_notification_policy",
+        side_effect=lambda *a, **k: _gate4_allow(),
+    ):
+        out = evaluate_i10_canonical_policy(
+            db,
+            candidate=cand,
+            payload_metadata={"priority": "normal"},
+        )
+    assert out.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+
+    record_notification_decision(
+        db,
+        candidate=cand,
+        decision=out.decision,
+        reason_code=out.reason_code,
+        commit=True,
+    )
+    db.refresh(fact)
+    assert fact.fact_status == "active"
+    assert fact.fact_status == before_status
+    assert fact.valid_until == before_until
+    assert fact.updated_at == before_updated
+    assert fact.soft_invalidated_at == before_soft
+
+
+def test_cr04e2_1_revoked_read_consent_neutral(db):
+    user = _user(db, "rev-read")
+    _grant(db, user.id)
+    _write_pref(db, user.id, "follow_up_preference", False)
+    revoke_memory_consent(db, user.id, commit=False)
+    db.flush()
+    out = _eval(db, user.id, I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP)
+    assert out.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+    assert out.decision == I10DecisionValue.SEND
+
+
+def test_cr04e2_1_policy_version_b18_3():
+    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.3"
 
 
 def test_cr04e2_string_false_ignored(db):

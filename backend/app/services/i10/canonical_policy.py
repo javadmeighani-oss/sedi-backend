@@ -23,7 +23,7 @@ from backend.app.services.notification_engine import _channel_for_type
 
 logger = logging.getLogger(__name__)
 
-I10_CANONICAL_POLICY_VERSION = "i10.b18.2"
+I10_CANONICAL_POLICY_VERSION = "i10.b18.3"
 
 _REASON_ALIASES = {
     "quiet_hours": "QUIET_HOURS_DEFER",
@@ -41,7 +41,7 @@ _REASON_ALIASES = {
 
 # CR-04E2 — I6 interruption prefs accepted only as typed suppress inputs.
 _I6_INTERRUPTION_PROVENANCE = frozenset({"USER_STATED", "USER_CONFIRMED"})
-_I6_BLOCKED_SENSITIVITY = frozenset({"high", "critical"})
+_I6_SAFE_SENSITIVITY = frozenset({"standard", "medium"})
 _FOLLOW_UP_PREF_KEY = "follow_up_preference"
 _PROACTIVE_PREF_KEY = "proactive_checkin_preference"
 _PROACTIVE_SUPPRESS_FAMILIES = frozenset(
@@ -127,21 +127,23 @@ def _read_typed_boolean_preference(
 ) -> Optional[bool]:
     """Read one canonical I6 preference as a typed bool, or None when unsupported.
 
-    Accepts only active/readable USER_STATED|USER_CONFIRMED facts whose decoded
-    value_json is an actual JSON boolean. High/critical, system-derived,
-    unknown provenance, and non-boolean values are ignored (fail open to
-    existing I10 policy). Never returns raw values for copy/LLM.
+    Uses a true read-only I6 accessor (never mutates memory rows). Accepts only
+    USER_STATED|USER_CONFIRMED facts with explicit safe sensitivity
+    (standard|medium) whose decoded value_json is an actual JSON boolean.
+    Unknown/null/unsafe sensitivity, system-derived provenance, and non-boolean
+    values are ignored (existing I10 policy proceeds). Never returns raw values
+    for copy/LLM.
     """
-    from backend.app.services.i6.memory_writes import get_readable_fact_or_none
+    from backend.app.services.i6.memory_writes import get_readonly_fact_or_none
 
-    row = get_readable_fact_or_none(db, recipient_user_id, "preferences", key)
+    row = get_readonly_fact_or_none(db, recipient_user_id, "preferences", key)
     if row is None:
         return None
     provenance = str(getattr(row, "provenance_class", "") or "").strip()
     if provenance not in _I6_INTERRUPTION_PROVENANCE:
         return None
     sensitivity = str(getattr(row, "sensitivity_class", "") or "").strip().lower()
-    if sensitivity in _I6_BLOCKED_SENSITIVITY:
+    if sensitivity not in _I6_SAFE_SENSITIVITY:
         return None
     raw = getattr(row, "value_json", None)
     if raw is None:

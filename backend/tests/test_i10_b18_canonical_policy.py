@@ -528,4 +528,4 @@ def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
 
 
 def test_vocabulary_constants():
-    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.2"
+    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.3"
