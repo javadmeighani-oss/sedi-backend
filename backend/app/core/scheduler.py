@@ -677,9 +677,11 @@ def start_scheduler():
                 WEEKLY_JOB_ID,
                 YEARLY_JOB_ID,
                 format_i7_run_log,
+                format_lifelong_run_log,
                 next_cron_fire,
                 period_summary_cron_kwargs,
                 period_summary_jobs_enabled,
+                run_lifelong_profile_sweep,
                 run_period_summary_sweep,
             )
 
@@ -723,6 +725,18 @@ def start_scheduler():
                         f"failed={result.failed} detail={result.detail}",
                         flush=True,
                     )
+                    # CR-04E1: I7-owned lifelong refresh only on DAILY tick.
+                    if summary_type == "DAILY":
+                        life = run_lifelong_profile_sweep(db, persist=True)
+                        print(format_lifelong_run_log(life), flush=True)
+                        print(
+                            "[Sedi Scheduler] i7_lifelong_profile_sweep "
+                            f"enabled={life.enabled} created={life.profiles_created} "
+                            f"rebuilt={life.profiles_rebuilt} "
+                            f"skipped_active={life.profiles_skipped_active} "
+                            f"failed={life.failures} detail={life.detail}",
+                            flush=True,
+                        )
 
             for _kind, _job_id in (
                 ("DAILY", DAILY_JOB_ID),

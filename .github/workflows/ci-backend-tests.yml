@@ -240,6 +240,7 @@ jobs:
             backend/tests/test_cr04b_contextual_user_understanding.py \
             backend/tests/test_cr04c_i7_longitudinal_understanding.py \
             backend/tests/test_cr04d_adaptive_interaction.py \
+            backend/tests/test_cr04e1_i7_refresh_lifecycle.py \
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \

@@ -18,6 +18,8 @@ from backend.app.services.i6.consent_service import (
     expire_due_consents,
     has_permission,
 )
+from backend.app.services.i6.memory_writes import list_facts_or_empty
+from backend.app.services.i7.lifelong_profile import rebuild_lifelong_profile
 from backend.app.services.i7.period_summaries import (
     SUMMARY_TZ,
     SUMMARY_TYPES,
@@ -342,5 +344,160 @@ def run_period_summary_sweep(
         retry_count=retry_count,
         duration=f"{max(0.0, time.monotonic() - t0):.3f}s",
         next_run_time=next_run_time,
+        detail=detail,
+    )
+
+
+@dataclass(frozen=True)
+class LifelongProfileSweepResult:
+    enabled: bool
+    persist: bool
+    users_scanned: int
+    users_eligible: int
+    users_skipped_no_consent: int
+    profiles_created: int
+    profiles_rebuilt: int
+    profiles_skipped_active: int
+    profiles_skipped_no_facts: int
+    failures: int
+    retry_count: int
+    detail: str
+
+
+def format_lifelong_run_log(result: LifelongProfileSweepResult) -> str:
+    parts = [
+        "I7_LIFELONG_RUN",
+        f"enabled={str(result.enabled).lower()}",
+        f"persist={str(result.persist).lower()}",
+        f"users_scanned={result.users_scanned}",
+        f"users_eligible={result.users_eligible}",
+        f"users_skipped_no_consent={result.users_skipped_no_consent}",
+        f"profiles_created={result.profiles_created}",
+        f"profiles_rebuilt={result.profiles_rebuilt}",
+        f"profiles_skipped_active={result.profiles_skipped_active}",
+        f"profiles_skipped_no_facts={result.profiles_skipped_no_facts}",
+        f"failures={result.failures}",
+        f"retry_count={result.retry_count}",
+        f"detail={result.detail}",
+    ]
+    return " ".join(parts)
+
+
+def _active_lifelong_profile(
+    db: Session, user_id: int
+) -> Optional[models.UserLifelongProfile]:
+    return (
+        db.query(models.UserLifelongProfile)
+        .filter(
+            models.UserLifelongProfile.user_id == user_id,
+            models.UserLifelongProfile.status == "active",
+        )
+        .order_by(models.UserLifelongProfile.version.desc())
+        .first()
+    )
+
+
+def _any_lifelong_profile(db: Session, user_id: int) -> bool:
+    return (
+        db.query(models.UserLifelongProfile.id)
+        .filter(models.UserLifelongProfile.user_id == user_id)
+        .first()
+        is not None
+    )
+
+
+def run_lifelong_profile_sweep(
+    db: Session, *, persist: bool = True
+) -> LifelongProfileSweepResult:
+    """Bounded I7-owned lifelong profile refresh. No chat/I8 write coupling.
+
+    Rebuilds only when:
+    - PERM_READ holds and readable I6 facts exist, AND
+    - no active lifelong profile (missing OR previously invalidated/stale).
+
+    Active current profiles are skipped. Empty profiles are never created.
+    When persist=False, performs eligibility accounting without mutation.
+    """
+    enabled = period_summary_jobs_enabled()
+    users_scanned = int(db.query(models.User).count())
+    if not enabled and persist:
+        # Flag-off persistent path: zero mutation (scheduler should not call this).
+        return LifelongProfileSweepResult(
+            enabled=False,
+            persist=persist,
+            users_scanned=users_scanned,
+            users_eligible=0,
+            users_skipped_no_consent=0,
+            profiles_created=0,
+            profiles_rebuilt=0,
+            profiles_skipped_active=0,
+            profiles_skipped_no_facts=0,
+            failures=0,
+            retry_count=0,
+            detail="DORMANT_FLAG_OFF",
+        )
+
+    users = consented_memory_user_ids(db)
+    users_eligible = len(users)
+    users_skipped_no_consent = max(0, users_scanned - users_eligible)
+    created = rebuilt = skipped_active = skipped_no_facts = failures = retry_count = 0
+
+    for uid in users:
+        if not has_permission(db, uid, PERM_READ):
+            users_skipped_no_consent += 1
+            users_eligible = max(0, users_eligible - 1)
+            continue
+        facts = list_facts_or_empty(db, uid)
+        if not facts:
+            skipped_no_facts += 1
+            continue
+        active = _active_lifelong_profile(db, uid)
+        if active is not None:
+            skipped_active += 1
+            continue
+        had_prior = _any_lifelong_profile(db, uid)
+        if not persist:
+            # Dry-run eligibility only — no rebuild mutation.
+            if had_prior:
+                rebuilt += 1
+            else:
+                created += 1
+            continue
+        row = None
+        for attempt in range(1, MAX_ATTEMPTS_PER_USER + 1):
+            try:
+                row = rebuild_lifelong_profile(db, uid, commit=True)
+                break
+            except Exception:
+                db.rollback()
+                if attempt < MAX_ATTEMPTS_PER_USER:
+                    retry_count += 1
+                    continue
+                failures += 1
+        if row is None:
+            continue
+        if had_prior:
+            rebuilt += 1
+        else:
+            created += 1
+
+    if failures:
+        detail = "PARTIAL_FAILURES"
+    elif users_eligible == 0:
+        detail = "NO_ELIGIBLE_USERS"
+    else:
+        detail = "OK"
+    return LifelongProfileSweepResult(
+        enabled=enabled,
+        persist=persist,
+        users_scanned=users_scanned,
+        users_eligible=users_eligible,
+        users_skipped_no_consent=users_skipped_no_consent,
+        profiles_created=created,
+        profiles_rebuilt=rebuilt,
+        profiles_skipped_active=skipped_active,
+        profiles_skipped_no_facts=skipped_no_facts,
+        failures=failures,
+        retry_count=retry_count,
         detail=detail,
     )

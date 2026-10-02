@@ -104,6 +104,10 @@ def _change_state(fact: models.UserMemoryFact) -> str:
     return "current"
 
 
+_SAFE_SENSITIVITY_CLASSES = frozenset({"standard", "medium", "low"})
+_RESTRICTED_SENSITIVITY_CLASSES = frozenset({"high", "critical"})
+
+
 def _normalized_sensitivity_class(fact: models.UserMemoryFact) -> str:
     raw = getattr(fact, "sensitivity_class", None)
     if raw is None:
@@ -112,11 +116,24 @@ def _normalized_sensitivity_class(fact: models.UserMemoryFact) -> str:
 
 
 def _effective_high(fact: models.UserMemoryFact) -> bool:
-    """Fail-closed high sensitivity: domain-high OR row sensitivity_class=high."""
+    """Fail-closed restricted sensitivity for semantic profile values.
+
+    Restricted when domain is high-sensitivity OR row sensitivity is high/critical
+    OR any unknown non-empty sensitivity outside the safe set
+    {standard, medium, low}. Empty/null row sensitivity remains unrestricted
+    (domain floor still applies).
+    """
     domain, _key = MemoryContract.canonicalize_key(fact.domain, fact.key)
     if domain in _HIGH_SENSITIVITY_DOMAINS:
         return True
-    return _normalized_sensitivity_class(fact) == "high"
+    row_norm = _normalized_sensitivity_class(fact)
+    if not row_norm:
+        return False
+    if row_norm in _RESTRICTED_SENSITIVITY_CLASSES:
+        return True
+    if row_norm not in _SAFE_SENSITIVITY_CLASSES:
+        return True
+    return False
 
 
 def _provenance_class(fact: models.UserMemoryFact) -> str:
@@ -164,7 +181,13 @@ def _build_semantic_profile(
             continue
         domain, _key = MemoryContract.canonicalize_key(fact.domain, fact.key)
         if _effective_high(fact):
-            entry = _base_entry(fact, sensitivity="high")
+            sens = _normalized_sensitivity_class(fact)
+            sensitivity_label = (
+                "critical"
+                if sens == "critical"
+                else "high"
+            )
+            entry = _base_entry(fact, sensitivity=sensitivity_label)
             # Metadata/ref only — never copy raw value into semantic profile.
             groups["high_sensitivity_context_refs"].append(entry)
             continue
