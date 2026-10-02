@@ -14,7 +14,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
-from backend.app.services.i6.consent_service import PERM_READ, require_permission
+from backend.app.services.i6.consent_service import PERM_READ, has_permission, require_permission
 from backend.app.services.i6.memory_writes import list_facts
 from backend.app.services.i7.period_summaries import period_bounds
 from backend.app.services.memory.memory_contract import (
@@ -225,6 +225,87 @@ def _assert_no_unsupported_inference(facts: list[models.UserMemoryFact]) -> None
             raise LifelongProfileError("UNSUPPORTED_MEDICAL_INFERENCE")
 
 
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def parse_source_fact_ids_json(raw: Any) -> Optional[tuple[int, ...]]:
+    """Parse lifelong source_fact_ids_json. Malformed => None (fail closed)."""
+    if raw is None:
+        return None
+    try:
+        if isinstance(raw, (list, tuple)):
+            parsed = list(raw)
+        else:
+            text = str(raw).strip()
+            if not text:
+                return None
+            parsed = json.loads(text)
+        if not isinstance(parsed, list):
+            return None
+        ids: list[int] = []
+        for item in parsed:
+            if isinstance(item, bool) or not isinstance(item, (int, str)):
+                return None
+            ids.append(int(item))
+        return tuple(sorted(ids))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def current_readable_fact_ids(
+    db: Session, user_id: int, *, now: Optional[datetime] = None
+) -> tuple[int, ...]:
+    """Read-only current I6 fact IDs for user. Never mutates I6 rows."""
+    if not has_permission(db, user_id, PERM_READ):
+        return ()
+    moment = now or _utcnow()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    rows = (
+        db.query(models.UserMemoryFact.id, models.UserMemoryFact.valid_until)
+        .filter(
+            models.UserMemoryFact.user_id == user_id,
+            models.UserMemoryFact.fact_status == "active",
+            models.UserMemoryFact.soft_invalidated_at.is_(None),
+        )
+        .all()
+    )
+    ids: list[int] = []
+    for fact_id, until in rows:
+        if until is not None:
+            cmp = until
+            if cmp.tzinfo is None:
+                cmp = cmp.replace(tzinfo=timezone.utc)
+            if cmp <= moment:
+                continue
+        ids.append(int(fact_id))
+    return tuple(sorted(ids))
+
+
+def is_lifelong_profile_fresh(
+    db: Session,
+    user_id: int,
+    profile: Optional[models.UserLifelongProfile],
+    *,
+    now: Optional[datetime] = None,
+) -> bool:
+    """True only for active, consented, exact source-lineage match (read-only)."""
+    if profile is None:
+        return False
+    if int(profile.user_id) != int(user_id):
+        return False
+    if str(profile.status or "") != "active":
+        return False
+    if not has_permission(db, user_id, PERM_READ):
+        return False
+    source_ids = parse_source_fact_ids_json(profile.source_fact_ids_json)
+    if source_ids is None or len(source_ids) == 0:
+        return False
+    current = current_readable_fact_ids(db, user_id, now=now)
+    return source_ids == current
+
+
 def rebuild_lifelong_profile(
     db: Session, user_id: int, *, commit: bool = True
 ) -> models.UserLifelongProfile:
@@ -265,7 +346,12 @@ def rebuild_lifelong_profile(
         .order_by(models.UserLifelongProfile.version.desc())
         .first()
     )
-    if prior_active is not None and prior_active.structured_profile_json == structured:
+    # Lineage-aware idempotency: payload AND source_fact_ids must match.
+    if (
+        prior_active is not None
+        and prior_active.structured_profile_json == structured
+        and prior_active.source_fact_ids_json == source_ids
+    ):
         return prior_active
 
     latest_any = (
@@ -277,7 +363,7 @@ def rebuild_lifelong_profile(
     version = 1 if latest_any is None else int(latest_any.version) + 1
     if prior_active is not None:
         prior_active.status = "superseded"
-        prior_active.superseded_at = datetime.now(timezone.utc)
+        prior_active.superseded_at = _utcnow()
     consent = (
         db.query(models.UserConsent)
         .filter(

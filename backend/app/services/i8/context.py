@@ -217,6 +217,7 @@ def _load_lifelong_profile(db: Session, user_id: int, ctx: I8TrustedContext) -> 
 
     Does not load raw UserMemoryFact rows or transcripts. Dedup against Gate2
     goals/habit names is applied later in personalization (no authority rewrite).
+    Rejects active profiles whose I7 source lineage is no longer fresh (read-only).
     """
     if not has_permission(db, user_id, PERM_READ):
         return
@@ -230,6 +231,11 @@ def _load_lifelong_profile(db: Session, user_id: int, ctx: I8TrustedContext) -> 
         .first()
     )
     if row is None:
+        return
+    from backend.app.services.i7.lifelong_profile import is_lifelong_profile_fresh
+
+    # Read-only freshness gate — never rebuild/write from I8.
+    if not is_lifelong_profile_fresh(db, user_id, row):
         return
     try:
         payload = json.loads(row.structured_profile_json or "{}")

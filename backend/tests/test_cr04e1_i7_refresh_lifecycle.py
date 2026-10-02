@@ -9,6 +9,8 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from datetime import datetime, timedelta, timezone
+
 from backend.app import models
 from backend.app.core import scheduler as scheduler_mod
 from backend.app.services.i6.consent_service import grant_memory_consent
@@ -18,7 +20,12 @@ from backend.app.services.i7.jobs import (
     period_summary_jobs_enabled,
     run_lifelong_profile_sweep,
 )
-from backend.app.services.i7.lifelong_profile import rebuild_lifelong_profile
+from backend.app.services.i7.lifelong_profile import (
+    current_readable_fact_ids,
+    is_lifelong_profile_fresh,
+    parse_source_fact_ids_json,
+    rebuild_lifelong_profile,
+)
 from backend.app.services.i8.context import load_trusted_context
 from backend.app.services.i8.knowledge_bridge import build_personalization
 from backend.app.services.i8.unified_core import generate_operational_action
@@ -104,7 +111,7 @@ def test_cr04e1_stale_profile_plus_corrected_fact_next_version(db, monkeypatch):
     assert stale.status == "stale"
     assert _active_profile(db, user.id) is None
     result = run_lifelong_profile_sweep(db, persist=True)
-    assert result.profiles_rebuilt >= 1
+    assert result.profiles_created + result.profiles_rebuilt >= 1
     active = _active_profile(db, user.id)
     assert active is not None
     assert active.version == first.version + 1
@@ -143,6 +150,7 @@ def test_cr04e1_no_remaining_facts_no_empty_active_profile(db, monkeypatch):
     assert result.profiles_skipped_no_facts >= 1
     assert result.profiles_created == 0
     assert result.profiles_rebuilt == 0
+    assert result.profiles_marked_stale == 0
     assert _active_profile(db, user.id) is None
     stale = (
         db.query(models.UserLifelongProfile)
@@ -356,6 +364,199 @@ def test_cr04e1_i8_cannot_mint_action_from_i7_alone(db, monkeypatch):
     assert "run_lifelong_profile_sweep" not in inspect.getsource(i8_ctx)
     assert "rebuild_lifelong_profile" not in inspect.getsource(i8_core)
     assert "run_lifelong_profile_sweep" not in inspect.getsource(i8_core)
+
+
+# ---- source freshness / time expiry ----
+
+
+def _expire_fact_in_place(db, fact: models.UserMemoryFact) -> None:
+    """Time-expire without changing fact_status (no I6 list_facts mutation path)."""
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    fact.valid_until = past.replace(tzinfo=None)
+    db.commit()
+    db.refresh(fact)
+
+
+def test_cr04e11_future_valid_source_profile_i8_consumes(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "e11-future")
+    grant_memory_consent(db, user.id, commit=True)
+    future = datetime.now(timezone.utc) + timedelta(days=7)
+    write_fact(
+        db,
+        user.id,
+        "lifestyle",
+        "food_habits",
+        "vegetarian",
+        valid_until=future,
+        commit=True,
+    )
+    write_fact(db, user.id, "preferences", "response_length", "brief", commit=True)
+    profile = rebuild_lifelong_profile(db, user.id, commit=True)
+    assert is_lifelong_profile_fresh(db, user.id, profile) is True
+    ctx = load_trusted_context(db, user.id)
+    assert ctx.lifelong_profile is not None
+    assert ctx.lifelong_profile.version == profile.version
+
+
+def test_cr04e11_partial_expiry_i8_rejects_before_sweep_then_rebuilds(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "e11-partial")
+    grant_memory_consent(db, user.id, commit=True)
+    future = datetime.now(timezone.utc) + timedelta(days=2)
+    f_expire = write_fact(
+        db,
+        user.id,
+        "work",
+        "work_schedule",
+        "night shifts",
+        valid_until=future,
+        commit=True,
+    )
+    f_keep = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "response_length",
+        "brief",
+        commit=True,
+    )
+    first = rebuild_lifelong_profile(db, user.id, commit=True)
+    expired_id = int(f_expire.id)
+    keep_id = int(f_keep.id)
+    assert expired_id in parse_source_fact_ids_json(first.source_fact_ids_json)
+
+    _expire_fact_in_place(db, f_expire)
+    assert f_expire.fact_status == "active"  # not mutated by expiry helper
+    assert is_lifelong_profile_fresh(db, user.id, first) is False
+    ctx_before = load_trusted_context(db, user.id)
+    assert ctx_before.lifelong_profile is None
+    db.refresh(f_expire)
+    assert f_expire.fact_status == "active"  # freshness/I8 must not mutate I6
+
+    result = run_lifelong_profile_sweep(db, persist=True)
+    assert result.profiles_rebuilt >= 1
+    active = _active_profile(db, user.id)
+    assert active is not None
+    assert active.version == first.version + 1
+    ids = parse_source_fact_ids_json(active.source_fact_ids_json)
+    assert ids == (keep_id,)
+    assert expired_id not in ids
+    assert current_readable_fact_ids(db, user.id) == (keep_id,)
+    ctx_after = load_trusted_context(db, user.id)
+    assert ctx_after.lifelong_profile is not None
+    assert ctx_after.lifelong_profile.version == active.version
+
+
+def test_cr04e11_all_sources_expire_i8_reject_sweep_marks_stale(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "e11-all")
+    grant_memory_consent(db, user.id, commit=True)
+    future = datetime.now(timezone.utc) + timedelta(days=1)
+    f1 = write_fact(
+        db,
+        user.id,
+        "work",
+        "occupation",
+        "designer",
+        valid_until=future,
+        commit=True,
+    )
+    f2 = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "response_length",
+        "brief",
+        valid_until=future,
+        commit=True,
+    )
+    first = rebuild_lifelong_profile(db, user.id, commit=True)
+    _expire_fact_in_place(db, f1)
+    _expire_fact_in_place(db, f2)
+    assert is_lifelong_profile_fresh(db, user.id, first) is False
+    assert load_trusted_context(db, user.id).lifelong_profile is None
+    assert f1.fact_status == "active" and f2.fact_status == "active"
+
+    result = run_lifelong_profile_sweep(db, persist=True)
+    assert result.profiles_marked_stale >= 1
+    assert result.profiles_created == 0
+    assert result.profiles_rebuilt == 0
+    assert _active_profile(db, user.id) is None
+    stale = (
+        db.query(models.UserLifelongProfile)
+        .filter(models.UserLifelongProfile.id == first.id)
+        .one()
+    )
+    assert stale.status == "stale"
+    assert stale.superseded_at is not None
+
+
+def test_cr04e11_malformed_and_empty_source_lineage_fail_closed(db):
+    user = _user(db, "e11-malformed")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(db, user.id, "preferences", "response_length", "brief", commit=True)
+    profile = rebuild_lifelong_profile(db, user.id, commit=True)
+    profile.source_fact_ids_json = "{not-json"
+    db.commit()
+    assert parse_source_fact_ids_json(profile.source_fact_ids_json) is None
+    assert is_lifelong_profile_fresh(db, user.id, profile) is False
+    assert load_trusted_context(db, user.id).lifelong_profile is None
+
+    profile.source_fact_ids_json = "[]"
+    db.commit()
+    assert parse_source_fact_ids_json(profile.source_fact_ids_json) == ()
+    assert is_lifelong_profile_fresh(db, user.id, profile) is False
+    assert load_trusted_context(db, user.id).lifelong_profile is None
+
+
+def test_cr04e11_lineage_aware_idempotency_and_exact_skip(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "e11-lineage")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(db, user.id, "preferences", "response_length", "brief", commit=True)
+    first = rebuild_lifelong_profile(db, user.id, commit=True)
+    # Exact current source IDs => no unnecessary version
+    again = rebuild_lifelong_profile(db, user.id, commit=True)
+    assert again.id == first.id
+    assert again.version == first.version
+
+    # Same payload but changed source_fact_ids => no stale early-return
+    first.source_fact_ids_json = "[999999]"
+    db.commit()
+    next_row = rebuild_lifelong_profile(db, user.id, commit=True)
+    assert next_row.id != first.id
+    assert next_row.version == first.version + 1
+    assert parse_source_fact_ids_json(next_row.source_fact_ids_json) == current_readable_fact_ids(
+        db, user.id
+    )
+
+
+def test_cr04e11_cross_user_freshness_false(db):
+    a = _user(db, "e11-xa")
+    b = _user(db, "e11-xb")
+    grant_memory_consent(db, a.id, commit=True)
+    grant_memory_consent(db, b.id, commit=True)
+    write_fact(db, a.id, "preferences", "response_length", "brief", commit=True)
+    write_fact(db, b.id, "preferences", "response_length", "detailed", commit=True)
+    pa = rebuild_lifelong_profile(db, a.id, commit=True)
+    assert is_lifelong_profile_fresh(db, a.id, pa) is True
+    assert is_lifelong_profile_fresh(db, b.id, pa) is False
+
+
+def test_cr04e11_i8_has_no_rebuild_write_path():
+    import backend.app.services.i8.context as i8_ctx
+
+    src = inspect.getsource(i8_ctx)
+    assert "is_lifelong_profile_fresh" in src
+    assert "rebuild_lifelong_profile" not in src
+    assert "run_lifelong_profile_sweep" not in src
+    assert "invalidate_derived_memory_state" not in src
+    # No commit/flush in lifelong loader path body beyond imports.
+    load_src = inspect.getsource(i8_ctx._load_lifelong_profile)
+    assert "db.commit" not in load_src
+    assert "db.flush" not in load_src
+    assert "rebuild_lifelong_profile" not in load_src
 
 
 # ---- regressions ----
