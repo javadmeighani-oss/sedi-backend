@@ -9,7 +9,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from backend.app import models
-from backend.app.services.i6.consent_service import grant_memory_consent, revoke_memory_consent
+from backend.app.services.i6.consent_service import (
+    PERM_READ,
+    grant_memory_consent,
+    has_permission_readonly,
+    revoke_memory_consent,
+)
 from backend.app.services.i6.memory_writes import list_facts, write_fact
 from backend.app.services.i10.canonical_policy import (
     I10_CANONICAL_POLICY_VERSION,
@@ -390,6 +395,164 @@ def test_cr04e2_1_revoked_read_consent_neutral(db):
 
 def test_cr04e2_1_policy_version_b18_3():
     assert I10_CANONICAL_POLICY_VERSION == "i10.b18.3"
+
+
+def _memory_consent(db, user_id: int) -> models.UserConsent:
+    return (
+        db.query(models.UserConsent)
+        .filter(
+            models.UserConsent.subject_user_id == user_id,
+            models.UserConsent.consent_type == "MEMORY",
+            models.UserConsent.purpose == "PERSONAL_LONG_TERM_MEMORY",
+            models.UserConsent.status == "active",
+        )
+        .one()
+    )
+
+
+def test_cr04e2_2_readonly_permission_active_valid_true(db):
+    user = _user(db, "ro-ok")
+    _grant(db, user.id)
+    consent = _memory_consent(db, user.id)
+    before = (consent.status, consent.updated_at, consent.effective_until)
+    assert has_permission_readonly(db, user.id, PERM_READ) is True
+    db.refresh(consent)
+    assert (consent.status, consent.updated_at, consent.effective_until) == before
+
+
+def test_cr04e2_2_readonly_permission_expired_active_status_false_no_mutation(db):
+    user = _user(db, "ro-exp")
+    _grant(db, user.id)
+    consent = _memory_consent(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    consent.effective_until = past
+    db.flush()
+    db.refresh(consent)
+    before_status = consent.status
+    before_updated = consent.updated_at
+    before_until = consent.effective_until
+    before_revoked = consent.revoked_at
+    before_reason = consent.revocation_reason
+    assert before_status == "active"
+    assert has_permission_readonly(db, user.id, PERM_READ) is False
+    db.refresh(consent)
+    assert consent.status == "active"
+    assert consent.status == before_status
+    assert consent.updated_at == before_updated
+    assert consent.effective_until == before_until
+    assert consent.revoked_at == before_revoked
+    assert consent.revocation_reason == before_reason
+
+
+def test_cr04e2_2_readonly_permission_revoked_false(db):
+    user = _user(db, "ro-rev")
+    _grant(db, user.id)
+    revoke_memory_consent(db, user.id, commit=False)
+    db.flush()
+    assert has_permission_readonly(db, user.id, PERM_READ) is False
+
+
+def test_cr04e2_2_readonly_permission_missing_consent_false(db):
+    user = _user(db, "ro-miss")
+    assert has_permission_readonly(db, user.id, PERM_READ) is False
+
+
+def test_cr04e2_2_readonly_permission_missing_read_scope_false(db):
+    user = _user(db, "ro-noscope")
+    _grant(db, user.id)
+    consent = _memory_consent(db, user.id)
+    (
+        db.query(models.UserConsentScope)
+        .filter(
+            models.UserConsentScope.consent_id == consent.id,
+            models.UserConsentScope.permission_key == PERM_READ,
+        )
+        .delete(synchronize_session=False)
+    )
+    db.flush()
+    assert has_permission_readonly(db, user.id, PERM_READ) is False
+
+
+def test_cr04e2_2_readonly_permission_read_scope_false_denied(db):
+    user = _user(db, "ro-deny")
+    _grant(db, user.id)
+    consent = _memory_consent(db, user.id)
+    scope = (
+        db.query(models.UserConsentScope)
+        .filter(
+            models.UserConsentScope.consent_id == consent.id,
+            models.UserConsentScope.permission_key == PERM_READ,
+        )
+        .one()
+    )
+    scope.allowed = False
+    db.flush()
+    before_allowed = scope.allowed
+    assert has_permission_readonly(db, user.id, PERM_READ) is False
+    db.refresh(scope)
+    assert scope.allowed is False
+    assert scope.allowed == before_allowed
+
+
+def test_cr04e2_2_expired_consent_unmutated_after_i10_decision_commit(db):
+    """I10 preference read must not expire/mutate I6 consent when decision ledger commits."""
+    from backend.app.services.i9.health_subject_service import ensure_self_subject_for_account
+
+    models.I10NotificationDecision.__table__.create(bind=db.get_bind(), checkfirst=True)
+    user = _user(db, "exp-consent")
+    _grant(db, user.id)
+    subject = ensure_self_subject_for_account(db, user.id, commit=False)
+    db.flush()
+    _write_pref(db, user.id, "follow_up_preference", False)
+    consent = _memory_consent(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(hours=2)
+    consent.effective_until = past
+    db.flush()
+    db.refresh(consent)
+    assert consent.status == "active"
+
+    before_status = consent.status
+    before_updated = consent.updated_at
+    before_until = consent.effective_until
+    before_revoked = consent.revoked_at
+    before_reason = consent.revocation_reason
+    consent_id = consent.id
+
+    cand = _candidate(
+        user.id,
+        I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP,
+        subject_id=int(subject.id),
+    )
+    with patch(
+        "backend.app.services.i10.canonical_policy.resolve_notification_policy",
+        side_effect=lambda *a, **k: _gate4_allow(),
+    ):
+        out = evaluate_i10_canonical_policy(
+            db,
+            candidate=cand,
+            payload_metadata={"priority": "normal"},
+        )
+    assert out.reason_code != USER_FOLLOW_UP_PREFERENCE_SUPPRESS
+    assert out.decision == I10DecisionValue.SEND
+
+    record_notification_decision(
+        db,
+        candidate=cand,
+        decision=out.decision,
+        reason_code=out.reason_code,
+        commit=True,
+    )
+    consent = (
+        db.query(models.UserConsent)
+        .filter(models.UserConsent.id == consent_id)
+        .one()
+    )
+    assert consent.status == "active"
+    assert consent.status == before_status
+    assert consent.updated_at == before_updated
+    assert consent.effective_until == before_until
+    assert consent.revoked_at == before_revoked
+    assert consent.revocation_reason == before_reason
 
 
 def test_cr04e2_string_false_ignored(db):

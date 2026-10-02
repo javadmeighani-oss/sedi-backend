@@ -60,8 +60,54 @@ def _active_consent(
     return None
 
 
+def _active_consent_readonly(
+    db: Session,
+    *,
+    user_id: int,
+    consent_type: str = MEMORY_CONSENT_TYPE,
+    purpose: str = MEMORY_PURPOSE,
+) -> Optional[models.UserConsent]:
+    """Return currently effective active consent without mutating expired rows."""
+    now = _utcnow()
+    rows = (
+        db.query(models.UserConsent)
+        .filter(
+            models.UserConsent.subject_user_id == user_id,
+            models.UserConsent.consent_type == consent_type,
+            models.UserConsent.purpose == purpose,
+            models.UserConsent.status == "active",
+        )
+        .all()
+    )
+    for row in rows:
+        until = row.effective_until
+        if until is not None and until.tzinfo is None:
+            until = until.replace(tzinfo=timezone.utc)
+        if until is not None and until <= now:
+            continue
+        return row
+    return None
+
+
 def has_permission(db: Session, user_id: int, permission_key: str) -> bool:
     consent = _active_consent(db, user_id=user_id)
+    if consent is None:
+        return False
+    scope = (
+        db.query(models.UserConsentScope)
+        .filter(
+            models.UserConsentScope.consent_id == consent.id,
+            models.UserConsentScope.permission_key == permission_key,
+            models.UserConsentScope.allowed.is_(True),
+        )
+        .first()
+    )
+    return scope is not None
+
+
+def has_permission_readonly(db: Session, user_id: int, permission_key: str) -> bool:
+    """Policy/control permission check that never mutates consent or scope rows."""
+    consent = _active_consent_readonly(db, user_id=user_id)
     if consent is None:
         return False
     scope = (

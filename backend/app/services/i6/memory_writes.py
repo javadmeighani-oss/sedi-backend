@@ -264,14 +264,14 @@ def get_readonly_fact_or_none(
     """True read-only single-fact accessor for policy/control consumers.
 
     Returns the active, non-invalidated, non-expired fact for (user, domain, key)
-    when PERM_READ holds. Expired valid_until yields None without mutating the row.
-    Never changes fact_status, valid_until, updated_at, or any other field; never
-    flushes/commits/writes. Missing or revoked read permission => None.
+    when PERM_READ holds via a non-mutating consent check. Expired valid_until
+    yields None without mutating the fact or consent rows. Never flushes/commits
+    or writes. Missing/revoked/expired read permission => None.
     """
-    from backend.app.services.i6.consent_service import has_permission
+    from backend.app.services.i6.consent_service import has_permission_readonly
 
     domain, key = MemoryContract.canonicalize_key(domain, key)
-    if not has_permission(db, user_id, PERM_READ):
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return None
     now = _utcnow()
     row = (
