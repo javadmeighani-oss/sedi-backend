@@ -148,6 +148,143 @@ def test_cr04c_high_sensitivity_metadata_only_no_raw(db):
     assert _find_entry(sem, "values.important_values") in sem["high_sensitivity_context_refs"]
 
 
+def test_cr04c1_row_high_work_and_preferences_metadata_only(db):
+    user = _user(db, "row-high")
+    grant_memory_consent(db, user.id, commit=True)
+    raw_work = "night shifts confidential"
+    raw_pref = "brief please secret"
+    work = write_fact(
+        db,
+        user.id,
+        "work",
+        "work_schedule",
+        raw_work,
+        sensitivity_class="high",
+        commit=True,
+    )
+    pref = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "response_length",
+        raw_pref,
+        sensitivity_class="high",
+        commit=True,
+    )
+    # Control: standard medium facts still expose compact values.
+    write_fact(db, user.id, "work", "occupation", "designer", commit=True)
+    write_fact(db, user.id, "preferences", "interaction_style", "brief", commit=True)
+
+    profile = rebuild_lifelong_profile(db, user.id, commit=True)
+    blob = profile.structured_profile_json or ""
+    narrative = profile.narrative_compact or ""
+    assert raw_work not in blob
+    assert raw_pref not in blob
+    assert raw_work not in narrative
+    assert raw_pref not in narrative
+
+    sem = _semantic(profile)
+    work_e = _find_entry(sem, "work.work_schedule")
+    pref_e = _find_entry(sem, "preferences.response_length")
+    assert work_e is not None
+    assert pref_e is not None
+    assert work_e["sensitivity"] == "high"
+    assert pref_e["sensitivity"] == "high"
+    assert "value_compact" not in work_e
+    assert "value_compact" not in pref_e
+    assert work_e in sem["high_sensitivity_context_refs"]
+    assert pref_e in sem["high_sensitivity_context_refs"]
+    assert work_e["source_fact_id"] == work.id
+    assert pref_e["source_fact_id"] == pref.id
+
+    occ = _find_entry(sem, "work.occupation")
+    style = _find_entry(sem, "preferences.interaction_style")
+    assert occ is not None and occ["value_compact"] == "designer"
+    assert occ in sem["work_context"]
+    assert style is not None and style["value_compact"] == "brief"
+    assert style in sem["interaction_preferences"]
+
+
+def test_cr04c1_provenance_unknown_system_confirmed(db):
+    user = _user(db, "prov")
+    grant_memory_consent(db, user.id, commit=True)
+    from datetime import datetime
+
+    now = datetime.utcnow()
+    consent = (
+        db.query(models.UserConsent)
+        .filter_by(subject_user_id=user.id, status="active")
+        .first()
+    )
+    rows = [
+        models.UserMemoryFact(
+            user_id=user.id,
+            domain="routines",
+            key="bedtime",
+            value_json='"10pm"',
+            confidence=0.9,
+            source="manual",
+            provenance_class=None,
+            fact_status="active",
+            consent_id=consent.id if consent else None,
+            sensitivity_class="standard",
+            created_at=now,
+            updated_at=now,
+        ),
+        models.UserMemoryFact(
+            user_id=user.id,
+            domain="routines",
+            key="wake_time",
+            value_json='"7am"',
+            confidence=0.9,
+            source="system",
+            provenance_class="SYSTEM_DERIVED",
+            fact_status="active",
+            consent_id=consent.id if consent else None,
+            sensitivity_class="standard",
+            created_at=now,
+            updated_at=now,
+        ),
+        models.UserMemoryFact(
+            user_id=user.id,
+            domain="lifestyle",
+            key="sleep_quality",
+            value_json='"fair"',
+            confidence=0.9,
+            source="correction",
+            provenance_class="USER_CONFIRMED",
+            fact_status="active",
+            consent_id=consent.id if consent else None,
+            sensitivity_class="standard",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+    for row in rows:
+        db.add(row)
+    db.commit()
+
+    profile = rebuild_lifelong_profile(db, user.id, commit=True)
+    sem = _semantic(profile)
+    bed = _find_entry(sem, "routines.bedtime")
+    wake = _find_entry(sem, "routines.wake_time")
+    sleep = _find_entry(sem, "lifestyle.sleep_quality")
+    assert bed is not None and bed["provenance_class"] == "UNKNOWN"
+    assert wake is not None and wake["provenance_class"] == "SYSTEM_DERIVED"
+    assert sleep is not None and sleep["provenance_class"] == "USER_CONFIRMED"
+    # Never promote unknown/system to user-stated/confirmed.
+    assert bed["provenance_class"] != "USER_STATED"
+    assert wake["provenance_class"] != "USER_STATED"
+    assert wake["provenance_class"] != "USER_CONFIRMED"
+
+    from backend.app.services.i7.lifelong_profile import _provenance_class
+
+    class _Fake:
+        provenance_class = "   "
+
+    assert _provenance_class(_Fake()) == "UNKNOWN"
+
+
 def test_cr04c_medical_vitals_goals_excluded_from_semantic(db):
     user = _user(db, "excluded")
     grant_memory_consent(db, user.id, commit=True)

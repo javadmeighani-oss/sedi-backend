@@ -104,11 +104,37 @@ def _change_state(fact: models.UserMemoryFact) -> str:
     return "current"
 
 
+def _normalized_sensitivity_class(fact: models.UserMemoryFact) -> str:
+    raw = getattr(fact, "sensitivity_class", None)
+    if raw is None:
+        return ""
+    return str(raw).strip().casefold()
+
+
+def _effective_high(fact: models.UserMemoryFact) -> bool:
+    """Fail-closed high sensitivity: domain-high OR row sensitivity_class=high."""
+    domain, _key = MemoryContract.canonicalize_key(fact.domain, fact.key)
+    if domain in _HIGH_SENSITIVITY_DOMAINS:
+        return True
+    return _normalized_sensitivity_class(fact) == "high"
+
+
+def _provenance_class(fact: models.UserMemoryFact) -> str:
+    """Preserve known provenance; never fabricate USER_STATED/USER_CONFIRMED."""
+    raw = getattr(fact, "provenance_class", None)
+    if raw is None:
+        return "UNKNOWN"
+    text = str(raw).strip()
+    if not text:
+        return "UNKNOWN"
+    return text
+
+
 def _base_entry(fact: models.UserMemoryFact, *, sensitivity: str) -> dict[str, Any]:
     return {
         "canonical_key": f"{fact.domain}.{fact.key}",
         "source_fact_id": int(fact.id),
-        "provenance_class": getattr(fact, "provenance_class", None) or "USER_STATED",
+        "provenance_class": _provenance_class(fact),
         "source": fact.source or "manual",
         "sensitivity": sensitivity,
         "change_state": _change_state(fact),
@@ -137,7 +163,7 @@ def _build_semantic_profile(
         if not _eligible_for_semantic(fact):
             continue
         domain, _key = MemoryContract.canonicalize_key(fact.domain, fact.key)
-        if domain in _HIGH_SENSITIVITY_DOMAINS:
+        if _effective_high(fact):
             entry = _base_entry(fact, sensitivity="high")
             # Metadata/ref only — never copy raw value into semantic profile.
             groups["high_sensitivity_context_refs"].append(entry)
