@@ -28,7 +28,7 @@ from backend.app.services.memory.memory_contract import MemoryContract
 
 MARKER_PREFIX = "relationship_discovery:"
 
-# Direct-write targets only (CR-03 / CR-04B). No social/values/education/occupation expansion.
+# Direct-write targets (CR-03 / CR-04B / CR-04F.1). No social/values expansion.
 SUPPORTED_TARGETS: frozenset[str] = frozenset(
     {
         "routines.bedtime",
@@ -38,6 +38,9 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
         "lifestyle.activity_level",
         "routines.exercise_schedule",
         "preferences.response_length",
+        "preferences.interests",
+        "preferences.communication_style",
+        "preferences.listen_before_advice",
         "work.work_schedule",
         "barriers.time_constraints",
     }
@@ -125,6 +128,101 @@ _DETAILED_TOKENS = frozenset(
         "تفصيلاً",
         "أكثر تفصيلا",
         "اكثر تفصيلا",
+    }
+)
+
+# CR-04F.1 — preferences.communication_style canonical values.
+_COMM_STYLE_DIRECT = frozenset(
+    {
+        "direct",
+        "straightforward",
+        "to the point",
+        "blunt",
+        "مستقیم",
+        "رو راست",
+        "روراست",
+        "مباشر",
+        "مباشرة",
+    }
+)
+_COMM_STYLE_SUPPORTIVE = frozenset(
+    {
+        "supportive",
+        "conversational",
+        "warm",
+        "gentle",
+        "حمایت‌گرانه",
+        "حمایتگرانه",
+        "گفتگو",
+        "گفت‌وگو",
+        "محاوره‌ای",
+        "محاوره ای",
+        "داعم",
+        "داعما",
+        "حواري",
+        "حواريًا",
+        "ودي",
+    }
+)
+_COMM_STYLE_BALANCED = frozenset(
+    {
+        "balanced",
+        "in between",
+        "in-between",
+        "something in between",
+        "mix",
+        "mixed",
+        "بین این دو",
+        "بینابین",
+        "متعادل",
+        "بينهما",
+        "بين الاثنين",
+        "وسط",
+    }
+)
+
+# CR-04F.1 — preferences.listen_before_advice explicit boolean cues.
+_LISTEN_TRUE_CUES = frozenset(
+    {
+        "listen first",
+        "listening first",
+        "listen before",
+        "listen before advice",
+        "listen before suggesting",
+        "prefer listen",
+        "prefer listening",
+        "hear me out first",
+        "اول گوش",
+        "اول گوش کن",
+        "اول گوش بده",
+        "گوش بده بعد",
+        "اول گوش کنم",
+        "استمع أولا",
+        "استمع اولا",
+        "اسمع أولا",
+        "اسمع اولا",
+        "الاستماع أولا",
+    }
+)
+_LISTEN_FALSE_CUES = frozenset(
+    {
+        "advise first",
+        "advice first",
+        "solutions first",
+        "suggest first",
+        "direct advice",
+        "skip listening",
+        "just advise",
+        "just tell me",
+        "پیشنهاد اول",
+        "اول پیشنهاد",
+        "راه حل اول",
+        "مستقیم پیشنهاد",
+        "نصيحة أولا",
+        "نصيحة اولا",
+        "الحل أولا",
+        "الحل اولا",
+        "اقترح أولا",
     }
 )
 
@@ -583,6 +681,49 @@ def _normalize_response_length(message: str) -> Optional[str]:
     return None
 
 
+def _normalize_communication_style(message: str) -> Optional[str]:
+    """Map free text to direct|supportive|balanced. Deterministic; no dump."""
+    text = _norm_msg(message)
+    if not text or text in _AMBIGUOUS_ACKNOWLEDGEMENTS:
+        return None
+    for tok in sorted(_COMM_STYLE_BALANCED, key=len, reverse=True):
+        if tok in text:
+            return "balanced"
+    for tok in sorted(_COMM_STYLE_SUPPORTIVE, key=len, reverse=True):
+        if tok in text:
+            return "supportive"
+    for tok in sorted(_COMM_STYLE_DIRECT, key=len, reverse=True):
+        if tok in text:
+            return "direct"
+    return None
+
+
+def _normalize_listen_before_advice(message: str) -> Optional[bool]:
+    """JSON boolean only when explicit listen-vs-advise meaning is present."""
+    text = _norm_msg(message)
+    if not text:
+        return None
+    # Bare yes/no alone is never enough.
+    if text in _AMBIGUOUS_ACKNOWLEDGEMENTS:
+        return None
+    for cue in sorted(_LISTEN_FALSE_CUES, key=len, reverse=True):
+        if cue in text:
+            return False
+    for cue in sorted(_LISTEN_TRUE_CUES, key=len, reverse=True):
+        if cue in text:
+            return True
+    return None
+
+
+def _normalize_interests(message: str) -> Optional[str]:
+    """Bounded substantive interests text; never persist full unbounded dump."""
+    if is_ambiguous_open_text_answer(message):
+        return None
+    if not looks_substantive_discovery_answer(message):
+        return None
+    return _normalize_bounded_text(message)
+
+
 def _normalize_time_text(message: str) -> Optional[str]:
     text = (message or "").strip()
     if not text:
@@ -616,6 +757,12 @@ def normalize_discovery_value(target_key: str, message: str) -> Optional[Any]:
     """Deterministic normalization. Never persist unbounded full message."""
     if target_key == "preferences.response_length":
         return _normalize_response_length(message)
+    if target_key == "preferences.communication_style":
+        return _normalize_communication_style(message)
+    if target_key == "preferences.listen_before_advice":
+        return _normalize_listen_before_advice(message)
+    if target_key == "preferences.interests":
+        return _normalize_interests(message)
     if target_key in ("routines.bedtime", "routines.wake_time"):
         return _normalize_time_text(message)
     if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
@@ -745,6 +892,42 @@ def classify_discovery_reply(
 
     if target_key == "preferences.response_length":
         value = _normalize_response_length(message)
+        if value is None:
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
+    if target_key == "preferences.listen_before_advice":
+        value = _normalize_listen_before_advice(message)
+        if value is None:
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
+    if target_key == "preferences.communication_style":
+        value = _normalize_communication_style(message)
+        if value is None:
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
+    if target_key == "preferences.interests":
+        value = _normalize_interests(message)
         if value is None:
             return DiscoveryClassification(
                 DiscoveryDisposition.AMBIGUOUS, target_key=target_key

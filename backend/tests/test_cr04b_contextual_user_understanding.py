@@ -264,8 +264,8 @@ def test_cr04b_relevant_time_pressure_selects_time_constraints(
 @pytest.mark.parametrize(
     "message,intent_id,expected_legacy",
     [
-        ("Tell me about sleep", IntentId.GENERAL, "preferences.response_length"),
-        ("Hello", IntentId.GENERAL, "preferences.response_length"),
+        ("Tell me about sleep", IntentId.GENERAL, "preferences.interests"),
+        ("Hello", IntentId.GENERAL, "preferences.interests"),
         ("Tell me about sleep", IntentId.SLEEP, "routines.bedtime"),
         ("Hello", IntentId.SLEEP, "routines.bedtime"),
         ("", IntentId.SLEEP, "routines.bedtime"),

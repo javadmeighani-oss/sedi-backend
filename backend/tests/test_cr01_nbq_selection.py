@@ -190,7 +190,7 @@ def test_nbq_general_and_nutrition_and_activity_mappings():
         select_next_best_question(
             snapshot=_snap([]), intent=g, readiness=_ready(g), language="en"
         ).target_key
-        == "preferences.response_length"
+        == "preferences.interests"
     )
     n = _intent(IntentId.NUTRITION)
     assert (

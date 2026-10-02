@@ -1,9 +1,10 @@
-"""CR-01 / CR-04B — Pure Next Best Question (NBQ) / soft-discovery selector.
+"""CR-01 / CR-04B / CR-04F.1 — Pure Next Best Question (NBQ) / soft-discovery selector.
 
 Deterministic. No DB, network, LLM, writes, or legacy KC reads.
 CR-01 stores metadata only; user-visible discovery belongs to CR-02.
 CR-04B adds optional message-scoped contextual candidates that may outrank
 legacy NBQ only when relevance evidence is present in the current message.
+CR-04F.1 adds request-local coverage-aware Tier-A progressive discovery on GENERAL.
 """
 
 from __future__ import annotations
@@ -24,6 +25,12 @@ from backend.app.services.intelligence.contracts import (
     ReadinessResult,
     ReadinessStatus,
 )
+from backend.app.services.intelligence.user_understanding_coverage import (
+    TIER_A_GENERAL_PRIORITY,
+    CoverageState,
+    coverage_state_for_key,
+    is_safe_missing_for_discovery,
+)
 
 # Intents where soft discovery is never appropriate (safety / specialized paths).
 _NBQ_SUPPRESSED_INTENTS: frozenset[IntentId] = frozenset(
@@ -38,6 +45,7 @@ _NBQ_SUPPRESSED_INTENTS: frozenset[IntentId] = frozenset(
 
 # Ordered soft-discovery candidates per supported intent (stable priority).
 # Each entry: (target_key, sensitivity, template_id, priority)
+# GENERAL uses Tier-A progressive order (CR-04F.1).
 _SOFT_DISCOVERY_CANDIDATES: dict[IntentId, tuple[tuple[str, str, str, int], ...]] = {
     IntentId.SLEEP: (
         ("routines.bedtime", "medium", "nbq.sleep.bedtime.v1", 10),
@@ -58,12 +66,45 @@ _SOFT_DISCOVERY_CANDIDATES: dict[IntentId, tuple[tuple[str, str, str, int], ...]
     ),
     IntentId.GENERAL: (
         (
+            "preferences.interests",
+            "medium",
+            "nbq.general.interests.v1",
+            10,
+        ),
+        (
+            "preferences.communication_style",
+            "medium",
+            "nbq.general.communication_style.v1",
+            20,
+        ),
+        (
+            "preferences.listen_before_advice",
+            "medium",
+            "nbq.general.listen_before_advice.v1",
+            30,
+        ),
+        (
             "preferences.response_length",
             "medium",
             "nbq.general.response_length.v1",
-            10,
+            40,
         ),
     ),
+}
+
+_TIER_A_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
+    "preferences.interests": ("medium", "nbq.general.interests.v1", 10),
+    "preferences.communication_style": (
+        "medium",
+        "nbq.general.communication_style.v1",
+        20,
+    ),
+    "preferences.listen_before_advice": (
+        "medium",
+        "nbq.general.listen_before_advice.v1",
+        30,
+    ),
+    "preferences.response_length": ("medium", "nbq.general.response_length.v1", 40),
 }
 
 # CR-04B — contextual candidates. Lower priority number wins among relevant hits.
@@ -174,6 +215,41 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "fa": "اگر مایلید، معمولاً چه زمانی ورزش می‌کنید؟",
         "ar": "إن رغبت، متى تمارس الرياضة عادة؟",
     },
+    "nbq.general.interests.v1": {
+        "en": (
+            "Optional: what would you most like Sedi to help you with "
+            "going forward?"
+        ),
+        "fa": "اختیاری: دوست دارید سِدی بیشتر در چه زمینه‌ای کمکتان کند؟",
+        "ar": "اختياري: بماذا تود أن يساعدك سِدي أكثر من الآن فصاعداً؟",
+    },
+    "nbq.general.communication_style.v1": {
+        "en": (
+            "If you're open to it, do you prefer a direct style, a supportive "
+            "conversational style, or something in between?"
+        ),
+        "fa": (
+            "اگر مایلید بگویید، سبک مستقیم را ترجیح می‌دهید، گفت‌وگوی "
+            "حمایت‌گرانه، یا چیزی بین این دو؟"
+        ),
+        "ar": (
+            "إن رغبت، هل تفضل أسلوباً مباشراً، أم أسلوباً حوارياً داعماً، "
+            "أم شيئاً بينهما؟"
+        ),
+    },
+    "nbq.general.listen_before_advice.v1": {
+        "en": (
+            "When something is bothering you, do you usually prefer that I "
+            "listen first before suggesting solutions?"
+        ),
+        "fa": (
+            "وقتی چیزی ناراحتتان می‌کند، معمولاً ترجیح می‌دهید اول گوش کنم "
+            "و بعد پیشنهاد بدهم؟"
+        ),
+        "ar": (
+            "عندما يزعجك أمر ما، هل تفضل عادة أن أستمع أولاً قبل اقتراح الحلول؟"
+        ),
+    },
     "nbq.general.response_length.v1": {
         "en": "Would you prefer brief answers, or a bit more detail?",
         "fa": "ترجیح می‌دهید پاسخ‌ها کوتاه باشد یا کمی مفصل‌تر؟",
@@ -222,6 +298,15 @@ def _key_unavailable_for_discovery(
     return False
 
 
+def _coverage_blocks_discovery(snapshot: ContextSnapshot, target_key: str) -> bool:
+    """CR-04F.1: ask only MISSING; skip KNOWN/DENIED/CONFLICTED/STALE."""
+    state = coverage_state_for_key(snapshot, target_key)
+    if state is CoverageState.NOT_APPLICABLE:
+        # Unregistered soft keys fall back to legacy presence gate.
+        return _key_unavailable_for_discovery(snapshot.items, target_key)
+    return state is not CoverageState.MISSING
+
+
 def _norm_message(message: str) -> str:
     text = (message or "").strip().lower()
     text = text.replace("\u200c", "").replace("\u200d", "")
@@ -267,7 +352,7 @@ def _select_contextual_directive(
             continue
         if not _message_relevant(message, cand.relevance_cues):
             continue
-        if _key_unavailable_for_discovery(snapshot.items, cand.target_key):
+        if _coverage_blocks_discovery(snapshot, cand.target_key):
             continue
         hits.append(cand)
     if not hits:
@@ -282,6 +367,60 @@ def _select_contextual_directive(
         sensitivity=winner.sensitivity,  # type: ignore[arg-type]
         priority=winner.priority,
     )
+
+
+def _select_tier_a_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+) -> Optional[DiscoveryDirective]:
+    """CR-04F.1 — at most one safe missing Tier-A question (GENERAL only)."""
+    if intent.intent_id is not IntentId.GENERAL:
+        return None
+    for target_key in TIER_A_GENERAL_PRIORITY:
+        if not is_safe_missing_for_discovery(snapshot, target_key):
+            continue
+        meta = _TIER_A_TEMPLATE_BY_KEY.get(target_key)
+        if meta is None:
+            continue
+        sensitivity, template_id, priority = meta
+        question_id = f"nbq.q.{intent.intent_id.value}.{target_key}.v1"
+        return DiscoveryDirective(
+            question_id=question_id,
+            target_key=target_key,
+            localized_question=_localized(template_id, language),
+            sensitivity=sensitivity,  # type: ignore[arg-type]
+            priority=priority,
+        )
+    return None
+
+
+def _select_intent_soft_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+) -> Optional[DiscoveryDirective]:
+    """Intent-specific soft candidates (sleep/nutrition/activity). GENERAL uses Tier-A."""
+    if intent.intent_id is IntentId.GENERAL:
+        # GENERAL soft list is Tier-A; already handled by _select_tier_a_directive.
+        return None
+    candidates = _SOFT_DISCOVERY_CANDIDATES.get(intent.intent_id)
+    if not candidates:
+        return None
+    for target_key, sensitivity, template_id, priority in candidates:
+        if _coverage_blocks_discovery(snapshot, target_key):
+            continue
+        question_id = f"nbq.q.{intent.intent_id.value}.{target_key}.v1"
+        return DiscoveryDirective(
+            question_id=question_id,
+            target_key=target_key,
+            localized_question=_localized(template_id, language),
+            sensitivity=sensitivity,  # type: ignore[arg-type]
+            priority=priority,
+        )
+    return None
 
 
 def select_next_best_question(
@@ -299,14 +438,18 @@ def select_next_best_question(
     Hard I3 clarification always wins — caller must not invoke when
     readiness is not READY (also enforced here).
 
-    CR-04B: when ``message`` shows work/time-constraint relevance, a contextual
-    candidate may outrank legacy NBQ. Empty/default message preserves CR-01 behavior.
+    Selection order (CR-04F.1):
+      A) relevant existing contextual candidate
+      B) safe missing Tier-A candidate (GENERAL)
+      C) existing intent-specific soft candidate
+      D) none
     """
     if readiness.status is not ReadinessStatus.READY:
         return None
     if intent.intent_id in _NBQ_SUPPRESSED_INTENTS:
         return None
 
+    # A) contextual relevance outranks generic progressive discovery.
     contextual = _select_contextual_directive(
         snapshot=snapshot,
         intent=intent,
@@ -316,20 +459,14 @@ def select_next_best_question(
     if contextual is not None:
         return contextual
 
-    candidates = _SOFT_DISCOVERY_CANDIDATES.get(intent.intent_id)
-    if not candidates:
-        return None
+    # B) Tier-A progressive gaps (GENERAL only).
+    tier_a = _select_tier_a_directive(
+        snapshot=snapshot, intent=intent, language=language
+    )
+    if tier_a is not None:
+        return tier_a
 
-    # Deterministic: iterate candidates in declared priority order.
-    for target_key, sensitivity, template_id, priority in candidates:
-        if _key_unavailable_for_discovery(snapshot.items, target_key):
-            continue
-        question_id = f"nbq.q.{intent.intent_id.value}.{target_key}.v1"
-        return DiscoveryDirective(
-            question_id=question_id,
-            target_key=target_key,
-            localized_question=_localized(template_id, language),
-            sensitivity=sensitivity,  # type: ignore[arg-type]
-            priority=priority,
-        )
-    return None
+    # C) intent-specific soft candidates.
+    return _select_intent_soft_directive(
+        snapshot=snapshot, intent=intent, language=language
+    )

@@ -133,9 +133,10 @@ def test_cr03_general_nbq_targets_response_length():
         snapshot=_snap(), intent=g, readiness=_ready(g), language="en"
     )
     assert d is not None
-    assert d.target_key == "preferences.response_length"
+    # CR-04F.1: GENERAL progressive Tier-A starts with interests.
+    assert d.target_key == "preferences.interests"
     assert "interaction_style" not in d.target_key
-    assert d.question_id == "nbq.q.general.preferences.response_length.v1"
+    assert d.question_id == "nbq.q.general.preferences.interests.v1"
 
 
 def test_cr03_supported_answer_writes_i6_user_stated(db):
