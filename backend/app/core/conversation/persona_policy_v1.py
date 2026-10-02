@@ -176,11 +176,14 @@ class PersonaPolicyV1:
         language: Optional[str],
         *,
         nbq_scheduled: bool = False,
+        response_length: Optional[str] = None,
+        listen_before_advice: bool = False,
     ) -> str:
         """Bounded CR-02 relationship guidance for the single generation call.
 
         Internal system text only. No diagnosis, dependency, exclusivity, or
         fabricated intimacy. When nbq_scheduled, forbid an extra discovery ask.
+        Optional CR-04D adaptive lines never override the current-need line.
         """
         lang = PersonaPolicyV1.resolve_language(language)
         need_key = (need or "general").strip().lower()
@@ -320,10 +323,56 @@ class PersonaPolicyV1:
             ),
         }
 
+        adaptive_brief = {
+            "en": (
+                "Response length preference: prefer a concise response unless safety "
+                "or clarity requires more."
+            ),
+            "fa": (
+                "ترجیح طول پاسخ: پاسخ مختصر بده مگر ایمنی یا وضوح بیشتر بخواهد."
+            ),
+            "ar": (
+                "تفضيل طول الرد: فضّلي رداً موجزاً ما لم يتطلب الأمان أو الوضوح أكثر."
+            ),
+        }
+        adaptive_detailed = {
+            "en": (
+                "Response length preference: allow useful detail; do not pad or ramble."
+            ),
+            "fa": (
+                "ترجیح طول پاسخ: جزئیات مفید بده؛ بدون پرگویی یا پر کردن."
+            ),
+            "ar": (
+                "تفضيل طول الرد: اسمحي بتفاصيل مفيدة؛ بلا حشو أو إطالة."
+            ),
+        }
+        adaptive_listen = {
+            "en": (
+                "Interaction preference: when compatible with the current need, "
+                "acknowledge/listen before optional advice. Never delay safety, "
+                "clarification, or directly requested help."
+            ),
+            "fa": (
+                "ترجیح تعامل: وقتی با نیاز فعلی سازگار است، قبل از پیشنهاد اختیاری "
+                "تأیید/گوش بده. ایمنی، روشن‌سازی یا کمک مستقیم درخواستی را به تأخیر نینداز."
+            ),
+            "ar": (
+                "تفضيل التفاعل: عندما يتوافق مع الحاجة الحالية، اعترفي/استمعي قبل "
+                "نصيحة اختيارية. لا تؤخري الأمان أو التوضيح أو المساعدة المطلوبة مباشرة."
+            ),
+        }
+
         block = need_lines.get(need_key, need_lines["general"]).get(lang) or need_lines[
             "general"
         ]["en"]
         lines = [header, block, shared.get(lang, shared["en"])]
+        length_key = (response_length or "").strip().casefold()
+        if length_key == "brief":
+            lines.append(adaptive_brief.get(lang, adaptive_brief["en"]))
+        elif length_key == "detailed":
+            lines.append(adaptive_detailed.get(lang, adaptive_detailed["en"]))
+        if listen_before_advice:
+            lines.append(adaptive_listen.get(lang, adaptive_listen["en"]))
         if nbq_scheduled:
             lines.append(nbq_line.get(lang, nbq_line["en"]))
         return "\n".join(lines)

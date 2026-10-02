@@ -1170,6 +1170,9 @@ class IntelligenceOrchestrator:
             and readiness_meta is not None
         ):
             from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
+            from backend.app.services.intelligence.adaptive_interaction import (
+                resolve_adaptive_interaction,
+            )
             from backend.app.services.intelligence.next_best_question import (
                 select_next_best_question,
             )
@@ -1203,10 +1206,17 @@ class IntelligenceOrchestrator:
                 ):
                     visible_nbq_eligible = True
 
+            adaptive = resolve_adaptive_interaction(snapshot)
+            for code in adaptive.reason_codes:
+                if code not in extra_reason_codes:
+                    extra_reason_codes.append(code)
+
             relationship_guidance = PersonaPolicyV1.relationship_guidance_block(
                 need.value,
                 lang,
                 nbq_scheduled=visible_nbq_eligible,
+                response_length=adaptive.response_length,
+                listen_before_advice=adaptive.listen_before_advice,
             )
 
         # prepare

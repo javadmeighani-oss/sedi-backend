@@ -118,6 +118,8 @@ class ContextItem:
     conflicted: bool = False
     truncated: bool = False
     coalesced_provenance: list[ContextProvenance] = field(default_factory=list)
+    # Internal I2 epistemic tag only (never a public API field).
+    epistemic_class: Optional[str] = None
 
     @property
     def precedence(self) -> int:

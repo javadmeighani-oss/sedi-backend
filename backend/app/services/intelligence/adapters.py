@@ -57,6 +57,41 @@ def _slug(text: str, *, max_len: int = 64) -> str:
     return cleaned.strip("_")[:max_len] or "item"
 
 
+_SENSITIVITY_RANK: dict[str, int] = {
+    "low": 0,
+    "medium": 1,
+    "high": 2,
+    "critical": 3,
+}
+
+
+def _normalized_row_sensitivity(row: Any) -> str:
+    raw = getattr(row, "sensitivity_class", None)
+    if raw is None:
+        return ""
+    return str(raw).strip().casefold()
+
+
+def _effective_i6_sensitivity(
+    domain_sensitivity: SensitivityClass, row: Any
+) -> SensitivityClass:
+    """Domain sensitivity is the floor; row high/critical may elevate, never downgrade."""
+    effective: SensitivityClass = domain_sensitivity
+    row_norm = _normalized_row_sensitivity(row)
+    if row_norm in ("high", "critical"):
+        if _SENSITIVITY_RANK[row_norm] > _SENSITIVITY_RANK.get(effective, 0):
+            effective = row_norm  # type: ignore[assignment]
+    return effective
+
+
+def _row_epistemic_class(row: Any) -> Optional[str]:
+    raw = getattr(row, "provenance_class", None)
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
 def _item(
     *,
     canonical_key: str,
@@ -70,6 +105,7 @@ def _item(
     sensitivity: SensitivityClass,
     may_send_to_llm: bool = True,
     consent: ConsentState = "legacy_scope",
+    epistemic_class: Optional[str] = None,
 ) -> ContextItem:
     return ContextItem(
         canonical_key=canonical_key,
@@ -88,6 +124,7 @@ def _item(
         consent=consent,
         may_send_to_llm=may_send_to_llm,
         sort_rank=SOURCE_SORT_RANK[source],
+        epistemic_class=epistemic_class,
     )
 
 
@@ -477,9 +514,13 @@ class LifestyleContextAdapter:
                     continue
                 if not MemoryContract.is_i6_context_projectable(domain, key):
                     continue
-                # High-sensitivity unknown-consent items stay out of LLM projection
-                # via is_llm_projection_eligible; still surface for readiness/NBQ.
-                may_send = sensitivity != "high"
+                # Domain sensitivity is the floor; row high/critical elevates.
+                # Effective high/critical is never LLM-eligible (fail-closed).
+                effective_sens = _effective_i6_sensitivity(
+                    sensitivity,  # type: ignore[arg-type]
+                    row,
+                )
+                may_send = effective_sens not in ("high", "critical")
                 out.append(
                     _item(
                         canonical_key=f"{domain}.{key}",
@@ -494,9 +535,10 @@ class LifestyleContextAdapter:
                         owner_user_id=authenticated_user_id,
                         query_label="I6.list_facts_or_empty",
                         observed_at=getattr(row, "updated_at", None),
-                        sensitivity=sensitivity,  # type: ignore[arg-type]
+                        sensitivity=effective_sens,
                         may_send_to_llm=may_send,
                         consent="legacy_scope",
+                        epistemic_class=_row_epistemic_class(row),
                     )
                 )
                 domain_added += 1
