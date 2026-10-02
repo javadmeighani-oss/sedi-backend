@@ -226,6 +226,29 @@ _LISTEN_FALSE_CUES = frozenset(
     }
 )
 
+# CR-04F.1.1 — natural yes/no for listen_before_advice only (exact match).
+_LISTEN_BARE_TRUE = frozenset({"yes", "بله", "آره", "نعم"})
+_LISTEN_BARE_FALSE = frozenset({"no", "نه", "لا"})
+# Still ambiguous for this target even after bare yes/no is allowed.
+_LISTEN_STILL_AMBIGUOUS = frozenset(
+    {
+        "ok",
+        "okay",
+        "k",
+        "unsure",
+        "don't know",
+        "dont know",
+        "do not know",
+        "نمی‌دانم",
+        "نمیدانم",
+        "نمیدونم",
+        "نمی دانم",
+        "لا أعرف",
+        "لا اعرف",
+        "مش عارف",
+    }
+)
+
 _TIME_RE = re.compile(
     r"(?P<t>\b(?:[01]?\d|2[0-3])(?::[0-5]\d)?\s*(?:am|pm|a\.m\.|p\.m\.)?\b|"
     r"\b(?:[۱-۹]|1[۰-۲]|٠?[١-٩]|١[٠-٢])\s*(?:صبح|شب|عصر|ظهر)?\b)",
@@ -699,12 +722,16 @@ def _normalize_communication_style(message: str) -> Optional[str]:
 
 
 def _normalize_listen_before_advice(message: str) -> Optional[bool]:
-    """JSON boolean only when explicit listen-vs-advise meaning is present."""
+    """JSON boolean for listen_before_advice; target-aware bare yes/no allowed."""
     text = _norm_msg(message)
     if not text:
         return None
-    # Bare yes/no alone is never enough.
-    if text in _AMBIGUOUS_ACKNOWLEDGEMENTS:
+    # Exact natural yes/no (CR-04F.1.1) — does not loosen other targets.
+    if text in _LISTEN_BARE_TRUE:
+        return True
+    if text in _LISTEN_BARE_FALSE:
+        return False
+    if text in _LISTEN_STILL_AMBIGUOUS or text in _AMBIGUOUS_ACKNOWLEDGEMENTS:
         return None
     for cue in sorted(_LISTEN_FALSE_CUES, key=len, reverse=True):
         if cue in text:
@@ -878,6 +905,23 @@ def classify_discovery_reply(
             DiscoveryDisposition.UNRELATED, target_key=target_key
         )
 
+    # CR-04F.1.1: listen_before_advice accepts natural yes/no before generic ack gate.
+    if target_key == "preferences.listen_before_advice":
+        if target_key not in SUPPORTED_TARGETS:
+            return DiscoveryClassification(
+                DiscoveryDisposition.UNSUPPORTED, target_key=target_key
+            )
+        value = _normalize_listen_before_advice(message)
+        if value is None:
+            return DiscoveryClassification(
+                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+            )
+        return DiscoveryClassification(
+            DiscoveryDisposition.ANSWER,
+            target_key=target_key,
+            normalized_value=value,
+        )
+
     if not looks_substantive_discovery_answer(message) or is_ambiguous_open_text_answer(
         message
     ):
@@ -892,18 +936,6 @@ def classify_discovery_reply(
 
     if target_key == "preferences.response_length":
         value = _normalize_response_length(message)
-        if value is None:
-            return DiscoveryClassification(
-                DiscoveryDisposition.AMBIGUOUS, target_key=target_key
-            )
-        return DiscoveryClassification(
-            DiscoveryDisposition.ANSWER,
-            target_key=target_key,
-            normalized_value=value,
-        )
-
-    if target_key == "preferences.listen_before_advice":
-        value = _normalize_listen_before_advice(message)
         if value is None:
             return DiscoveryClassification(
                 DiscoveryDisposition.AMBIGUOUS, target_key=target_key

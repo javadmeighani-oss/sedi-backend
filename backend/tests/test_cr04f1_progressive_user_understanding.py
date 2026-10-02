@@ -407,16 +407,55 @@ def test_cr04f1_listen_before_advice_false_write(db):
     assert json.loads(row.value_json) is False
 
 
+def test_cr04f1_listen_before_advice_natural_yes_no_write(db):
+    """CR-04F.1.1: bare yes/no (EN/FA/AR) bind as JSON bool for listen_before_advice."""
+    for label, msg, expected in (
+        ("en-yes", "yes", True),
+        ("fa-bale", "بله", True),
+        ("fa-are", "آره", True),
+        ("ar-naam", "نعم", True),
+        ("en-no", "no", False),
+        ("fa-na", "نه", False),
+        ("ar-la", "لا", False),
+    ):
+        user = _user(db, f"f11-{label}")
+        _grant(db, user.id)
+        _mark_discovery(db, user.id, "preferences.listen_before_advice")
+        cls = classify_discovery_reply(
+            "preferences.listen_before_advice", msg, "en"
+        )
+        assert cls.disposition is DiscoveryDisposition.ANSWER, msg
+        assert cls.normalized_value is expected, msg
+        assert normalize_discovery_value(
+            "preferences.listen_before_advice", msg
+        ) is expected
+        process_relationship_discovery_answer(
+            db,
+            user_id=user.id,
+            message=msg,
+            language="en",
+            allow_binding=True,
+            classification=cls,
+        )
+        row = next(
+            f
+            for f in list_facts(db, user.id, domain="preferences")
+            if f.key == "listen_before_advice"
+        )
+        assert json.loads(row.value_json) is expected
+        assert isinstance(json.loads(row.value_json), bool)
+
+
 def test_cr04f1_ambiguous_boolean_zero_write(db):
     user = _user(db, "f1-amb")
     _grant(db, user.id)
     _mark_discovery(db, user.id, "preferences.listen_before_advice")
     before = len(list_facts(db, user.id))
-    for msg in ("yes", "no", "ok", "unsure"):
+    for msg in ("ok", "okay", "unsure", "don't know", "نمیدانم", "لا أعرف"):
         cls = classify_discovery_reply(
             "preferences.listen_before_advice", msg, "en"
         )
-        assert cls.disposition is DiscoveryDisposition.AMBIGUOUS
+        assert cls.disposition is DiscoveryDisposition.AMBIGUOUS, msg
         assert normalize_discovery_value(
             "preferences.listen_before_advice", msg
         ) is None
@@ -429,6 +468,13 @@ def test_cr04f1_ambiguous_boolean_zero_write(db):
             classification=cls,
         )
     assert len(list_facts(db, user.id)) == before
+
+
+def test_cr04f11_other_target_bare_yes_no_still_ambiguous():
+    for msg in ("yes", "no", "بله", "نه", "نعم", "لا"):
+        cls = classify_discovery_reply("preferences.interests", msg, "en")
+        assert cls.disposition is DiscoveryDisposition.AMBIGUOUS, msg
+        assert normalize_discovery_value("preferences.interests", msg) is None
 
 
 def test_cr04f1_skip_reject_classify():
