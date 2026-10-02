@@ -19,6 +19,7 @@ from backend.app.services.intelligence.adaptive_interaction import (
     resolve_adaptive_interaction,
 )
 from backend.app.services.intelligence.adapters import LifestyleContextAdapter
+from backend.app.services.intelligence.assembler import AuthorizedContextAssembler
 from backend.app.services.intelligence.context_types import (
     ContextItem,
     ContextProvenance,
@@ -83,10 +84,11 @@ def _pref_item(
     *,
     epistemic: str | None = "USER_STATED",
     sensitivity: str = "medium",
-    may_send: bool = True,
+    may_send: bool = False,
     active: bool = True,
     conflicted: bool = False,
     owner: int = 1,
+    consent: str = "legacy_scope",
 ) -> ContextItem:
     return ContextItem(
         canonical_key=key,
@@ -100,7 +102,7 @@ def _pref_item(
         observed_at=None,
         freshness="unknown",
         sensitivity=sensitivity,  # type: ignore[arg-type]
-        consent="legacy_scope",
+        consent=consent,  # type: ignore[arg-type]
         may_send_to_llm=may_send,
         sort_rank=SOURCE_SORT_RANK[ContextSource.PROFILE],
         active=active,
@@ -193,6 +195,7 @@ def test_cr04d_user_stated_brief_accepted():
                 "preferences.response_length",
                 '"brief"',
                 epistemic="USER_STATED",
+                may_send=False,
             )
         ]
     )
@@ -200,6 +203,9 @@ def test_cr04d_user_stated_brief_accepted():
     assert result.response_length == "brief"
     assert REASON_RESPONSE_LENGTH_BRIEF in result.reason_codes
     assert result.listen_before_advice is False
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "brief" not in proj.text
 
 
 def test_cr04d_user_confirmed_detailed_accepted():
@@ -209,12 +215,16 @@ def test_cr04d_user_confirmed_detailed_accepted():
                 "preferences.response_length",
                 '"detailed"',
                 epistemic="USER_CONFIRMED",
+                may_send=False,
             )
         ]
     )
     result = resolve_adaptive_interaction(snap)
     assert result.response_length == "detailed"
     assert REASON_RESPONSE_LENGTH_DETAILED in result.reason_codes
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "detailed" not in proj.text
 
 
 def test_cr04d_user_stated_listen_true_accepted():
@@ -224,12 +234,16 @@ def test_cr04d_user_stated_listen_true_accepted():
                 "preferences.listen_before_advice",
                 "true",
                 epistemic="USER_STATED",
+                may_send=False,
             )
         ]
     )
     result = resolve_adaptive_interaction(snap)
     assert result.listen_before_advice is True
     assert REASON_LISTEN_BEFORE_ADVICE in result.reason_codes
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "listen_before_advice" not in proj.text
+    assert "true" not in proj.text.lower()
 
 
 def test_cr04d_system_derived_ignored():
@@ -239,12 +253,16 @@ def test_cr04d_system_derived_ignored():
                 "preferences.response_length",
                 '"brief"',
                 epistemic="SYSTEM_DERIVED",
+                may_send=False,
             )
         ]
     )
     result = resolve_adaptive_interaction(snap)
     assert result.response_length is None
     assert result.reason_codes == ()
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "brief" not in proj.text
 
 
 def test_cr04d_unknown_provenance_ignored():
@@ -254,11 +272,13 @@ def test_cr04d_unknown_provenance_ignored():
                 "preferences.response_length",
                 '"brief"',
                 epistemic="UNKNOWN",
+                may_send=False,
             ),
             _pref_item(
                 "preferences.listen_before_advice",
                 "true",
                 epistemic=None,
+                may_send=False,
             ),
         ]
     )
@@ -266,6 +286,10 @@ def test_cr04d_unknown_provenance_ignored():
     assert result.response_length is None
     assert result.listen_before_advice is False
     assert result.reason_codes == ()
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "listen_before_advice" not in proj.text
+    assert "brief" not in proj.text
 
 
 def test_cr04d_row_high_critical_ignored():
@@ -288,13 +312,27 @@ def test_cr04d_row_high_critical_ignored():
     result = resolve_adaptive_interaction(snap)
     assert result.response_length is None
     assert result.listen_before_advice is False
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "listen_before_advice" not in proj.text
+    assert "brief" not in proj.text
 
 
 def test_cr04d_unknown_response_length_ignored():
     snap = _snap(
-        [_pref_item("preferences.response_length", '"verbose"', epistemic="USER_STATED")]
+        [
+            _pref_item(
+                "preferences.response_length",
+                '"verbose"',
+                epistemic="USER_STATED",
+                may_send=False,
+            )
+        ]
     )
     assert resolve_adaptive_interaction(snap).response_length is None
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "verbose" not in proj.text
 
 
 def test_cr04d_listen_false_no_directive():
@@ -305,12 +343,81 @@ def test_cr04d_listen_false_no_directive():
                     "preferences.listen_before_advice",
                     value,
                     epistemic="USER_STATED",
+                    may_send=False,
                 )
             ]
         )
         result = resolve_adaptive_interaction(snap)
         assert result.listen_before_advice is False
         assert REASON_LISTEN_BEFORE_ADVICE not in result.reason_codes
+
+
+def test_cr04d_adaptive_only_raw_projection_blocked_with_non_adaptive_preserved(db):
+    user = _user(db, "cr04d1-proj")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(
+        db,
+        user.id,
+        "preferences",
+        "response_length",
+        "brief",
+        provenance_class="USER_STATED",
+        sensitivity_class="standard",
+        commit=True,
+    )
+    write_fact(
+        db,
+        user.id,
+        "preferences",
+        "listen_before_advice",
+        True,
+        provenance_class="USER_CONFIRMED",
+        sensitivity_class="standard",
+        commit=True,
+    )
+    write_fact(
+        db,
+        user.id,
+        "work",
+        "occupation",
+        "designer",
+        provenance_class="USER_STATED",
+        sensitivity_class="standard",
+        commit=True,
+    )
+    items = LifestyleContextAdapter().load(
+        db, authenticated_user_id=user.id, user_context_pack=None
+    )
+    by_key = {i.canonical_key: i for i in items}
+    brief = by_key["preferences.response_length"]
+    listen = by_key["preferences.listen_before_advice"]
+    work = by_key["work.occupation"]
+
+    assert brief.may_send_to_llm is False
+    assert listen.may_send_to_llm is False
+    assert work.may_send_to_llm is True
+
+    snap = ContextSnapshot(
+        request_id="cr04d1",
+        owner_user_id=user.id,
+        sections={"profile": ContextSection(name="profile", items=items)},
+        items=items,
+        preferred_name=None,
+        conflict_count=0,
+        truncated_count=0,
+        reason_codes=(),
+        adapter_order=("lifestyle",),
+    )
+    adaptive = resolve_adaptive_interaction(snap)
+    assert adaptive.response_length == "brief"
+    assert adaptive.listen_before_advice is True
+
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "listen_before_advice" not in proj.text
+    assert "brief" not in proj.text.lower()
+    assert "designer" in proj.text
+    assert "occupation" in proj.text
 
 
 # ---- I2 adapter projection ----
@@ -374,9 +481,13 @@ def test_cr04d_adapter_epistemic_and_row_sensitivity_fail_closed(db):
     adaptive = resolve_adaptive_interaction(snap)
     assert adaptive.response_length is None
     assert adaptive.listen_before_advice is False
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "listen_before_advice" not in proj.text
+    assert "brief" not in proj.text
 
 
-def test_cr04d_adapter_safe_prefs_projected_for_llm(db):
+def test_cr04d_adapter_safe_prefs_adapt_without_raw_llm_projection(db):
     user = _user(db, "cr04d-ok")
     grant_memory_consent(db, user.id, commit=True)
     write_fact(
@@ -394,10 +505,14 @@ def test_cr04d_adapter_safe_prefs_projected_for_llm(db):
     )
     pref = next(i for i in items if i.canonical_key == "preferences.response_length")
     assert pref.sensitivity == "medium"
-    assert pref.may_send_to_llm is True
+    assert pref.may_send_to_llm is False
     assert pref.epistemic_class == "USER_CONFIRMED"
-    adaptive = resolve_adaptive_interaction(_snap([pref], owner=user.id))
+    snap = _snap([pref], owner=user.id)
+    adaptive = resolve_adaptive_interaction(snap)
     assert adaptive.response_length == "detailed"
+    proj = AuthorizedContextAssembler().build_compatibility_projection(snap)
+    assert "response_length" not in proj.text
+    assert "detailed" not in proj.text
 
 
 # ---- persona + need precedence ----

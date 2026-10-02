@@ -488,6 +488,15 @@ class LifestyleContextAdapter:
         from backend.app.services.i6.memory_writes import list_facts_or_empty
         from backend.app.services.memory.memory_contract import MemoryContract
 
+        # Adaptive-control prefs stay in the snapshot for the pure resolver,
+        # but must never enter generic LLM compatibility projection.
+        adaptive_only_keys = frozenset(
+            {
+                "preferences.response_length",
+                "preferences.listen_before_advice",
+            }
+        )
+
         # (domain, section, sensitivity)
         domain_specs: tuple[tuple[str, str, str], ...] = (
             ("preferences", "profile", "medium"),
@@ -514,6 +523,7 @@ class LifestyleContextAdapter:
                     continue
                 if not MemoryContract.is_i6_context_projectable(domain, key):
                     continue
+                canonical_key = f"{domain}.{key}"
                 # Domain sensitivity is the floor; row high/critical elevates.
                 # Effective high/critical is never LLM-eligible (fail-closed).
                 effective_sens = _effective_i6_sensitivity(
@@ -521,9 +531,11 @@ class LifestyleContextAdapter:
                     row,
                 )
                 may_send = effective_sens not in ("high", "critical")
+                if canonical_key in adaptive_only_keys:
+                    may_send = False
                 out.append(
                     _item(
-                        canonical_key=f"{domain}.{key}",
+                        canonical_key=canonical_key,
                         section=section,  # type: ignore[arg-type]
                         source=(
                             ContextSource.PROFILE

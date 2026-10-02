@@ -2,6 +2,9 @@
 
 Request-local only. No DB, network, LLM, or writes.
 Accepts confirmed I6 interaction preferences from an I2 ContextSnapshot.
+
+Adaptive-only keys stay out of generic LLM projection (may_send_to_llm=False)
+and are evaluated here with an explicit eligibility gate (not may_send_to_llm).
 """
 
 from __future__ import annotations
@@ -10,16 +13,18 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal, Optional
 
-from backend.app.services.intelligence.context_types import (
-    ContextItem,
-    ContextSnapshot,
-    is_llm_projection_eligible,
-)
+from backend.app.services.intelligence.context_types import ContextItem, ContextSnapshot
 
 ResponseLengthPref = Literal["brief", "detailed"]
 
 SUPPORTED_RESPONSE_LENGTH_KEY = "preferences.response_length"
 SUPPORTED_LISTEN_BEFORE_ADVICE_KEY = "preferences.listen_before_advice"
+ADAPTIVE_ONLY_KEYS = frozenset(
+    {
+        SUPPORTED_RESPONSE_LENGTH_KEY,
+        SUPPORTED_LISTEN_BEFORE_ADVICE_KEY,
+    }
+)
 
 _ACCEPTED_EPISTEMIC = frozenset({"USER_STATED", "USER_CONFIRMED"})
 
@@ -58,9 +63,12 @@ def _is_canonical_true(value: Any) -> bool:
 
 
 def _item_preference_eligible(item: ContextItem) -> bool:
+    """Adaptive-only eligibility — does not use may_send_to_llm."""
+    if item.canonical_key not in ADAPTIVE_ONLY_KEYS:
+        return False
     if not item.active or item.conflicted:
         return False
-    if not is_llm_projection_eligible(item):
+    if item.consent == "denied":
         return False
     if item.sensitivity in ("high", "critical"):
         return False
