@@ -113,20 +113,30 @@ def test_nbq_existing_fact_skips_to_next():
 
 
 def test_nbq_denied_conflicted_stale_not_selected():
+    """DENIED skips soft discovery; CONFLICTED/STALE confirm (CR-04F.2)."""
     intent = _intent(IntentId.SLEEP)
-    for item in (
-        _item("routines.bedtime", consent="denied"),
-        _item("routines.bedtime", conflicted=True),
-        _item("routines.bedtime", freshness="stale"),
+    d_denied = select_next_best_question(
+        snapshot=_snap([_item("routines.bedtime", consent="denied")]),
+        intent=intent,
+        readiness=_ready(intent),
+        language="fa",
+    )
+    assert d_denied is not None
+    assert d_denied.target_key == "routines.wake_time"
+
+    for item, needle in (
+        (_item("routines.bedtime", conflicted=True), "متعارضة"),
+        (_item("routines.bedtime", freshness="stale"), "أقدم"),
     ):
         d = select_next_best_question(
             snapshot=_snap([item]),
             intent=intent,
             readiness=_ready(intent),
-            language="fa",
+            language="ar",
         )
         assert d is not None
-        assert d.target_key == "routines.wake_time"
+        assert d.target_key == "routines.bedtime"
+        assert needle in d.localized_question
 
 
 def test_nbq_all_candidates_present_yields_none():
