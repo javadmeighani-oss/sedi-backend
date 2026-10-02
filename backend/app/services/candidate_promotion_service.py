@@ -39,6 +39,12 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "bedtime": ("routines", "bedtime"),
     "exercise_schedule": ("routines", "exercise_schedule"),
     "response_length": ("preferences", "response_length"),
+    # CR-04F.2 — missing SUPPORTED_TARGET I6 mappings for RD confirm→promote.
+    "interests": ("preferences", "interests"),
+    "communication_style": ("preferences", "communication_style"),
+    "listen_before_advice": ("preferences", "listen_before_advice"),
+    "work_schedule": ("work", "work_schedule"),
+    "time_constraints": ("barriers", "time_constraints"),
     "daily_walk_minutes": ("lifestyle", "exercise_minutes"),
 }
 

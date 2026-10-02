@@ -123,6 +123,7 @@ def test_cr04e23_list_facts_readonly_excludes_expired_without_mutation(db):
 
 
 def test_cr04e23_a_expired_fact_adapter_excludes_unmutated_after_commit(db):
+    """CR-04E2.3: no mutation on expire. CR-04F.2: lifestyle expire → STALE projection."""
     user = _user(db, "a3-fact")
     _grant(db, user.id)
     past = datetime.now(timezone.utc) - timedelta(hours=3)
@@ -149,8 +150,11 @@ def test_cr04e23_a_expired_fact_adapter_excludes_unmutated_after_commit(db):
     items = LifestyleContextAdapter().load(
         db, authenticated_user_id=user.id, user_context_pack=None
     )
-    by_key = {i.canonical_key for i in items}
-    assert "lifestyle.activity_level" not in by_key
+    by_key = {i.canonical_key: i for i in items}
+    stale = by_key.get("lifestyle.activity_level")
+    assert stale is not None
+    assert stale.freshness == "stale"
+    assert stale.may_send_to_llm is False
     assert "preferences.response_length" in by_key
 
     mem = CurrentMemoryContextAdapter().load(

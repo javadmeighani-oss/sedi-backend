@@ -1,10 +1,11 @@
-"""CR-01 / CR-04B / CR-04F.1 — Pure Next Best Question (NBQ) / soft-discovery selector.
+"""CR-01 / CR-04B / CR-04F.1 / CR-04F.2 — Pure Next Best Question (NBQ) selector.
 
 Deterministic. No DB, network, LLM, writes, or legacy KC reads.
 CR-01 stores metadata only; user-visible discovery belongs to CR-02.
 CR-04B adds optional message-scoped contextual candidates that may outrank
 legacy NBQ only when relevance evidence is present in the current message.
 CR-04F.1 adds request-local coverage-aware Tier-A progressive discovery on GENERAL.
+CR-04F.2 adds CONFLICTED/STALE confirmation ahead of missing discovery.
 """
 
 from __future__ import annotations
@@ -26,7 +27,10 @@ from backend.app.services.intelligence.contracts import (
     ReadinessStatus,
 )
 from backend.app.services.intelligence.user_understanding_coverage import (
+    REGISTERED_TARGETS,
     TIER_A_GENERAL_PRIORITY,
+    TIER_A_TARGETS,
+    TIER_C_NEVER_MISSING_DRIVEN,
     CoverageState,
     coverage_state_for_key,
     is_safe_missing_for_discovery,
@@ -105,6 +109,97 @@ _TIER_A_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
         30,
     ),
     "preferences.response_length": ("medium", "nbq.general.response_length.v1", 40),
+}
+
+# Intent-scoped confirmation keys (sleep/nutrition/activity).
+_INTENT_CONFIRM_KEYS: dict[IntentId, frozenset[str]] = {
+    IntentId.SLEEP: frozenset(
+        {"routines.bedtime", "routines.wake_time", "lifestyle.sleep_quality"}
+    ),
+    IntentId.NUTRITION: frozenset({"lifestyle.food_habits"}),
+    IntentId.ACTIVITY: frozenset(
+        {"lifestyle.activity_level", "routines.exercise_schedule"}
+    ),
+}
+
+# Stable confirmation priority across all confirmable targets (lower = first).
+_CONFIRMATION_PRIORITY: tuple[str, ...] = (
+    "preferences.interests",
+    "preferences.communication_style",
+    "preferences.listen_before_advice",
+    "preferences.response_length",
+    "work.work_schedule",
+    "barriers.time_constraints",
+    "routines.bedtime",
+    "routines.wake_time",
+    "lifestyle.sleep_quality",
+    "lifestyle.food_habits",
+    "lifestyle.activity_level",
+    "routines.exercise_schedule",
+)
+
+_CONFIRMATION_PRIORITY_INDEX: dict[str, int] = {
+    k: i for i, k in enumerate(_CONFIRMATION_PRIORITY)
+}
+
+# Bounded localized field labels for confirmation templates.
+_FIELD_LABELS: dict[str, dict[str, str]] = {
+    "preferences.interests": {
+        "en": "interests",
+        "fa": "علاقه‌مندی‌ها",
+        "ar": "الاهتمامات",
+    },
+    "preferences.communication_style": {
+        "en": "communication style",
+        "fa": "سبک گفت‌وگو",
+        "ar": "أسلوب التواصل",
+    },
+    "preferences.listen_before_advice": {
+        "en": "listen-first preference",
+        "fa": "ترجیح گوش‌دادن پیش از پیشنهاد",
+        "ar": "تفضيل الاستماع قبل الاقتراح",
+    },
+    "preferences.response_length": {
+        "en": "response length",
+        "fa": "طول پاسخ",
+        "ar": "طول الإجابة",
+    },
+    "routines.bedtime": {"en": "bedtime", "fa": "ساعت خواب", "ar": "وقت النوم"},
+    "routines.wake_time": {
+        "en": "wake time",
+        "fa": "ساعت بیداری",
+        "ar": "وقت الاستيقاظ",
+    },
+    "lifestyle.sleep_quality": {
+        "en": "sleep quality",
+        "fa": "کیفیت خواب",
+        "ar": "جودة النوم",
+    },
+    "lifestyle.food_habits": {
+        "en": "eating habits",
+        "fa": "عادت‌های غذایی",
+        "ar": "العادات الغذائية",
+    },
+    "lifestyle.activity_level": {
+        "en": "activity level",
+        "fa": "سطح فعالیت",
+        "ar": "مستوى النشاط",
+    },
+    "routines.exercise_schedule": {
+        "en": "exercise schedule",
+        "fa": "برنامه ورزش",
+        "ar": "جدول الرياضة",
+    },
+    "work.work_schedule": {
+        "en": "work schedule",
+        "fa": "برنامه کاری",
+        "ar": "جدول العمل",
+    },
+    "barriers.time_constraints": {
+        "en": "time constraints",
+        "fa": "محدودیت زمانی",
+        "ar": "قيود الوقت",
+    },
 }
 
 # CR-04B — contextual candidates. Lower priority number wins among relevant hits.
@@ -265,12 +360,51 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "fa": "اختیاری: معمولاً برای این کار چقدر وقت دارید؟",
         "ar": "اختياري: كم من الوقت يتوفر لديك عادة لهذا؟",
     },
+    # CR-04F.2 confirmation templates ({field} substituted at render time).
+    "nbq.confirm.stale.v1": {
+        "en": "I may have an older value for your {field}. What should I use now?",
+        "fa": (
+            "ممکن است مقدار قدیمی‌تری برای {field} شما داشته باشم. "
+            "الان چه چیزی را استفاده کنم؟"
+        ),
+        "ar": "قد يكون لدي قيمة أقدم لـ {field} لديك. ماذا يجب أن أستخدم الآن؟",
+    },
+    "nbq.confirm.conflict.v1": {
+        "en": (
+            "I have conflicting information about your {field}. "
+            "What should I use going forward?"
+        ),
+        "fa": (
+            "اطلاعات متناقضی دربارهٔ {field} شما دارم. "
+            "از این به بعد چه چیزی را استفاده کنم؟"
+        ),
+        "ar": (
+            "لدي معلومات متعارضة حول {field} لديك. "
+            "ماذا يجب أن أستخدم من الآن فصاعداً؟"
+        ),
+    },
 }
 
 
 def _localized(template_id: str, language: LanguageCode) -> str:
     block = _TEMPLATES[template_id]
     return block.get(language) or block["en"]
+
+
+def _field_label(target_key: str, language: LanguageCode) -> str:
+    block = _FIELD_LABELS.get(target_key) or {}
+    return block.get(language) or block.get("en") or target_key.split(".", 1)[-1]
+
+
+def _localized_confirmation(
+    kind: str, target_key: str, language: LanguageCode
+) -> str:
+    template_id = (
+        "nbq.confirm.conflict.v1" if kind == "conflict" else "nbq.confirm.stale.v1"
+    )
+    return _localized(template_id, language).format(
+        field=_field_label(target_key, language)
+    )
 
 
 def _items_for_key(
@@ -336,6 +470,76 @@ def _message_relevant(message: str, cues: tuple[str, ...]) -> bool:
         return False
     ordered = sorted((c for c in cues if c), key=len, reverse=True)
     return any(_cue_present(text, c) for c in ordered)
+
+
+def _confirmation_eligible(
+    *,
+    target_key: str,
+    intent: IntentResult,
+    message: str,
+) -> bool:
+    """Reuse existing intent/context rules for conflict/stale confirmation."""
+    if target_key in TIER_C_NEVER_MISSING_DRIVEN:
+        return False
+    if target_key in TIER_A_TARGETS:
+        return intent.intent_id is IntentId.GENERAL
+
+    for cand in _CONTEXTUAL_CANDIDATES:
+        if cand.target_key != target_key:
+            continue
+        if intent.intent_id not in cand.compatible_intents:
+            return False
+        return _message_relevant(message, cand.relevance_cues)
+
+    allowed = _INTENT_CONFIRM_KEYS.get(intent.intent_id)
+    if allowed is not None and target_key in allowed:
+        return True
+    return False
+
+
+def _select_confirmation_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+    message: str,
+    state: CoverageState,
+    kind: str,
+) -> Optional[DiscoveryDirective]:
+    """At most one eligible confirmation for CONFLICTED or STALE."""
+    hits: list[str] = []
+    for target_key in _CONFIRMATION_PRIORITY:
+        if coverage_state_for_key(snapshot, target_key) is not state:
+            continue
+        if not _confirmation_eligible(
+            target_key=target_key, intent=intent, message=message
+        ):
+            continue
+        hits.append(target_key)
+    if not hits:
+        for target_key in sorted(REGISTERED_TARGETS):
+            if target_key in _CONFIRMATION_PRIORITY_INDEX:
+                continue
+            if coverage_state_for_key(snapshot, target_key) is not state:
+                continue
+            if not _confirmation_eligible(
+                target_key=target_key, intent=intent, message=message
+            ):
+                continue
+            hits.append(target_key)
+    if not hits:
+        return None
+    winner = hits[0]
+    sensitivity = "high" if winner == "barriers.time_constraints" else "medium"
+    priority = _CONFIRMATION_PRIORITY_INDEX.get(winner, 100)
+    question_id = f"nbq.q.confirm.{kind}.{winner}.v1"
+    return DiscoveryDirective(
+        question_id=question_id,
+        target_key=winner,
+        localized_question=_localized_confirmation(kind, winner, language),
+        sensitivity=sensitivity,  # type: ignore[arg-type]
+        priority=priority,
+    )
 
 
 def _select_contextual_directive(
@@ -432,24 +636,51 @@ def select_next_best_question(
     message: str = "",
 ) -> Optional[DiscoveryDirective]:
     """
-    Select at most one soft-discovery directive.
+    Select at most one soft-discovery / confirmation directive.
 
     Pure: reads only snapshot / intent / readiness / language / optional message.
     Hard I3 clarification always wins — caller must not invoke when
     readiness is not READY (also enforced here).
 
-    Selection order (CR-04F.1):
-      A) relevant existing contextual candidate
-      B) safe missing Tier-A candidate (GENERAL)
-      C) existing intent-specific soft candidate
-      D) none
+    Selection order (CR-04F.2):
+      A) eligible CONFLICTED confirmation
+      B) eligible STALE confirmation
+      C) existing CR-04F.1 selection:
+         1) relevant contextual candidate
+         2) safe missing Tier-A (GENERAL)
+         3) intent-specific soft candidate
+         4) none
     """
     if readiness.status is not ReadinessStatus.READY:
         return None
     if intent.intent_id in _NBQ_SUPPRESSED_INTENTS:
         return None
 
-    # A) contextual relevance outranks generic progressive discovery.
+    # A) CONFLICTED confirmation outranks missing discovery.
+    conflict = _select_confirmation_directive(
+        snapshot=snapshot,
+        intent=intent,
+        language=language,
+        message=message,
+        state=CoverageState.CONFLICTED,
+        kind="conflict",
+    )
+    if conflict is not None:
+        return conflict
+
+    # B) STALE confirmation outranks missing discovery.
+    stale = _select_confirmation_directive(
+        snapshot=snapshot,
+        intent=intent,
+        language=language,
+        message=message,
+        state=CoverageState.STALE,
+        kind="stale",
+    )
+    if stale is not None:
+        return stale
+
+    # C) existing CR-04F.1 selection unchanged.
     contextual = _select_contextual_directive(
         snapshot=snapshot,
         intent=intent,
@@ -459,14 +690,12 @@ def select_next_best_question(
     if contextual is not None:
         return contextual
 
-    # B) Tier-A progressive gaps (GENERAL only).
     tier_a = _select_tier_a_directive(
         snapshot=snapshot, intent=intent, language=language
     )
     if tier_a is not None:
         return tier_a
 
-    # C) intent-specific soft candidates.
     return _select_intent_soft_directive(
         snapshot=snapshot, intent=intent, language=language
     )

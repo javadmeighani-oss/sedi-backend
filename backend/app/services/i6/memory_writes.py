@@ -158,6 +158,61 @@ def correct_fact(
     )
 
 
+def confirm_fact(
+    db: Session,
+    user_id: int,
+    domain: str,
+    key: str,
+    value: Any,
+    *,
+    commit: bool = True,
+) -> models.UserMemoryFact:
+    """Explicit user confirmation → canonical USER_CONFIRMED truth.
+
+    Same-value: refresh timestamps/provenance, clear expired valid_until, keep one
+    active row (no duplicate). Different value: supersede via write_fact correction.
+    Never silent-overwrite without this explicit path.
+    """
+    domain, key = MemoryContract.canonicalize_key(domain, key)
+    require_permission(db, user_id, PERM_WRITE)
+    blob = json.dumps(value, ensure_ascii=False, default=str)
+    now = _utcnow()
+    existing = _active_fact(db, user_id, domain, key)
+
+    was_expired = False
+    if existing is not None:
+        until = existing.valid_until
+        if until is not None:
+            cmp = until if until.tzinfo is not None else until.replace(tzinfo=timezone.utc)
+            if cmp <= now:
+                was_expired = True
+
+    if existing is not None and existing.value_json == blob:
+        existing.last_seen_at = now
+        existing.updated_at = now
+        existing.provenance_class = "USER_CONFIRMED"
+        existing.source = "confirmation"
+        existing.provenance = "confirmation"
+        existing.valid_until = None
+        _finish(db, commit)
+        db.refresh(existing)
+        if was_expired:
+            # Stale fact becomes readable again — rebuildable I7 must refresh.
+            _invalidate_i7(db, user_id, reason="confirmation_refresh", commit=commit)
+        return existing
+
+    return write_fact(
+        db,
+        user_id,
+        domain,
+        key,
+        value,
+        provenance_class="USER_CONFIRMED",
+        source="confirmation",
+        commit=commit,
+    )
+
+
 def delete_fact(
     db: Session,
     user_id: int,
@@ -287,6 +342,40 @@ def list_facts_readonly_or_empty(
 ) -> list[models.UserMemoryFact]:
     """Alias-safe consumer helper: never raises; never mutates consent/facts."""
     return list_facts_readonly(db, user_id, domain=domain)
+
+
+def list_stale_facts_readonly(
+    db: Session, user_id: int, domain: Optional[str] = None
+) -> list[models.UserMemoryFact]:
+    """True read-only coverage path for explicit-expiry STALE evidence.
+
+    Returns active, non-soft-invalidated facts whose valid_until is set and
+    <= now. Uses has_permission_readonly. Never mutates fact_status/consent.
+    Never flushes/commits. Does not invent stale from age/updated_at.
+    Missing/revoked/expired read permission => [].
+    """
+    from backend.app.services.i6.consent_service import has_permission_readonly
+
+    if not has_permission_readonly(db, user_id, PERM_READ):
+        return []
+    now = _utcnow()
+    q = db.query(models.UserMemoryFact).filter(
+        models.UserMemoryFact.user_id == user_id,
+        models.UserMemoryFact.fact_status == "active",
+        models.UserMemoryFact.soft_invalidated_at.is_(None),
+        models.UserMemoryFact.valid_until.isnot(None),
+    )
+    if domain:
+        q = q.filter(models.UserMemoryFact.domain == domain)
+    out: list[models.UserMemoryFact] = []
+    for row in q.all():
+        until = row.valid_until
+        if until is None:
+            continue
+        cmp = until if until.tzinfo is not None else until.replace(tzinfo=timezone.utc)
+        if cmp <= now:
+            out.append(row)
+    return out
 
 
 def get_readable_fact_or_none(

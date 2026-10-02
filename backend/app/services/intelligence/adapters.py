@@ -106,6 +106,8 @@ def _item(
     may_send_to_llm: bool = True,
     consent: ConsentState = "legacy_scope",
     epistemic_class: Optional[str] = None,
+    freshness: Optional[FreshnessState] = None,
+    conflicted: bool = False,
 ) -> ContextItem:
     return ContextItem(
         canonical_key=canonical_key,
@@ -119,12 +121,13 @@ def _item(
             query_label=query_label,
         ),
         observed_at=_utc(observed_at),
-        freshness=_freshness(observed_at),
+        freshness=freshness if freshness is not None else _freshness(observed_at),
         sensitivity=sensitivity,
         consent=consent,
         may_send_to_llm=may_send_to_llm,
         sort_rank=SOURCE_SORT_RANK[source],
         epistemic_class=epistemic_class,
+        conflicted=conflicted,
     )
 
 
@@ -486,8 +489,13 @@ class LifestyleContextAdapter:
 
         Bounded: max 3 items per domain and max 12 items total.
         Uses the I6 read-only list path only (canonical memory authority).
+        CR-04F.2: also projects explicit-expiry STALE rows (may_send_to_llm=False)
+        and pending relationship_discovery conflict evidence (no raw candidate values).
         """
-        from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+        from backend.app.services.i6.memory_writes import (
+            list_facts_readonly_or_empty,
+            list_stale_facts_readonly,
+        )
         from backend.app.services.memory.memory_contract import MemoryContract
 
         # Adaptive/control prefs stay in the snapshot for pure resolvers,
@@ -505,6 +513,7 @@ class LifestyleContextAdapter:
         domain_specs: tuple[tuple[str, str, str], ...] = (
             ("preferences", "profile", "medium"),
             ("routines", "lifestyle", "medium"),
+            ("lifestyle", "lifestyle", "medium"),
             ("work", "lifestyle", "medium"),
             ("education", "lifestyle", "medium"),
             ("social", "lifestyle", "high"),
@@ -514,6 +523,7 @@ class LifestyleContextAdapter:
         max_per_domain = 3
         max_total = 12
         out: list[ContextItem] = []
+        seen_keys: set[str] = set()
         for domain, section, sensitivity in domain_specs:
             if len(out) >= max_total:
                 break
@@ -559,7 +569,139 @@ class LifestyleContextAdapter:
                         epistemic_class=_row_epistemic_class(row),
                     )
                 )
+                seen_keys.add(canonical_key)
                 domain_added += 1
+
+            # CR-04F.2: explicit valid_until expiry → STALE coverage (not LLM).
+            if len(out) >= max_total or domain_added >= max_per_domain:
+                continue
+            for row in list_stale_facts_readonly(
+                db, authenticated_user_id, domain=domain
+            ):
+                if domain_added >= max_per_domain or len(out) >= max_total:
+                    break
+                key = str(getattr(row, "key", "") or "").strip()
+                raw = str(getattr(row, "value_json", "") or "").strip()
+                if not key or not raw:
+                    continue
+                if not MemoryContract.is_i6_context_projectable(domain, key):
+                    continue
+                canonical_key = f"{domain}.{key}"
+                if canonical_key in seen_keys:
+                    continue
+                effective_sens = _effective_i6_sensitivity(
+                    sensitivity,  # type: ignore[arg-type]
+                    row,
+                )
+                out.append(
+                    _item(
+                        canonical_key=canonical_key,
+                        section=section,  # type: ignore[arg-type]
+                        source=(
+                            ContextSource.PROFILE
+                            if section == "profile"
+                            else ContextSource.LIFESTYLE
+                        ),
+                        value=raw[:200],
+                        display_text=f"{key}={raw[:120]}",
+                        owner_user_id=authenticated_user_id,
+                        query_label="I6.list_stale_facts_readonly",
+                        observed_at=getattr(row, "updated_at", None),
+                        sensitivity=effective_sens,
+                        may_send_to_llm=False,
+                        consent="legacy_scope",
+                        epistemic_class=_row_epistemic_class(row),
+                        freshness="stale",
+                    )
+                )
+                seen_keys.add(canonical_key)
+                domain_added += 1
+
+        # CR-04F.2: pending relationship_discovery confirmation candidates.
+        out.extend(
+            self._load_relationship_conflict_evidence(
+                db,
+                authenticated_user_id=authenticated_user_id,
+                seen_keys=seen_keys,
+                budget=max(0, max_total - len(out)),
+            )
+        )
+        return out
+
+    def _load_relationship_conflict_evidence(
+        self,
+        db: Session,
+        *,
+        authenticated_user_id: int,
+        seen_keys: set[str],
+        budget: int,
+    ) -> list[ContextItem]:
+        """Request-local CONFLICTED evidence from RD pending candidates only.
+
+        Candidate raw values must not enter generic LLM projection/display text.
+        Cross-user candidates are invisible (query scoped to authenticated user).
+        """
+        if budget <= 0:
+            return []
+        import json
+
+        from backend.app import models
+        from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
+
+        rows = (
+            db.query(models.KcFactCandidate)
+            .filter(
+                models.KcFactCandidate.user_id == authenticated_user_id,
+                models.KcFactCandidate.status == "pending",
+                models.KcFactCandidate.metadata_json.isnot(None),
+            )
+            .order_by(models.KcFactCandidate.id.asc())
+            .all()
+        )
+        out: list[ContextItem] = []
+        emitted: set[str] = set()
+        for row in rows:
+            if len(out) >= budget:
+                break
+            try:
+                meta = json.loads(row.metadata_json or "{}")
+            except (TypeError, ValueError, json.JSONDecodeError):
+                continue
+            if not isinstance(meta, dict):
+                continue
+            if meta.get("needs_confirmation") is not True:
+                continue
+            if meta.get("source") != "relationship_discovery":
+                continue
+            target_key = str(meta.get("target_key") or "").strip()
+            if not target_key or target_key not in SUPPORTED_TARGETS:
+                continue
+            if target_key in emitted:
+                continue
+            # Opaque placeholder — never the candidate raw value.
+            key_tail = target_key.split(".", 1)[-1]
+            section = "profile" if target_key.startswith("preferences.") else "lifestyle"
+            out.append(
+                _item(
+                    canonical_key=target_key,
+                    section=section,  # type: ignore[arg-type]
+                    source=(
+                        ContextSource.PROFILE
+                        if section == "profile"
+                        else ContextSource.LIFESTYLE
+                    ),
+                    value=None,
+                    display_text=f"{key_tail}=needs_confirmation",
+                    owner_user_id=authenticated_user_id,
+                    query_label="KC.relationship_discovery.pending_confirmation",
+                    observed_at=getattr(row, "created_at", None),
+                    sensitivity="medium",
+                    may_send_to_llm=False,
+                    consent="legacy_scope",
+                    conflicted=True,
+                )
+            )
+            emitted.add(target_key)
         return out
 
     def _load_gate2_lifestyle(

@@ -211,19 +211,30 @@ def test_cr04f1_general_selects_tier_a_progressively():
 
 
 def test_cr04f1_known_denied_conflicted_stale_skipped():
+    """KNOWN/DENIED skip discovery; CONFLICTED/STALE confirm (CR-04F.2)."""
     intent = _intent(IntentId.GENERAL)
     ready = _ready(intent)
     for item in (
         _item("preferences.interests"),
         _item("preferences.interests", consent="denied"),
-        _item("preferences.interests", conflicted=True),
-        _item("preferences.interests", freshness="stale"),
     ):
         d = select_next_best_question(
             snapshot=_snap([item]), intent=intent, readiness=ready, language="en"
         )
         assert d is not None
         assert d.target_key != "preferences.interests"
+
+    # CR-04F.2: conflicted/stale ask confirmation for the same key.
+    for item, needle in (
+        (_item("preferences.interests", conflicted=True), "conflicting"),
+        (_item("preferences.interests", freshness="stale"), "older"),
+    ):
+        d = select_next_best_question(
+            snapshot=_snap([item]), intent=intent, readiness=ready, language="en"
+        )
+        assert d is not None
+        assert d.target_key == "preferences.interests"
+        assert needle in d.localized_question.lower()
 
 
 def test_cr04f1_at_most_one_question():

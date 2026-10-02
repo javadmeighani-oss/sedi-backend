@@ -18,7 +18,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app.services.i6.consent_service import ConsentDenied, PERM_WRITE, has_permission
-from backend.app.services.i6.memory_writes import _active_fact, write_fact
+from backend.app.services.i6.memory_writes import _active_fact, confirm_fact, write_fact
 from backend.app.services.intelligence.contracts import LanguageCode
 from backend.app.services.intelligence.psychological_interaction import (
     detect_discovery_skip_reject,
@@ -1047,6 +1047,159 @@ def _stage_conflict_candidate(
     )
 
 
+def _unwrap_candidate_value(raw: Any) -> Any:
+    if isinstance(raw, dict) and "value" in raw and len(raw) == 1:
+        return raw["value"]
+    return raw
+
+
+def _parse_candidate_value(value_json: Optional[str]) -> Any:
+    try:
+        return _unwrap_candidate_value(json.loads(value_json or "null"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return value_json
+
+
+def _values_equal(a: Any, b: Any) -> bool:
+    return json.dumps(a, ensure_ascii=False, default=str, sort_keys=True) == json.dumps(
+        b, ensure_ascii=False, default=str, sort_keys=True
+    )
+
+
+def _pending_relationship_conflict_candidates(
+    db: Session, user_id: int, target_key: str
+) -> list[Any]:
+    """Pending RD confirmation candidates for this user+target only."""
+    from backend.app import models
+
+    rows = (
+        db.query(models.KcFactCandidate)
+        .filter(
+            models.KcFactCandidate.user_id == user_id,
+            models.KcFactCandidate.status == "pending",
+            models.KcFactCandidate.metadata_json.isnot(None),
+        )
+        .order_by(models.KcFactCandidate.id.asc())
+        .all()
+    )
+    out: list[Any] = []
+    for row in rows:
+        try:
+            meta = json.loads(row.metadata_json or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if not isinstance(meta, dict):
+            continue
+        if meta.get("needs_confirmation") is not True:
+            continue
+        if meta.get("source") != "relationship_discovery":
+            continue
+        if str(meta.get("target_key") or "").strip() != target_key:
+            continue
+        out.append(row)
+    return out
+
+
+def _reject_pending_rd_candidates(
+    db: Session, *, user_id: int, candidates: list[Any], except_id: Optional[int] = None
+) -> None:
+    from backend.app.services.knowledge.service import reject_candidate
+
+    for cand in candidates:
+        if except_id is not None and cand.id == except_id:
+            continue
+        reject_candidate(db=db, candidate_id=cand.id, owner_user_id=user_id)
+
+
+def _resolve_conflict_or_confirm(
+    db: Session,
+    *,
+    user_id: int,
+    target_key: str,
+    value: Any,
+    evidence: str,
+) -> bool:
+    """CR-04F.2: resolve pending RD conflict or confirm stale fact.
+
+    Returns True when handled (caller must not call _try_write_or_stage).
+    Never stages a recursive conflict candidate.
+    Fresh active facts with no pending conflict remain on the normal
+    write-or-stage discovery path (CR-04B).
+    """
+    pair = _split_target(target_key)
+    if pair is None:
+        return False
+    domain, key = MemoryContract.canonicalize_key(pair[0], pair[1])
+    pending = _pending_relationship_conflict_candidates(db, user_id, target_key)
+    existing = _active_fact(db, user_id, domain, key)
+
+    if pending:
+        matched = None
+        for cand in pending:
+            if _values_equal(_parse_candidate_value(cand.value_json), value):
+                matched = cand
+                break
+
+        if matched is not None:
+            from backend.app.services.knowledge.service import accept_candidate
+
+            # User confirms candidate value → existing user-owned accept path.
+            accept_candidate(
+                db,
+                matched.id,
+                verified_by="user",
+                owner_user_id=user_id,
+            )
+            _reject_pending_rd_candidates(
+                db, user_id=user_id, candidates=pending, except_id=matched.id
+            )
+            return True
+
+        # Keep existing or third value via I6 confirmation authority.
+        if not has_permission(db, user_id, PERM_WRITE):
+            return True
+        try:
+            confirm_fact(
+                db,
+                user_id,
+                domain,
+                key,
+                value,
+                commit=True,
+            )
+        except ConsentDenied:
+            return True
+        _reject_pending_rd_candidates(db, user_id=user_id, candidates=pending)
+        return True
+
+    # Stale confirmation only: active row with explicit expired valid_until.
+    if existing is not None and existing.valid_until is not None:
+        now = _utcnow()
+        until = existing.valid_until
+        cmp = until if until.tzinfo is not None else until.replace(tzinfo=timezone.utc)
+        if cmp <= now:
+            if not has_permission(db, user_id, PERM_WRITE):
+                return True
+            try:
+                confirm_fact(
+                    db,
+                    user_id,
+                    domain,
+                    key,
+                    value,
+                    commit=True,
+                )
+            except ConsentDenied:
+                return True
+            return True
+
+    return False
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def _try_write_or_stage(
     db: Session,
     *,
@@ -1179,13 +1332,23 @@ def process_relationship_discovery_answer(
                 )
             evidence = (message or "").strip()[:200]
             try:
-                _try_write_or_stage(
+                # CR-04F.2: conflict/stale confirmation must not re-enter
+                # _try_write_or_stage (would recursively stage candidates).
+                handled = _resolve_conflict_or_confirm(
                     db,
                     user_id=user_id,
                     target_key=target_key or "",
                     value=value,
                     evidence=evidence,
                 )
+                if not handled:
+                    _try_write_or_stage(
+                        db,
+                        user_id=user_id,
+                        target_key=target_key or "",
+                        value=value,
+                        evidence=evidence,
+                    )
             except Exception:
                 pass
             mark_answer(db, user_id, now, "accepted")

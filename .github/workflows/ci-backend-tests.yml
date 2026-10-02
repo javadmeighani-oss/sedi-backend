@@ -244,6 +244,7 @@ jobs:
             backend/tests/test_cr04e2_i10_user_preferences.py \
             backend/tests/test_cr04e23_i6_consumer_readonly.py \
             backend/tests/test_cr04f1_progressive_user_understanding.py \
+            backend/tests/test_cr04f2_stale_conflict_confirmation.py \
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \
