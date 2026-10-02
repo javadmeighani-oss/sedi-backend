@@ -10,7 +10,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
-from backend.app.services.i6.consent_service import PERM_READ, has_permission
+from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
 from backend.app.services.i9.i8_projection_service import (
     I8GovernedPhysiologicalContext,
     get_i8_governed_context_projection,
@@ -219,7 +219,7 @@ def _load_lifelong_profile(db: Session, user_id: int, ctx: I8TrustedContext) -> 
     goals/habit names is applied later in personalization (no authority rewrite).
     Rejects active profiles whose I7 source lineage is no longer fresh (read-only).
     """
-    if not has_permission(db, user_id, PERM_READ):
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return
     row = (
         db.query(models.UserLifelongProfile)

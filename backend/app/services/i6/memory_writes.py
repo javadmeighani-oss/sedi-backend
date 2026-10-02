@@ -249,6 +249,46 @@ def list_facts_or_empty(
         return []
 
 
+def list_facts_readonly(
+    db: Session, user_id: int, domain: Optional[str] = None
+) -> list[models.UserMemoryFact]:
+    """True read-only list for consumer/context paths.
+
+    Uses has_permission_readonly. Returns active, non-soft-invalidated facts whose
+    valid_until is unset or still in the future. Expired valid_until rows are
+    excluded without mutating fact_status/consent. Never flushes/commits.
+    Missing/revoked/expired read permission => [].
+    """
+    from backend.app.services.i6.consent_service import has_permission_readonly
+
+    if not has_permission_readonly(db, user_id, PERM_READ):
+        return []
+    now = _utcnow()
+    q = db.query(models.UserMemoryFact).filter(
+        models.UserMemoryFact.user_id == user_id,
+        models.UserMemoryFact.fact_status == "active",
+        models.UserMemoryFact.soft_invalidated_at.is_(None),
+    )
+    if domain:
+        q = q.filter(models.UserMemoryFact.domain == domain)
+    out: list[models.UserMemoryFact] = []
+    for row in q.all():
+        until = row.valid_until
+        if until is not None:
+            cmp = until if until.tzinfo is not None else until.replace(tzinfo=timezone.utc)
+            if cmp <= now:
+                continue
+        out.append(row)
+    return out
+
+
+def list_facts_readonly_or_empty(
+    db: Session, user_id: int, domain: Optional[str] = None
+) -> list[models.UserMemoryFact]:
+    """Alias-safe consumer helper: never raises; never mutates consent/facts."""
+    return list_facts_readonly(db, user_id, domain=domain)
+
+
 def get_readable_fact_or_none(
     db: Session, user_id: int, domain: str, key: str
 ) -> Optional[models.UserMemoryFact]:

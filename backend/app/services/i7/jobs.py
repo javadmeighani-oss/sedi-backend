@@ -16,7 +16,7 @@ from backend.app.services.i6.consent_service import (
     MEMORY_PURPOSE,
     PERM_READ,
     expire_due_consents,
-    has_permission,
+    has_permission_readonly,
 )
 from backend.app.services.i7.lifelong_profile import (
     current_readable_fact_ids,
@@ -132,6 +132,7 @@ def closed_period_anchor(summary_type: str, *, now: Optional[datetime] = None) -
 
 
 def consented_memory_user_ids(db: Session) -> list[int]:
+    # Explicit consent lifecycle (mutating) — preserved.
     expire_due_consents(db, commit=True)
     rows = (
         db.query(models.UserConsent.subject_user_id)
@@ -145,7 +146,8 @@ def consented_memory_user_ids(db: Session) -> list[int]:
     )
     out: list[int] = []
     for (uid,) in rows:
-        if has_permission(db, int(uid), PERM_READ):
+        # Post-expiry permission filter is read-only (no further consent dirtying).
+        if has_permission_readonly(db, int(uid), PERM_READ):
             out.append(int(uid))
     return out
 
@@ -442,7 +444,7 @@ def run_lifelong_profile_sweep(
     failures = retry_count = 0
 
     for uid in users:
-        if not has_permission(db, uid, PERM_READ):
+        if not has_permission_readonly(db, uid, PERM_READ):
             users_skipped_no_consent += 1
             users_eligible = max(0, users_eligible - 1)
             continue

@@ -14,7 +14,11 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
-from backend.app.services.i6.consent_service import PERM_READ, has_permission, require_permission
+from backend.app.services.i6.consent_service import (
+    PERM_READ,
+    has_permission_readonly,
+    require_permission,
+)
 from backend.app.services.i6.memory_writes import list_facts
 from backend.app.services.i7.period_summaries import period_bounds
 from backend.app.services.memory.memory_contract import (
@@ -256,8 +260,8 @@ def parse_source_fact_ids_json(raw: Any) -> Optional[tuple[int, ...]]:
 def current_readable_fact_ids(
     db: Session, user_id: int, *, now: Optional[datetime] = None
 ) -> tuple[int, ...]:
-    """Read-only current I6 fact IDs for user. Never mutates I6 rows."""
-    if not has_permission(db, user_id, PERM_READ):
+    """Read-only current I6 fact IDs for user. Never mutates I6/consent rows."""
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return ()
     moment = now or _utcnow()
     if moment.tzinfo is None:
@@ -297,7 +301,7 @@ def is_lifelong_profile_fresh(
         return False
     if str(profile.status or "") != "active":
         return False
-    if not has_permission(db, user_id, PERM_READ):
+    if not has_permission_readonly(db, user_id, PERM_READ):
         return False
     source_ids = parse_source_fact_ids_json(profile.source_fact_ids_json)
     if source_ids is None or len(source_ids) == 0:

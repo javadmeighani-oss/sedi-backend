@@ -439,11 +439,13 @@ class LifestyleContextAdapter:
                         )
                     )
 
-        from backend.app.services.i6.memory_writes import list_facts_or_empty
+        from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
         from backend.app.services.memory.memory_contract import MemoryContract
 
         # Existing I6 lifestyle projection (canonical domain.key for NBQ alignment).
-        for row in list_facts_or_empty(db, authenticated_user_id, domain="lifestyle")[:6]:
+        for row in list_facts_readonly_or_empty(
+            db, authenticated_user_id, domain="lifestyle"
+        )[:6]:
             key = str(getattr(row, "key", "") or "").strip()
             raw = str(getattr(row, "value_json", "") or "").strip()
             if not key or not raw:
@@ -458,7 +460,7 @@ class LifestyleContextAdapter:
                     value=raw[:200],
                     display_text=f"{key}={raw[:120]}",
                     owner_user_id=authenticated_user_id,
-                    query_label="I6.list_facts_or_empty",
+                    query_label="I6.list_facts_readonly_or_empty",
                     observed_at=getattr(row, "updated_at", None),
                     sensitivity="medium",
                     may_send_to_llm=True,
@@ -483,9 +485,9 @@ class LifestyleContextAdapter:
         """Project preferences/routines/work/education/social/values/barriers.
 
         Bounded: max 3 items per domain and max 12 items total.
-        Uses the I6 readable list path only (canonical memory authority).
+        Uses the I6 read-only list path only (canonical memory authority).
         """
-        from backend.app.services.i6.memory_writes import list_facts_or_empty
+        from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
         from backend.app.services.memory.memory_contract import MemoryContract
 
         # Adaptive/control prefs stay in the snapshot for pure resolvers,
@@ -516,7 +518,9 @@ class LifestyleContextAdapter:
             if len(out) >= max_total:
                 break
             domain_added = 0
-            for row in list_facts_or_empty(db, authenticated_user_id, domain=domain):
+            for row in list_facts_readonly_or_empty(
+                db, authenticated_user_id, domain=domain
+            ):
                 if domain_added >= max_per_domain or len(out) >= max_total:
                     break
                 key = str(getattr(row, "key", "") or "").strip()
@@ -547,7 +551,7 @@ class LifestyleContextAdapter:
                         value=raw[:200],
                         display_text=f"{key}={raw[:120]}",
                         owner_user_id=authenticated_user_id,
-                        query_label="I6.list_facts_or_empty",
+                        query_label="I6.list_facts_readonly_or_empty",
                         observed_at=getattr(row, "updated_at", None),
                         sensitivity=effective_sens,
                         may_send_to_llm=may_send,
@@ -735,9 +739,12 @@ class CurrentMemoryContextAdapter:
         budgets = budgets or DEFAULT_CONTEXT_BUDGETS
         items: list[ContextItem] = []
 
-        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+        from backend.app.services.i6.consent_service import (
+            PERM_READ,
+            has_permission_readonly,
+        )
 
-        if not has_permission(db, authenticated_user_id, PERM_READ):
+        if not has_permission_readonly(db, authenticated_user_id, PERM_READ):
             return items
 
         # Assembler always passes pack (object or None). Only standalone adapter
