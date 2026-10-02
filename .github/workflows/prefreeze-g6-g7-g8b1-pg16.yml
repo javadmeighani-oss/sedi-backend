@@ -87,7 +87,7 @@ jobs:
               assert v
               c.commit()
           PY
-      - name: Alembic single head 081
+      - name: Alembic single head 087
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -96,7 +96,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["086_i9_vital_observation_context_authority"], heads
+          assert heads == ["087_a4_notification_inbox_visibility"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head

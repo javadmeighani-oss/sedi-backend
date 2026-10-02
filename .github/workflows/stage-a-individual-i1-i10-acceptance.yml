@@ -92,7 +92,7 @@ jobs:
               print("POSTGRES_SERVER_VERSION", ver)
               assert str(ver).startswith("16."), ver
           PY
-      - name: Alembic single head 086
+      - name: Alembic single head 087
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -101,7 +101,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["086_i9_vital_observation_context_authority"], heads
+          assert heads == ["087_a4_notification_inbox_visibility"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Fresh migrate helper (conftest drop_all wipes shared schema)
@@ -122,7 +122,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "086_i9_vital_observation_context_authority", head
+              assert head == "087_a4_notification_inbox_visibility", head
               print("FRESH_MIGRATE_OK", head)
           PY
       - name: Stage A contract + I1-I4 section15

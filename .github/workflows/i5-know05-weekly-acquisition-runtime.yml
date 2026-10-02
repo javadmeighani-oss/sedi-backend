@@ -65,7 +65,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest
-      - name: Alembic head remains 067
+      - name: Alembic head remains 087
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -74,7 +74,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["080_i9_device_reported_vital_status"], heads
+          assert heads == ["087_a4_notification_inbox_visibility"], heads
           rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
           assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           print("ALEMBIC_SINGLE_HEAD=PASS")
@@ -97,7 +97,7 @@ jobs:
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
-              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "080_i9_device_reported_vital_status"
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "087_a4_notification_inbox_visibility"
           print("FRESH_068=PASS")
           PY
       - name: KNOW-05 + KNOW-04 regression pytest
