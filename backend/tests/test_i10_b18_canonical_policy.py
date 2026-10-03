@@ -26,7 +26,6 @@ from backend.app.services.gate4.policy_prefs_bridge import (
     resolve_validated_user_timezone,
 )
 from backend.app.services.i6.consent_service import grant_memory_consent
-from backend.app.services.i6.memory_writes import write_fact
 from backend.app.services.i10.canonical_policy import (
     I10_CANONICAL_POLICY_VERSION,
     PROACTIVE_OUTSIDE_DAYTIME_WINDOW,
@@ -735,20 +734,40 @@ def _snapshot_memory_fact(fact: models.UserMemoryFact) -> tuple:
     )
 
 
+def _seed_legacy_timezone_fact(
+    db,
+    user_id: int,
+    *,
+    tz: str,
+    valid_until: datetime | None = None,
+) -> models.UserMemoryFact:
+    """Insert leftover preferences/timezone row (write_fact blocks CANONICAL_PROFILE keys)."""
+    row = models.UserMemoryFact(
+        user_id=user_id,
+        domain="preferences",
+        key="timezone",
+        value_json=f'{{"tz": "{tz}"}}',
+        confidence=0.9,
+        source="legacy",
+        fact_status="active",
+        valid_until=valid_until,
+        provenance_class="USER_STATED",
+        sensitivity_class="standard",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def test_a4_timezone_fallback_readonly_expired_fact_unmutated(db, b18_env):
     """Expired timezone memory fact must not be mutated by policy evaluation or decision commit."""
     user = _user(db, "tz-ro-expired")
     subject = ensure_self_subject_for_account(db, user.id, commit=True)
     grant_memory_consent(db, user.id, commit=True)
     past = datetime.now(timezone.utc) - timedelta(hours=2)
-    expired = write_fact(
-        db,
-        user.id,
-        "preferences",
-        "timezone",
-        {"tz": "America/New_York"},
-        valid_until=past,
-        commit=True,
+    expired = _seed_legacy_timezone_fact(
+        db, user.id, tz="America/New_York", valid_until=past
     )
     before = _snapshot_memory_fact(expired)
     assert expired.fact_status == "active"
@@ -767,6 +786,7 @@ def test_a4_timezone_fallback_readonly_expired_fact_unmutated(db, b18_env):
         semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT,
     )
     # 06:30 UTC with default Tehran (=10:00 local) is inside daytime; policy still runs TZ resolve.
+    # If expired NY tz were incorrectly used, local would be 02:30 → daytime SUPPRESS.
     now_utc = datetime(2026, 7, 15, 6, 30, tzinfo=timezone.utc)
     with _gate4_allow_patch():
         outcome = evaluate_i10_canonical_policy(
@@ -794,14 +814,7 @@ def test_a4_timezone_memory_fallback_valid_still_works(db, b18_env):
     """Valid non-expired timezone memory fact still drives resolve when profile is absent."""
     user = _user(db, "tz-ro-valid")
     grant_memory_consent(db, user.id, commit=True)
-    write_fact(
-        db,
-        user.id,
-        "preferences",
-        "timezone",
-        {"tz": "America/New_York"},
-        commit=True,
-    )
+    _seed_legacy_timezone_fact(db, user.id, tz="America/New_York")
     assert resolve_validated_user_timezone(db, user.id) == "America/New_York"
 
     # Profile still wins over memory.
