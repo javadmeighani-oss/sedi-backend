@@ -93,7 +93,8 @@ def resolve_validated_user_timezone(
     memory_tz = None
     try:
         if sa_inspect(bind).has_table("user_memory_facts"):
-            memory_tz = _load_memory_json_fact(db, user_id, "timezone")
+            # Read-only I6 fallback — never mutate expired fact/consent via get_fact().
+            memory_tz = _load_memory_timezone_readonly(db, user_id)
     except Exception:
         memory_tz = None
     tz_candidate = resolve_user_timezone(
@@ -106,6 +107,17 @@ def resolve_validated_user_timezone(
         return tz_candidate
     except pytz.exceptions.UnknownTimeZoneError:
         return DEFAULT_TIMEZONE
+
+
+def _load_memory_timezone_readonly(db: Session, user_id: int) -> Optional[dict[str, Any]]:
+    """Timezone memory fallback without mutating expired fact/consent rows."""
+    from backend.app.services.i6.memory_writes import get_readonly_fact_or_none
+
+    fact = get_readonly_fact_or_none(db, user_id, "preferences", "timezone")
+    if not fact or not fact.value_json:
+        return None
+    data = json.loads(fact.value_json)
+    return data if isinstance(data, dict) else None
 
 
 def resolve_user_timezone(

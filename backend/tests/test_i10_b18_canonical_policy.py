@@ -21,12 +21,19 @@ from backend.app.services.i10.care_safety_copy import (
     CARE_SAFETY_INTERRUPTION_POLICY_RISK,
     CARE_SAFETY_POLICY_RISK_SOURCE,
 )
+from backend.app.services.gate4.policy_prefs_bridge import (
+    DEFAULT_TIMEZONE,
+    resolve_validated_user_timezone,
+)
+from backend.app.services.i6.consent_service import grant_memory_consent
+from backend.app.services.i6.memory_writes import write_fact
 from backend.app.services.i10.canonical_policy import (
     I10_CANONICAL_POLICY_VERSION,
     PROACTIVE_OUTSIDE_DAYTIME_WINDOW,
     evaluate_i10_canonical_policy,
     resolve_i10_policy_risk,
 )
+from backend.app.services.i10.decision_ledger import record_notification_decision
 from backend.app.services.i10.care_digest_producer_worker import run_care_digest_producer_for_subject
 from backend.app.services.i10.care_network_access import grant_caregiver_subject_access
 from backend.app.services.i10.care_network_grants import create_subject_notification_grant
@@ -716,6 +723,91 @@ def test_a4_daily_smart_touchpoint_unchanged_by_daytime_window():
     assert 'CANONICAL_DAILY_SMART_TOUCHPOINT_TIME = "09:00"' in src
     assert "PROACTIVE_OUTSIDE_DAYTIME_WINDOW" not in src
     assert timing.CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+
+
+def _snapshot_memory_fact(fact: models.UserMemoryFact) -> tuple:
+    return (
+        fact.fact_status,
+        fact.valid_until,
+        fact.updated_at,
+        fact.soft_invalidated_at,
+        fact.value_json,
+    )
+
+
+def test_a4_timezone_fallback_readonly_expired_fact_unmutated(db, b18_env):
+    """Expired timezone memory fact must not be mutated by policy evaluation or decision commit."""
+    user = _user(db, "tz-ro-expired")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    grant_memory_consent(db, user.id, commit=True)
+    past = datetime.now(timezone.utc) - timedelta(hours=2)
+    expired = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "timezone",
+        {"tz": "America/New_York"},
+        valid_until=past,
+        commit=True,
+    )
+    before = _snapshot_memory_fact(expired)
+    assert expired.fact_status == "active"
+
+    # No profile timezone → memory fallback path; expired → default Tehran (read-only miss).
+    assert resolve_validated_user_timezone(db, user.id) == DEFAULT_TIMEZONE
+    assert DEFAULT_TIMEZONE == "Asia/Tehran"
+
+    _enable_prefs(db, user.id)
+    db.commit()
+    cand = _candidate(
+        candidate_key=f"i10:tz-ro:{user.id}",
+        health_subject_id=subject.id,
+        recipient_user_id=user.id,
+        notification_scope=I10NotificationScope.GENERAL_STATUS,
+        semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT,
+    )
+    # 06:30 UTC with default Tehran (=10:00 local) is inside daytime; policy still runs TZ resolve.
+    now_utc = datetime(2026, 7, 15, 6, 30, tzinfo=timezone.utc)
+    with _gate4_allow_patch():
+        outcome = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata={"priority": "normal"}, now_utc=now_utc
+        )
+    assert outcome.reason_code != PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+
+    db.refresh(expired)
+    assert _snapshot_memory_fact(expired) == before
+    assert expired.fact_status == "active"
+
+    record_notification_decision(
+        db,
+        candidate=cand,
+        decision=outcome.decision,
+        reason_code=outcome.reason_code,
+        commit=True,
+    )
+    db.refresh(expired)
+    assert _snapshot_memory_fact(expired) == before
+    assert expired.fact_status == "active"
+
+
+def test_a4_timezone_memory_fallback_valid_still_works(db, b18_env):
+    """Valid non-expired timezone memory fact still drives resolve when profile is absent."""
+    user = _user(db, "tz-ro-valid")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(
+        db,
+        user.id,
+        "preferences",
+        "timezone",
+        {"tz": "America/New_York"},
+        commit=True,
+    )
+    assert resolve_validated_user_timezone(db, user.id) == "America/New_York"
+
+    # Profile still wins over memory.
+    db.add(models.UserProfileCore(user_id=user.id, timezone="UTC"))
+    db.commit()
+    assert resolve_validated_user_timezone(db, user.id) == "UTC"
 
 
 def test_vocabulary_constants():
