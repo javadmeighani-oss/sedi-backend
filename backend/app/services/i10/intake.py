@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -33,6 +34,15 @@ class I10IntakeResult:
     recipient_kind: Optional[str]
 
 
+def _policy_now_utc_from_payload(scheduled_for: Optional[datetime]) -> Optional[datetime]:
+    """Use producer schedule time as policy clock when present (naive ⇒ UTC)."""
+    if scheduled_for is None:
+        return None
+    if scheduled_for.tzinfo is None:
+        return scheduled_for.replace(tzinfo=timezone.utc)
+    return scheduled_for.astimezone(timezone.utc)
+
+
 def evaluate_foundation_policy(
     *,
     candidate: I10NotificationCandidate,
@@ -42,8 +52,6 @@ def evaluate_foundation_policy(
     if not authorized:
         return I10DecisionValue.SUPPRESS, "AUTHORIZATION_DENIED"
     if candidate.expires_at is not None:
-        from datetime import datetime, timezone
-
         if candidate.expires_at <= datetime.now(timezone.utc):
             return I10DecisionValue.EXPIRE, "CANDIDATE_EXPIRED"
     return I10DecisionValue.SEND, "FOUNDATION_SEND"
@@ -99,11 +107,14 @@ def enqueue_i10_notification(
     candidate = apply_i10_provider_lifetime(db, candidate)
     decision, reason = evaluate_foundation_policy(candidate=candidate, authorized=authorized)
     if decision == I10DecisionValue.SEND:
+        # A4 daytime window (+ Gate4 quiet hours) must honor producer schedule time,
+        # not CI/wall-clock, when scheduled_for is set on the payload.
         policy_outcome = evaluate_i10_canonical_policy(
             db,
             candidate=candidate,
             payload_metadata=payload.metadata,
             notification_type=payload.type,
+            now_utc=_policy_now_utc_from_payload(payload.scheduled_for),
         )
         decision = policy_outcome.decision
         reason = policy_outcome.reason_code
