@@ -198,9 +198,10 @@ def test_inactivity_duplicate_same_occurrence_blocked(db, gate4_patch):
 
 def test_inactivity_later_occurrence_allowed(db, gate4_patch):
     user, _ = _self_setup(db)
-    t1 = datetime(2026, 8, 31, 12, 0, 0)
-    # A4: sibling cooldown is 6h (was 4h); keep distinct occurrence buckets.
-    t2 = datetime(2026, 8, 31, 18, 0, 0)
+    # Keep both schedule times inside A4 daytime window (09:00<=local<21:00 Asia/Tehran).
+    # 10:00 UTC → 13:30 local; 16:00 UTC → 19:30 local; 6h cooldown + distinct hour buckets.
+    t1 = datetime(2026, 8, 31, 10, 0, 0)
+    t2 = datetime(2026, 8, 31, 16, 0, 0)
     _seed_chat_idle(db, user, scheduled_for=t1)
     n1 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=t1)
     n2 = _engine(db).create_connection_ping(user_id=user.id, scheduled_for=t2)
