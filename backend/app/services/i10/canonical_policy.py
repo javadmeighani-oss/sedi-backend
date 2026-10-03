@@ -23,7 +23,7 @@ from backend.app.services.notification_engine import _channel_for_type
 
 logger = logging.getLogger(__name__)
 
-I10_CANONICAL_POLICY_VERSION = "i10.b18.3"
+I10_CANONICAL_POLICY_VERSION = "i10.b18.4"
 
 _REASON_ALIASES = {
     "quiet_hours": "QUIET_HOURS_DEFER",
@@ -53,6 +53,10 @@ _PROACTIVE_SUPPRESS_FAMILIES = frozenset(
 
 USER_FOLLOW_UP_PREFERENCE_SUPPRESS = "USER_FOLLOW_UP_PREFERENCE_SUPPRESS"
 USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS = "USER_PROACTIVE_CHECKIN_PREFERENCE_SUPPRESS"
+# A4 — proactive reengagement / nudge only; local daytime [09:00, 21:00).
+PROACTIVE_OUTSIDE_DAYTIME_WINDOW = "PROACTIVE_OUTSIDE_DAYTIME_WINDOW"
+_PROACTIVE_DAYTIME_START_MINUTE = 9 * 60
+_PROACTIVE_DAYTIME_END_MINUTE = 21 * 60
 
 
 def _authorized_critical_policy_risk(metadata: Mapping[str, Any]) -> Optional[str]:
@@ -197,6 +201,44 @@ def _user_interruption_preference_suppress(
     return None
 
 
+def _proactive_daytime_window_suppress(
+    db: Session,
+    candidate: I10NotificationCandidate,
+    *,
+    now_utc: datetime,
+) -> Optional[I10CanonicalPolicyOutcome]:
+    """Suppress PRESENCE_REENGAGEMENT / ENGAGEMENT_NUDGE outside 09:00–21:00 local.
+
+    Uses existing validated user timezone authority. Does not affect medication,
+    appointments, care, health/safety, or Daily Smart Touchpoint scheduling.
+    """
+    if candidate.semantic_family not in _PROACTIVE_SUPPRESS_FAMILIES:
+        return None
+
+    import pytz
+
+    from backend.app.services.gate4.policy_prefs_bridge import (
+        DEFAULT_TIMEZONE,
+        resolve_validated_user_timezone,
+    )
+
+    tz_name = resolve_validated_user_timezone(db, candidate.recipient_user_id)
+    try:
+        user_tz = pytz.timezone(tz_name or DEFAULT_TIMEZONE)
+    except Exception:
+        user_tz = pytz.timezone(DEFAULT_TIMEZONE)
+
+    local = now_utc.astimezone(user_tz)
+    minute_of_day = local.hour * 60 + local.minute
+    if _PROACTIVE_DAYTIME_START_MINUTE <= minute_of_day < _PROACTIVE_DAYTIME_END_MINUTE:
+        return None
+    return I10CanonicalPolicyOutcome(
+        decision=I10DecisionValue.SUPPRESS,
+        reason_code=PROACTIVE_OUTSIDE_DAYTIME_WINDOW,
+        policy_version=I10_CANONICAL_POLICY_VERSION,
+    )
+
+
 def evaluate_i10_canonical_policy(
     db: Session,
     *,
@@ -210,6 +252,7 @@ def evaluate_i10_canonical_policy(
     Single effective I10 interruption policy decision.
 
     Order: expiry → B14 overlap → CR-04E2 I6 interruption prefs (false-only)
+    → A4 proactive daytime window (PRESENCE_REENGAGEMENT / ENGAGEMENT_NUDGE)
     → B06 prefs (fail-closed, including critical)
     → Gate4 resolver (feedback/quiet/active conversation) → normalized outcome.
     """
@@ -241,6 +284,12 @@ def evaluate_i10_canonical_policy(
     pref_suppress = _user_interruption_preference_suppress(db, candidate)
     if pref_suppress is not None:
         return pref_suppress
+
+    daytime_suppress = _proactive_daytime_window_suppress(
+        db, candidate, now_utc=effective_now
+    )
+    if daytime_suppress is not None:
+        return daytime_suppress
 
     prefs_ok, prefs_reason = notification_prefs_allow_scope(
         db,

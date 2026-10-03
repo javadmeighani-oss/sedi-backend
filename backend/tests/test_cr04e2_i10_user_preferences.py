@@ -394,7 +394,7 @@ def test_cr04e2_1_revoked_read_consent_neutral(db):
 
 
 def test_cr04e2_1_policy_version_b18_3():
-    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.3"
+    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.4"
 
 
 def _memory_consent(db, user_id: int) -> models.UserConsent:

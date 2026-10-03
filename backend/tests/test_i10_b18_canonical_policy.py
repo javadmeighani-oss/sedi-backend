@@ -23,6 +23,7 @@ from backend.app.services.i10.care_safety_copy import (
 )
 from backend.app.services.i10.canonical_policy import (
     I10_CANONICAL_POLICY_VERSION,
+    PROACTIVE_OUTSIDE_DAYTIME_WINDOW,
     evaluate_i10_canonical_policy,
     resolve_i10_policy_risk,
 )
@@ -527,5 +528,195 @@ def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
     assert action.status == "ACTIVE"
 
 
+def _enable_prefs(db, user_id: int) -> None:
+    db.add(
+        models.NotificationPrefs(
+            user_id=user_id,
+            companion_enabled=True,
+            health_alert_enabled=True,
+            reminder_system_enabled=True,
+        )
+    )
+
+
+def _gate4_allow_patch():
+    from types import SimpleNamespace
+
+    decision = SimpleNamespace(action="allow", reason="allowed", defer_until=None)
+    return patch(
+        "backend.app.services.i10.canonical_policy.resolve_notification_policy",
+        return_value=SimpleNamespace(decision=decision, reason_code="allowed"),
+    )
+
+
+@pytest.mark.parametrize(
+    "local_hhmm,expect_suppress",
+    [
+        ("06:30", True),
+        ("08:59", True),
+        ("09:00", False),
+        ("20:59", False),
+        ("21:00", True),
+    ],
+)
+def test_a4_proactive_daytime_window_presence_reengagement(db, b18_env, local_hhmm, expect_suppress):
+    """PRESENCE_REENGAGEMENT: eligible only for 09:00 <= local < 21:00."""
+    user = _user(db, f"daywin-pr-{local_hhmm.replace(':', '')}")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    _enable_prefs(db, user.id)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="UTC"))
+    db.commit()
+
+    hour, minute = map(int, local_hhmm.split(":"))
+    now_utc = datetime(2026, 7, 15, hour, minute, tzinfo=timezone.utc)
+    cand = _candidate(
+        health_subject_id=subject.id,
+        recipient_user_id=user.id,
+        notification_scope=I10NotificationScope.GENERAL_STATUS,
+        semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT,
+    )
+    with _gate4_allow_patch():
+        outcome = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata={"priority": "normal"}, now_utc=now_utc
+        )
+    if expect_suppress:
+        assert outcome.decision == I10DecisionValue.SUPPRESS
+        assert outcome.reason_code == PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+    else:
+        assert outcome.reason_code != PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+        assert outcome.decision == I10DecisionValue.SEND
+
+
+@pytest.mark.parametrize(
+    "local_hhmm,expect_suppress",
+    [
+        ("06:30", True),
+        ("08:59", True),
+        ("09:00", False),
+        ("20:59", False),
+        ("21:00", True),
+    ],
+)
+def test_a4_proactive_daytime_window_engagement_nudge(db, b18_env, local_hhmm, expect_suppress):
+    """ENGAGEMENT_NUDGE shares the same daytime window."""
+    user = _user(db, f"daywin-en-{local_hhmm.replace(':', '')}")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    _enable_prefs(db, user.id)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="UTC"))
+    db.commit()
+
+    hour, minute = map(int, local_hhmm.split(":"))
+    now_utc = datetime(2026, 7, 15, hour, minute, tzinfo=timezone.utc)
+    cand = _candidate(
+        health_subject_id=subject.id,
+        recipient_user_id=user.id,
+        notification_scope=I10NotificationScope.GENERAL_STATUS,
+        semantic_family=I10SemanticFamily.ENGAGEMENT_NUDGE,
+    )
+    with _gate4_allow_patch():
+        outcome = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata={"priority": "normal"}, now_utc=now_utc
+        )
+    if expect_suppress:
+        assert outcome.decision == I10DecisionValue.SUPPRESS
+        assert outcome.reason_code == PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+    else:
+        assert outcome.reason_code != PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+        assert outcome.decision == I10DecisionValue.SEND
+
+
+def test_a4_proactive_daytime_window_respects_user_timezone(db, b18_env):
+    """Same UTC instant: suppress in one TZ, eligible in another (validated profile TZ)."""
+    user = _user(db, "daywin-tz")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    _enable_prefs(db, user.id)
+    # Asia/Tehran = UTC+3:30 → 05:30 UTC == 09:00 local (eligible)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="Asia/Tehran"))
+    db.commit()
+
+    now_utc = datetime(2026, 7, 15, 5, 30, tzinfo=timezone.utc)
+    cand = _candidate(
+        health_subject_id=subject.id,
+        recipient_user_id=user.id,
+        notification_scope=I10NotificationScope.GENERAL_STATUS,
+        semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT,
+    )
+    with _gate4_allow_patch():
+        eligible = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata={"priority": "normal"}, now_utc=now_utc
+        )
+    assert eligible.reason_code != PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+    assert eligible.decision == I10DecisionValue.SEND
+
+    # 05:30 UTC in America/New_York (EDT UTC-4) == 01:30 local → suppress
+    core = db.query(models.UserProfileCore).filter(models.UserProfileCore.user_id == user.id).one()
+    core.timezone = "America/New_York"
+    db.commit()
+    with _gate4_allow_patch():
+        suppressed = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata={"priority": "normal"}, now_utc=now_utc
+        )
+    assert suppressed.decision == I10DecisionValue.SUPPRESS
+    assert suppressed.reason_code == PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+
+
+@pytest.mark.parametrize(
+    "family",
+    [
+        I10SemanticFamily.GENERAL_STATUS,
+        I10SemanticFamily.MEDICATION_DUE,
+        I10SemanticFamily.DOCTOR_APPOINTMENT_REMINDER,
+        I10SemanticFamily.CARE_ACTION,
+        I10SemanticFamily.SAFETY_ESCALATION,
+        I10SemanticFamily.MORNING_CHECK_IN,
+        I10SemanticFamily.DAILY_WELLNESS_DIGEST,
+        I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP,
+    ],
+)
+def test_a4_proactive_daytime_window_unrelated_families_unchanged(db, b18_env, family):
+    """Unrelated I10 families are not suppressed by the daytime window at 06:30 local."""
+    user = _user(db, f"daywin-other-{family.value[:12]}")
+    subject = ensure_self_subject_for_account(db, user.id, commit=True)
+    _enable_prefs(db, user.id)
+    db.add(models.UserProfileCore(user_id=user.id, timezone="UTC"))
+    db.commit()
+
+    now_utc = datetime(2026, 7, 15, 6, 30, tzinfo=timezone.utc)
+    scope = (
+        I10NotificationScope.SAFETY_ESCALATION
+        if family == I10SemanticFamily.SAFETY_ESCALATION
+        else (
+            I10NotificationScope.CARE_ACTION
+            if family == I10SemanticFamily.CARE_ACTION
+            else I10NotificationScope.GENERAL_STATUS
+        )
+    )
+    cand = _candidate(
+        health_subject_id=subject.id,
+        recipient_user_id=user.id,
+        notification_scope=scope,
+        semantic_family=family,
+    )
+    meta = {"priority": "normal"}
+    if family == I10SemanticFamily.SAFETY_ESCALATION:
+        meta = _safety_policy_meta()
+    with _gate4_allow_patch():
+        outcome = evaluate_i10_canonical_policy(
+            db, candidate=cand, payload_metadata=meta, now_utc=now_utc
+        )
+    assert outcome.reason_code != PROACTIVE_OUTSIDE_DAYTIME_WINDOW
+
+
+def test_a4_daily_smart_touchpoint_unchanged_by_daytime_window():
+    """Daily Smart Touchpoint 09:00 seam is independent of I10 daytime suppress."""
+    from backend.app.services.gate4 import scheduler_timing as timing
+
+    src = open(timing.__file__, encoding="utf-8").read()
+    assert "should_run_daily_smart_touchpoint" in src
+    assert 'CANONICAL_DAILY_SMART_TOUCHPOINT_TIME = "09:00"' in src
+    assert "PROACTIVE_OUTSIDE_DAYTIME_WINDOW" not in src
+    assert timing.CANONICAL_DAILY_SMART_TOUCHPOINT_TIME == "09:00"
+
+
 def test_vocabulary_constants():
-    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.3"
+    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.4"
