@@ -606,6 +606,9 @@ class LifestyleContextAdapter:
                 if not MemoryContract.is_i6_context_projectable(domain, key):
                     continue
                 canonical_key = f"{domain}.{key}"
+                # CR-04F.2.2: only F2 confirmation targets become STALE evidence.
+                if canonical_key not in SUPPORTED_TARGETS:
+                    continue
                 if canonical_key in confirmation_keys:
                     continue
                 effective_sens = _effective_i6_sensitivity(

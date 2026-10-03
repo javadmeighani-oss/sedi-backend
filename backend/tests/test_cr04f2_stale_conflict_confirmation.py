@@ -957,3 +957,87 @@ def test_cr04f21_confirmation_evidence_is_bounded(db):
     for item in confirmation:
         assert item.may_send_to_llm is False
         assert not is_llm_projection_eligible(item)
+
+
+# ---- CR-04F.2.2 stale confirmation target scope ----
+
+
+def test_cr04f22_stale_confirmation_scoped_to_supported_targets(db):
+    """Non-F2/Tier-C stale rows must not consume confirmation slots."""
+    from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
+    from backend.app.services.intelligence.user_understanding_coverage import (
+        TIER_C_NEVER_MISSING_DRIVEN,
+    )
+
+    user = _user(db, "f22-stale-scope")
+    _grant(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(days=2)
+
+    # 12+ context-projectable non-SUPPORTED_TARGETS stale facts (incl. Tier-C).
+    non_f2_stale = (
+        ("preferences", "interaction_style", "supportive tone"),
+        ("preferences", "follow_up_preference", "weekly check"),
+        ("preferences", "proactive_checkin_preference", "gentle nudge"),
+        ("preferences", "notification_preferences", "quiet evenings"),
+        ("routines", "meal_times", "three meals"),
+        ("lifestyle", "mood", "mostly calm"),
+        ("lifestyle", "stress_level", "manageable"),
+        ("lifestyle", "hydration_ml", "2000 ml day"),
+        ("lifestyle", "diet_notes", "low sugar diet"),
+        ("lifestyle", "exercise_minutes", "thirty minutes"),
+        ("work", "occupation", "software engineer"),
+        ("work", "work_stressors", "tight deadlines"),
+        ("education", "education_level", "bachelors degree"),
+        ("education", "field_of_study", "computer science"),
+        ("social", "household_context", "lives with family"),
+        ("social", "support_network", "close friends nearby"),
+        ("values", "important_values", "honesty first"),
+        ("barriers", "financial_constraints", "limited budget"),
+        ("barriers", "motivation_barriers", "low energy days"),
+    )
+    assert len(non_f2_stale) >= 12
+    for domain, key, value in non_f2_stale:
+        assert f"{domain}.{key}" not in SUPPORTED_TARGETS
+        write_fact(
+            db, user.id, domain, key, value, valid_until=past, commit=True
+        )
+
+    # One valid F2 SUPPORTED_TARGET stale fact must still surface.
+    write_fact(
+        db,
+        user.id,
+        "preferences",
+        "interests",
+        "gardening and music",
+        valid_until=past,
+        commit=True,
+    )
+
+    items = LifestyleContextAdapter().load(
+        db, authenticated_user_id=user.id, user_context_pack=None
+    )
+    confirmation = _confirmation_items(items)
+    stale_confirm = [
+        i
+        for i in confirmation
+        if i.provenance.query_label == "I6.list_stale_facts_readonly"
+    ]
+
+    assert all(i.canonical_key in SUPPORTED_TARGETS for i in stale_confirm)
+    non_f2_keys = {f"{d}.{k}" for d, k, _ in non_f2_stale}
+    assert not any(i.canonical_key in non_f2_keys for i in confirmation)
+    assert not any(
+        i.canonical_key in TIER_C_NEVER_MISSING_DRIVEN for i in confirmation
+    )
+
+    hit = next(i for i in items if i.canonical_key == "preferences.interests")
+    assert hit.freshness == "stale"
+    assert hit.may_send_to_llm is False
+    assert coverage_state_for_key(_snap([hit]), "preferences.interests") is (
+        CoverageState.STALE
+    )
+    assert not is_llm_projection_eligible(hit)
+    # Non-F2 flood did not displace the supported stale target.
+    assert any(
+        i.canonical_key == "preferences.interests" for i in stale_confirm
+    )
