@@ -727,3 +727,233 @@ def test_cr04f2_cr04f1_missing_tier_a_unchanged():
     assert d is not None
     assert d.target_key == "preferences.interests"
     assert "Optional" in d.localized_question or "اختیاری" in d.localized_question
+
+
+# ---- CR-04F.2.1 confirmation evidence under saturation ----
+
+
+def _i6_known_items(items):
+    return [
+        i
+        for i in items
+        if i.provenance.query_label == "I6.list_facts_readonly_or_empty"
+    ]
+
+
+def _confirmation_items(items):
+    return [
+        i
+        for i in items
+        if i.provenance.query_label
+        in (
+            "I6.list_stale_facts_readonly",
+            "KC.relationship_discovery.pending_confirmation",
+        )
+    ]
+
+
+def test_cr04f21_stale_survives_same_domain_saturation(db):
+    """Ordinary per-domain=3 must not drop registered STALE confirmation evidence."""
+    from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
+
+    user = _user(db, "f21-domain-sat")
+    _grant(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(days=1)
+
+    for key, value in (
+        ("interests", "gardening"),
+        ("communication_style", "direct"),
+        ("response_length", "brief"),
+    ):
+        write_fact(db, user.id, "preferences", key, value, commit=True)
+
+    stale = write_fact(
+        db,
+        user.id,
+        "preferences",
+        "listen_before_advice",
+        True,
+        valid_until=past,
+        commit=True,
+    )
+    before = (
+        stale.fact_status,
+        stale.valid_until,
+        stale.soft_invalidated_at,
+        stale.updated_at,
+    )
+
+    items = LifestyleContextAdapter().load(
+        db, authenticated_user_id=user.id, user_context_pack=None
+    )
+    known_prefs = [
+        i
+        for i in _i6_known_items(items)
+        if i.canonical_key.startswith("preferences.")
+    ]
+    assert len(known_prefs) == 3
+
+    hit = next(
+        i for i in items if i.canonical_key == "preferences.listen_before_advice"
+    )
+    assert hit.freshness == "stale"
+    assert hit.may_send_to_llm is False
+    assert coverage_state_for_key(_snap([hit]), "preferences.listen_before_advice") is (
+        CoverageState.STALE
+    )
+    assert not is_llm_projection_eligible(hit)
+    assert len(_confirmation_items(items)) <= len(SUPPORTED_TARGETS)
+
+    db.commit()
+    db.refresh(stale)
+    assert (
+        stale.fact_status,
+        stale.valid_until,
+        stale.soft_invalidated_at,
+        stale.updated_at,
+    ) == before
+
+
+def test_cr04f21_conflict_survives_total_saturation(db):
+    """Ordinary max_total=12 must not drop relationship CONFLICT confirmation evidence."""
+    from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
+
+    user = _user(db, "f21-total-sat")
+    other = _user(db, "f21-total-other")
+    _grant(db, user.id)
+    _grant(db, other.id)
+
+    normals = (
+        ("preferences", "interests", "gardening"),
+        ("preferences", "communication_style", "direct"),
+        ("preferences", "response_length", "brief"),
+        ("routines", "bedtime", "22:00"),
+        ("routines", "wake_time", "06:30"),
+        ("routines", "meal_times", "regular meals"),
+        ("lifestyle", "sleep_quality", "fair sleep"),
+        ("lifestyle", "activity_level", "moderate"),
+        ("lifestyle", "food_habits", "home cooked"),
+        ("work", "work_schedule", "day shift"),
+        ("work", "occupation", "engineer"),
+        ("work", "work_stressors", "tight deadlines"),
+    )
+    assert len(normals) >= 12
+    for domain, key, value in normals:
+        write_fact(db, user.id, domain, key, value, commit=True)
+
+    secret = "SECRET_TOTAL_SAT_CANDIDATE_QQQ"
+    _stage_rd_conflict(
+        db,
+        user_id=user.id,
+        target_key="preferences.listen_before_advice",
+        domain="preferences",
+        key="listen_before_advice",
+        value=secret,
+    )
+    _stage_rd_conflict(
+        db,
+        user_id=other.id,
+        target_key="work.work_schedule",
+        domain="work",
+        key="work_schedule",
+        value="night shifts",
+    )
+
+    adapter = LifestyleContextAdapter()
+    # Ordinary budget is owned by _load_i6_user_understanding_facts (max_total=12).
+    # LifestyleContextAdapter.load also has a separate lifestyle preview loop.
+    uu_items = adapter._load_i6_user_understanding_facts(
+        db, authenticated_user_id=user.id
+    )
+    known = _i6_known_items(uu_items)
+    assert len(known) == 12
+
+    items = adapter.load(
+        db, authenticated_user_id=user.id, user_context_pack=None
+    )
+    conflict = next(
+        i
+        for i in items
+        if i.canonical_key == "preferences.listen_before_advice" and i.conflicted
+    )
+    assert conflict.may_send_to_llm is False
+    assert conflict.structured_value is None
+    assert secret not in (conflict.display_text or "")
+    assert not is_llm_projection_eligible(conflict)
+    assert coverage_state_for_key(
+        _snap([conflict]), "preferences.listen_before_advice"
+    ) is CoverageState.CONFLICTED
+
+    assert not any(
+        i.canonical_key == "work.work_schedule" and i.conflicted for i in items
+    )
+    other_items = LifestyleContextAdapter().load(
+        db, authenticated_user_id=other.id, user_context_pack=None
+    )
+    assert not any(
+        i.canonical_key == "preferences.listen_before_advice" and i.conflicted
+        for i in other_items
+    )
+    assert len(_confirmation_items(items)) <= len(SUPPORTED_TARGETS)
+
+
+def test_cr04f21_confirmation_evidence_is_bounded(db):
+    """Many stale+conflict entries remain within the independent confirmation cap."""
+    from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
+
+    user = _user(db, "f21-bound")
+    _grant(db, user.id)
+    past = datetime.now(timezone.utc) - timedelta(days=3)
+
+    stale_targets = (
+        ("preferences", "interests", "old-interests"),
+        ("preferences", "communication_style", "old-style"),
+        ("preferences", "response_length", "brief"),
+        ("preferences", "listen_before_advice", True),
+        ("routines", "bedtime", "21:00"),
+        ("routines", "wake_time", "07:00"),
+        ("lifestyle", "sleep_quality", "poor"),
+        ("lifestyle", "food_habits", "irregular"),
+        ("lifestyle", "activity_level", "low"),
+        ("routines", "exercise_schedule", "rarely"),
+        ("work", "work_schedule", "rotating"),
+        ("barriers", "time_constraints", "very limited"),
+    )
+    for domain, key, value in stale_targets:
+        write_fact(
+            db, user.id, domain, key, value, valid_until=past, commit=True
+        )
+
+    conflict_targets = (
+        ("preferences.interests", "preferences", "interests", "new-a"),
+        ("preferences.communication_style", "preferences", "communication_style", "new-b"),
+        ("work.work_schedule", "work", "work_schedule", "new-c"),
+        ("barriers.time_constraints", "barriers", "time_constraints", "new-d"),
+        ("routines.bedtime", "routines", "bedtime", "23:30"),
+    )
+    for target_key, domain, key, value in conflict_targets:
+        _stage_rd_conflict(
+            db,
+            user_id=user.id,
+            target_key=target_key,
+            domain=domain,
+            key=key,
+            value=value,
+        )
+
+    items = LifestyleContextAdapter().load(
+        db, authenticated_user_id=user.id, user_context_pack=None
+    )
+    confirmation = _confirmation_items(items)
+    assert len(confirmation) <= len(SUPPORTED_TARGETS)
+    assert len(confirmation) >= 1
+    # Conflict preferred into the confirmation budget; raw values never projected.
+    conflicted = [i for i in confirmation if i.conflicted]
+    assert conflicted
+    for item in conflicted:
+        assert item.structured_value is None
+        assert item.may_send_to_llm is False
+        assert "new-" not in (item.display_text or "")
+    for item in confirmation:
+        assert item.may_send_to_llm is False
+        assert not is_llm_projection_eligible(item)

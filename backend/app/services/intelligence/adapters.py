@@ -487,15 +487,18 @@ class LifestyleContextAdapter:
     ) -> list[ContextItem]:
         """Project preferences/routines/work/education/social/values/barriers.
 
-        Bounded: max 3 items per domain and max 12 items total.
+        Bounded ordinary known-context: max 3 items per domain and max 12 total.
         Uses the I6 read-only list path only (canonical memory authority).
-        CR-04F.2: also projects explicit-expiry STALE rows (may_send_to_llm=False)
-        and pending relationship_discovery conflict evidence (no raw candidate values).
+
+        CR-04F.2 / CR-04F.2.1: STALE + relationship CONFLICT confirmation evidence
+        is composed independently of ordinary budgets (own bounded cap), so
+        confirmation targets cannot disappear under domain/total saturation.
         """
         from backend.app.services.i6.memory_writes import (
             list_facts_readonly_or_empty,
             list_stale_facts_readonly,
         )
+        from backend.app.services.i6.relationship_discovery import SUPPORTED_TARGETS
         from backend.app.services.memory.memory_contract import MemoryContract
 
         # Adaptive/control prefs stay in the snapshot for pure resolvers,
@@ -522,8 +525,10 @@ class LifestyleContextAdapter:
         )
         max_per_domain = 3
         max_total = 12
+        # Independent of ordinary known-context slots; sized to F2 confirm targets.
+        max_confirmation = len(SUPPORTED_TARGETS)
+
         out: list[ContextItem] = []
-        seen_keys: set[str] = set()
         for domain, section, sensitivity in domain_specs:
             if len(out) >= max_total:
                 break
@@ -569,16 +574,30 @@ class LifestyleContextAdapter:
                         epistemic_class=_row_epistemic_class(row),
                     )
                 )
-                seen_keys.add(canonical_key)
                 domain_added += 1
 
-            # CR-04F.2: explicit valid_until expiry → STALE coverage (not LLM).
-            if len(out) >= max_total or domain_added >= max_per_domain:
-                continue
+        # CR-04F.2.1: confirmation evidence does not consume ordinary slots.
+        confirmation: list[ContextItem] = []
+        confirmation_keys: set[str] = set()
+
+        # CONFLICT first (matches NBQ confirmation priority over STALE).
+        conflicts = self._load_relationship_conflict_evidence(
+            db,
+            authenticated_user_id=authenticated_user_id,
+            budget=max_confirmation,
+        )
+        for item in conflicts:
+            confirmation.append(item)
+            confirmation_keys.add(item.canonical_key)
+
+        # Explicit valid_until expiry → STALE coverage (not LLM).
+        for domain, section, sensitivity in domain_specs:
+            if len(confirmation) >= max_confirmation:
+                break
             for row in list_stale_facts_readonly(
                 db, authenticated_user_id, domain=domain
             ):
-                if domain_added >= max_per_domain or len(out) >= max_total:
+                if len(confirmation) >= max_confirmation:
                     break
                 key = str(getattr(row, "key", "") or "").strip()
                 raw = str(getattr(row, "value_json", "") or "").strip()
@@ -587,13 +606,13 @@ class LifestyleContextAdapter:
                 if not MemoryContract.is_i6_context_projectable(domain, key):
                     continue
                 canonical_key = f"{domain}.{key}"
-                if canonical_key in seen_keys:
+                if canonical_key in confirmation_keys:
                     continue
                 effective_sens = _effective_i6_sensitivity(
                     sensitivity,  # type: ignore[arg-type]
                     row,
                 )
-                out.append(
+                confirmation.append(
                     _item(
                         canonical_key=canonical_key,
                         section=section,  # type: ignore[arg-type]
@@ -614,18 +633,9 @@ class LifestyleContextAdapter:
                         freshness="stale",
                     )
                 )
-                seen_keys.add(canonical_key)
-                domain_added += 1
+                confirmation_keys.add(canonical_key)
 
-        # CR-04F.2: pending relationship_discovery confirmation candidates.
-        out.extend(
-            self._load_relationship_conflict_evidence(
-                db,
-                authenticated_user_id=authenticated_user_id,
-                seen_keys=seen_keys,
-                budget=max(0, max_total - len(out)),
-            )
-        )
+        out.extend(confirmation)
         return out
 
     def _load_relationship_conflict_evidence(
@@ -633,13 +643,13 @@ class LifestyleContextAdapter:
         db: Session,
         *,
         authenticated_user_id: int,
-        seen_keys: set[str],
         budget: int,
     ) -> list[ContextItem]:
         """Request-local CONFLICTED evidence from RD pending candidates only.
 
         Candidate raw values must not enter generic LLM projection/display text.
         Cross-user candidates are invisible (query scoped to authenticated user).
+        Budget is the independent confirmation-evidence cap (not ordinary slots).
         """
         if budget <= 0:
             return []
