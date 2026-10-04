@@ -1,4 +1,4 @@
-"""CR-01 / CR-04B / CR-04F.1 / CR-04F.2 — Pure Next Best Question (NBQ) selector.
+"""CR-01 / CR-04B / CR-04F.1 / CR-04F.2 / Q2 — Pure Next Best Question (NBQ) selector.
 
 Deterministic. No DB, network, LLM, writes, or legacy KC reads.
 CR-01 stores metadata only; user-visible discovery belongs to CR-02.
@@ -6,6 +6,7 @@ CR-04B adds optional message-scoped contextual candidates that may outrank
 legacy NBQ only when relevance evidence is present in the current message.
 CR-04F.1 adds request-local coverage-aware Tier-A progressive discovery on GENERAL.
 CR-04F.2 adds CONFLICTED/STALE confirmation ahead of missing discovery.
+Q2 adds bounded explicit discovery-invitation handling (one low-risk missing target).
 """
 
 from __future__ import annotations
@@ -109,6 +110,40 @@ _TIER_A_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
         30,
     ),
     "preferences.response_length": ("medium", "nbq.general.response_length.v1", 40),
+}
+
+# Q2 — invitation soft order reuses Tier-A, then optional low-risk occupation.
+# Occupation is invitation-gated (not missing-driven on ordinary GENERAL).
+_INVITATION_SOFT_PRIORITY: tuple[str, ...] = (
+    *TIER_A_GENERAL_PRIORITY,
+    "work.occupation",
+)
+
+_INVITATION_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
+    **_TIER_A_TEMPLATE_BY_KEY,
+    "work.occupation": ("medium", "nbq.general.occupation.v1", 50),
+}
+
+# Explicit discovery invitation cues (bounded; not a new intent subsystem).
+_DISCOVERY_INVITATION_CUES: dict[str, tuple[str, ...]] = {
+    "en": (
+        "ask me something",
+        "what do you want to know",
+        "what do you need to know about me",
+    ),
+    "fa": (
+        "چی میخوای بدونی",
+        "چی می‌خوای بدونی",
+        "ازم سوال بپرس",
+        "چه اطلاعاتی لازم داری",
+        "میخوای منو بیشتر بشناسی",
+    ),
+    "ar": (
+        "اسألني شيئا",
+        "اسألني شيء",
+        "ماذا تريد أن تعرف",
+        "ماذا تحتاج أن تعرف عني",
+    ),
 }
 
 # Intent-scoped confirmation keys (sleep/nutrition/activity).
@@ -350,6 +385,11 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "fa": "ترجیح می‌دهید پاسخ‌ها کوتاه باشد یا کمی مفصل‌تر؟",
         "ar": "هل تفضل إجابات مختصرة أم أكثر تفصيلاً قليلاً؟",
     },
+    "nbq.general.occupation.v1": {
+        "en": "Optional: what kind of work do you do?",
+        "fa": "اختیاری: شغلتان چیست؟",
+        "ar": "اختياري: ما نوع عملك؟",
+    },
     "nbq.contextual.work_schedule.v1": {
         "en": "If you're open to it, what does your work schedule usually look like?",
         "fa": "اگر مایلید بگویید، برنامه کاری‌تان معمولاً چگونه است؟",
@@ -445,6 +485,24 @@ def _norm_message(message: str) -> str:
     text = (message or "").strip().lower()
     text = text.replace("\u200c", "").replace("\u200d", "")
     return text
+
+
+def detect_discovery_invitation(
+    message: str, language: LanguageCode = "en"
+) -> bool:
+    """True when the user explicitly invites one optional discovery question."""
+    text = _norm_message(message)
+    if not text:
+        return False
+    lang = language if language in _DISCOVERY_INVITATION_CUES else "en"
+    cues = _DISCOVERY_INVITATION_CUES.get(lang, _DISCOVERY_INVITATION_CUES["en"])
+    # Also accept EN cues in any language (common bilingual phrasing).
+    ordered = sorted(
+        {*_DISCOVERY_INVITATION_CUES["en"], *cues},
+        key=len,
+        reverse=True,
+    )
+    return any(_cue_present(text, cue) for cue in ordered)
 
 
 def _cue_present(text: str, cue: str) -> bool:
@@ -600,6 +658,30 @@ def _select_tier_a_directive(
     return None
 
 
+def _select_invitation_directive(
+    *,
+    snapshot: ContextSnapshot,
+    language: LanguageCode,
+) -> Optional[DiscoveryDirective]:
+    """Q2 — on explicit invitation, pick exactly one safe missing low-risk target."""
+    for target_key in _INVITATION_SOFT_PRIORITY:
+        if not is_safe_missing_for_discovery(snapshot, target_key):
+            continue
+        meta = _INVITATION_TEMPLATE_BY_KEY.get(target_key)
+        if meta is None:
+            continue
+        sensitivity, template_id, priority = meta
+        question_id = f"nbq.q.invitation.{target_key}.v1"
+        return DiscoveryDirective(
+            question_id=question_id,
+            target_key=target_key,
+            localized_question=_localized(template_id, language),
+            sensitivity=sensitivity,  # type: ignore[arg-type]
+            priority=priority,
+        )
+    return None
+
+
 def _select_intent_soft_directive(
     *,
     snapshot: ContextSnapshot,
@@ -642,14 +724,14 @@ def select_next_best_question(
     Hard I3 clarification always wins — caller must not invoke when
     readiness is not READY (also enforced here).
 
-    Selection order (CR-04F.2):
+    Selection order (CR-04F.2 + Q2):
       A) eligible CONFLICTED confirmation
       B) eligible STALE confirmation
-      C) existing CR-04F.1 selection:
-         1) relevant contextual candidate
-         2) safe missing Tier-A (GENERAL)
-         3) intent-specific soft candidate
-         4) none
+      C) relevant contextual candidate
+      D) explicit discovery invitation → one safe missing low-risk target
+      E) safe missing Tier-A (GENERAL)
+      F) intent-specific soft candidate
+      G) none
     """
     if readiness.status is not ReadinessStatus.READY:
         return None
@@ -680,7 +762,7 @@ def select_next_best_question(
     if stale is not None:
         return stale
 
-    # C) existing CR-04F.1 selection unchanged.
+    # C) contextual relevance unchanged.
     contextual = _select_contextual_directive(
         snapshot=snapshot,
         intent=intent,
@@ -690,6 +772,15 @@ def select_next_best_question(
     if contextual is not None:
         return contextual
 
+    # D) Q2 explicit invitation — one useful missing target (Tier-A then occupation).
+    if detect_discovery_invitation(message, language):
+        invited = _select_invitation_directive(
+            snapshot=snapshot, language=language
+        )
+        if invited is not None:
+            return invited
+
+    # E) Tier-A progressive (GENERAL only).
     tier_a = _select_tier_a_directive(
         snapshot=snapshot, intent=intent, language=language
     )
