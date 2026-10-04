@@ -511,6 +511,10 @@ class LifestyleContextAdapter:
                 "preferences.proactive_checkin_preference",
             }
         )
+        # Sole low-risk barriers exception for ordinary LLM known-context.
+        # Domain floor for barriers.* remains high; this key alone starts at medium.
+        # Row high/critical still elevates via _effective_i6_sensitivity (fail-closed).
+        barriers_llm_medium_keys = frozenset({"barriers.time_constraints"})
 
         # (domain, section, sensitivity)
         domain_specs: tuple[tuple[str, str, str], ...] = (
@@ -547,8 +551,13 @@ class LifestyleContextAdapter:
                 canonical_key = f"{domain}.{key}"
                 # Domain sensitivity is the floor; row high/critical elevates.
                 # Effective high/critical is never LLM-eligible (fail-closed).
+                base_sens = (
+                    "medium"
+                    if canonical_key in barriers_llm_medium_keys
+                    else sensitivity
+                )
                 effective_sens = _effective_i6_sensitivity(
-                    sensitivity,  # type: ignore[arg-type]
+                    base_sens,  # type: ignore[arg-type]
                     row,
                 )
                 may_send = effective_sens not in ("high", "critical")
