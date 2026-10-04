@@ -65,6 +65,7 @@ REGISTERED_TARGETS: frozenset[str] = frozenset(
         "lifestyle.activity_level",
         "routines.exercise_schedule",
         "work.work_schedule",
+        "work.occupation",
         "barriers.time_constraints",
         *TIER_C_NEVER_MISSING_DRIVEN,
     }

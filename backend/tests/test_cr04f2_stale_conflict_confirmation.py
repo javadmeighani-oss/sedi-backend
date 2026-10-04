@@ -985,7 +985,7 @@ def test_cr04f22_stale_confirmation_scoped_to_supported_targets(db):
         ("lifestyle", "hydration_ml", "2000 ml day"),
         ("lifestyle", "diet_notes", "low sugar diet"),
         ("lifestyle", "exercise_minutes", "thirty minutes"),
-        ("work", "occupation", "software engineer"),
+        # work.occupation is Q2 invitation-supported; keep non-supported work noise.
         ("work", "work_stressors", "tight deadlines"),
         ("education", "education_level", "bachelors degree"),
         ("education", "field_of_study", "computer science"),
@@ -996,6 +996,7 @@ def test_cr04f22_stale_confirmation_scoped_to_supported_targets(db):
         ("barriers", "motivation_barriers", "low energy days"),
     )
     assert len(non_f2_stale) >= 12
+    assert "work.occupation" in SUPPORTED_TARGETS
     for domain, key, value in non_f2_stale:
         assert f"{domain}.{key}" not in SUPPORTED_TARGETS
         write_fact(

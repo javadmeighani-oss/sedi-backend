@@ -42,6 +42,7 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
         "preferences.communication_style",
         "preferences.listen_before_advice",
         "work.work_schedule",
+        "work.occupation",
         "barriers.time_constraints",
     }
 )
@@ -53,6 +54,7 @@ _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
         "lifestyle.activity_level",
         "routines.exercise_schedule",
         "work.work_schedule",
+        "work.occupation",
         "barriers.time_constraints",
     }
 )
@@ -512,6 +514,31 @@ _TIME_CONSTRAINT_CUES: tuple[str, ...] = (
     "ليس لدي وقت",
 )
 
+# Q2 — low-risk occupation open-text fit (invitation-bound discovery).
+_OCCUPATION_CUES: tuple[str, ...] = (
+    "work as",
+    "i work",
+    "i'm a",
+    "i am a",
+    "my job",
+    "my work",
+    "occupation",
+    "teacher",
+    "engineer",
+    "nurse",
+    "doctor",
+    "student",
+    "شغل",
+    "کارم",
+    "کار من",
+    "معلم",
+    "مهندس",
+    "وظيفتي",
+    "أعمل",
+    "انا",
+    "مدرس",
+)
+
 _TOPIC_SHIFT_BY_TARGET: dict[str, tuple[str, ...]] = {
     "lifestyle.activity_level": (
         "headache",
@@ -540,6 +567,15 @@ _TOPIC_SHIFT_BY_TARGET: dict[str, tuple[str, ...]] = {
         "برنامه غذایی",
     ),
     "work.work_schedule": (
+        "headache",
+        "سردرد",
+        "صداع",
+        "meal plan",
+        "برنامه غذایی",
+        "remind me",
+        "یادآوری",
+    ),
+    "work.occupation": (
         "headache",
         "سردرد",
         "صداع",
@@ -865,6 +901,10 @@ def _target_fit(target_key: str, message: str) -> bool:
         if _looks_unrelated_request(text):
             return False
         return _contains_any(text, _WORK_SCHEDULE_CUES)
+    if target_key == "work.occupation":
+        if _looks_unrelated_request(text):
+            return False
+        return _contains_any(text, _OCCUPATION_CUES)
     if target_key == "barriers.time_constraints":
         if _looks_unrelated_request(text):
             return False
