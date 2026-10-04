@@ -485,7 +485,11 @@ class ConversationBrain:
             print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
             
             # 3. BUILD MESSAGES: Build messages explicitly without context dependency
-            from backend.app.core.conversation.prompts import client as gpt_client, build_system_prompt_with_context
+            from backend.app.core.conversation.prompts import (
+                build_system_prompt_with_context,
+                create_primary_chat_response,
+                resolve_openai_chat_model,
+            )
             from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
 
             structured_mode = bool(
@@ -634,17 +638,16 @@ class ConversationBrain:
                     from backend.app.core.capacity_observability import log_event
 
                     _gpt_t0 = _time.perf_counter()
+                    _chat_model = resolve_openai_chat_model()
                     try:
-                        completion = gpt_client.responses.create(
-                            model="gpt-4o-mini",
-                            input=messages
-                        )
+                        # Primary chat: Responses API + env model + low reasoning (no temperature).
+                        completion = create_primary_chat_response(messages)
                         log_event(
                             "gpt_call",
                             where="process_message.responses_create",
                             duration_ms=int((_time.perf_counter() - _gpt_t0) * 1000),
                             status="ok",
-                            model="gpt-4o-mini",
+                            model=_chat_model,
                         )
                     except Exception as _gpt_exc:
                         log_event(
@@ -653,7 +656,7 @@ class ConversationBrain:
                             duration_ms=int((_time.perf_counter() - _gpt_t0) * 1000),
                             status="error",
                             error_class=type(_gpt_exc).__name__,
-                            model="gpt-4o-mini",
+                            model=_chat_model,
                         )
                         raise
                     sedi_response = completion.output_text.strip()
@@ -780,8 +783,12 @@ class ConversationBrain:
             language: Language code ('en', 'fa', 'ar')
         """
         from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
-        # VERIFY: Same client used in onboarding and chat
-        from backend.app.core.conversation.prompts import client as gpt_client
+        # VERIFY: Same client + chat model resolver used in onboarding and chat
+        from backend.app.core.conversation.prompts import (
+            DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
+            client as gpt_client,
+            resolve_openai_chat_model,
+        )
         print(f"[BRAIN] ✅ Using same OpenAI client as chat (verified: same client from prompts.py)")
         
         # CRITICAL: Use user_name if provided, otherwise use "friend" as fallback
@@ -823,10 +830,12 @@ The user's preferred language ({language}) will be used for all subsequent respo
                 {"role": "user", "content": user_prompt}
             ]
             
+            chat_model = resolve_openai_chat_model()
             # ===== GPT_ONBOARDING_START - HARD LOGGING =====
             print("=" * 80)
             print("[GPT_ONBOARDING_START] ===== CALLING GPT FOR ONBOARDING GREETING =====")
-            print(f"[GPT_ONBOARDING_START] Model: gpt-4o-mini")
+            print(f"[GPT_ONBOARDING_START] Model: {chat_model}")
+            print(f"[GPT_ONBOARDING_START] Reasoning effort: {DEFAULT_OPENAI_CHAT_REASONING_EFFORT}")
             print(f"[GPT_ONBOARDING_START] User ID: {user_id}")
             print(f"[GPT_ONBOARDING_START] User name: {user_name}")
             print(f"[GPT_ONBOARDING_START] Display name: {display_name}")
@@ -838,11 +847,12 @@ The user's preferred language ({language}) will be used for all subsequent respo
             print(f"[GPT_ONBOARDING_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
             print("=" * 80)
             
+            # Chat Completions path preserved; GPT-6 compatible (no temperature with effort=low).
             response = gpt_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=chat_model,
                 messages=messages,
-                temperature=0.7,
                 max_tokens=200,
+                reasoning_effort=DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
             )
             
             greeting_text = response.choices[0].message.content.strip()
@@ -976,12 +986,17 @@ The user's preferred language ({language}) will be used for all subsequent respo
                 {"role": "user", "content": prompt_text}
             ]
             
-            from backend.app.core.conversation.prompts import client as gpt_client
+            from backend.app.core.conversation.prompts import (
+                DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
+                client as gpt_client,
+                resolve_openai_chat_model,
+            )
+            # Chat Completions path preserved; GPT-6 compatible (no temperature with effort=low).
             response = gpt_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=resolve_openai_chat_model(),
                 messages=messages,
-                temperature=0.8,
                 max_tokens=300,
+                reasoning_effort=DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
             )
             
             return response.choices[0].message.content.strip()

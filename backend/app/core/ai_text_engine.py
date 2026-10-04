@@ -15,6 +15,16 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
+# Notification model (Chat Completions path preserved). Env-configurable; safe default gpt-6-luna.
+DEFAULT_OPENAI_NOTIFICATION_MODEL = "gpt-6-luna"
+DEFAULT_OPENAI_NOTIFICATION_REASONING_EFFORT = "none"
+
+
+def resolve_openai_notification_model() -> str:
+    """Resolve notification model from OPENAI_NOTIFICATION_MODEL with safe default."""
+    raw = (os.getenv("OPENAI_NOTIFICATION_MODEL") or "").strip()
+    return raw or DEFAULT_OPENAI_NOTIFICATION_MODEL
+
 # ---------- Notification Types ----------
 NOTIF_TYPE_MORNING = "morning_summary"
 NOTIF_TYPE_HEALTH_CHECK = "health_check"
@@ -125,8 +135,10 @@ def generate_notification_text(
     )
 
     try:
+        # Chat Completions path preserved. effort=none supports temperature.
+        model = resolve_openai_notification_model()
         completion = client.chat.completions.create(
-            model="gpt-4.1-mini",  # Lightweight model for notifications
+            model=model,
             messages=[
                 {
                     "role": "system",
@@ -139,6 +151,7 @@ def generate_notification_text(
             ],
             max_tokens=80,
             temperature=0.8,
+            reasoning_effort=DEFAULT_OPENAI_NOTIFICATION_REASONING_EFFORT,
         )
 
         text = completion.choices[0].message.content.strip()
