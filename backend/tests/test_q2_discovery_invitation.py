@@ -122,11 +122,21 @@ def test_q2_detect_invitation_phrases_en_fa_ar():
     assert detect_discovery_invitation("what do you want to know?", "en")
     assert detect_discovery_invitation("چی میخوای بدونی", "fa")
     assert detect_discovery_invitation("چی می‌خوای بدونی", "fa")
+    assert detect_discovery_invitation("چی میخوایی بدونی", "fa")
+    assert detect_discovery_invitation("چی می‌خوایی بدونی", "fa")
     assert detect_discovery_invitation("ازم سوال بپرس", "fa")
     assert detect_discovery_invitation("اسألني شيئا", "ar")
     assert detect_discovery_invitation("ماذا تريد أن تعرف", "ar")
     assert not detect_discovery_invitation("hello", "en")
     assert not detect_discovery_invitation("Tell me about sleep", "en")
+
+
+_FA_INVITATION_VARIANTS = (
+    "چی میخوای بدونی",
+    "چی می‌خوای بدونی",
+    "چی میخوایی بدونی",
+    "چی می‌خوایی بدونی",
+)
 
 
 def test_q2_explicit_fa_invitation_selects_exactly_one_nbq():
@@ -142,6 +152,24 @@ def test_q2_explicit_fa_invitation_selects_exactly_one_nbq():
     assert d.target_key == "preferences.interests"
     assert d.question_id.startswith("nbq.q.invitation.")
     assert d.localized_question.count("؟") + d.localized_question.count("?") <= 1
+
+
+def test_q2_fa_invitation_all_four_variants_select_one_interests_nbq():
+    intent = _intent(IntentId.GENERAL)
+    ready = _ready(intent)
+    for phrase in _FA_INVITATION_VARIANTS:
+        assert detect_discovery_invitation(phrase, "fa"), phrase
+        d = select_next_best_question(
+            snapshot=_snap([]),
+            intent=intent,
+            readiness=ready,
+            language="fa",
+            message=phrase,
+        )
+        assert d is not None, phrase
+        assert d.target_key == "preferences.interests", phrase
+        assert d.question_id.startswith("nbq.q.invitation."), phrase
+        assert d.localized_question.count("؟") + d.localized_question.count("?") <= 1
 
 
 def test_q2_explicit_en_invitation_selects_exactly_one_nbq():
