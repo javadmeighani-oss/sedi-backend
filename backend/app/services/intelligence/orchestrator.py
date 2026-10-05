@@ -1568,13 +1568,21 @@ class IntelligenceOrchestrator:
                     discovery_question_id
                     and str(discovery_question_id).startswith("nbq.q.invitation.")
                 )
-                _mark_relationship_discovery_asked(
-                    self._db,
-                    user_id=authenticated_user_id,
-                    target_key=discovery_target_key,
-                    invited=mark_invited,
-                    companion_key=discovery_companion_key if mark_invited else None,
-                )
+                if mark_invited:
+                    _mark_relationship_discovery_asked(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        target_key=discovery_target_key,
+                        invited=True,
+                        companion_key=discovery_companion_key,
+                    )
+                else:
+                    # Legacy CR04B call shape: no invited/companion kwargs.
+                    _mark_relationship_discovery_asked(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        target_key=discovery_target_key,
+                    )
 
             # CR-03.1: finalize durable raw to exact final user-visible response.
             # Fail closed on history eligibility if finalization cannot achieve parity.
