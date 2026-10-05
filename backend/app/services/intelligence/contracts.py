@@ -268,6 +268,9 @@ class DiscoveryDirective:
     localized_question: str
     sensitivity: Literal["low", "medium", "high"]
     priority: int
+    # Q4.2B — optional invited companion (max one); normal discovery leaves None.
+    companion_target_key: Optional[str] = None
+    companion_localized_question: Optional[str] = None
 
 
 @dataclass(frozen=True)

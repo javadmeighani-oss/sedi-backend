@@ -112,17 +112,61 @@ _TIER_A_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
     "preferences.response_length": ("medium", "nbq.general.response_length.v1", 40),
 }
 
-# Q2 — invitation soft order reuses Tier-A, then optional low-risk occupation.
-# Occupation is invitation-gated (not missing-driven on ordinary GENERAL).
+# Q2/Q4 — invitation soft order over existing safe I6 targets (templates reused).
+# barriers.time_constraints stays contextual-only (never in this list).
 _INVITATION_SOFT_PRIORITY: tuple[str, ...] = (
-    *TIER_A_GENERAL_PRIORITY,
+    "preferences.interests",
     "work.occupation",
+    "work.work_schedule",
+    "lifestyle.activity_level",
+    "lifestyle.food_habits",
+    "lifestyle.sleep_quality",
+    "routines.exercise_schedule",
+    "routines.bedtime",
+    "routines.wake_time",
+    "preferences.communication_style",
+    "preferences.listen_before_advice",
+    "preferences.response_length",
 )
 
 _INVITATION_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
-    **_TIER_A_TEMPLATE_BY_KEY,
-    "work.occupation": ("medium", "nbq.general.occupation.v1", 50),
+    "preferences.interests": ("medium", "nbq.general.interests.v1", 10),
+    "work.occupation": ("medium", "nbq.general.occupation.v1", 20),
+    "work.work_schedule": ("medium", "nbq.contextual.work_schedule.v1", 30),
+    "lifestyle.activity_level": ("medium", "nbq.activity.activity_level.v1", 40),
+    "lifestyle.food_habits": ("medium", "nbq.nutrition.food_habits.v1", 50),
+    "lifestyle.sleep_quality": ("medium", "nbq.sleep.sleep_quality.v1", 60),
+    "routines.exercise_schedule": ("medium", "nbq.activity.exercise_schedule.v1", 70),
+    "routines.bedtime": ("medium", "nbq.sleep.bedtime.v1", 80),
+    "routines.wake_time": ("medium", "nbq.sleep.wake_time.v1", 90),
+    "preferences.communication_style": (
+        "medium",
+        "nbq.general.communication_style.v1",
+        100,
+    ),
+    "preferences.listen_before_advice": (
+        "medium",
+        "nbq.general.listen_before_advice.v1",
+        110,
+    ),
+    "preferences.response_length": ("medium", "nbq.general.response_length.v1", 120),
 }
+
+# Q4.2B — invited-only tightly-related pairs (no arbitrary pairing).
+_INVITED_SAFE_PAIRS: tuple[frozenset[str], ...] = (
+    frozenset({"work.occupation", "work.work_schedule"}),
+    frozenset({"lifestyle.activity_level", "routines.exercise_schedule"}),
+    frozenset({"routines.bedtime", "routines.wake_time"}),
+)
+
+
+def _invited_companion_key(primary: str) -> Optional[str]:
+    for pair in _INVITED_SAFE_PAIRS:
+        if primary in pair:
+            for key in pair:
+                if key != primary:
+                    return key
+    return None
 
 # Explicit discovery invitation cues (bounded; not a new intent subsystem).
 _DISCOVERY_INVITATION_CUES: dict[str, tuple[str, ...]] = {
@@ -130,6 +174,10 @@ _DISCOVERY_INVITATION_CUES: dict[str, tuple[str, ...]] = {
         "ask me something",
         "what do you want to know",
         "what do you need to know about me",
+        "do you want more information about me",
+        "want to know more about me",
+        "get to know me better",
+        "ask me whatever you need",
     ),
     "fa": (
         "چی میخوای بدونی",
@@ -139,12 +187,23 @@ _DISCOVERY_INVITATION_CUES: dict[str, tuple[str, ...]] = {
         "ازم سوال بپرس",
         "چه اطلاعاتی لازم داری",
         "میخوای منو بیشتر بشناسی",
+        "اطلاعات بیشتری داشته باشی",
+        "نمیخوای اطلاعات بیشتری داشته باشی",
+        "نمی‌خوای اطلاعات بیشتری داشته باشی",
+        "نمیخوای بیشتر از من بدونی",
+        "نمی‌خوای بیشتر از من بدونی",
+        "بیشتر منو بشناس",
+        "هرچی لازم داری بپرس",
     ),
     "ar": (
         "اسألني شيئا",
         "اسألني شيء",
         "ماذا تريد أن تعرف",
         "ماذا تحتاج أن تعرف عني",
+        "هل تريد معلومات أكثر عني",
+        "هل تريد معرفة المزيد عني",
+        "تعرف علي أكثر",
+        "اسألني ما تحتاج",
     ),
 }
 
@@ -664,9 +723,13 @@ def _select_invitation_directive(
     *,
     snapshot: ContextSnapshot,
     language: LanguageCode,
+    exclude_keys: frozenset[str] | None = None,
 ) -> Optional[DiscoveryDirective]:
-    """Q2 — on explicit invitation, pick exactly one safe missing low-risk target."""
+    """Q2/Q4 — invited discovery: primary missing + optional safe companion (max 2)."""
+    excluded = exclude_keys or frozenset()
     for target_key in _INVITATION_SOFT_PRIORITY:
+        if target_key in excluded:
+            continue
         if not is_safe_missing_for_discovery(snapshot, target_key):
             continue
         meta = _INVITATION_TEMPLATE_BY_KEY.get(target_key)
@@ -674,12 +737,27 @@ def _select_invitation_directive(
             continue
         sensitivity, template_id, priority = meta
         question_id = f"nbq.q.invitation.{target_key}.v1"
+        companion_key: Optional[str] = None
+        companion_q: Optional[str] = None
+        cand = _invited_companion_key(target_key)
+        if (
+            cand is not None
+            and cand not in excluded
+            and is_safe_missing_for_discovery(snapshot, cand)
+        ):
+            cmeta = _INVITATION_TEMPLATE_BY_KEY.get(cand)
+            if cmeta is not None:
+                companion_key = cand
+                companion_q = _localized(cmeta[1], language)
+                question_id = f"nbq.q.invitation.{target_key}+{cand}.v1"
         return DiscoveryDirective(
             question_id=question_id,
             target_key=target_key,
             localized_question=_localized(template_id, language),
             sensitivity=sensitivity,  # type: ignore[arg-type]
             priority=priority,
+            companion_target_key=companion_key,
+            companion_localized_question=companion_q,
         )
     return None
 
@@ -718,27 +796,24 @@ def select_next_best_question(
     readiness: ReadinessResult,
     language: LanguageCode,
     message: str = "",
+    force_invitation: bool = False,
+    exclude_keys: frozenset[str] | None = None,
 ) -> Optional[DiscoveryDirective]:
     """
-    Select at most one soft-discovery / confirmation directive.
+    Select soft-discovery / confirmation directive(s).
+
+    Normal / confirmation / contextual / Tier-A: at most one target.
+    Invited (phrase or force_invitation): primary + optional safe companion (max 2).
 
     Pure: reads only snapshot / intent / readiness / language / optional message.
     Hard I3 clarification always wins — caller must not invoke when
     readiness is not READY (also enforced here).
-
-    Selection order (CR-04F.2 + Q2):
-      A) eligible CONFLICTED confirmation
-      B) eligible STALE confirmation
-      C) relevant contextual candidate
-      D) explicit discovery invitation → one safe missing low-risk target
-      E) safe missing Tier-A (GENERAL)
-      F) intent-specific soft candidate
-      G) none
     """
     if readiness.status is not ReadinessStatus.READY:
         return None
     if intent.intent_id in _NBQ_SUPPRESSED_INTENTS:
         return None
+    excluded = exclude_keys or frozenset()
 
     # A) CONFLICTED confirmation outranks missing discovery.
     conflict = _select_confirmation_directive(
@@ -764,7 +839,15 @@ def select_next_best_question(
     if stale is not None:
         return stale
 
-    # C) contextual relevance unchanged.
+    # C) Q4 progressive continuation after invited ANSWER (before contextual).
+    if force_invitation:
+        continued = _select_invitation_directive(
+            snapshot=snapshot, language=language, exclude_keys=excluded
+        )
+        if continued is not None:
+            return continued
+
+    # D) contextual relevance unchanged (time_constraints contextual-only).
     contextual = _select_contextual_directive(
         snapshot=snapshot,
         intent=intent,
@@ -774,15 +857,15 @@ def select_next_best_question(
     if contextual is not None:
         return contextual
 
-    # D) Q2 explicit invitation — one useful missing target (Tier-A then occupation).
+    # E) Q2/Q4 explicit invitation phrase — primary (+ optional safe pair).
     if detect_discovery_invitation(message, language):
         invited = _select_invitation_directive(
-            snapshot=snapshot, language=language
+            snapshot=snapshot, language=language, exclude_keys=excluded
         )
         if invited is not None:
             return invited
 
-    # E) Tier-A progressive (GENERAL only).
+    # F) Tier-A progressive (GENERAL only) — always single.
     tier_a = _select_tier_a_directive(
         snapshot=snapshot, intent=intent, language=language
     )

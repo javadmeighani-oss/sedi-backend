@@ -231,7 +231,8 @@ def test_q2_no_duplicate_recent_known_target():
         message="what do you want to know",
     )
     assert d is not None
-    assert d.target_key == "preferences.communication_style"
+    # Q4 invitation priority: after interests → work.occupation
+    assert d.target_key == "work.occupation"
     assert d.target_key != "preferences.interests"
 
 

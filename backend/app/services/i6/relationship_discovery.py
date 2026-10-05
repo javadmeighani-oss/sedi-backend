@@ -27,6 +27,10 @@ from backend.app.services.intelligence.psychological_interaction import (
 from backend.app.services.memory.memory_contract import MemoryContract
 
 MARKER_PREFIX = "relationship_discovery:"
+# Q4 — invited origin uses the same Text last_question_type field (no schema change).
+INVITED_MARKER_PREFIX = "relationship_discovery_invited:"
+# Q4.2B — invited pair delimiter inside last_question_type (max two keys).
+PAIR_DELIMITER = "|"
 
 # Direct-write targets (CR-03 / CR-04B / CR-04F.1). No social/values expansion.
 SUPPORTED_TARGETS: frozenset[str] = frozenset(
@@ -611,18 +615,79 @@ class DiscoveryClassification:
     target_key: Optional[str] = None
     normalized_value: Optional[Any] = None
     skip_outcome: Optional[str] = None
+    # Q4.2B — multi-target bind metadata (request-local).
+    marker_keys: tuple[str, ...] = ()
+    answered_keys: tuple[str, ...] = ()
+    invited: bool = False
 
 
 def _utcnow_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def _parse_target_key(last_question_type: str) -> Optional[str]:
+def parse_relationship_discovery_targets(
+    last_question_type: Optional[str],
+) -> tuple[tuple[str, ...], bool]:
+    """
+    Parse last_question_type → (targets, invited).
+
+    Invited prefix checked first. Pair form: invited:<k1>|<k2>.
+    Malformed invited markers (empty, >2 parts, blank keys) → ((), True) fail-closed.
+    Legacy single markers remain (targets length 1).
+    """
     raw = str(last_question_type or "").strip()
-    if not raw.startswith(MARKER_PREFIX):
-        return None
-    key = raw[len(MARKER_PREFIX) :].strip()
-    return key or None
+    if not raw:
+        return (), False
+    if raw.startswith(INVITED_MARKER_PREFIX):
+        rest = raw[len(INVITED_MARKER_PREFIX) :].strip()
+        if not rest:
+            return (), True
+        if PAIR_DELIMITER in rest:
+            parts = [p.strip() for p in rest.split(PAIR_DELIMITER)]
+            if len(parts) != 2 or not parts[0] or not parts[1]:
+                return (), True
+            if any(PAIR_DELIMITER in p for p in parts):
+                return (), True
+            return (parts[0], parts[1]), True
+        return (rest,), True
+    if raw.startswith(MARKER_PREFIX):
+        key = raw[len(MARKER_PREFIX) :].strip()
+        if not key or PAIR_DELIMITER in key:
+            # Normal markers are single-target only; '|' is invalid here.
+            return (), False
+        return (key,), False
+    return (), False
+
+
+def parse_relationship_discovery_marker(
+    last_question_type: Optional[str],
+) -> tuple[Optional[str], bool]:
+    """Compat: (primary_target_or_None, invited). Empty targets → (None, invited)."""
+    targets, invited = parse_relationship_discovery_targets(last_question_type)
+    if not targets:
+        return None, invited
+    return targets[0], invited
+
+
+def _parse_target_key(last_question_type: str) -> Optional[str]:
+    key, _invited = parse_relationship_discovery_marker(last_question_type)
+    return key
+
+
+def format_relationship_discovery_marker(
+    target_key: str,
+    *,
+    invited: bool,
+    companion_key: Optional[str] = None,
+) -> str:
+    """Build one-shot marker for mark_asked (normal / invited / invited pair)."""
+    key = (target_key or "").strip()
+    companion = (companion_key or "").strip()
+    if invited and companion:
+        return f"{INVITED_MARKER_PREFIX}{key}{PAIR_DELIMITER}{companion}"
+    if invited:
+        return f"{INVITED_MARKER_PREFIX}{key}"
+    return f"{MARKER_PREFIX}{key}"
 
 
 def _split_target(target_key: str) -> Optional[tuple[str, str]]:
@@ -689,15 +754,35 @@ def _contains_any(text: str, cues: tuple[str, ...]) -> bool:
 def peek_relationship_discovery_marker(
     db: Optional[Session], user_id: int
 ) -> Optional[str]:
-    """Non-mutating read of pending relationship_discovery:<target_key>."""
+    """Non-mutating read of pending RD primary target (normal or invited)."""
+    targets, _invited = peek_relationship_discovery_targets(db, user_id)
+    return targets[0] if targets else None
+
+
+def peek_relationship_discovery_targets(
+    db: Optional[Session], user_id: int
+) -> tuple[tuple[str, ...], bool]:
+    """Non-mutating read of (targets, invited_origin)."""
     if db is None:
-        return None
+        return (), False
     from backend.app.services.knowledge.kc_fatigue_policy import get_existing_state
 
     state = get_existing_state(db, user_id)
     if state is None:
-        return None
-    return _parse_target_key(getattr(state, "last_question_type", None) or "")
+        return (), False
+    return parse_relationship_discovery_targets(
+        getattr(state, "last_question_type", None)
+    )
+
+
+def peek_relationship_discovery_state(
+    db: Optional[Session], user_id: int
+) -> tuple[Optional[str], bool]:
+    """Compat: (primary_target, invited_origin)."""
+    targets, invited = peek_relationship_discovery_targets(db, user_id)
+    if not targets:
+        return None, invited
+    return targets[0], invited
 
 
 def consume_relationship_discovery_marker(db: Session, user_id: int) -> None:
@@ -707,7 +792,8 @@ def consume_relationship_discovery_marker(db: Session, user_id: int) -> None:
     state = get_existing_state(db, user_id)
     if state is None:
         return
-    if str(getattr(state, "last_question_type", None) or "").startswith(MARKER_PREFIX):
+    raw = str(getattr(state, "last_question_type", None) or "")
+    if raw.startswith(INVITED_MARKER_PREFIX) or raw.startswith(MARKER_PREFIX):
         state.last_question_type = None
         db.commit()
 
@@ -800,6 +886,54 @@ def _normalize_time_text(message: str) -> Optional[str]:
     return (m.group("t") or "").strip()[:_MAX_TIME_TEXT] or None
 
 
+_BEDTIME_CLAUSE_CUES: tuple[str, ...] = (
+    "bed",
+    "sleep",
+    "go to bed",
+    "می‌خواب",
+    "ميخواب",
+    "خواب",
+    "نوم",
+)
+_WAKE_CLAUSE_CUES: tuple[str, ...] = (
+    "wake",
+    "wake up",
+    "waking",
+    "بیدار",
+    "بيدار",
+    "استیقظ",
+    "استيقظ",
+)
+
+
+def _normalize_time_for_target(target_key: str, message: str) -> Optional[str]:
+    """Pick the time clause matching bedtime vs wake; never blind-copy one time to both."""
+    text = (message or "").strip()
+    if not text:
+        return None
+    if target_key not in ("routines.bedtime", "routines.wake_time"):
+        return _normalize_time_text(text)
+
+    parts = re.split(r"\band\b|[،,]| و ", text, flags=re.IGNORECASE)
+    cues = (
+        _BEDTIME_CLAUSE_CUES
+        if target_key == "routines.bedtime"
+        else _WAKE_CLAUSE_CUES
+    )
+    for part in parts:
+        low = part.lower()
+        if any(c in low for c in cues):
+            got = _normalize_time_text(part)
+            if got:
+                return got
+    matches = list(_TIME_RE.finditer(text))
+    if target_key == "routines.wake_time" and len(matches) >= 2:
+        return (matches[-1].group("t") or "").strip()[:_MAX_TIME_TEXT] or None
+    if target_key == "routines.bedtime" and matches:
+        return (matches[0].group("t") or "").strip()[:_MAX_TIME_TEXT] or None
+    return _normalize_time_text(text)
+
+
 def _normalize_bounded_text(message: str) -> Optional[str]:
     text = (message or "").strip()
     if not text:
@@ -827,7 +961,7 @@ def normalize_discovery_value(target_key: str, message: str) -> Optional[Any]:
     if target_key == "preferences.interests":
         return _normalize_interests(message)
     if target_key in ("routines.bedtime", "routines.wake_time"):
-        return _normalize_time_text(message)
+        return _normalize_time_for_target(target_key, message)
     if target_key in _OPEN_TEXT_TARGETS and is_ambiguous_open_text_answer(message):
         return None
     return _normalize_bounded_text(message)
@@ -1011,7 +1145,7 @@ def classify_discovery_reply(
         )
 
     if target_key in ("routines.bedtime", "routines.wake_time"):
-        value = _normalize_time_text(message)
+        value = _normalize_time_for_target(target_key, message)
         if value is None:
             # Time-like targets: unnormalizable substantive text is ambiguous, not a write.
             return DiscoveryClassification(
@@ -1305,6 +1439,31 @@ def _try_write_or_stage(
         return
 
 
+def _write_answered_target(
+    db: Session,
+    *,
+    user_id: int,
+    target_key: str,
+    value: Any,
+    evidence: str,
+) -> None:
+    handled = _resolve_conflict_or_confirm(
+        db,
+        user_id=user_id,
+        target_key=target_key,
+        value=value,
+        evidence=evidence,
+    )
+    if not handled:
+        _try_write_or_stage(
+            db,
+            user_id=user_id,
+            target_key=target_key,
+            value=value,
+            evidence=evidence,
+        )
+
+
 def process_relationship_discovery_answer(
     db: Optional[Session],
     *,
@@ -1318,8 +1477,7 @@ def process_relationship_discovery_answer(
     Process one-shot relationship_discovery marker for this user turn.
 
     Always consumes the marker when present so it cannot survive the next turn.
-    Fact / fatigue binding writes run only when allow_binding is True and
-    disposition is ANSWER (or SKIP updates fatigue only).
+    Invited pairs: classify/bind each target independently; write only ANSWERs.
     """
     empty = DiscoveryClassification(DiscoveryDisposition.NO_MARKER)
     if db is None:
@@ -1327,76 +1485,140 @@ def process_relationship_discovery_answer(
     try:
         from backend.app.services.knowledge.kc_fatigue_policy import mark_answer
 
-        target_key = None
-        if classification is not None and classification.target_key:
-            target_key = classification.target_key
-            clf = classification
-        else:
-            target_key = peek_relationship_discovery_marker(db, user_id)
-            if target_key is None:
+        targets, invited = peek_relationship_discovery_targets(db, user_id)
+        # Malformed invited marker → consume fail-closed.
+        if invited and not targets:
+            consume_relationship_discovery_marker(db, user_id)
+            return DiscoveryClassification(
+                DiscoveryDisposition.UNSUPPORTED,
+                marker_keys=(),
+                invited=True,
+            )
+        if not targets:
+            # Compat single-classification path without DB marker peek hit.
+            if classification is not None and classification.target_key:
+                targets = (classification.target_key,)
+                invited = bool(classification.invited)
+            else:
                 return empty
-            clf = classify_discovery_reply(target_key, message, language)
 
-        if clf.disposition is DiscoveryDisposition.NO_MARKER:
-            return clf
+        # Pair / multi: always classify each target independently (ignore stale single clf).
+        # Single-target may reuse provided classification when keys match.
+        classifications: list[DiscoveryClassification] = []
+        if (
+            len(targets) == 1
+            and classification is not None
+            and classification.target_key == targets[0]
+        ):
+            classifications = [classification]
+        else:
+            for key in targets:
+                classifications.append(
+                    classify_discovery_reply(key, message, language)
+                )
+
+        # Aggregate disposition for routing / continuation.
+        if any(c.disposition is DiscoveryDisposition.SKIP for c in classifications):
+            agg = next(
+                c for c in classifications if c.disposition is DiscoveryDisposition.SKIP
+            )
+            agg_disp = DiscoveryDisposition.SKIP
+        elif any(
+            c.disposition is DiscoveryDisposition.UNRELATED for c in classifications
+        ):
+            agg = next(
+                c
+                for c in classifications
+                if c.disposition is DiscoveryDisposition.UNRELATED
+            )
+            agg_disp = DiscoveryDisposition.UNRELATED
+        elif any(
+            c.disposition is DiscoveryDisposition.ANSWER for c in classifications
+        ):
+            agg = next(
+                c
+                for c in classifications
+                if c.disposition is DiscoveryDisposition.ANSWER
+            )
+            agg_disp = DiscoveryDisposition.ANSWER
+        else:
+            agg = classifications[0]
+            agg_disp = agg.disposition
 
         now = _utcnow_naive()
+        base_meta = dict(marker_keys=targets, invited=invited, target_key=targets[0])
 
         if not allow_binding:
-            # Compatibility / caution / terminal: consume only, no fact/outcome.
             consume_relationship_discovery_marker(db, user_id)
-            return clf
+            return DiscoveryClassification(agg_disp, **base_meta)
 
-        if clf.disposition is DiscoveryDisposition.UNRELATED:
+        if agg_disp is DiscoveryDisposition.UNRELATED:
             consume_relationship_discovery_marker(db, user_id)
-            return clf
+            return DiscoveryClassification(agg_disp, **base_meta)
 
-        if clf.disposition is DiscoveryDisposition.SKIP:
-            mark_answer(db, user_id, now, clf.skip_outcome or "skipped")
+        if agg_disp is DiscoveryDisposition.SKIP:
+            mark_answer(db, user_id, now, agg.skip_outcome or "skipped")
             consume_relationship_discovery_marker(db, user_id)
-            return clf
+            return DiscoveryClassification(
+                agg_disp,
+                skip_outcome=agg.skip_outcome,
+                **base_meta,
+            )
 
-        if clf.disposition in (
-            DiscoveryDisposition.AMBIGUOUS,
-            DiscoveryDisposition.UNSUPPORTED,
-        ):
-            consume_relationship_discovery_marker(db, user_id)
-            return clf
-
-        if clf.disposition is DiscoveryDisposition.ANSWER:
-            value = clf.normalized_value
-            if value is None:
+        answered_keys: list[str] = []
+        if agg_disp is DiscoveryDisposition.ANSWER:
+            evidence = (message or "").strip()[:200]
+            answer_clfs = [
+                c
+                for c in classifications
+                if c.disposition is DiscoveryDisposition.ANSWER
+                and c.target_key is not None
+                and c.normalized_value is not None
+            ]
+            if not answer_clfs:
+                # Classified ANSWER aggregate but no bindable value → ambiguous.
                 consume_relationship_discovery_marker(db, user_id)
                 return DiscoveryClassification(
-                    DiscoveryDisposition.AMBIGUOUS, target_key=target_key
+                    DiscoveryDisposition.AMBIGUOUS,
+                    marker_keys=targets,
+                    invited=invited,
+                    target_key=targets[0],
                 )
-            evidence = (message or "").strip()[:200]
-            try:
-                # CR-04F.2: conflict/stale confirmation must not re-enter
-                # _try_write_or_stage (would recursively stage candidates).
-                handled = _resolve_conflict_or_confirm(
-                    db,
-                    user_id=user_id,
-                    target_key=target_key or "",
-                    value=value,
-                    evidence=evidence,
-                )
-                if not handled:
-                    _try_write_or_stage(
+            for clf in answer_clfs:
+                try:
+                    _write_answered_target(
                         db,
                         user_id=user_id,
-                        target_key=target_key or "",
-                        value=value,
+                        target_key=clf.target_key,
+                        value=clf.normalized_value,
                         evidence=evidence,
                     )
-            except Exception:
-                pass
+                    answered_keys.append(clf.target_key)
+                except Exception:
+                    # Best-effort I6 write; must not block fatigue acceptance.
+                    pass
+            # BASE-compatible: always accept fatigue on classified ANSWER.
             mark_answer(db, user_id, now, "accepted")
             consume_relationship_discovery_marker(db, user_id)
-            return clf
+            return DiscoveryClassification(
+                DiscoveryDisposition.ANSWER,
+                target_key=(
+                    answered_keys[0] if answered_keys else answer_clfs[0].target_key
+                ),
+                normalized_value=None,
+                marker_keys=targets,
+                answered_keys=tuple(answered_keys),
+                invited=invited,
+            )
 
+        # AMBIGUOUS / UNSUPPORTED / other — consume, no write.
         consume_relationship_discovery_marker(db, user_id)
-        return clf
+        return DiscoveryClassification(
+            agg_disp,
+            marker_keys=targets,
+            invited=invited,
+            target_key=targets[0],
+        )
     except Exception:
         try:
             consume_relationship_discovery_marker(db, user_id)

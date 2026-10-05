@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 from backend.app.services.intelligence.contracts import (
     IntentId,
@@ -295,10 +295,24 @@ def looks_substantive_discovery_answer(message: str) -> bool:
 
 def append_discovery_question(primary_answer: str, localized_question: str) -> str:
     """Primary answer first, then exactly one discovery question."""
+    return append_discovery_questions(primary_answer, (localized_question,))
+
+
+def append_discovery_questions(
+    primary_answer: str, localized_questions: Sequence[str]
+) -> str:
+    """Primary answer first, then up to two concise discovery questions."""
     answer = (primary_answer or "").rstrip()
-    question = (localized_question or "").strip()
-    if not answer:
-        return question
-    if not question:
+    questions: list[str] = []
+    for raw in localized_questions or ():
+        q = (raw or "").strip()
+        if q and q not in questions:
+            questions.append(q)
+        if len(questions) >= 2:
+            break
+    if not questions:
         return answer
-    return f"{answer}\n\n{question}"
+    block = "\n\n".join(questions)
+    if not answer:
+        return block
+    return f"{answer}\n\n{block}"

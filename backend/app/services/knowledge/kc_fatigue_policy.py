@@ -102,6 +102,9 @@ def check_can_ask(
     """
     Returns (allowed, reason, next_eligible_at, state_snapshot).
     If not allowed, reason is set and next_eligible_at when the user can ask again.
+
+    Generic KC next-question path — defaults unchanged (daily=3, cooldown=90, burst=10).
+    Relationship discovery must use check_can_ask_relationship_discovery instead.
     """
     state = ensure_state(db, user_id, now)
     daily_cap = _get_daily_cap()
@@ -138,6 +141,51 @@ def check_can_ask(
             next_eligible_at = cooldown_end
             snap = _state_snapshot(state, daily_cap, next_eligible_at)
             return False, "fatigue_control", next_eligible_at, snap
+
+    snap = _state_snapshot(state, daily_cap, None)
+    return True, None, None, snap
+
+
+# Q4 — relationship-discovery spacing (unsolicited). Not an env override of KC defaults.
+_RD_NORMAL_SPACING_MINUTES = 10
+
+
+def check_can_ask_relationship_discovery(
+    db: Session,
+    user_id: int,
+    now: datetime,
+    *,
+    invited: bool = False,
+) -> Tuple[bool, Optional[str], Optional[datetime], Dict[str, Any]]:
+    """
+    Relationship-discovery fatigue seam (orchestrator RD only).
+
+    - invited=True: bypass daily cap and time spacing; still honor reject-streak
+      cooldown_until (decline protection).
+    - invited=False: minimum 10-minute spacing from last_asked_at; NO daily cap;
+      preserve reject-streak cooldown_until.
+    """
+    state = ensure_state(db, user_id, now)
+    daily_cap = _get_daily_cap()
+    block_hour = _get_block_until_hour_utc()
+
+    # Decline / reject-streak protection (shared with KC).
+    if state.cooldown_until and now < state.cooldown_until:
+        snap = _state_snapshot(state, daily_cap, state.cooldown_until)
+        return False, "fatigue_control", state.cooldown_until, snap
+
+    if invited:
+        snap = _state_snapshot(state, daily_cap, None)
+        return True, None, None, snap
+
+    # Unsolicited RD: 10-minute spacing only (no fixed daily cap).
+    if state.last_asked_at:
+        spacing_end = state.last_asked_at + timedelta(
+            minutes=_RD_NORMAL_SPACING_MINUTES
+        )
+        if now < spacing_end:
+            snap = _state_snapshot(state, daily_cap, spacing_end)
+            return False, "fatigue_control", spacing_end, snap
 
     snap = _state_snapshot(state, daily_cap, None)
     return True, None, None, snap

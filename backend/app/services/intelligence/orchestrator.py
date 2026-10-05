@@ -174,33 +174,55 @@ def _apply_discovery_fatigue_response(
         return None
 
 
-def _fatigue_permits_discovery(db: Optional[Session], user_id: int) -> bool:
+def _fatigue_permits_discovery(
+    db: Optional[Session], user_id: int, *, invited: bool = False
+) -> bool:
+    """Q4 — RD-scoped fatigue (not generic KC check_can_ask)."""
     if db is None:
         return False
     try:
         from datetime import datetime, timezone
 
-        from backend.app.services.knowledge.kc_fatigue_policy import check_can_ask
+        from backend.app.services.knowledge.kc_fatigue_policy import (
+            check_can_ask_relationship_discovery,
+        )
 
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        allowed, _reason, _next, _snap = check_can_ask(db, user_id, now)
+        allowed, _reason, _next, _snap = check_can_ask_relationship_discovery(
+            db, user_id, now, invited=invited
+        )
         return bool(allowed)
     except Exception:
         return False
 
 
 def _mark_relationship_discovery_asked(
-    db: Optional[Session], *, user_id: int, target_key: str
+    db: Optional[Session],
+    *,
+    user_id: int,
+    target_key: str,
+    invited: bool = False,
+    companion_key: Optional[str] = None,
 ) -> None:
     if db is None or not target_key:
         return
     try:
         from datetime import datetime, timezone
 
+        from backend.app.services.i6.relationship_discovery import (
+            format_relationship_discovery_marker,
+        )
         from backend.app.services.knowledge.kc_fatigue_policy import mark_asked
 
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        mark_asked(db, user_id, now, f"relationship_discovery:{target_key}")
+        mark_asked(
+            db,
+            user_id,
+            now,
+            format_relationship_discovery_marker(
+                target_key, invited=invited, companion_key=companion_key
+            ),
+        )
     except Exception:
         return
 
@@ -628,17 +650,52 @@ class IntelligenceOrchestrator:
             # Request-local only; I3 applies contextual policy via disposition hint.
             try:
                 from backend.app.services.i6.relationship_discovery import (
+                    DiscoveryDisposition,
                     classify_discovery_reply,
                     peek_relationship_discovery_marker,
+                    peek_relationship_discovery_targets,
                 )
 
-                pending_target = peek_relationship_discovery_marker(
+                pending_targets, _pending_invited = peek_relationship_discovery_targets(
                     self._db, authenticated_user_id
                 )
-                if pending_target:
-                    discovery_classification = classify_discovery_reply(
-                        pending_target, message, lang
+                # Legacy single-marker compat when multi-target peek is empty.
+                if not pending_targets:
+                    legacy_target = peek_relationship_discovery_marker(
+                        self._db, authenticated_user_id
                     )
+                    if legacy_target:
+                        pending_targets = (legacy_target,)
+                if pending_targets:
+                    # Request-local aggregate for I3 hint (pair-safe).
+                    clfs = [
+                        classify_discovery_reply(t, message, lang)
+                        for t in pending_targets
+                    ]
+                    if any(c.disposition is DiscoveryDisposition.SKIP for c in clfs):
+                        discovery_classification = next(
+                            c
+                            for c in clfs
+                            if c.disposition is DiscoveryDisposition.SKIP
+                        )
+                    elif any(
+                        c.disposition is DiscoveryDisposition.UNRELATED for c in clfs
+                    ):
+                        discovery_classification = next(
+                            c
+                            for c in clfs
+                            if c.disposition is DiscoveryDisposition.UNRELATED
+                        )
+                    elif any(
+                        c.disposition is DiscoveryDisposition.ANSWER for c in clfs
+                    ):
+                        discovery_classification = next(
+                            c
+                            for c in clfs
+                            if c.disposition is DiscoveryDisposition.ANSWER
+                        )
+                    else:
+                        discovery_classification = clfs[0]
             except Exception:
                 discovery_classification = None
 
@@ -870,6 +927,8 @@ class IntelligenceOrchestrator:
         # CR-03.3: observe final I3 discovery-reply rule; never fabricate IntentResult.
         # Marker bind/consume happens here after readiness, using pre-resolve classification.
         discovery_reply_active = False
+        continue_invited_discovery = False
+        invited_exclude_keys: frozenset = frozenset()
         caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
         discovery_allow_binding = (
             rollout_mode == "structured"
@@ -891,18 +950,23 @@ class IntelligenceOrchestrator:
             try:
                 from backend.app.services.i6.relationship_discovery import (
                     DiscoveryDisposition,
+                    peek_relationship_discovery_targets,
                 )
                 from backend.app.services.intelligence.intent_registry import (
                     DISCOVERY_REPLY_RULE_ID,
                 )
 
+                pending_keys, pending_invited = peek_relationship_discovery_targets(
+                    self._db, authenticated_user_id
+                )
+                bind_result = None
                 if (
                     intent_meta is not None
                     and intent_meta.rule_id == DISCOVERY_REPLY_RULE_ID
                 ):
                     if discovery_allow_binding:
                         discovery_reply_active = True
-                        _apply_discovery_fatigue_response(
+                        bind_result = _apply_discovery_fatigue_response(
                             self._db,
                             user_id=authenticated_user_id,
                             message=message,
@@ -912,7 +976,7 @@ class IntelligenceOrchestrator:
                         )
                         extra_reason_codes.append("I3_RELATIONSHIP_DISCOVERY_REPLY")
                     else:
-                        _apply_discovery_fatigue_response(
+                        bind_result = _apply_discovery_fatigue_response(
                             self._db,
                             user_id=authenticated_user_id,
                             message=message,
@@ -922,7 +986,7 @@ class IntelligenceOrchestrator:
                         )
                 else:
                     # Stale/unrelated marker: consume one-shot, no fact; preserve routing.
-                    _apply_discovery_fatigue_response(
+                    bind_result = _apply_discovery_fatigue_response(
                         self._db,
                         user_id=authenticated_user_id,
                         message=message,
@@ -937,6 +1001,20 @@ class IntelligenceOrchestrator:
                         extra_reason_codes.append("I6_DISCOVERY_MARKER_UNRELATED")
                     else:
                         extra_reason_codes.append("I6_DISCOVERY_MARKER_STALE")
+
+                # Q4: invited ANSWER may immediately schedule next invited missing target.
+                answered = (
+                    bind_result is not None
+                    and getattr(bind_result, "disposition", None)
+                    is DiscoveryDisposition.ANSWER
+                )
+                if pending_invited and answered and discovery_allow_binding:
+                    continue_invited_discovery = True
+                    # Exclude all keys from this marker same-turn (answered + unanswered).
+                    marker_keys = tuple(
+                        getattr(bind_result, "marker_keys", None) or pending_keys or ()
+                    )
+                    invited_exclude_keys = frozenset(marker_keys)
             except Exception:
                 pass
 
@@ -1158,6 +1236,8 @@ class IntelligenceOrchestrator:
         discovery_question_id: Optional[str] = None
         discovery_target_key: Optional[str] = None
         discovery_localized_question: Optional[str] = None
+        discovery_companion_key: Optional[str] = None
+        discovery_companion_question: Optional[str] = None
         visible_nbq_eligible = False
         relationship_guidance: Optional[str] = None
         interaction_need_value: Optional[str] = None
@@ -1174,6 +1254,7 @@ class IntelligenceOrchestrator:
                 resolve_adaptive_interaction,
             )
             from backend.app.services.intelligence.next_best_question import (
+                detect_discovery_invitation,
                 select_next_best_question,
             )
             from backend.app.services.intelligence.psychological_interaction import (
@@ -1187,22 +1268,35 @@ class IntelligenceOrchestrator:
             )
             interaction_need_value = need.value
 
+            phrase_invitation = detect_discovery_invitation(message, lang)
+            invited_rd_mode = bool(continue_invited_discovery or phrase_invitation)
+
             directive = select_next_best_question(
                 snapshot=snapshot,
                 intent=intent_meta,
                 readiness=readiness_meta,
                 language=lang,
                 message=message,
+                force_invitation=continue_invited_discovery,
+                exclude_keys=invited_exclude_keys,
             )
             if directive is not None:
                 discovery_question_id = directive.question_id
                 discovery_target_key = directive.target_key
                 discovery_localized_question = directive.localized_question
+                discovery_companion_key = getattr(
+                    directive, "companion_target_key", None
+                )
+                discovery_companion_question = getattr(
+                    directive, "companion_localized_question", None
+                )
                 if (
                     need is not InteractionNeed.BE_HEARD
                     and not caution_active
                     and readiness_meta.status is ReadinessStatus.READY
-                    and _fatigue_permits_discovery(self._db, authenticated_user_id)
+                    and _fatigue_permits_discovery(
+                        self._db, authenticated_user_id, invited=invited_rd_mode
+                    )
                 ):
                     visible_nbq_eligible = True
 
@@ -1420,7 +1514,7 @@ class IntelligenceOrchestrator:
                 except (TypeError, ValueError):
                     durable_memory_id = None
 
-            # CR-02: append at most one localized NBQ before I4 post-validation.
+            # CR-02 / Q4.2B: append at most two invited questions (normal stays one).
             nbq_was_appended = False
             if (
                 visible_nbq_eligible
@@ -1428,12 +1522,13 @@ class IntelligenceOrchestrator:
                 and discovery_target_key
             ):
                 from backend.app.services.intelligence.psychological_interaction import (
-                    append_discovery_question,
+                    append_discovery_questions,
                 )
 
-                gen_message = append_discovery_question(
-                    gen_message, discovery_localized_question
-                )
+                q_list = [discovery_localized_question]
+                if discovery_companion_question:
+                    q_list.append(discovery_companion_question)
+                gen_message = append_discovery_questions(gen_message, q_list)
                 nbq_was_appended = True
 
             validated = self._safety_validator(text=gen_message, language=lang)
@@ -1468,10 +1563,17 @@ class IntelligenceOrchestrator:
                 and post_val_status is PostGenerationSafetyStatus.SAFE
                 and discovery_target_key
             ):
+                # Invited origin when invitation.* directive (not contextual/tier-a).
+                mark_invited = bool(
+                    discovery_question_id
+                    and str(discovery_question_id).startswith("nbq.q.invitation.")
+                )
                 _mark_relationship_discovery_asked(
                     self._db,
                     user_id=authenticated_user_id,
                     target_key=discovery_target_key,
+                    invited=mark_invited,
+                    companion_key=discovery_companion_key if mark_invited else None,
                 )
 
             # CR-03.1: finalize durable raw to exact final user-visible response.
