@@ -578,6 +578,28 @@ def execute_governed_persistence(
             result.knowledge_unit_ids.append(int(existing_ku.id))
             continue
 
+        # Idempotent reuse when metadata drift changes dedupe_key but content
+        # fingerprint still maps to the same (canonical_unit_id, v1) row.
+        canonical_unit_id = f"ku-w6p01-{fingerprint[:16]}"
+        existing_by_version = (
+            db.query(models.KnowledgeUnit)
+            .filter(
+                models.KnowledgeUnit.canonical_unit_id == canonical_unit_id,
+                models.KnowledgeUnit.immutable_version_id == "v1",
+            )
+            .one_or_none()
+        )
+        if existing_by_version is not None:
+            existing_hash = str(getattr(existing_by_version, "canonical_hash", "") or "")
+            if existing_hash != canon:
+                raise GovernedWeeklyRuntimeError(
+                    "KU_CANONICAL_VERSION_CONTENT_MISMATCH",
+                    f"{canonical_unit_id}:v1",
+                )
+            ku_by_fingerprint[fingerprint] = existing_by_version
+            result.knowledge_unit_ids.append(int(existing_by_version.id))
+            continue
+
         assert_allowed_medical_safety_transition(
             MedicalSafetyState.UNKNOWN,
             MedicalSafetyState.PENDING_REVIEW,
@@ -591,7 +613,7 @@ def execute_governed_persistence(
             review_state = ReviewState.NOT_REVIEWED.value
 
         ku = models.KnowledgeUnit(
-            canonical_unit_id=f"ku-w6p01-{fingerprint[:16]}",
+            canonical_unit_id=canonical_unit_id,
             immutable_version_id="v1",
             domain=domain,
             topic_taxonomy=topic,
