@@ -109,9 +109,28 @@ sources:
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
     activation: YES
     governed_low_risk_eligibility: NO
+    # Controlled specialized serving only (NOT global low-risk). D12 omitted (no canonical MP spec).
     specialized_serving_eligibility:
+      - D01
+      - D02
+      - D03
+      - D04
+      - D05
+      - D06
+      - D07
+      - D08
+      - D09
+      - D10
+      - D11
+      - D13
+      - D14
+      - D15
+      - D16
       - D18
       - D19
+      - D20
+      - D21
+      - D22
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
 
   - source_key: cdc_health_lifestyle

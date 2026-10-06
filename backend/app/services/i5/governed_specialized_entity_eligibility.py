@@ -184,7 +184,12 @@ D16 = SpecializedEntitySpec(
     track_id="D16-TRACK",
     domain="palliative",
     topic="palliative_care",
-    url_needles=("advanced-cancer/care-choices", "about-cancer/coping"),
+    url_needles=(
+        "advanced-cancer/care-choices",
+        "about-cancer/coping",
+        "medlineplus.gov/palliativecare.html",
+        "palliativecare.html",
+    ),
     clinical_tokens=("palliative", "hospice", "advanced cancer", "end of life", "coping", "supportive care"),
     disease_label="palliative care",
 )
@@ -195,7 +200,13 @@ D01 = SpecializedEntitySpec(
     track_id="D01-TRACK",
     domain="oncology",
     topic="cancer",
-    url_needles=("cancer.gov/publications/pdq", "about-cancer/treatment", "cancer.gov/types/"),
+    url_needles=(
+        "cancer.gov/publications/pdq",
+        "about-cancer/treatment",
+        "cancer.gov/types/",
+        "medlineplus.gov/cancers.html",
+        "cancers.html",
+    ),
     clinical_tokens=("cancer", "tumor", "oncology", "pdq", "chemotherapy", "radiation"),
     disease_label="oncology and supportive cancer care",
 )
@@ -206,8 +217,13 @@ D06 = SpecializedEntitySpec(
     track_id="D06-TRACK",
     domain="dermatology",
     topic="skin_health",
-    url_needles=("health-topics/skin-diseases", "skin-diseases"),
-    clinical_tokens=("skin", "dermatology", "rash", "eczema", "psoriasis"),
+    url_needles=(
+        "health-topics/skin-diseases",
+        "skin-diseases",
+        "medlineplus.gov/skincancer.html",
+        "skincancer.html",
+    ),
+    clinical_tokens=("skin", "dermatology", "rash", "eczema", "psoriasis", "skin cancer"),
     disease_label="dermatology and skin health",
 )
 
@@ -217,7 +233,12 @@ D05 = SpecializedEntitySpec(
     track_id="D05-TRACK",
     domain="musculoskeletal",
     topic="arthritis_msk",
-    url_needles=("health-topics/arthritis", "niams.nih.gov/health-topics"),
+    url_needles=(
+        "health-topics/arthritis",
+        "niams.nih.gov/health-topics",
+        "medlineplus.gov/arthritis.html",
+        "arthritis.html",
+    ),
     clinical_tokens=("arthritis", "joint", "musculoskeletal", "bone", "rheumat"),
     disease_label="musculoskeletal health and pain",
 )
@@ -228,7 +249,11 @@ D03 = SpecializedEntitySpec(
     track_id="D03-TRACK",
     domain="renal",
     topic="kidney",
-    url_needles=("kidney-disease",),
+    url_needles=(
+        "kidney-disease",
+        "medlineplus.gov/kidneydiseases.html",
+        "kidneydiseases.html",
+    ),
     clinical_tokens=("kidney", "renal", "dialysis", "urine", "nephro"),
     disease_label="kidney and urinary tract health",
 )
@@ -239,7 +264,12 @@ D04 = SpecializedEntitySpec(
     track_id="D04-TRACK",
     domain="gastroenterology",
     topic="digestive_liver",
-    url_needles=("liver-disease", "digestive-diseases"),
+    url_needles=(
+        "liver-disease",
+        "digestive-diseases",
+        "medlineplus.gov/digestivediseases.html",
+        "digestivediseases.html",
+    ),
     clinical_tokens=("liver", "digestive", "hepatitis", "gastro", "bowel"),
     disease_label="gastroenterology and digestive health",
 )
@@ -250,7 +280,11 @@ D02 = SpecializedEntitySpec(
     track_id="D02-TRACK",
     domain="respiratory",
     topic="lung_health",
-    url_needles=("nhlbi.nih.gov/health",),
+    url_needles=(
+        "nhlbi.nih.gov/health",
+        "medlineplus.gov/lungdiseases.html",
+        "lungdiseases.html",
+    ),
     clinical_tokens=("asthma", "copd", "lung", "respiratory", "breathing", "airway"),
     disease_label="respiratory health and diseases",
 )
@@ -261,7 +295,11 @@ D07 = SpecializedEntitySpec(
     track_id="D07-TRACK",
     domain="ophthalmology",
     topic="eye_health",
-    url_needles=("nei.nih.gov/learn-about-eye-health",),
+    url_needles=(
+        "nei.nih.gov/learn-about-eye-health",
+        "medlineplus.gov/eyediseases.html",
+        "eyediseases.html",
+    ),
     clinical_tokens=("eye", "vision", "ophthalm", "retina", "glaucoma", "cataract"),
     disease_label="ophthalmology and vision",
 )
@@ -272,7 +310,11 @@ D09 = SpecializedEntitySpec(
     track_id="D09-TRACK",
     domain="dental",
     topic="oral_health",
-    url_needles=("nidcr.nih.gov/health-info",),
+    url_needles=(
+        "nidcr.nih.gov/health-info",
+        "medlineplus.gov/dentalhealth.html",
+        "dentalhealth.html",
+    ),
     clinical_tokens=("oral", "dental", "tooth", "teeth", "gum", "cavity", "decay"),
     disease_label="oral and dental health",
 )
@@ -283,7 +325,11 @@ D08 = SpecializedEntitySpec(
     track_id="D08-TRACK",
     domain="ent_hearing",
     topic="hearing_balance",
-    url_needles=("nidcd.nih.gov/health",),
+    url_needles=(
+        "nidcd.nih.gov/health",
+        "medlineplus.gov/hearingdisordersanddeafness.html",
+        "hearingdisordersanddeafness.html",
+    ),
     clinical_tokens=(
         "hearing",
         "ear infection",
@@ -312,7 +358,11 @@ D10 = SpecializedEntitySpec(
     track_id="D10-TRACK",
     domain="womens_health",
     topic="womens_reproductive",
-    url_needles=("womenshealth.gov",),
+    url_needles=(
+        "womenshealth.gov",
+        "medlineplus.gov/womenshealth.html",
+        "womenshealth.html",
+    ),
     clinical_tokens=(
         "women",
         "woman",
@@ -335,7 +385,13 @@ D11 = SpecializedEntitySpec(
     track_id="D11-TRACK",
     domain="pediatrics",
     topic="child_development",
-    url_needles=("cdc.gov/child-development", "ncbddd/childdevelopment", "childdevelopment"),
+    url_needles=(
+        "cdc.gov/child-development",
+        "ncbddd/childdevelopment",
+        "childdevelopment",
+        "medlineplus.gov/childrenshealth.html",
+        "childrenshealth.html",
+    ),
     clinical_tokens=(
         "child",
         "children",
@@ -358,7 +414,12 @@ D13 = SpecializedEntitySpec(
     track_id="D13-TRACK",
     domain="infectious",
     topic="infectious_diseases",
-    url_needles=("cdc.gov/ncezid", "/ncezid/"),
+    url_needles=(
+        "cdc.gov/ncezid",
+        "/ncezid/",
+        "medlineplus.gov/infectiousdiseases.html",
+        "infectiousdiseases.html",
+    ),
     clinical_tokens=(
         "infectious",
         "infection",
@@ -381,7 +442,11 @@ D14 = SpecializedEntitySpec(
     track_id="D14-TRACK",
     domain="rare_disease",
     topic="rare_diseases",
-    url_needles=("rarediseases.info.nih.gov",),
+    url_needles=(
+        "rarediseases.info.nih.gov",
+        "medlineplus.gov/rarediseases.html",
+        "rarediseases.html",
+    ),
     clinical_tokens=("rare", "genetic", "orphan", "gard", "inherited", "disorder", "rarediseases"),
     disease_label="rare diseases",
 )
@@ -392,7 +457,11 @@ D15 = SpecializedEntitySpec(
     track_id="D15-TRACK",
     domain="rehabilitation",
     topic="rehabilitation",
-    url_needles=("nichd.nih.gov/health",),
+    url_needles=(
+        "nichd.nih.gov/health",
+        "medlineplus.gov/rehabilitation.html",
+        "rehabilitation.html",
+    ),
     clinical_tokens=(
         "rehabilit",
         "recovery",
@@ -409,6 +478,64 @@ D15 = SpecializedEntitySpec(
         "health topic",
     ),
     disease_label="rehabilitation and functional recovery",
+)
+
+# MedlinePlus consumer-health topic pages (entity-scoped; not global low-risk).
+D20 = SpecializedEntitySpec(
+    entity_id="D20",
+    alias="NUTRITION",
+    track_id="NUTRITION-TRACK",
+    domain="nutrition",
+    topic="nutrition",
+    url_needles=("medlineplus.gov/nutrition.html", "nutrition.html"),
+    clinical_tokens=(
+        "nutrition",
+        "nutrient",
+        "diet",
+        "dietary",
+        "food",
+        "healthy eating",
+        "vitamin",
+        "calorie",
+    ),
+    disease_label="nutrition",
+)
+
+D21 = SpecializedEntitySpec(
+    entity_id="D21",
+    alias="CARDIO",
+    track_id="CARDIO-TRACK",
+    domain="cardiovascular",
+    topic="heart",
+    url_needles=("medlineplus.gov/heartdiseases.html", "heartdiseases.html"),
+    clinical_tokens=(
+        "heart",
+        "cardiac",
+        "cardiovascular",
+        "coronary",
+        "blood pressure",
+        "cholesterol",
+        "stroke",
+    ),
+    disease_label="heart disease",
+)
+
+D22 = SpecializedEntitySpec(
+    entity_id="D22",
+    alias="DIABETES",
+    track_id="DIABETES-TRACK",
+    domain="diabetes_metabolic",
+    topic="diabetes",
+    url_needles=("medlineplus.gov/diabetes.html", "diabetes.html"),
+    clinical_tokens=(
+        "diabetes",
+        "blood glucose",
+        "blood sugar",
+        "insulin",
+        "diabetes mellitus",
+        "glycemic",
+    ),
+    disease_label="diabetes",
 )
 
 # Specific-first ordering for URL first-match.
@@ -428,6 +555,9 @@ SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
     D13,
     D14,
     D15,
+    D20,
+    D21,
+    D22,
     D17,
     D18,
     D19,
@@ -847,6 +977,9 @@ __all__ = [
     "D17",
     "D18",
     "D19",
+    "D20",
+    "D21",
+    "D22",
     "SPECIALIZED_SPECS",
     "SpecializedEntitySpec",
     "SpecializedEligibilityError",

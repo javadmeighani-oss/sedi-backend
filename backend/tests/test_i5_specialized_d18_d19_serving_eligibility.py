@@ -66,7 +66,10 @@ def test_url_resolves_d18_d19():
     assert resolve_specialized_entity_from_url(
         "https://medlineplus.gov/multiplesclerosis.html"
     ).entity_id == "D19"
-    assert resolve_specialized_entity_from_url("https://medlineplus.gov/diabetes.html") is None
+    # Diabetes is D22 specialized scope (not D18/D19); regression: ALS/MS still resolve first.
+    assert resolve_specialized_entity_from_url(
+        "https://medlineplus.gov/diabetes.html"
+    ).entity_id == "D22"
 
 
 def test_nav_chrome_rejection():
@@ -134,24 +137,26 @@ def test_specialized_d19_eligibility_pass():
     assert elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE
 
 
-def test_heart_disease_url_not_specialized_eligible():
+def test_heart_disease_wrong_entity_still_blocked():
+    """D18 identity + cardio URL must fail URL scope (D18/D19 contract preserved)."""
     statement = (
-        "Heart diseases include coronary artery disease and other conditions "
-        "affecting the heart. This is general MedlinePlus consumer information."
+        "Amyotrophic lateral sclerosis (ALS) is a nervous system disease that "
+        "weakens muscles and impacts physical function over time for patients."
     )
-    ku = _ku(normalized_statement=statement, domain="lifestyle")
+    ku = _ku(
+        normalized_statement=statement,
+        manifest_entity_id="D18",
+        disease_or_health_condition="amyotrophic lateral sclerosis",
+        domain="neurology_als",
+        topic_taxonomy="als",
+    )
     allowed, reason, _ = can_apply_specialized_entity_eligibility(
         source_key=SPECIALIZED_SOURCE_KEY,
         ku=ku,
         canonical_url="https://medlineplus.gov/heartdiseases.html",
     )
     assert allowed is False
-    assert reason in {
-        "URL_NOT_IN_ENTITY_SCOPE",
-        "ENTITY_IDENTITY_MISSING",
-        "MISSING_CLINICAL_IDENTITY",
-        "ENTITY_NOT_AUTHORIZED_FOR_SOURCE",
-    }
+    assert reason == "URL_NOT_IN_ENTITY_SCOPE"
 
 
 def test_strip_html_nav_chrome_keeps_clinical():
