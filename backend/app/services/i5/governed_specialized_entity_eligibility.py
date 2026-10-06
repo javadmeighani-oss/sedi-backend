@@ -30,6 +30,7 @@ PACKAGE_ID = "I5-SPECIALIZED-ENTITY-ELIGIBILITY-V1"
 # Historical alias — MedlinePlus remains the D18/D19 specialized source.
 SPECIALIZED_SOURCE_KEY = "medlineplus_consumer_health"
 NIOSH_SOURCE_KEY = "niosh_occupational"
+NIMH_SOURCE_KEY = "nimh_nih_mental_health"
 
 _NAV_CHROME_MARKERS = (
     "skip to main content",
@@ -538,8 +539,40 @@ D22 = SpecializedEntitySpec(
     disease_label="diabetes",
 )
 
+# NIMH bounded consumer mental-health education (explicit URLs only; not psychotherapy authority).
+D23 = SpecializedEntitySpec(
+    entity_id="D23",
+    alias="NIMH_MH_EDU",
+    track_id="NIMH-MH-EDU-TRACK",
+    domain="mental_health_psychology",
+    topic="mental_health_education",
+    url_needles=(
+        "nimh.nih.gov/health/topics/caring-for-your-mental-health",
+        "caring-for-your-mental-health",
+        "nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+        "so-stressed-out-fact-sheet",
+        "nimh.nih.gov/health/topics/anxiety-disorders",
+        "anxiety-disorders",
+    ),
+    clinical_tokens=(
+        "mental health",
+        "self-care",
+        "self care",
+        "stress",
+        "coping",
+        "anxiety",
+        "worry",
+        "relaxation",
+        "well-being",
+        "wellbeing",
+        "emotional health",
+    ),
+    disease_label="mental health education",
+)
+
 # Specific-first ordering for URL first-match.
 SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
+    D23,
     D16,
     D01,
     D06,
@@ -813,7 +846,70 @@ def statement_has_clinical_identity(statement: Optional[str], spec: SpecializedE
     return False
 
 
-def content_quality_pass(statement: Optional[str], spec: SpecializedEntitySpec) -> tuple[bool, str]:
+# D23 NIMH educational boundary — fail-closed; not a classifier service.
+_D23_MH_EDU_BLOCKED_PHRASES: tuple[str, ...] = (
+    "suicide",
+    "self-harm",
+    "self harm",
+    "kill yourself",
+    "crisis line",
+    "988 lifeline",
+    "call 988",
+    "i diagnose",
+    "you have depression",
+    "you have anxiety disorder",
+    "take this medication",
+    "start taking",
+    "which antidepressant",
+    "which medication",
+    "choose a treatment",
+    "treatment selection",
+    "prescribe ",
+    "prescribed by",
+    "when appropriate, medication",
+    "medication prescribed",
+    "psychotherapy and, when appropriate",
+    "treatments and therapies can include psychotherapy",
+    "clinical trial",
+    "taking part in clinical research",
+)
+
+
+def _d23_mh_edu_content_blocked(
+    statement: str,
+    spec: SpecializedEntitySpec,
+    *,
+    canonical_url: Optional[str] = None,
+) -> tuple[bool, str]:
+    if spec.entity_id != "D23":
+        return False, ""
+    url = (canonical_url or "").casefold()
+    if url and "topics/depression" in url:
+        return True, "URL_NOT_IN_ENTITY_SCOPE"
+    low = statement.casefold()
+    if any(p in low for p in _D23_MH_EDU_BLOCKED_PHRASES):
+        return True, "MH_EDU_BOUNDARY_BLOCK"
+    if "anxiety-disorders" in url or "topics/anxiety" in url:
+        if any(
+            p in low
+            for p in (
+                "medication",
+                "prescrib",
+                "psychotherapy and",
+                "which treatment",
+                "antidepressant",
+            )
+        ):
+            return True, "MH_EDU_ANXIETY_TREATMENT_BLOCK"
+    return False, ""
+
+
+def content_quality_pass(
+    statement: Optional[str],
+    spec: SpecializedEntitySpec,
+    *,
+    canonical_url: Optional[str] = None,
+) -> tuple[bool, str]:
     text = (statement or "").strip()
     if len(text) < 80:
         return False, "STATEMENT_TOO_SHORT"
@@ -821,6 +917,11 @@ def content_quality_pass(statement: Optional[str], spec: SpecializedEntitySpec) 
         return False, "NAV_CHROME_DOMINATED"
     if not statement_has_clinical_identity(text, spec):
         return False, "MISSING_CLINICAL_IDENTITY"
+    blocked, block_reason = _d23_mh_edu_content_blocked(
+        text, spec, canonical_url=canonical_url
+    )
+    if blocked:
+        return False, block_reason
     banned = ("take this medication", "you have als", "you have ms", "i diagnose", "prescribe ")
     low = text.casefold()
     if any(b in low for b in banned):
@@ -889,7 +990,7 @@ def can_apply_specialized_entity_eligibility(
         except Exception:  # noqa: BLE001
             pass
         statement = healed
-    ok, reason = content_quality_pass(statement, spec)
+    ok, reason = content_quality_pass(statement, spec, canonical_url=canonical_url)
     if not ok:
         return False, reason, spec
     return True, "OK", spec
@@ -980,6 +1081,8 @@ __all__ = [
     "D20",
     "D21",
     "D22",
+    "D23",
+    "NIMH_SOURCE_KEY",
     "SPECIALIZED_SPECS",
     "SpecializedEntitySpec",
     "SpecializedEligibilityError",

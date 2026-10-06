@@ -207,6 +207,9 @@ sources:
     knowledge_domains: [mental_health_psychology]
     activation: YES
     governed_low_risk_eligibility: NO
+    # Bounded educational specialized serving only (NOT global low-risk; NOT broad /health/*).
+    specialized_serving_eligibility:
+      - D23
     license_notes: "NIMH public-domain text; cite NIMH; non-diagnostic; no crisis content as KB answers"
 
   - source_key: nci_cancer_gov

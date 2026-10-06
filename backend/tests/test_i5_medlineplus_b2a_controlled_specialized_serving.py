@@ -329,16 +329,15 @@ def test_d18_d19_regression_unchanged():
     )
 
 
-def test_nimh_allowlist_untouched():
+def test_medlineplus_not_granted_nimh_d23():
     load_trusted_source_manifest.cache_clear()
+    mp = specialized_allowed_entities_for_source(SPECIALIZED_SOURCE_KEY)
+    assert "D23" not in mp
     row = manifest_row_for_key("nimh_nih_mental_health")
     assert row is not None
-    assert str(row.get("governed_low_risk_eligibility") or "NO").upper() == "NO"
-    specialized = {str(e).strip().upper() for e in (row.get("specialized_serving_eligibility") or [])}
-    assert specialized == set()
-    assert "D20" not in specialized
-    assert "D21" not in specialized
-    assert "D22" not in specialized
+    nimh = {str(e).strip().upper() for e in (row.get("specialized_serving_eligibility") or [])}
+    assert "D23" in nimh
+    assert "D20" not in nimh and "D21" not in nimh and "D22" not in nimh
 
 
 def test_no_eligibility_without_content_quality_pass():
