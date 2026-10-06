@@ -67,6 +67,63 @@ AssessFn = Callable[..., RiskAssessment]
 BuildSafetyFn = Callable[..., SafetyResponse]
 ValidateFn = Callable[..., Any]
 
+# Intent IDs that already encode health/lifestyle knowledge demand (I3).
+_GOVERNED_KNOWLEDGE_INTENT_IDS = frozenset(
+    {
+        IntentId.HEALTH,
+        IntentId.SYMPTOM,
+        IntentId.MEDICATION,
+        IntentId.VITALS,
+        IntentId.NUTRITION,
+        IntentId.SLEEP,
+        IntentId.ACTIVITY,
+    }
+)
+
+
+def allow_governed_knowledge_decision(
+    *,
+    terminal_safety: bool,
+    message: str,
+    language: str,
+    intent: Optional[IntentResult],
+    interaction_need: Optional[Any],
+) -> bool:
+    """I1 decision using existing I3/I4/Gate3 signals only — no new taxonomy.
+
+    Brain must not re-decide; this boolean is authoritative for structured I5.
+    """
+    if terminal_safety:
+        return False
+
+    from backend.app.services.gate3.medical_intent import (
+        is_medical_care_intent,
+        is_mental_wellbeing_intent,
+    )
+    from backend.app.services.intelligence.psychological_interaction import (
+        InteractionNeed,
+    )
+
+    intent_id = intent.intent_id if intent is not None else None
+    request_kind = intent.request_kind if intent is not None else None
+    if intent_id in (IntentId.REMINDER, IntentId.NOTIFICATION_FOLLOW_UP):
+        return False
+
+    factual_intent = intent_id in _GOVERNED_KNOWLEDGE_INTENT_IDS
+    medical = is_medical_care_intent(message or "", language or "en")
+    wellbeing = is_mental_wellbeing_intent(message or "", language or "en")
+    informational = request_kind is RequestKind.INFORMATIONAL
+
+    need = interaction_need
+    if need is InteractionNeed.BE_HEARD:
+        # Pure emotional listen: suppress. Explicit factual/evidence via I3 intent: allow.
+        return bool(factual_intent and informational)
+
+    # Non-BE_HEARD: existing medical/wellbeing classifiers or knowledge intents.
+    if factual_intent or medical or wellbeing:
+        return True
+    return False
+
 
 class LegacyGeneratorProtocol(Protocol):
     def __call__(
@@ -83,6 +140,7 @@ class LegacyGeneratorProtocol(Protocol):
         safety_constraints: Optional[SafetyConstraints] = None,
         relationship_guidance: Optional[str] = None,
         skip_generic_kc_extraction: bool = False,
+        allow_governed_knowledge: bool = False,
     ) -> Dict[str, Any]:
         ...
 
@@ -104,6 +162,7 @@ def _default_legacy_generator(
         safety_constraints: Optional[SafetyConstraints] = None,
         relationship_guidance: Optional[str] = None,
         skip_generic_kc_extraction: bool = False,
+        allow_governed_knowledge: bool = False,
     ) -> Dict[str, Any]:
         brain = ConversationBrain(db, language=language)
         return brain.process_message(
@@ -118,6 +177,7 @@ def _default_legacy_generator(
             safety_constraints=safety_constraints,
             relationship_guidance=relationship_guidance,
             skip_generic_kc_extraction=skip_generic_kc_extraction,
+            allow_governed_knowledge=allow_governed_knowledge,
         )
 
     return _generate
@@ -1241,6 +1301,8 @@ class IntelligenceOrchestrator:
         visible_nbq_eligible = False
         relationship_guidance: Optional[str] = None
         interaction_need_value: Optional[str] = None
+        interaction_need_obj: Optional[Any] = None
+        allow_governed_knowledge = False
         if (
             not terminal_safety
             and not skip_generator
@@ -1266,6 +1328,7 @@ class IntelligenceOrchestrator:
             need = classify_interaction_need(
                 message=message, intent=intent_meta, language=lang
             )
+            interaction_need_obj = need
             interaction_need_value = need.value
 
             phrase_invitation = detect_discovery_invitation(message, lang)
@@ -1311,6 +1374,20 @@ class IntelligenceOrchestrator:
                 nbq_scheduled=visible_nbq_eligible,
                 response_length=adaptive.response_length,
                 listen_before_advice=adaptive.listen_before_advice,
+            )
+
+        # Structured I5 gate: decide after CR-02 need + I6 adaptive, before generation.
+        if (
+            rollout_mode == "structured"
+            and not terminal_safety
+            and not skip_generator
+        ):
+            allow_governed_knowledge = allow_governed_knowledge_decision(
+                terminal_safety=terminal_safety,
+                message=message,
+                language=lang,
+                intent=intent_meta,
+                interaction_need=interaction_need_obj,
             )
 
         # prepare
@@ -1460,6 +1537,8 @@ class IntelligenceOrchestrator:
                     call_kwargs["skip_generic_kc_extraction"] = (
                         skip_generic_kc_extraction
                     )
+                if _generator_accepts_kwarg(generator, "allow_governed_knowledge"):
+                    call_kwargs["allow_governed_knowledge"] = allow_governed_knowledge
                 raw = generator(
                     authenticated_user_id,
                     message,

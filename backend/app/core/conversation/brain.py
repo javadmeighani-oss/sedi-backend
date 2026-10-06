@@ -256,6 +256,49 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
         print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
 
 
+def _maybe_append_structured_governed_knowledge(
+    messages: list,
+    db,
+    user_id: int,
+    user_message: str,
+    language: str,
+) -> None:
+    """Structured path: one I5 knowledge retrieval + renderer. No care packs / I2-I6 reload.
+
+    Decision to call is owned by IntelligenceOrchestrator (`allow_governed_knowledge`).
+    Brain must not re-classify intent or medical/wellbeing here.
+    """
+    try:
+        from backend.app.services.i5.runtime_knowledge_retrieval import (
+            retrieve_knowledge_context,
+        )
+        from backend.app.services.i5.reference_renderer import (
+            format_care_context_block,
+            render_grounded_answer,
+        )
+
+        retrieval = retrieve_knowledge_context(
+            db,
+            user_message,
+            user_id=user_id,
+            language=language,
+            limit=3,
+            enqueue_gap_on_empty=False,
+        )
+        grounded = render_grounded_answer(
+            retrieval.to_dict() if hasattr(retrieval, "to_dict") else retrieval,
+            language=language,
+            user_requested_sources=True,
+        )
+        block = format_care_context_block(grounded, max_chars=900)
+        if block and str(block).strip():
+            messages.append({"role": "system", "content": str(block).strip()[:1600]})
+    except Exception as e:
+        print(
+            f"[BRAIN WARNING] Structured I5 governed knowledge failed (non-critical): {e}"
+        )
+
+
 def _gate3_validate_assistant_response(text: str, language: str) -> str:
     try:
         from backend.app.services.gate3.safety_validator import validate_response_text
@@ -444,6 +487,7 @@ class ConversationBrain:
         safety_constraints=None,
         relationship_guidance: Optional[str] = None,
         skip_generic_kc_extraction: bool = False,
+        allow_governed_knowledge: bool = False,
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
@@ -460,6 +504,9 @@ class ConversationBrain:
         relationship_guidance: optional CR-02 internal system block (structured path).
         skip_generic_kc_extraction: CR-03.4 internal — when True, skip Brain's generic
         KC conversation_extraction_service only (governed I6 discovery binding unchanged).
+        allow_governed_knowledge: I1-owned structured I5 gate. When True with structured
+        mode, Brain performs exactly one retrieve_knowledge_context + renderer append
+        (no build_care_context / pack duplication; no intent re-decision).
         """
         # TEMP DEBUG: Log entry
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
@@ -532,6 +579,15 @@ class ConversationBrain:
                             "role": "system",
                             "content": str(relationship_guidance).strip()[:1200],
                         }
+                    )
+                # I5 knowledge-only: orchestrator-decided; never reload I2/I6 care packs.
+                if allow_governed_knowledge:
+                    _maybe_append_structured_governed_knowledge(
+                        messages,
+                        self.db,
+                        user_id,
+                        user_message,
+                        lang,
                     )
             else:
                 # User Knowledge: stable baseline + facts (compact, after main system, before history)
