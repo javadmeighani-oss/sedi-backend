@@ -39,7 +39,11 @@ _NAV_CHROME_MARKERS = (
     "browse more home",
     "official website of the united states",
     "here's how you know",
+    "here’s how you know",  # curly apostrophe variant from live NIH/MedlinePlus chrome
     "an official website of the united states government",
+    "official websites use .gov",
+    "a .gov website belongs",
+    "secure .gov websites use https",
     "javascript must be enabled",
     "enable cookies",
     "share this page",
@@ -55,6 +59,26 @@ _NAV_CHROME_MARKERS = (
     "health info health info",
     "statistics health resources",
     "clinical studies adult hearing",
+    # MedlinePlus page-shell / menu chrome.
+    "about medlineplus",
+    "search medlineplus",
+    "medical encyclopedia",
+    "find an expert",
+    "patient handouts",
+    "journal articles resources reference desk",
+    "see, play and learn",
+    "test your knowledge",
+    "genetics medical tests",
+    "resources reference desk",
+    # NIMH / NIH research-participation and site-redesign chrome.
+    "taking part in clinical research",
+    "thinking about taking part in clinical research",
+    "this page contains basic information about clin",
+    "new website experience",
+    "easier to find health information, research, funding",
+    "funding opportunit",
+    "research conducted at nimh",
+    "brochures and fact sheets",
 )
 
 # NIDCD article-body anchors (claim-window refinement; not a permissive parser).
@@ -67,6 +91,21 @@ _NIDCD_BODY_MARKERS = (
     "noise-induced hearing loss",
     "balance disorders",
     "ear infections in children",
+)
+
+# MedlinePlus / NIMH consumer-health body anchors (reuse same claim-window pattern).
+_MEDLINEPLUS_NIMH_BODY_MARKERS = (
+    "on this page",
+    "also called:",
+    "what is ",
+    "what are ",
+    "signs and symptoms",
+    "treatments and therapies",
+    "treatment and therapies",
+    "causes and risk factors",
+    "coping with",
+    "summary start here",
+    "basics summary",
 )
 
 
@@ -458,6 +497,33 @@ def _clinical_token_hit(tok: str, sample: str) -> bool:
     return re.search(rf"(?<![a-z0-9]){re.escape(t)}(?![a-z0-9])", sample) is not None
 
 
+def _medlineplus_nimh_research_nav_dominated(sample: str) -> bool:
+    """True when NIMH/MedlinePlus research-participation or redesign chrome dominates."""
+    strong = (
+        "taking part in clinical research",
+        "thinking about taking part in clinical research",
+        "new website experience",
+        "easier to find health information, research, funding",
+        "official websites use .gov",
+        "about medlineplus",
+        "search medlineplus",
+        "journal articles resources reference desk",
+    )
+    hits = sum(1 for marker in strong if marker in sample)
+    bodyish = any(
+        m in sample
+        for m in (
+            "signs and symptoms",
+            "treatments and therapies",
+            "what is ",
+            "what are ",
+            "also called:",
+            "coping with",
+        )
+    )
+    return hits >= 1 and not bodyish
+
+
 def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     text = (statement or "").strip()
     if len(text) < 40:
@@ -488,34 +554,71 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     )
     if nidcd_nav >= 2 and "on this page:" not in sample and "otitis" not in sample:
         return True
+    if _medlineplus_nimh_research_nav_dominated(sample):
+        return True
     return False
 
 
+def _window_from_body_markers(
+    raw: str,
+    sample: str,
+    markers: tuple[str, ...],
+    *,
+    min_idx: int = 80,
+) -> str:
+    for marker in markers:
+        idx = sample.find(marker)
+        if idx < 0:
+            continue
+        # Skip early false positives inside the global nav band.
+        if idx < min_idx:
+            continue
+        start = max(0, idx - 40) if marker.startswith("on this page") else idx
+        window = raw[start : start + 520].strip()
+        if len(window) >= 80 and not statement_dominated_by_nav_chrome(window):
+            return window
+    return ""
+
+
 def select_clinical_claim_window(text: str, *, canonical_url: Optional[str] = None) -> str:
-    """Prefer clinically meaningful body window over leading chrome (Format Resilience)."""
+    """Prefer clinically meaningful body window over leading chrome (Format Resilience).
+
+    Fail-closed: returns empty string when no non-chrome claim window remains
+    (callers must not manufacture a KU statement from page-shell text).
+    """
     raw = re.sub(r"\s+", " ", (text or "").strip())
     if not raw:
-        return raw
+        return ""
     sample = raw.casefold()
     url = (canonical_url or "").casefold()
     is_nidcd = "nidcd.nih.gov" in url or "nidcd employee intranet" in sample
+    is_medlineplus_nimh = (
+        "medlineplus.gov" in url
+        or "nimh.nih.gov" in url
+        or "about medlineplus" in sample
+        or "taking part in clinical research" in sample
+        or "new website experience" in sample
+    )
     if is_nidcd:
-        for marker in _NIDCD_BODY_MARKERS:
-            idx = sample.find(marker)
-            if idx < 0:
-                continue
-            # Skip early false positives inside the global nav band.
-            if idx < 200:
-                continue
-            start = max(0, idx - 80) if marker == "on this page:" else idx
-            window = raw[start : start + 520].strip()
-            if len(window) >= 80 and not statement_dominated_by_nav_chrome(window):
-                return window
+        window = _window_from_body_markers(raw, sample, _NIDCD_BODY_MARKERS, min_idx=200)
+        if window:
+            return window
         # Fall through: strip chrome then take first non-chrome clinical span.
+    if is_medlineplus_nimh:
+        window = _window_from_body_markers(
+            raw, sample, _MEDLINEPLUS_NIMH_BODY_MARKERS, min_idx=60
+        )
+        if window:
+            return window
+        cleaned_mp = strip_html_nav_chrome(raw)
+        if cleaned_mp and not statement_dominated_by_nav_chrome(cleaned_mp[:520]):
+            return cleaned_mp[:520]
+        return ""
     cleaned = strip_html_nav_chrome(raw)
     if cleaned and not statement_dominated_by_nav_chrome(cleaned[:520]):
         return cleaned[:520]
-    return cleaned[:520] if cleaned else raw[:520]
+    # Fail closed — do not return chrome-dominated shells as claims.
+    return ""
 
 
 def strip_html_nav_chrome(text: str) -> str:
@@ -533,24 +636,28 @@ def strip_html_nav_chrome(text: str) -> str:
         if marker.startswith("nidcd") and 0 <= idx <= 120:
             cut = max(cut, idx + len(marker))
 
-    # Prefer clinical tokens that appear after the nav band (>= 400 chars).
+    # Prefer clinical tokens / body anchors that appear after the nav band (>= 400 chars).
     clinical_start = None
     clinical_start_late = None
+    search_tokens: list[str] = []
     for spec in SPECIALIZED_SPECS:
-        for tok in spec.clinical_tokens:
-            t = (tok or "").casefold().strip()
-            if not t:
-                continue
-            idx = sample.find(t)
-            while idx >= 0:
-                if idx >= 400:
-                    clinical_start_late = (
-                        idx if clinical_start_late is None else min(clinical_start_late, idx)
-                    )
-                    break
-                if clinical_start is None or idx < clinical_start:
-                    clinical_start = idx
-                idx = sample.find(t, idx + len(t))
+        search_tokens.extend(tok for tok in spec.clinical_tokens if tok)
+    search_tokens.extend(_MEDLINEPLUS_NIMH_BODY_MARKERS)
+    search_tokens.extend(_NIDCD_BODY_MARKERS)
+    for tok in search_tokens:
+        t = (tok or "").casefold().strip()
+        if not t:
+            continue
+        idx = sample.find(t)
+        while idx >= 0:
+            if idx >= 400:
+                clinical_start_late = (
+                    idx if clinical_start_late is None else min(clinical_start_late, idx)
+                )
+                break
+            if clinical_start is None or idx < clinical_start:
+                clinical_start = idx
+            idx = sample.find(t, idx + len(t))
     chosen = clinical_start_late if clinical_start_late is not None else clinical_start
     if chosen is not None and chosen > 0:
         cleaned = raw[chosen:].strip()

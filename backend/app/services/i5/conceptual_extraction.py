@@ -11,7 +11,7 @@ from backend.app.schemas.i5_adapters import ExtractionCandidate, FetchEnvelope
 from backend.app.services.i5.adapters.base import AdapterFrameworkError, sha256_hex
 from backend.app.services.i5.normalization import canonicalize_text
 
-EXTRACTOR_VERSION = "w3p01-conceptual-1.0.2"
+EXTRACTOR_VERSION = "w3p01-conceptual-1.0.3"
 
 
 class _TextExtractor(HTMLParser):
@@ -88,6 +88,7 @@ def extract_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...
     # Bounded chrome self-heal (Format Resilience compatible; no parser redesign).
     from backend.app.services.i5.governed_specialized_entity_eligibility import (
         select_clinical_claim_window,
+        statement_dominated_by_nav_chrome,
         strip_html_nav_chrome,
     )
 
@@ -98,7 +99,10 @@ def extract_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...
         canonicalize_text(text),
         canonical_url=envelope.canonical_url,
     )
-    claim = claim_src[:520] if claim_src else None
+    # Fail closed: never ship a chrome-dominated claim_candidate for KU statements.
+    if not claim_src or statement_dominated_by_nav_chrome(claim_src):
+        raise AdapterFrameworkError("EXTRACTION_FAILED", "no_clean_claim")
+    claim = claim_src[:520]
     return (
         _candidate(
             title=parser.title or "html-document",

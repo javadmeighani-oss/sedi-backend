@@ -32,7 +32,7 @@ NIDCD_BODY = (
 
 
 def test_extractor_version_bumped_for_claim_window():
-    assert EXTRACTOR_VERSION == "w3p01-conceptual-1.0.2"
+    assert EXTRACTOR_VERSION == "w3p01-conceptual-1.0.3"
 
 
 def test_nidcd_nav_chrome_rejected_before_fix_reproduction():

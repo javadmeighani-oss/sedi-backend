@@ -834,7 +834,10 @@ def _apply_live_source(
     except AdapterFrameworkError as exc:
         return RunSourceResultStatus.FAILED.value, exc.category, handoffs
 
-    statement = (primary.claim_candidate or normalized.normalized_content_canonical[:500]).strip()
+    # Fail closed: never manufacture KU statements from chrome-laden body text.
+    statement = (primary.claim_candidate or "").strip()
+    if not statement:
+        return RunSourceResultStatus.FAILED.value, "EXTRACTION_NO_CLEAN_CLAIM", handoffs
     candidate_fingerprint = primary.content_hash or normalized.content_hash
     enrich = {
         "byte_hash": byte_hash,
