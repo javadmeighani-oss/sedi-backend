@@ -100,12 +100,19 @@ def allow_governed_knowledge_decision(
         is_medical_care_intent,
         is_mental_wellbeing_intent,
     )
+    from backend.app.services.intelligence.intent_registry import (
+        DISCOVERY_REPLY_RULE_ID,
+    )
     from backend.app.services.intelligence.psychological_interaction import (
         InteractionNeed,
     )
 
     intent_id = intent.intent_id if intent is not None else None
     request_kind = intent.request_kind if intent is not None else None
+    rule_id = getattr(intent, "rule_id", None) if intent is not None else None
+    # User-memory discovery capture is not a governed knowledge ask (existing I3 rule).
+    if rule_id == DISCOVERY_REPLY_RULE_ID:
+        return False
     if intent_id in (IntentId.REMINDER, IntentId.NOTIFICATION_FOLLOW_UP):
         return False
 

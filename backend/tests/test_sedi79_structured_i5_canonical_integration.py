@@ -223,6 +223,28 @@ def test_decision_reminder_intent_false():
     )
 
 
+def test_decision_discovery_reply_memory_only_false():
+    from backend.app.services.intelligence.intent_registry import DISCOVERY_REPLY_RULE_ID
+
+    discovery_intent = IntentResult(
+        registry_version="t",
+        intent_id=IntentId.GENERAL,
+        request_kind=RequestKind.INFORMATIONAL,
+        confidence_band=IntentConfidenceBand.HIGH,
+        rule_id=DISCOVERY_REPLY_RULE_ID,
+    )
+    assert (
+        allow_governed_knowledge_decision(
+            terminal_safety=False,
+            message="خوابم بد",
+            language="fa",
+            intent=discovery_intent,
+            interaction_need=InteractionNeed.GENERAL,
+        )
+        is False
+    )
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator wiring
 # ---------------------------------------------------------------------------
