@@ -11,6 +11,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 from sqlalchemy.orm import Session
 
+from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
 from backend.app.services.i5.runtime_eligibility_gate import evaluate_knowledge_unit_eligibility
 from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
 from backend.app.services.i5.runtime_knowledge_retrieval import RetrievedKnowledgeItem
@@ -79,6 +80,46 @@ def _lang_matches(item_lang: Optional[str], filter_lang: Optional[str]) -> bool:
     return il == fl or il.startswith(fl) or fl.startswith(il[:2])
 
 
+def filter_scis_evidence_for_governed_boundary(
+    db: Session,
+    evidence: Sequence[Any],
+    *,
+    language: Optional[str],
+    authorized_ku_ids: Optional[set[int]],
+) -> List[Any]:
+    """Shared language/concept boundary for SCIS evidence.
+
+    authorized_ku_ids is None when no verified concept authority exists:
+    keep the historical same-language gate (KU language or evidence language).
+    An empty set is fail-closed (zero linked KUs): keep nothing.
+    A non-empty set keeps only those KU ids and may cross languages.
+    """
+    if authorized_ku_ids is not None and not authorized_ku_ids:
+        return []
+    from backend.app import models
+
+    ku_ids = [e.knowledge_unit_id for e in evidence if e.knowledge_unit_id is not None]
+    units: dict[int, Any] = {}
+    if ku_ids:
+        for ku in db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.id.in_(ku_ids)).all():
+            units[int(ku.id)] = ku
+    kept: List[Any] = []
+    for ev in evidence:
+        if ev.knowledge_unit_id is None:
+            continue
+        ku = units.get(int(ev.knowledge_unit_id))
+        if ku is None:
+            continue
+        ku_id = int(ev.knowledge_unit_id)
+        if authorized_ku_ids is not None:
+            if ku_id not in authorized_ku_ids:
+                continue
+        elif not _lang_matches(str(ku.language), language) and not _lang_matches(ev.language, language):
+            continue
+        kept.append(ev)
+    return kept
+
+
 def _map_evidence_to_items(
     db: Session,
     evidence: Sequence[Any],
@@ -87,9 +128,16 @@ def _map_evidence_to_items(
     domain: Optional[str],
     top_k: int,
     mode_tag: str,
+    authorized_ku_ids: Optional[set[int]] = None,
 ) -> List[RetrievedKnowledgeItem]:
     from backend.app import models
 
+    evidence = filter_scis_evidence_for_governed_boundary(
+        db,
+        evidence,
+        language=language,
+        authorized_ku_ids=authorized_ku_ids,
+    )
     ku_ids = [e.knowledge_unit_id for e in evidence if e.knowledge_unit_id is not None]
     units: dict[int, Any] = {}
     if ku_ids:
@@ -103,8 +151,6 @@ def _map_evidence_to_items(
             continue
         ku = units.get(int(ev.knowledge_unit_id))
         if ku is None:
-            continue
-        if not _lang_matches(str(ku.language), language) and not _lang_matches(ev.language, language):
             continue
         if domain and str(ku.domain) != domain:
             continue
@@ -210,7 +256,28 @@ def retrieve_scis_governed_runtime_items(
         "alias_authority": "NONAUTHORITATIVE",
         "alias_hint_count": len(hints),
         "authorization_boundary_present": user_authorization_context is not None,
+        "concept_authority_applied": False,
+        "concept_key": None,
+        "concept_id": None,
+        "authorized_ku_count": 0,
+        "cross_language_authorized": False,
     }
+
+    authority = resolve_verified_concept_authority(db, query or "", lang)
+    authorized_ku_ids: Optional[set[int]] = None
+    if authority is not None:
+        meta["concept_authority_applied"] = True
+        meta["concept_key"] = authority.concept_key
+        meta["concept_id"] = int(authority.concept_id)
+        meta["authorized_ku_count"] = len(authority.knowledge_unit_ids)
+        if not authority.knowledge_unit_ids:
+            meta["fallback_state"] = FallbackState.NO_RESULTS.value
+            meta["effective_mode"] = RetrievalMode.LEXICAL.value
+            meta["retrieval_mode"] = RetrievalMode.LEXICAL.value
+            meta["mapped_item_count"] = 0
+            meta["scis_evidence_count"] = 0
+            return [], meta
+        authorized_ku_ids = set(authority.knowledge_unit_ids)
 
     if force_mode == RetrievalMode.LEXICAL:
         mode = RetrievalMode.LEXICAL
@@ -336,6 +403,10 @@ def retrieve_scis_governed_runtime_items(
         domain=domain,
         top_k=top_k,
         mode_tag=mode_tag,
+        authorized_ku_ids=authorized_ku_ids,
+    )
+    meta["cross_language_authorized"] = any(
+        not _lang_matches(item.language, language) for item in items
     )
     meta["mapped_item_count"] = len(items)
     return items, meta
