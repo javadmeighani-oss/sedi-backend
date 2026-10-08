@@ -600,6 +600,73 @@ def test_concept_boundary_blocks_unrelated_and_ineligible_evidence(db, monkeypat
     assert calls["n"] == 2
 
 
+def test_concept_authority_overfetch_recovers_rank7(db, monkeypatch):
+    from backend.app.services.i5.know02.taxonomy import link_ku_concept
+    from backend.app.services.scis.contracts import FallbackState, ScisRetrievalResponse
+    from backend.app.services.scis.governed_runtime_adapter import (
+        retrieve_scis_governed_runtime_items,
+    )
+
+    concept = _concept(db, key="disease:k81b:recall", name="K81B Recall")
+    _label(db, concept, language="fa", text="k81bfarecall", verified=True)
+    linked = _ku(db, canonical="k81b-recall-linked", statement="Authorized rank-seven unit.")
+    link_ku_concept(db, knowledge_unit_id=linked.id, concept_id=concept.id)
+    negatives = [
+        _ku(db, canonical=f"k81b-recall-neg-{i}", statement=f"Unrelated eligible unit {i}.")
+        for i in range(6)
+    ]
+    evidence = [
+        _evidence(row, language="en", rank=i)
+        for i, row in enumerate(negatives, start=1)
+    ]
+    evidence.append(_evidence(linked, language="en", rank=7))
+    calls = {"n": 0, "top_k": None}
+
+    def _retrieve(_db, request, **_k):
+        calls["n"] += 1
+        calls["top_k"] = request.top_k
+        return ScisRetrievalResponse(
+            request_trace_id="k81b-recall",
+            mode="lexical",
+            language="fa",
+            evidence=list(evidence),
+            fallback_state=FallbackState.NONE,
+        )
+
+    monkeypatch.setattr(
+        "backend.app.services.scis.governed_runtime_adapter.retrieve",
+        _retrieve,
+    )
+    items, meta = retrieve_scis_governed_runtime_items(
+        db,
+        "پرسش k81bfarecall",
+        language="fa",
+        limit=3,
+        allow_network=False,
+    )
+    assert calls["n"] == 1
+    assert calls["top_k"] == 8
+    assert [i.knowledge_unit_id for i in items] == [int(linked.id)]
+    assert len(items) <= 3
+    assert meta["concept_authority_applied"] is True
+    assert meta["cross_language_authorized"] is True
+
+    calls["n"] = 0
+    calls["top_k"] = None
+    plain, plain_meta = retrieve_scis_governed_runtime_items(
+        db,
+        "ordinary english monitoring question",
+        language="en",
+        limit=3,
+        allow_network=False,
+    )
+    assert calls["n"] == 1
+    assert calls["top_k"] == 3
+    assert len(plain) <= 3
+    assert plain_meta["concept_authority_applied"] is False
+    assert int(linked.id) not in {i.knowledge_unit_id for i in plain}
+
+
 def test_zero_links_fail_closed_and_same_language_unchanged(db, monkeypatch):
     from backend.app.services.scis.governed_runtime_adapter import (
         retrieve_scis_governed_runtime_items,

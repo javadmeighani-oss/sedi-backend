@@ -26,6 +26,8 @@ from backend.app.services.scis.retrieval import retrieve
 # Bounded serving context (chars per evidence statement).
 MAX_SERVING_CONTEXT_CHARS = 600
 DEFAULT_SERVING_TOP_K = 5
+# Concept authority may look past the serving cap, but never past this bound.
+CONCEPT_AUTHORITY_CANDIDATE_TOP_K = 8
 
 # Phase1 supported languages for governed semantic/hybrid retrieval.
 _SUPPORTED_LANG_ROOTS = frozenset({"fa", "en", "ar"})
@@ -279,6 +281,10 @@ def retrieve_scis_governed_runtime_items(
             return [], meta
         authorized_ku_ids = set(authority.knowledge_unit_ids)
 
+    retrieve_top_k = top_k
+    if authorized_ku_ids:
+        retrieve_top_k = max(top_k, CONCEPT_AUTHORITY_CANDIDATE_TOP_K)
+
     if force_mode == RetrievalMode.LEXICAL:
         mode = RetrievalMode.LEXICAL
         prov = None
@@ -305,7 +311,7 @@ def retrieve_scis_governed_runtime_items(
             target_domain=domain,
             intent=intent,
             safety_classification=safety_classification,
-            top_k=top_k,
+            top_k=retrieve_top_k,
             retrieval_mode=mode,
             allowed_knowledge_classes=tuple(allowed_knowledge_classes)
             if allowed_knowledge_classes is not None
@@ -340,7 +346,7 @@ def retrieve_scis_governed_runtime_items(
                         query_text=query or "",
                         query_language=lang,
                         target_domain=domain,
-                        top_k=top_k,
+                        top_k=retrieve_top_k,
                         retrieval_mode=RetrievalMode.LEXICAL,
                     ),
                     alias_hints=hints or None,
