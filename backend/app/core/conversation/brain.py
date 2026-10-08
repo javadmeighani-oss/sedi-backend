@@ -294,11 +294,21 @@ def _maybe_append_structured_governed_knowledge(
         if block and str(block).strip():
             messages.append({"role": "system", "content": str(block).strip()[:1600]})
     except Exception as e:
-        # Fail-open: clear aborted DB txn so later Brain/I6 writes still proceed.
+        # Clear the aborted transaction so later Brain/I6 writes still proceed.
+        # Do not retrieve again and do not supply invented evidence.
         try:
             db.rollback()
         except Exception:
             pass
+        messages.append(
+            {
+                "role": "system",
+                "content": (
+                    "No safe governed knowledge is available. "
+                    "Do not invent medical content."
+                ),
+            }
+        )
         print(
             f"[BRAIN WARNING] Structured I5 governed knowledge failed (non-critical): {e}"
         )

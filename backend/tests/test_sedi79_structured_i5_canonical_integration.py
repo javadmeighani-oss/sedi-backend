@@ -495,6 +495,64 @@ def test_brain_structured_allow_false_zero_retrieval(monkeypatch, db):
     assert calls["retrieve"] == 0
 
 
+def test_brain_i5_exception_continues_chat_without_invented_evidence(monkeypatch, db):
+    from backend.app.models import User
+
+    db.rollback()
+    user = User(name="S79e", secret_key="s79i5e", preferred_language="en")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    calls = {"retrieve": 0, "chat": 0, "rollback": 0}
+    seen = {}
+    original_rollback = db.rollback
+
+    def _retrieve(*a, **k):
+        calls["retrieve"] += 1
+        raise RuntimeError("retrieval unavailable")
+
+    def _chat(messages):
+        calls["chat"] += 1
+        seen["messages"] = messages
+        return MagicMock(output_text="I can stay with you while evidence is unavailable.")
+
+    def _rollback():
+        calls["rollback"] += 1
+        return original_rollback()
+
+    monkeypatch.setattr(db, "rollback", _rollback)
+    monkeypatch.setattr(
+        "backend.app.services.i5.runtime_knowledge_retrieval.retrieve_knowledge_context",
+        _retrieve,
+    )
+    monkeypatch.setattr(
+        "backend.app.core.conversation.prompts.resolve_openai_chat_model",
+        lambda: "test-model",
+    )
+    monkeypatch.setattr(
+        "backend.app.core.conversation.prompts.create_primary_chat_response",
+        _chat,
+    )
+
+    brain = ConversationBrain(db, language="en")
+    out = brain.process_message(
+        user.id,
+        "What is a normal blood pressure range?",
+        use_structured_context=True,
+        structured_context_projection="[STRUCTURED_CONTEXT]",
+        use_intelligence_safety=True,
+        allow_governed_knowledge=True,
+    )
+    assert out.get("message") == "I can stay with you while evidence is unavailable."
+    assert calls["retrieve"] == 1
+    assert calls["chat"] == 1
+    assert calls["rollback"] >= 1
+    contents = [str(m.get("content") or "") for m in seen["messages"]]
+    assert any("Do not invent medical content." in text for text in contents)
+    assert not any("[CARE_CONTEXT]" in text for text in contents)
+
+
 def test_no_duplicate_retrieve_in_source_wiring():
     """Guard: structured helper calls retrieve once; orchestrator does not import a second path."""
     import inspect
