@@ -182,6 +182,7 @@ class OpenAIEmbeddingProvider:
         timeout_seconds: float = OPENAI_EMBED_TIMEOUT_SECONDS,
         max_attempts: int = OPENAI_EMBED_MAX_ATTEMPTS,
         retry_budget_seconds: float = OPENAI_EMBED_RETRY_BUDGET_SECONDS,
+        sdk_max_retries: Optional[int] = None,
         sleep_fn=None,
     ) -> None:
         if dimensions != DEFAULT_EMBEDDING_DIM:
@@ -196,6 +197,7 @@ class OpenAIEmbeddingProvider:
         self.timeout_seconds = float(timeout_seconds)
         self.max_attempts = max(1, int(max_attempts))
         self.retry_budget_seconds = float(retry_budget_seconds)
+        self.sdk_max_retries = sdk_max_retries
         self._sleep = sleep_fn or time.sleep
         self.network_call_count = 0
         self.last_error_class: Optional[str] = None
@@ -204,7 +206,10 @@ class OpenAIEmbeddingProvider:
     def _client(self):
         from openai import OpenAI
 
-        return OpenAI(api_key=self._api_key, timeout=self.timeout_seconds)
+        kwargs = {"api_key": self._api_key, "timeout": self.timeout_seconds}
+        if self.sdk_max_retries is not None:
+            kwargs["max_retries"] = self.sdk_max_retries
+        return OpenAI(**kwargs)
 
     def _one_call(self, texts: Sequence[str]) -> List[List[float]]:
         client = self._client()

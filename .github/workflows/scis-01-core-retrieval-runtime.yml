@@ -667,6 +667,7 @@ jobs:
               api_key=key,
               dimensions=1024,
               max_attempts=1,
+              sdk_max_retries=0,
           )
           engine = create_engine(os.environ["TEST_DATABASE_URL"])
           Session = sessionmaker(bind=engine)
@@ -806,6 +807,7 @@ jobs:
               print("MODEL=text-embedding-3-large")
               print("DIMENSIONS=1024")
               print("MAX_ATTEMPTS=1")
+              print("SDK_MAX_RETRIES=0")
               print(f"ACTUAL_EMBEDDING_INPUTS={actual_inputs}")
               print(f"EMBEDDING_INPUT_LIMIT={SEMANTIC_EVAL_INPUT_BUDGET}")
               print(f"NETWORK_CALLS={provider.network_call_count}")
