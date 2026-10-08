@@ -753,7 +753,7 @@ def test_concept_authority_wiring_does_not_add_retrieval_or_change_be_heard():
     from backend.app.services.scis import governed_runtime_adapter as gra
 
     brain_src = inspect.getsource(brain_mod.ConversationBrain.process_message)
-    assert brain_src.count("retrieve_knowledge_context(") == 1
+    assert brain_src.count("_maybe_append_structured_governed_knowledge(") == 1
     assert "if allow_governed_knowledge:" in brain_src
     helper = inspect.getsource(brain_mod._maybe_append_structured_governed_knowledge)
     assert helper.count("retrieve_knowledge_context(") == 1
