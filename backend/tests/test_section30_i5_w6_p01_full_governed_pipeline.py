@@ -292,3 +292,275 @@ def test_W6P01_FG07_activation_loader_and_persistence(db) -> None:
     assert outcome2.detail == "ALREADY_SUCCESSFUL_TERMINAL"
     assert outcome2.run_id == outcome.run_id
     assert db.query(models.KnowledgeUnit).count() == ku_count
+
+
+def _sha(text_value: str) -> str:
+    return hashlib.sha256(text_value.encode("utf-8")).hexdigest()
+
+
+class _Handoff:
+    def __init__(self, kind: str, key: str, payload: dict) -> None:
+        self.handoff_kind = kind
+        self.request_key = key
+        self.payload = payload
+        self.execute = False
+
+
+def _identity_handoffs(
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+    statement: str,
+    content_token: str,
+) -> list[_Handoff]:
+    content_hash = _sha(content_token)
+    canon = _sha(statement)
+    raw_key = f"raw-{content_hash[:12]}"
+    fingerprint = content_hash
+    shared = {
+        "source_profile_id": source_profile_id,
+        "canonical_url": canonical_url,
+        "rights_terms_state": "OGL",
+        "robots_access_state": "ALLOWED",
+        "content_sha256": content_hash,
+        "byte_hash": content_hash,
+        "normalized_hash": canon,
+        "normalized_statement": statement,
+        "candidate_fingerprint": fingerprint,
+        "dedupe_key": canon,
+        "canonical_hash": canon,
+        "domain": "lifestyle",
+        "topic": "sleep",
+        "language": "en",
+        "jurisdiction": "GB",
+        "retrieval_method": "PUBLIC_WEB_FETCH_HTTPS",
+        "raw_evidence_request_key": raw_key,
+    }
+    return [
+        _Handoff("RAW_EVIDENCE", raw_key, dict(shared)),
+        _Handoff("CANDIDATE", f"cand-{content_hash[:12]}", dict(shared)),
+        _Handoff("PROVENANCE", f"prov-{content_hash[:12]}", dict(shared)),
+    ]
+
+
+def test_W6P01_FG08_stable_source_url_identity(db) -> None:
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    activation = runtime.activate_nhs_sleep_source(db, models)
+    profile_id = int(activation.governed_source_profile_id)
+    url = "https://www.nhs.uk/live-well/sleep-and-tiredness/k81c-identity"
+    other_url = "https://www.nhs.uk/live-well/sleep-and-tiredness/k81c-other"
+    run = models.WeeklyKnowledgeRun(
+        logical_run_key=_sha("k81c-identity-run"),
+        schedule_key="weekly_governed_test",
+        run_type="WEEKLY_GOVERNED",
+        trigger_type="AD_HOC",
+        planned_window_start=datetime(2026, 8, 8, 0, 0, 0),
+        planned_window_end=datetime(2026, 8, 15, 0, 0, 0),
+        approval_state="APPROVED",
+        source_scope="{}",
+        domain_scope="{}",
+        gap_scope="{}",
+        source_scope_hash=_sha("src"),
+        domain_scope_hash=_sha("dom"),
+        gap_scope_hash=_sha("gap"),
+        config_version="w6p01-governed-v1",
+        config_hash=_sha("cfg"),
+        status="PLANNED",
+    )
+    db.add(run)
+    db.flush()
+    mem_before = db.query(models.KnowledgeMemoryItem).count()
+    statement = "Sleep regularity is general lifestyle guidance for this identity fixture."
+    first = runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=url,
+            statement=statement,
+            content_token="body-a",
+        ),
+        run_id=int(run.id),
+        attempt_id=1,
+    )
+    again = runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=url,
+            statement=statement,
+            content_token="body-a",
+        ),
+        run_id=int(run.id),
+        attempt_id=1,
+    )
+    assert first.knowledge_unit_ids == again.knowledge_unit_ids
+    assert len(set(first.knowledge_unit_ids)) == 1
+    ku = db.query(models.KnowledgeUnit).filter_by(id=first.knowledge_unit_ids[0]).one()
+    expected = runtime.stable_document_identity(profile_id, url)
+    assert ku.canonical_unit_id == expected
+    assert ku.immutable_version_id == "v1"
+    assert expected not in statement
+    raw = db.query(models.I5RawEvidence).filter_by(id=first.raw_evidence_ids[0]).one()
+    prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku.id).one()
+    assert raw.source_document_id == expected
+    assert prov.source_document_id == expected
+    assert raw.source_document_id != raw.content_hash
+    raw.source_document_id = None
+    prov.source_document_id = None
+    db.flush()
+    runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=url,
+            statement=statement,
+            content_token="body-a",
+        ),
+        run_id=int(run.id),
+        attempt_id=1,
+    )
+    db.refresh(raw)
+    db.refresh(prov)
+    assert raw.source_document_id == expected
+    assert prov.source_document_id == expected
+    assert db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=expected).count() == 1
+
+    changed = "Sleep regularity guidance wording changed for the same source page."
+    nested = db.begin_nested()
+    try:
+        runtime.execute_governed_persistence(
+            db,
+            models,
+            handoffs=_identity_handoffs(
+                source_profile_id=profile_id,
+                canonical_url=url,
+                statement=changed,
+                content_token="body-b",
+            ),
+            run_id=int(run.id),
+            attempt_id=2,
+        )
+        raise AssertionError("changed content must fail closed")
+    except runtime.GovernedWeeklyRuntimeError as exc:
+        assert exc.code == "KU_CANONICAL_VERSION_CONTENT_MISMATCH"
+        assert expected in str(exc)
+        nested.rollback()
+    assert db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=expected).count() == 1
+    assert ku.canonical_unit_id == expected
+
+    other = runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=other_url,
+            statement=statement,
+            content_token="body-c",
+        ),
+        run_id=int(run.id),
+        attempt_id=3,
+    )
+    other_ku = db.query(models.KnowledgeUnit).filter_by(id=other.knowledge_unit_ids[0]).one()
+    assert other_ku.canonical_unit_id == runtime.stable_document_identity(profile_id, other_url)
+    assert other_ku.canonical_unit_id != ku.canonical_unit_id
+
+    alt = models.GovernedSourceProfile(
+        canonical_key="k81c-alt-source",
+        registry_state="ACTIVE",
+        runtime_eligibility="ELIGIBLE",
+        canonicalization_version="v1",
+    )
+    db.add(alt)
+    db.flush()
+    alt_result = runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=int(alt.id),
+            canonical_url=url,
+            statement=statement,
+            content_token="body-d",
+        ),
+        run_id=int(run.id),
+        attempt_id=4,
+    )
+    alt_ku = db.query(models.KnowledgeUnit).filter_by(id=alt_result.knowledge_unit_ids[0]).one()
+    assert alt_ku.canonical_unit_id == runtime.stable_document_identity(int(alt.id), url)
+    assert alt_ku.canonical_unit_id != ku.canonical_unit_id
+    alt_raw = db.query(models.I5RawEvidence).filter_by(id=alt_result.raw_evidence_ids[0]).one()
+    assert alt_raw.source_document_id == alt_ku.canonical_unit_id
+    assert alt_raw.source_document_id != raw.content_hash
+
+    decoy_nested = db.begin_nested()
+    try:
+        decoy_hash = _sha("decoy-canonical")
+        decoy = models.KnowledgeUnit(
+            canonical_unit_id=decoy_hash,
+            immutable_version_id="v1",
+            domain="lifestyle",
+            language="en",
+            knowledge_type="OTHER",
+            normalized_statement="A second logical identity for the same page.",
+            evidence_strength="UNKNOWN",
+            medical_safety_state="PENDING_REVIEW",
+            conflict_state="NONE",
+            freshness_state="UNKNOWN",
+            review_state="NOT_REVIEWED",
+            publication_state="DRAFT",
+            runtime_eligibility="NOT_ELIGIBLE",
+            provenance_complete=False,
+            deduplication_key=_sha("decoy-dedupe"),
+            canonical_hash=_sha("decoy-canon-hash"),
+            hash_algorithm="SHA-256",
+            canonicalization_version="v1",
+        )
+        db.add(decoy)
+        db.flush()
+        decoy_raw = models.I5RawEvidence(
+            source_profile_id=profile_id,
+            source_document_id=expected,
+            canonical_url=url,
+            content_hash=_sha("decoy-body"),
+            byte_hash=_sha("decoy-body"),
+            hash_algorithm="SHA-256",
+            retrieval_timestamp=datetime(2026, 8, 9, 0, 0, 0),
+            retention_mode="RAW_MINIMAL_EVIDENCE_ONLY",
+            storage_mode="NONE",
+            rights_terms_state="APPROVED",
+            robots_access_state="ALLOWED",
+        )
+        db.add(decoy_raw)
+        db.flush()
+        db.add(
+            models.KnowledgeProvenance(
+                knowledge_unit_id=int(decoy.id),
+                source_profile_id=profile_id,
+                source_document_id=expected,
+                raw_evidence_id=int(decoy_raw.id),
+                retrieval_method="PUBLIC_WEB_FETCH_HTTPS",
+            )
+        )
+        db.flush()
+        runtime.execute_governed_persistence(
+            db,
+            models,
+            handoffs=_identity_handoffs(
+                source_profile_id=profile_id,
+                canonical_url=url,
+                statement="Yet another wording for the ambiguous page.",
+                content_token="body-e",
+            ),
+            run_id=int(run.id),
+            attempt_id=5,
+        )
+        raise AssertionError("ambiguous identity must fail closed")
+    except runtime.GovernedWeeklyRuntimeError as exc:
+        assert exc.code == "KU_DOCUMENT_IDENTITY_AMBIGUOUS"
+        decoy_nested.rollback()
+    assert db.query(models.KnowledgeMemoryItem).count() == mem_before
+    assert first.knowledge_memory_writes == 0

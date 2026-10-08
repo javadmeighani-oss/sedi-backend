@@ -11,6 +11,7 @@ Does not invent schema, parallel crawler architecture, or medical approval.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -473,6 +474,66 @@ def _resolve_source_key(db: Any, models: Any, source_profile_id: int) -> str:
     return str(gsp.canonical_key or "")
 
 
+def stable_document_identity(source_profile_id: int, canonical_url: str) -> str:
+    """Content-independent document key. Fits source_document_id and canonical_unit_id."""
+    material = f"{int(source_profile_id)}|{(canonical_url or '').strip()}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _backfill_source_document_id(row: Any, document_id: str) -> None:
+    current = str(getattr(row, "source_document_id", None) or "").strip()
+    if not current:
+        row.source_document_id = document_id
+
+
+def _prior_canonical_unit_ids(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+) -> set[str]:
+    rows = (
+        db.query(models.KnowledgeUnit.canonical_unit_id)
+        .join(
+            models.KnowledgeProvenance,
+            models.KnowledgeProvenance.knowledge_unit_id == models.KnowledgeUnit.id,
+        )
+        .join(
+            models.I5RawEvidence,
+            models.I5RawEvidence.id == models.KnowledgeProvenance.raw_evidence_id,
+        )
+        .filter(models.I5RawEvidence.source_profile_id == int(source_profile_id))
+        .filter(models.I5RawEvidence.canonical_url == canonical_url)
+        .distinct()
+        .all()
+    )
+    return {str(row[0]) for row in rows if row[0]}
+
+
+def _resolve_canonical_unit_id(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+) -> str:
+    prior = _prior_canonical_unit_ids(
+        db,
+        models,
+        source_profile_id=source_profile_id,
+        canonical_url=canonical_url,
+    )
+    if len(prior) > 1:
+        raise GovernedWeeklyRuntimeError(
+            "KU_DOCUMENT_IDENTITY_AMBIGUOUS",
+            f"source_profile_id={int(source_profile_id)}",
+        )
+    if len(prior) == 1:
+        return next(iter(prior))
+    return stable_document_identity(source_profile_id, canonical_url)
+
+
 def execute_governed_persistence(
     db: Any,
     models: Any,
@@ -509,6 +570,7 @@ def execute_governed_persistence(
             raise GovernedWeeklyRuntimeError("RAW_CONTENT_HASH_INVALID", content_hash)
         canonical_url = str(payload.get("canonical_url") or "")
         source_profile_id = int(payload["source_profile_id"])
+        document_id = stable_document_identity(source_profile_id, canonical_url)
         existing = (
             db.query(models.I5RawEvidence)
             .filter(
@@ -519,11 +581,13 @@ def execute_governed_persistence(
             .one_or_none()
         )
         if existing is not None:
+            _backfill_source_document_id(existing, document_id)
             raw_by_request_key[request_key] = existing
             result.raw_evidence_ids.append(int(existing.id))
             continue
         raw = models.I5RawEvidence(
             source_profile_id=source_profile_id,
+            source_document_id=document_id,
             source_version_id=str(payload.get("source_version_id") or "") or None,
             retrieval_run_id=int(run_id),
             retrieval_timestamp=utc_now(),
@@ -578,9 +642,17 @@ def execute_governed_persistence(
             result.knowledge_unit_ids.append(int(existing_ku.id))
             continue
 
-        # Idempotent reuse when metadata drift changes dedupe_key but content
-        # fingerprint still maps to the same (canonical_unit_id, v1) row.
-        canonical_unit_id = f"ku-w6p01-{fingerprint[:16]}"
+        # Logical identity is source+URL, not content. v1 mismatch stays fail-closed.
+        source_profile_id = payload.get("source_profile_id")
+        canonical_url = str(payload.get("canonical_url") or "").strip()
+        if source_profile_id is None or not canonical_url:
+            raise GovernedWeeklyRuntimeError("KU_DOCUMENT_IDENTITY_INCOMPLETE")
+        canonical_unit_id = _resolve_canonical_unit_id(
+            db,
+            models,
+            source_profile_id=int(source_profile_id),
+            canonical_url=canonical_url,
+        )
         existing_by_version = (
             db.query(models.KnowledgeUnit)
             .filter(
@@ -667,6 +739,10 @@ def execute_governed_persistence(
             .one_or_none()
         )
         if existing_prov is not None:
+            _backfill_source_document_id(
+                existing_prov,
+                stable_document_identity(int(raw.source_profile_id), str(raw.canonical_url or "")),
+            )
             result.provenance_ids.append(int(existing_prov.id))
             incoming_source_profile_id = int(payload.get("source_profile_id") or raw.source_profile_id)
             source_key = _resolve_source_key(db, models, incoming_source_profile_id)
@@ -715,6 +791,9 @@ def execute_governed_persistence(
         prov = models.KnowledgeProvenance(
             knowledge_unit_id=int(ku.id),
             source_profile_id=int(prov_payload["source_profile_id"]),
+            source_document_id=stable_document_identity(
+                int(raw.source_profile_id), str(raw.canonical_url or "")
+            ),
             source_version_id=str(payload.get("source_version_id") or "") or None,
             raw_evidence_id=int(raw.id),
             retrieval_method=str(prov_payload["retrieval_method"]),
