@@ -7,13 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: "full keeps the existing SCIS job. fa_en runs only the FA/EN characterization test."
+        description: "full keeps the existing SCIS job. fa_en runs only the FA/EN characterization test. multilingual_eval measures synthetic semantic scores and does not set a serving threshold."
         required: false
         default: full
         type: choice
         options:
           - full
           - fa_en
+          - multilingual_eval
   push:
     paths:
       - "backend/app/services/scis/**"
@@ -57,7 +58,7 @@ concurrency:
 jobs:
   scis-01-core-retrieval:
     name: SCIS-01 pgvector + hybrid RRF + eval
-    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'fa_en'
+    if: github.event_name != 'workflow_dispatch' || (inputs.suite != 'fa_en' && inputs.suite != 'multilingual_eval')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -498,7 +499,7 @@ jobs:
 
   fa-en-characterization:
     name: FA/EN characterization only
-    if: github.event_name == 'workflow_dispatch' && inputs.suite == 'fa_en'
+    if: github.event_name == 'workflow_dispatch' && (inputs.suite == 'fa_en' || inputs.suite == 'multilingual_eval')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
 
@@ -572,6 +573,7 @@ jobs:
           PY
 
       - name: FA/EN characterization pytest
+        if: inputs.suite == 'fa_en'
         run: |
           set -euo pipefail
           log="${{ runner.temp }}/fa_en_pytest.txt"
@@ -600,4 +602,220 @@ jobs:
           ):
               raise SystemExit("EXPECTED_EXACTLY_ONE_PASSED")
           print("FA_EN_PASSED=1")
+          PY
+
+      - name: Multilingual semantic measurement
+        if: inputs.suite == 'multilingual_eval'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from collections import defaultdict
+          from sqlalchemy import create_engine
+          from sqlalchemy.orm import sessionmaker
+          from backend.app import models
+          from backend.app.services.scis.embedding.providers import OpenAIEmbeddingProvider
+          from backend.app.services.scis.evaluation.corpus import (
+              DOCS,
+              QUERIES,
+              SEMANTIC_EVAL_INPUT_BUDGET,
+              docs_by_id,
+              language_pair_matrix,
+          )
+          from backend.app.services.scis.chunking import chunk_knowledge_unit
+          from backend.app.services.scis.evaluation.metrics import mrr, precision_at_k, recall_at_k
+          from backend.app.services.scis.indexing import index_knowledge_unit
+          from backend.app.services.scis.vector import vector_search
+          import hashlib
+          from types import SimpleNamespace
+
+          def blocked(error_class):
+              print("MULTILINGUAL_EVAL=BLOCKED")
+              print(f"ERROR_CLASS={error_class}")
+              raise SystemExit(1)
+
+          def statement_for(doc):
+              return f"{doc.title}. {doc.text}"[:4000]
+
+          key = os.environ.get("OPENAI_API_KEY") or ""
+          if (not key) or ("placeholder" in key) or key.endswith("not-used"):
+              blocked("MISSING_OR_PLACEHOLDER_OPENAI_API_KEY")
+          pairs = language_pair_matrix()
+          if len(pairs) != 9:
+              blocked("LANGUAGE_MATRIX_INCOMPLETE")
+          chunk_inputs = 0
+          for doc in DOCS:
+              preview = SimpleNamespace(
+                  normalized_statement=statement_for(doc),
+                  applicability=None,
+                  exclusions=None,
+                  language=doc.language,
+                  id=None,
+                  immutable_version_id="v1",
+                  canonical_unit_id=f"mling-{doc.doc_id}"[:64],
+              )
+              chunk_inputs += len(chunk_knowledge_unit(preview))
+          actual_inputs = chunk_inputs + len(QUERIES)
+          print(f"ACTUAL_EMBEDDING_INPUTS={actual_inputs}")
+          print(f"EMBEDDING_INPUT_LIMIT={SEMANTIC_EVAL_INPUT_BUDGET}")
+          if actual_inputs > SEMANTIC_EVAL_INPUT_BUDGET:
+              blocked("INPUT_BUDGET_EXCEEDED")
+
+          provider = OpenAIEmbeddingProvider(
+              model="text-embedding-3-large",
+              api_key=key,
+              dimensions=1024,
+              max_attempts=1,
+          )
+          engine = create_engine(os.environ["TEST_DATABASE_URL"])
+          Session = sessionmaker(bind=engine)
+          db = Session()
+          id_by_doc = {}
+          try:
+              for doc in DOCS:
+                  digest = hashlib.sha256(f"{doc.doc_id}|{doc.text}".encode()).hexdigest()
+                  ku = models.KnowledgeUnit(
+                      canonical_unit_id=f"mling-{doc.doc_id}"[:64],
+                      immutable_version_id="v1",
+                      domain=doc.domain,
+                      language=doc.language,
+                      knowledge_type="GUIDELINE",
+                      normalized_statement=statement_for(doc),
+                      evidence_strength="MODERATE",
+                      medical_safety_state="CLEARED",
+                      conflict_state="NONE",
+                      freshness_state="CURRENT",
+                      review_state="APPROVED",
+                      publication_state="PUBLISHED",
+                      runtime_eligibility="ELIGIBLE",
+                      provenance_complete=True,
+                      deduplication_key=digest,
+                      canonical_hash=digest,
+                      hash_algorithm="SHA-256",
+                      canonicalization_version="v1",
+                  )
+                  db.add(ku)
+                  db.flush()
+                  index_knowledge_unit(db, ku, provider=provider)
+                  id_by_doc[doc.doc_id] = ku.id
+              db.commit()
+              lookup = docs_by_id()
+              doc_by_ku = {ku_id: doc_id for doc_id, ku_id in id_by_doc.items()}
+              pos_scores = defaultdict(list)
+              neg_scores = defaultdict(list)
+              pair_rows = []
+              for query in QUERIES:
+                  vectors = provider.embed_texts([query.text], input_type="search_query")
+                  if len(vectors) != 1 or len(vectors[0]) != 1024:
+                      blocked("EMBEDDING_DIMENSION_MISMATCH")
+                  cands, meta = vector_search(
+                      db,
+                      vectors[0],
+                      model_identifier=provider.model_identifier,
+                      top_k=SEMANTIC_EVAL_INPUT_BUDGET,
+                      expected_dim=1024,
+                  )
+                  if meta.get("error"):
+                      blocked("VECTOR_SEARCH_FAILED")
+                  ranked_docs = []
+                  for cand in cands:
+                      doc_id = doc_by_ku.get(cand.payload.get("knowledge_unit_id"))
+                      if doc_id is None:
+                          continue
+                      ranked_docs.append(doc_id)
+                      doc = lookup[doc_id]
+                      score = round(float(cand.score), 4)
+                      print(
+                          f"SCORE query={query.query_id} query_language={query.language} "
+                          f"evidence_language={doc.language} doc={doc_id} vector_branch=vector score={score}"
+                      )
+                      topic_key = query.topic or "unspecified"
+                      if doc_id in query.relevant_doc_ids:
+                          pos_scores[topic_key].append(score)
+                      else:
+                          neg_scores[topic_key].append(score)
+                  relevant = {id_by_doc[d] for d in query.relevant_doc_ids}
+                  retrieved = [id_by_doc[d] for d in ranked_docs]
+                  topic = query.topic or "unspecified"
+                  print(
+                      f"QUERY id={query.query_id} query_language={query.language} topic={topic} "
+                      f"recall@5={recall_at_k(relevant, retrieved, 5):.4f} "
+                      f"precision@5={precision_at_k(relevant, retrieved, 5):.4f} "
+                      f"mrr={mrr(relevant, retrieved):.4f}"
+                  )
+                  if query.topic in {"ms", "stress"} and query.kind == "cross_lang":
+                      score_by_doc = {
+                          doc_id: round(float(cand.score), 4)
+                          for cand in cands
+                          if (doc_id := doc_by_ku.get(cand.payload.get("knowledge_unit_id")))
+                      }
+                      for evid_lang in ("en", "fa", "ar"):
+                          relevant_docs = [
+                              doc_id
+                              for doc_id in query.relevant_doc_ids
+                              if lookup[doc_id].language == evid_lang
+                          ]
+                          if not relevant_docs:
+                              continue
+                          relevant_ids = {id_by_doc[doc_id] for doc_id in relevant_docs}
+                          pair_retrieved = [id_by_doc[doc_id] for doc_id in ranked_docs]
+                          pos = [score_by_doc[doc_id] for doc_id in relevant_docs if doc_id in score_by_doc]
+                          neg = [
+                              score_by_doc[doc_id]
+                              for doc_id, score in score_by_doc.items()
+                              if lookup[doc_id].language == evid_lang and doc_id not in relevant_docs
+                          ]
+                          pos_min = min(pos) if pos else None
+                          pos_max = max(pos) if pos else None
+                          neg_min = min(neg) if neg else None
+                          neg_max = max(neg) if neg else None
+                          overlap = pos_min is not None and neg_max is not None and neg_max >= pos_min
+                          pair_rows.append((query.language, evid_lang, query.topic))
+                          print(
+                              f"PAIR_TOPIC query_language={query.language} evidence_language={evid_lang} "
+                              f"topic={query.topic} positive_n={len(pos)} positive_min={pos_min} "
+                              f"positive_max={pos_max} negative_n={len(neg)} negative_min={neg_min} "
+                              f"negative_max={neg_max} score_overlap={overlap} "
+                              f"recall@5={recall_at_k(relevant_ids, pair_retrieved, 5):.4f} "
+                              f"precision@5={precision_at_k(relevant_ids, pair_retrieved, 5):.4f} "
+                              f"mrr={mrr(relevant_ids, pair_retrieved):.4f}"
+                          )
+              for topic in sorted(set(pos_scores) | set(neg_scores)):
+                  pos = pos_scores[topic]
+                  neg = neg_scores[topic]
+                  pos_min = min(pos) if pos else None
+                  pos_max = max(pos) if pos else None
+                  neg_min = min(neg) if neg else None
+                  neg_max = max(neg) if neg else None
+                  overlap = (
+                      pos_min is not None and neg_max is not None and neg_max >= pos_min
+                  )
+                  print(
+                      f"SCORE_DIST topic={topic} positive_n={len(pos)} positive_min={pos_min} positive_max={pos_max} "
+                      f"negative_n={len(neg)} negative_min={neg_min} negative_max={neg_max} "
+                      f"score_overlap={overlap}"
+                  )
+              expected_calls = len(DOCS) + len(QUERIES)
+              ms_pairs = {(q, e) for q, e, topic in pair_rows if topic == "ms"}
+              stress_pairs = {(q, e) for q, e, topic in pair_rows if topic == "stress"}
+              if len(ms_pairs) != 9 or len(stress_pairs) != 9:
+                  blocked("LANGUAGE_PAIR_TOPIC_INCOMPLETE")
+              print("LANGUAGE_PAIRS=9")
+              print("PAIR_TOPIC_GROUPS=18")
+              print("MODEL=text-embedding-3-large")
+              print("DIMENSIONS=1024")
+              print("MAX_ATTEMPTS=1")
+              print(f"ACTUAL_EMBEDDING_INPUTS={actual_inputs}")
+              print(f"EMBEDDING_INPUT_LIMIT={SEMANTIC_EVAL_INPUT_BUDGET}")
+              print(f"NETWORK_CALLS={provider.network_call_count}")
+              print(f"NETWORK_CALL_LIMIT={expected_calls}")
+              if provider.network_call_count > expected_calls:
+                  blocked("NETWORK_CALL_LIMIT_EXCEEDED")
+              print("THRESHOLD_APPLIED=NO")
+              print("SIMILARITY_IS_NOT_SAFETY=YES")
+              print("CLINICAL_PASS=NOT_ASSERTED")
+              print("MULTILINGUAL_EVAL=MEASURED")
+          finally:
+              db.close()
           PY
