@@ -1046,7 +1046,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        # pgvector required since Alembic 061 (SCIS KCE); PG16 matches production.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: sedi_w6p01_real_test
           POSTGRES_PASSWORD: sedi_w6p01_real_test_password

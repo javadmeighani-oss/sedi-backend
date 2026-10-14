@@ -2,7 +2,8 @@
 
 Covers extraction integration, fail-closed retention, DB source loading,
 deterministic weekly identity, advisory-lock behavior, governed persistence,
-no auto-publication, and no unauthorized Knowledge Memory write.
+publication only through the governed low-risk manifest path, 81-C2 version
+lifecycle, and no unauthorized Knowledge Memory write.
 """
 from __future__ import annotations
 
@@ -266,12 +267,19 @@ def test_W6P01_FG07_activation_loader_and_persistence(db) -> None:
     assert prov_count >= 1
     assert mem_count == 0
 
+    # Publication happens only through the governed low-risk manifest path
+    # (NHS live-well is governed_low_risk_eligibility: YES). Non-manifest sources stay
+    # unpublished — see FG11.
+    from backend.app.services.i5.trusted_source_manifest import governed_low_risk_eligible
+
+    assert governed_low_risk_eligible(runtime.NHS_SOURCE_KEY) is True
     ku = db.query(models.KnowledgeUnit).order_by(models.KnowledgeUnit.id.desc()).first()
-    assert ku.publication_state == "DRAFT"
-    assert ku.medical_safety_state == "PENDING_REVIEW"
-    assert ku.runtime_eligibility in {"REVIEW_REQUIRED", "NOT_ELIGIBLE"}
-    assert ku.runtime_eligibility != "ELIGIBLE"
     assert ku.provenance_complete is True
+    assert ku.medical_safety_state == "CLEARED"
+    assert ku.review_state == "APPROVED"
+    assert ku.publication_state == "PUBLISHED"
+    assert ku.freshness_state == "CURRENT"
+    assert ku.runtime_eligibility == "ELIGIBLE"
 
     # Same-window idempotent re-entry: no second fetch.
     os.environ[orch.WEEKLY_ORCHESTRATOR_ENABLE_ENV] = "true"
@@ -290,7 +298,7 @@ def test_W6P01_FG07_activation_loader_and_persistence(db) -> None:
         os.environ.pop(orch.WEEKLY_ORCHESTRATOR_ENABLE_ENV, None)
         os.environ.pop(orch.SOURCE_ACTIVATION_ENV, None)
     assert outcome2.network_executed is False
-    assert outcome2.detail == "ALREADY_SUCCESSFUL_TERMINAL"
+    assert outcome2.detail.startswith("ALREADY_SUCCESSFUL_TERMINAL")
     assert outcome2.run_id == outcome.run_id
     assert db.query(models.KnowledgeUnit).count() == ku_count
 
@@ -828,6 +836,9 @@ def test_W6P01_FG11_c2_document_isolation_and_fail_closed(db) -> None:
     assert result.new_knowledge_count == 1
     good = db.query(models.KnowledgeUnit).filter_by(id=result.knowledge_unit_ids[0]).one()
     assert good.canonical_unit_id == runtime.stable_document_identity(profile_id, good_url)
+    # Source outside the low-risk manifest: never auto-published.
+    assert good.publication_state != "PUBLISHED"
+    assert good.runtime_eligibility != "ELIGIBLE"
     assert db.query(models.KnowledgeUnit).count() == ku_rows_before + 1
     db.refresh(seed_v1)
     assert seed_v1.publication_state != "SUPERSEDED"
@@ -900,3 +911,67 @@ def test_W6P01_FG12_c2_failed_change_retires_old_version_stale(
     assert untouched.stale_retired_knowledge_unit_ids == []
     db.refresh(v2)
     assert v2.freshness_state != "STALE"
+
+
+def test_W6P01_FG13_c2_unchanged_source_reevaluation_never_revives_retired_versions(db) -> None:
+    from backend.app.services.i5.governed_ku_serving import (
+        apply_governed_finalize_and_lexical_index,
+        ku_blocks_governed_reevaluation,
+        reevaluate_existing_kus_for_unchanged_source,
+    )
+
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    activation = runtime.activate_nhs_sleep_source(db, models)
+    profile_id = int(activation.governed_source_profile_id)
+    run = _governed_run(db, models, "k81c2-reeval-run")
+    url = "https://www.nhs.uk/live-well/sleep-and-tiredness/k81c2-reeval"
+    identity = runtime.stable_document_identity(profile_id, url)
+
+    first = _persist(db, models, run, profile_id=profile_id, url=url, statement="Sleep text one.", token="r1")
+    v1 = db.query(models.KnowledgeUnit).filter_by(id=first.knowledge_unit_ids[0]).one()
+    second = _persist(db, models, run, profile_id=profile_id, url=url, statement="Sleep text two.", token="r2")
+    v2 = db.query(models.KnowledgeUnit).filter_by(id=second.knowledge_unit_ids[0]).one()
+    db.refresh(v1)
+    assert v1.publication_state == "SUPERSEDED"
+    assert ku_blocks_governed_reevaluation(v1) is True
+    assert ku_blocks_governed_reevaluation(v2) is False
+
+    # HTTP 304 / NO_MATERIAL_CHANGE path re-evaluates every KU of the source.
+    reevaluate_existing_kus_for_unchanged_source(db, source_profile_id=profile_id)
+    db.refresh(v1)
+    db.refresh(v2)
+    assert v1.publication_state == "SUPERSEDED"
+    assert v1.freshness_state == "STALE"
+    assert v1.runtime_eligibility == "NOT_ELIGIBLE"
+    assert _serving_kce(db, models, v1.id) == []
+    open_versions = [
+        k for k in _versions(db, models, identity) if k.publication_state not in {"SUPERSEDED", "WITHDRAWN"}
+    ]
+    assert [k.id for k in open_versions] == [v2.id]
+
+    # Direct finalize on a retired version is a no-op as well.
+    prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=v1.id).one()
+    assert (
+        apply_governed_finalize_and_lexical_index(
+            db,
+            v1,
+            source_key=runtime.NHS_SOURCE_KEY,
+            source_profile_id=profile_id,
+            authoritative_provenance=prov,
+            incoming_source_profile_id=profile_id,
+        ).value
+        == "NOT_ELIGIBLE"
+    )
+    db.refresh(v1)
+    assert v1.publication_state == "SUPERSEDED"
+
+    # A version retired as STALE after a failed change is blocked too.
+    class _Stale:
+        retraction_reason = None
+        publication_state = "PUBLISHED"
+        freshness_state = "STALE"
+        conflict_state = "NONE"
+
+    assert ku_blocks_governed_reevaluation(_Stale()) is True
