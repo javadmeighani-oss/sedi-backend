@@ -254,7 +254,8 @@ def test_W6P01_FG07_activation_loader_and_persistence(db) -> None:
     assert outcome.network_executed is True
     assert outcome.production_write is True
     assert outcome.run_id is not None
-    assert outcome.detail == "governed_raw_ku_provenance_persisted"
+    # Orchestrator appends "|autonomous_governance_side_stage=..." (since 7455bacb).
+    assert outcome.detail.startswith("governed_raw_ku_provenance_persisted")
 
     raw_count = db.query(models.I5RawEvidence).count()
     ku_count = db.query(models.KnowledgeUnit).count()
@@ -312,12 +313,14 @@ def _identity_handoffs(
     canonical_url: str,
     statement: str,
     content_token: str,
+    section_key: str = "",
 ) -> list[_Handoff]:
     content_hash = _sha(content_token)
     canon = _sha(statement)
     raw_key = f"raw-{content_hash[:12]}"
     fingerprint = content_hash
     shared = {
+        "section_key": section_key,
         "source_profile_id": source_profile_id,
         "canonical_url": canonical_url,
         "rights_terms_state": "OGL",
@@ -430,28 +433,30 @@ def test_W6P01_FG08_stable_source_url_identity(db) -> None:
     assert prov.source_document_id == expected
     assert db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=expected).count() == 1
 
+    # 81-C2: changed content keeps the logical identity and opens the next version.
     changed = "Sleep regularity guidance wording changed for the same source page."
-    nested = db.begin_nested()
-    try:
-        runtime.execute_governed_persistence(
-            db,
-            models,
-            handoffs=_identity_handoffs(
-                source_profile_id=profile_id,
-                canonical_url=url,
-                statement=changed,
-                content_token="body-b",
-            ),
-            run_id=int(run.id),
-            attempt_id=2,
-        )
-        raise AssertionError("changed content must fail closed")
-    except runtime.GovernedWeeklyRuntimeError as exc:
-        assert exc.code == "KU_CANONICAL_VERSION_CONTENT_MISMATCH"
-        assert expected in str(exc)
-        nested.rollback()
-    assert db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=expected).count() == 1
+    changed_result = runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=url,
+            statement=changed,
+            content_token="body-b",
+        ),
+        run_id=int(run.id),
+        attempt_id=2,
+    )
+    assert changed_result.document_failures == []
+    assert changed_result.superseded_knowledge_unit_ids == [int(ku.id)]
+    assert db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=expected).count() == 2
+    v2 = db.query(models.KnowledgeUnit).filter_by(id=changed_result.knowledge_unit_ids[0]).one()
+    assert v2.canonical_unit_id == expected
+    assert v2.immutable_version_id == "v2"
+    assert v2.supersedes_unit_id == ku.id
+    db.refresh(ku)
     assert ku.canonical_unit_id == expected
+    assert ku.publication_state == "SUPERSEDED"
 
     other = runtime.execute_governed_persistence(
         db,
@@ -546,7 +551,8 @@ def test_W6P01_FG08_stable_source_url_identity(db) -> None:
             )
         )
         db.flush()
-        runtime.execute_governed_persistence(
+        ku_rows_before = db.query(models.KnowledgeUnit).count()
+        ambiguous = runtime.execute_governed_persistence(
             db,
             models,
             handoffs=_identity_handoffs(
@@ -558,9 +564,339 @@ def test_W6P01_FG08_stable_source_url_identity(db) -> None:
             run_id=int(run.id),
             attempt_id=5,
         )
-        raise AssertionError("ambiguous identity must fail closed")
-    except runtime.GovernedWeeklyRuntimeError as exc:
-        assert exc.code == "KU_DOCUMENT_IDENTITY_AMBIGUOUS"
+        # Fail closed for this document only: recorded, nothing written, no raise.
+        assert [f["code"] for f in ambiguous.document_failures] == ["KU_DOCUMENT_IDENTITY_AMBIGUOUS"]
+        assert ambiguous.knowledge_unit_ids == []
+        assert db.query(models.KnowledgeUnit).count() == ku_rows_before
+    finally:
         decoy_nested.rollback()
     assert db.query(models.KnowledgeMemoryItem).count() == mem_before
     assert first.knowledge_memory_writes == 0
+
+
+# ---------------------------------------------------------------------------
+# 81-C2 — changed-content supersession inside the canonical weekly persistence.
+# ---------------------------------------------------------------------------
+
+
+def _governed_run(db, models, key: str):
+    run = models.WeeklyKnowledgeRun(
+        logical_run_key=_sha(key),
+        schedule_key="weekly_governed_test",
+        run_type="WEEKLY_GOVERNED",
+        trigger_type="AD_HOC",
+        planned_window_start=datetime(2026, 8, 8, 0, 0, 0),
+        planned_window_end=datetime(2026, 8, 15, 0, 0, 0),
+        approval_state="APPROVED",
+        source_scope="{}",
+        domain_scope="{}",
+        gap_scope="{}",
+        source_scope_hash=_sha("src"),
+        domain_scope_hash=_sha("dom"),
+        gap_scope_hash=_sha("gap"),
+        config_version="w6p01-governed-v1",
+        config_hash=_sha("cfg"),
+        status="PLANNED",
+    )
+    db.add(run)
+    db.flush()
+    return run
+
+
+def _plain_source(db, models, canonical_key: str) -> int:
+    """Governed profile outside the low-risk manifest (no lexical indexing side effects)."""
+    gsp = models.GovernedSourceProfile(
+        canonical_key=canonical_key,
+        registry_state="ACTIVE",
+        runtime_eligibility="ELIGIBLE",
+        canonicalization_version="v1",
+    )
+    db.add(gsp)
+    db.flush()
+    return int(gsp.id)
+
+
+def _persist(db, models, run, *, profile_id: int, url: str, statement: str, token: str, **kw):
+    return runtime.execute_governed_persistence(
+        db,
+        models,
+        handoffs=_identity_handoffs(
+            source_profile_id=profile_id,
+            canonical_url=url,
+            statement=statement,
+            content_token=token,
+            **kw,
+        ),
+        run_id=int(run.id),
+        attempt_id=1,
+    )
+
+
+def _versions(db, models, canonical_unit_id: str):
+    return (
+        db.query(models.KnowledgeUnit)
+        .filter_by(canonical_unit_id=canonical_unit_id)
+        .order_by(models.KnowledgeUnit.id)
+        .all()
+    )
+
+
+def _serving_kce(db, models, knowledge_unit_id: int):
+    return (
+        db.query(models.KnowledgeChunkEmbedding)
+        .filter(
+            models.KnowledgeChunkEmbedding.knowledge_unit_id == int(knowledge_unit_id),
+            models.KnowledgeChunkEmbedding.retracted_at.is_(None),
+        )
+        .all()
+    )
+
+
+def test_W6P01_FG09_c2_pure_helpers() -> None:
+    # Document identity is unchanged from 81-C1; sections get their own identity.
+    assert runtime.stable_document_identity(7, " https://x/a ") == _sha("7|https://x/a")
+    assert runtime.stable_document_identity(7, "https://x/a", "") == _sha("7|https://x/a")
+    sec = runtime.stable_document_identity(7, "https://x/a", "h2:symptoms")
+    assert sec == _sha("7|https://x/a|h2:symptoms")
+    assert sec != runtime.stable_document_identity(7, "https://x/a", "h2:treatment")
+    assert len(sec) == 64
+
+    assert runtime._version_number("v1") == 1
+    assert runtime._version_number("v12") == 12
+    for bad in ("", "1", "v0", "v-1", "vX", "version2"):
+        with pytest.raises(runtime.GovernedWeeklyRuntimeError) as exc:
+            runtime._version_number(bad)
+        assert exc.value.code == "KU_VERSION_ID_UNPARSEABLE"
+
+    class _Ku:
+        normalized_statement = "Adults need 7 to 9 hours of sleep."
+
+    assert runtime._served_statement_changed(_Ku(), "Adults need 7 to 9 hours of sleep. ") is False
+    assert runtime._served_statement_changed(_Ku(), "Adults need 8 hours of sleep.") is True
+
+    k2 = runtime._version_dedupe_key("cid", "v2")
+    assert k2 == runtime._version_dedupe_key("cid", "v2")
+    assert k2 != runtime._version_dedupe_key("cid", "v3")
+    assert k2 != runtime._version_dedupe_key("other", "v2")
+
+    a = _identity_handoffs(source_profile_id=1, canonical_url="https://x/a", statement="s", content_token="a")
+    b = _identity_handoffs(source_profile_id=1, canonical_url="https://x/b", statement="s", content_token="b")
+    c = _identity_handoffs(source_profile_id=2, canonical_url="https://x/a", statement="s", content_token="c")
+    groups = runtime._group_handoffs_by_document(a + b + c + a[:1])
+    assert [len(g) for g in groups] == [4, 3, 3]
+
+
+def test_W6P01_FG10_c2_changed_content_supersession_lifecycle(db) -> None:
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    activation = runtime.activate_nhs_sleep_source(db, models)
+    profile_id = int(activation.governed_source_profile_id)
+    run = _governed_run(db, models, "k81c2-lifecycle-run")
+    url = "https://www.nhs.uk/live-well/sleep-and-tiredness/k81c2-lifecycle"
+    identity = runtime.stable_document_identity(profile_id, url)
+    mem_before = db.query(models.KnowledgeMemoryItem).count()
+    a = "Most adults need between 7 and 9 hours of sleep every night."
+    b = "Most adults need 7 or more hours of sleep every night for good health."
+
+    first = _persist(db, models, run, profile_id=profile_id, url=url, statement=a, token="page-a1")
+    assert first.document_failures == []
+    v1 = db.query(models.KnowledgeUnit).filter_by(id=first.knowledge_unit_ids[0]).one()
+    assert (v1.canonical_unit_id, v1.immutable_version_id) == (identity, "v1")
+    v1_eligibility = v1.runtime_eligibility
+    if v1_eligibility == "ELIGIBLE":
+        assert len(_serving_kce(db, models, v1.id)) > 0
+
+    # Same served statement, different page bytes (chrome/date change) -> NO_CHANGE.
+    same = _persist(db, models, run, profile_id=profile_id, url=url, statement=a, token="page-a2")
+    assert same.document_failures == []
+    assert same.knowledge_unit_ids == [v1.id]
+    assert same.superseded_knowledge_unit_ids == []
+    assert same.new_knowledge_count == 0
+    assert len(_versions(db, models, identity)) == 1
+
+    # Changed statement -> v2 supersedes v1 atomically.
+    changed = _persist(db, models, run, profile_id=profile_id, url=url, statement=b, token="page-b1")
+    assert changed.document_failures == []
+    assert changed.superseded_knowledge_unit_ids == [v1.id]
+    assert changed.new_knowledge_count == 0
+    v2 = db.query(models.KnowledgeUnit).filter_by(id=changed.knowledge_unit_ids[0]).one()
+    db.refresh(v1)
+    assert (v2.canonical_unit_id, v2.immutable_version_id) == (identity, "v2")
+    assert v2.supersedes_unit_id == v1.id
+    assert v2.normalized_statement == b
+    assert v2.provenance_complete is True
+    v1_prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=v1.id).one()
+    v2_prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=v2.id).one()
+    assert v2_prov.source_document_id == identity
+    assert v2_prov.raw_evidence_id != v1_prov.raw_evidence_id
+    assert v1.publication_state == "SUPERSEDED"
+    assert v1.freshness_state == "STALE"
+    assert v1.runtime_eligibility == "NOT_ELIGIBLE"
+    assert _serving_kce(db, models, v1.id) == []
+    # The new version goes through the same governed eligibility as v1 did.
+    assert v2.runtime_eligibility == v1_eligibility
+    if v1_eligibility == "ELIGIBLE":
+        assert len(_serving_kce(db, models, v2.id)) > 0
+    open_versions = [
+        k for k in _versions(db, models, identity) if k.publication_state not in {"SUPERSEDED", "WITHDRAWN"}
+    ]
+    assert [k.id for k in open_versions] == [v2.id]
+
+    # Re-run of the changed page is idempotent.
+    again = _persist(db, models, run, profile_id=profile_id, url=url, statement=b, token="page-b1")
+    assert again.knowledge_unit_ids == [v2.id]
+    assert len(_versions(db, models, identity)) == 2
+
+    # Content reverts to the original wording -> v3 (no dedupe collision with v1).
+    reverted = _persist(db, models, run, profile_id=profile_id, url=url, statement=a, token="page-a3")
+    assert reverted.document_failures == []
+    assert reverted.superseded_knowledge_unit_ids == [v2.id]
+    v3 = db.query(models.KnowledgeUnit).filter_by(id=reverted.knowledge_unit_ids[0]).one()
+    db.refresh(v2)
+    assert (v3.immutable_version_id, v3.supersedes_unit_id) == ("v3", v2.id)
+    assert v3.deduplication_key != v1.deduplication_key
+    assert v2.publication_state == "SUPERSEDED"
+    assert _serving_kce(db, models, v2.id) == []
+    serving_ids = {
+        row.knowledge_unit_id
+        for k in _versions(db, models, identity)
+        for row in _serving_kce(db, models, k.id)
+    }
+    assert serving_ids <= {v3.id}
+
+    # Different URL with identical text keeps its own identity (no cross-identity reuse).
+    other_url = url + "-mirror"
+    other = _persist(db, models, run, profile_id=profile_id, url=other_url, statement=a, token="page-m1")
+    other_ku = db.query(models.KnowledgeUnit).filter_by(id=other.knowledge_unit_ids[0]).one()
+    assert other_ku.canonical_unit_id == runtime.stable_document_identity(profile_id, other_url)
+    assert other_ku.id not in {v1.id, v2.id, v3.id}
+
+    # No Knowledge Memory writes (I7/I8 boundary unchanged).
+    assert db.query(models.KnowledgeMemoryItem).count() == mem_before
+
+
+def test_W6P01_FG11_c2_document_isolation_and_fail_closed(db) -> None:
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    profile_id = _plain_source(db, models, "k81c2-isolation-source")
+    run = _governed_run(db, models, "k81c2-isolation-run")
+    good_url = "https://example.org/k81c2/good"
+    multi_url = "https://example.org/k81c2/multi-current"
+    multi_identity = runtime.stable_document_identity(profile_id, multi_url)
+
+    seeded = _persist(db, models, run, profile_id=profile_id, url=multi_url, statement="Seed v1.", token="m1")
+    seed_v1 = db.query(models.KnowledgeUnit).filter_by(id=seeded.knowledge_unit_ids[0]).one()
+    # Corrupt the chain on purpose: a second open version for the same identity.
+    rogue = models.KnowledgeUnit(
+        canonical_unit_id=multi_identity,
+        immutable_version_id="v2",
+        domain="lifestyle",
+        language="en",
+        knowledge_type="OTHER",
+        normalized_statement="Rogue open version.",
+        evidence_strength="UNKNOWN",
+        medical_safety_state="PENDING_REVIEW",
+        conflict_state="NONE",
+        freshness_state="UNKNOWN",
+        review_state="NOT_REVIEWED",
+        publication_state="DRAFT",
+        runtime_eligibility="NOT_ELIGIBLE",
+        provenance_complete=False,
+        deduplication_key=_sha("k81c2-rogue-dedupe"),
+        canonical_hash=_sha("k81c2-rogue-canon"),
+        hash_algorithm="SHA-256",
+        canonicalization_version="v1",
+    )
+    db.add(rogue)
+    db.flush()
+    ku_rows_before = db.query(models.KnowledgeUnit).count()
+
+    handoffs = _identity_handoffs(
+        source_profile_id=profile_id, canonical_url=multi_url, statement="New text.", content_token="m2"
+    ) + _identity_handoffs(
+        source_profile_id=profile_id, canonical_url=good_url, statement="Good document text.", content_token="g1"
+    )
+    result = runtime.execute_governed_persistence(
+        db, models, handoffs=handoffs, run_id=int(run.id), attempt_id=2
+    )
+    # The broken document fails closed alone; the good one is persisted in the same call.
+    assert [(f["canonical_url"], f["code"]) for f in result.document_failures] == [
+        (multi_url, "KU_MULTIPLE_CURRENT_VERSIONS")
+    ]
+    assert result.new_knowledge_count == 1
+    good = db.query(models.KnowledgeUnit).filter_by(id=result.knowledge_unit_ids[0]).one()
+    assert good.canonical_unit_id == runtime.stable_document_identity(profile_id, good_url)
+    assert db.query(models.KnowledgeUnit).count() == ku_rows_before + 1
+    db.refresh(seed_v1)
+    assert seed_v1.publication_state != "SUPERSEDED"
+    assert all(h.execute is False for h in handoffs[:3])
+    assert all(h.execute is True for h in handoffs[3:])
+
+    # Section identity is honoured and independent of the document identity.
+    sectioned = _persist(
+        db,
+        models,
+        run,
+        profile_id=profile_id,
+        url=good_url,
+        statement="Section text.",
+        token="g-sec",
+        section_key="h2:causes",
+    )
+    sec_ku = db.query(models.KnowledgeUnit).filter_by(id=sectioned.knowledge_unit_ids[0]).one()
+    assert sec_ku.canonical_unit_id == runtime.stable_document_identity(profile_id, good_url, "h2:causes")
+    assert sec_ku.immutable_version_id == "v1"
+
+
+def test_W6P01_FG12_c2_failed_change_retires_old_version_stale(
+    db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    profile_id = _plain_source(db, models, "k81c2-stale-source")
+    run = _governed_run(db, models, "k81c2-stale-run")
+    url = "https://example.org/k81c2/stale"
+    identity = runtime.stable_document_identity(profile_id, url)
+
+    first = _persist(db, models, run, profile_id=profile_id, url=url, statement="Original text.", token="s1")
+    v1 = db.query(models.KnowledgeUnit).filter_by(id=first.knowledge_unit_ids[0]).one()
+
+    real_finalize = runtime.apply_governed_finalize_and_lexical_index
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("simulated lifecycle failure")
+
+    monkeypatch.setattr(runtime, "apply_governed_finalize_and_lexical_index", _boom)
+    failed = _persist(db, models, run, profile_id=profile_id, url=url, statement="Changed text.", token="s2")
+    monkeypatch.setattr(runtime, "apply_governed_finalize_and_lexical_index", real_finalize)
+
+    # Whole document rolled back (no v2), and the known-outdated v1 can no longer serve.
+    assert [f["code"] for f in failed.document_failures] == ["RuntimeError"]
+    assert failed.stale_retired_knowledge_unit_ids == [v1.id]
+    assert failed.knowledge_unit_ids == []
+    assert [k.immutable_version_id for k in _versions(db, models, identity)] == ["v1"]
+    db.refresh(v1)
+    assert v1.freshness_state == "STALE"
+    assert v1.runtime_eligibility == "NOT_ELIGIBLE"
+    assert v1.publication_state != "SUPERSEDED"
+    assert _serving_kce(db, models, v1.id) == []
+
+    # Next successful run refreshes the stale version even when the text matches it again.
+    refreshed = _persist(db, models, run, profile_id=profile_id, url=url, statement="Original text.", token="s3")
+    assert refreshed.document_failures == []
+    assert refreshed.superseded_knowledge_unit_ids == [v1.id]
+    v2 = db.query(models.KnowledgeUnit).filter_by(id=refreshed.knowledge_unit_ids[0]).one()
+    assert (v2.immutable_version_id, v2.supersedes_unit_id) == ("v2", v1.id)
+    db.refresh(v1)
+    assert v1.publication_state == "SUPERSEDED"
+
+    # A failure before any change was detected leaves existing data untouched.
+    monkeypatch.setattr(runtime, "apply_governed_finalize_and_lexical_index", _boom)
+    untouched = _persist(db, models, run, profile_id=profile_id, url=url, statement="Original text.", token="s4")
+    monkeypatch.setattr(runtime, "apply_governed_finalize_and_lexical_index", real_finalize)
+    assert untouched.stale_retired_knowledge_unit_ids == []
+    db.refresh(v2)
+    assert v2.freshness_state != "STALE"
