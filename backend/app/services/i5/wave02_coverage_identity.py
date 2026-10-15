@@ -33,6 +33,7 @@ _WAVE02_URL_COVERAGE: tuple[tuple[str, Wave02CoverageIdentity], ...] = (
     ("cdc.gov/physicalactivity", Wave02CoverageIdentity("", "physical_activity_exercise", "exercise", "physical activity")),
     ("cdc.gov/healthy-weight-growth", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "healthy eating and weight")),
     ("cdc.gov/nutrition", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "nutrition")),
+    ("nccih.nih.gov/health/meditation", Wave02CoverageIdentity("", "wellbeing", "mindfulness", "meditation and mindfulness")),
     ("cancers.html", Wave02CoverageIdentity("D01", "disease_clinical", "oncology", "cancer")),
     ("lungdiseases.html", Wave02CoverageIdentity("D02", "disease_clinical", "respiratory", "lung disease")),
     ("kidneydiseases.html", Wave02CoverageIdentity("D03", "disease_clinical", "renal", "kidney disease")),

@@ -123,7 +123,7 @@ def test_monitor_offline_emits_findings():
 def test_active_allowlist_coverage_closure_and_registry_no_activation():
     load_trusted_source_manifest.cache_clear()
     load_candidate_qualification_registry.cache_clear()
-    assert len(active_manifest_rows()) == 17
+    assert len(active_manifest_rows()) == 21
     assert_no_auto_activation_except(allowed_active_keys=set())
     counts = status_counts(candidate_rows())
     assert counts["NEEDS_REVIEW"] >= 1

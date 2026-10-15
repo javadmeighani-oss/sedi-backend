@@ -9,8 +9,9 @@
 # CDC Child / NCEZID use dedicated profiles (no cdc_health_lifestyle broaden).
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1-coverage-closure-gap01"
-gate_id: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+allowlist_version: "i5-multisource-v1-knowledge-breadth-01"
+gate_id: "SEDI-I5-D010-KNOWLEDGE-BREADTH-01"
+previous_gate_id: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
 wave02_targets:
@@ -53,13 +54,32 @@ sources:
       - https://www.nhs.uk/live-well/quit-smoking/
       - https://www.nhs.uk/live-well/alcohol-advice/
       - https://www.nhs.uk/live-well/seasonal-health/
+      # Physical activity by age group (adults, older adults, children) + strength/balance
+      - https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-for-adults-aged-19-to-64/
+      - https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-older-adults/
+      - https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-children-and-young-people/
+      - https://www.nhs.uk/live-well/exercise/strength-exercises/
+      - https://www.nhs.uk/live-well/exercise/balance-exercises/
+      # Nutrition
+      - https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/eating-a-balanced-diet/
+      - https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/eight-tips-for-healthy-eating/
+      - https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/eat-less-saturated-fat/
+      - https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/how-to-cut-down-on-sugar-in-your-diet/
+      - https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegetarian-diet/
+      - https://www.nhs.uk/live-well/eat-well/5-a-day/
+      # Mental wellbeing self-help (wellbeing domain; clinical conditions use nhs_uk_mental_health)
+      - https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/five-steps-to-mental-wellbeing/
+      - https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/tips-to-reduce-stress/
+      - https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/breathing-exercises-for-stress/
+      - https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/exercise-for-depression/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/live-well/.*"
+      - "^https://www\\.nhs\\.uk/mental-health/self-help/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_8_urls"
+    rate_limit: "weekly_controlled_max_24_urls"
     entity_coverage: [D12, D15]
     knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology, nutrition]
     activation: YES
@@ -98,6 +118,11 @@ sources:
       - https://medlineplus.gov/healthyliving.html
       - https://medlineplus.gov/nutrition.html
       - https://medlineplus.gov/sleepdisorders.html
+      # MedlinePlus Genetics narrative condition pages (public domain)
+      - https://medlineplus.gov/genetics/condition/amyotrophic-lateral-sclerosis/
+      - https://medlineplus.gov/genetics/condition/huntington-disease/
+      - https://medlineplus.gov/genetics/condition/parkinson-disease/
+      - https://medlineplus.gov/genetics/condition/alzheimer-disease/
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
       - "^https://medlineplus\\.gov/.*"
@@ -131,6 +156,8 @@ sources:
       - D20
       - D21
       - D22
+      - D24
+      - D25
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
 
   - source_key: cdc_health_lifestyle
@@ -143,15 +170,27 @@ sources:
       # Live hubs only inside existing patterns (CDC redesign retired many /healthyliving paths).
       - https://www.cdc.gov/physical-activity/
       - https://www.cdc.gov/physicalactivity/
+      # Physical activity guidelines by group (adults, older adults, children, pregnancy)
+      - https://www.cdc.gov/physical-activity-basics/guidelines/adults.html
+      - https://www.cdc.gov/physical-activity-basics/guidelines/older-adults.html
+      - https://www.cdc.gov/physical-activity-basics/guidelines/children.html
+      - https://www.cdc.gov/physical-activity-basics/guidelines/healthy-pregnant-or-postpartum-women.html
+      - https://www.cdc.gov/physical-activity-basics/benefits/index.html
+      # Nutrition
+      - https://www.cdc.gov/nutrition/features/healthy-eating-tips.html
+      - https://www.cdc.gov/healthy-weight-growth/healthy-eating/index.html
     allowed_domain: cdc.gov
     allowed_url_patterns:
       - "^https://www\\.cdc\\.gov/physical-activity/.*"
       - "^https://www\\.cdc\\.gov/physicalactivity/.*"
       - "^https://www\\.cdc\\.gov/healthyliving/.*"
+      - "^https://www\\.cdc\\.gov/physical-activity-basics/.*"
+      - "^https://www\\.cdc\\.gov/nutrition/.*"
+      - "^https://www\\.cdc\\.gov/healthy-weight-growth/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_3_urls"
+    rate_limit: "weekly_controlled_max_10_urls"
     entity_coverage: [D05, D13, D15]
     knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
     activation: YES
@@ -247,18 +286,20 @@ sources:
       - https://www.nhlbi.nih.gov/health/asthma
       - https://www.nhlbi.nih.gov/health/copd
       - https://www.nhlbi.nih.gov/health/lungs
+      - https://www.nhlbi.nih.gov/health/high-blood-pressure
+      - https://www.nhlbi.nih.gov/health/heart-healthy-living
     allowed_domain: nhlbi.nih.gov
     allowed_url_patterns:
       - "^https://www\\.nhlbi\\.nih\\.gov/health(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_4_urls"
-    entity_coverage: [D02]
-    knowledge_domains: [disease_clinical]
+    rate_limit: "weekly_controlled_max_6_urls"
+    entity_coverage: [D02, D21]
+    knowledge_domains: [disease_clinical, cardiovascular]
     activation: YES
     governed_low_risk_eligibility: NO
-    specialized_serving_eligibility: [D02]
+    specialized_serving_eligibility: [D02, D21]
     license_notes: "NHLBI/NIH public domain — attribute NHLBI; consumer education not diagnosis"
     live_qualification: PASS
 
@@ -271,18 +312,21 @@ sources:
     additional_urls:
       - https://www.niddk.nih.gov/health-information/liver-disease
       - https://www.niddk.nih.gov/health-information/digestive-diseases
+      - https://www.niddk.nih.gov/health-information/diabetes/overview/what-is-diabetes
+      - https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-type-2-diabetes
+      - https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes
     allowed_domain: niddk.nih.gov
     allowed_url_patterns:
-      - "^https://www\\.niddk\\.nih\\.gov/health-information/(kidney-disease|liver-disease|digestive-diseases).*"
+      - "^https://www\\.niddk\\.nih\\.gov/health-information/(kidney-disease|liver-disease|digestive-diseases|diabetes).*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_3_urls"
-    entity_coverage: [D03, D04]
-    knowledge_domains: [disease_clinical]
+    rate_limit: "weekly_controlled_max_6_urls"
+    entity_coverage: [D03, D04, D22]
+    knowledge_domains: [disease_clinical, diabetes_metabolic]
     activation: YES
     governed_low_risk_eligibility: NO
-    specialized_serving_eligibility: [D03, D04]
+    specialized_serving_eligibility: [D03, D04, D22]
     license_notes: "NIDDK/NIH public domain — attribute NIDDK; consumer education not diagnosis"
     live_qualification: PASS
 
@@ -506,3 +550,123 @@ sources:
     license_notes: "NICHD/NIH public domain — attribute NICHD; consumer education not diagnosis"
     live_qualification: PASS_PENDING_PRODUCTION_TLS
     gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+
+  # --- Knowledge breadth (D-010): neurology, chronic disease, mental health, mind-body ---
+  - source_key: nhs_uk_conditions
+    publisher: NHS UK Health A to Z
+    publisher_family: nhs.uk/conditions
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nhs.uk/conditions/motor-neurone-disease/
+    additional_urls:
+      # Neurology (D18 ALS/MND, D19 MS, D24 other neurological conditions)
+      - https://www.nhs.uk/conditions/multiple-sclerosis/
+      - https://www.nhs.uk/conditions/parkinsons-disease/
+      - https://www.nhs.uk/conditions/alzheimers-disease/
+      - https://www.nhs.uk/conditions/dementia/
+      - https://www.nhs.uk/conditions/epilepsy/
+      - https://www.nhs.uk/conditions/stroke/
+      - https://www.nhs.uk/conditions/migraine/
+      - https://www.nhs.uk/conditions/myasthenia-gravis/
+      - https://www.nhs.uk/conditions/huntingtons-disease/
+      - https://www.nhs.uk/conditions/peripheral-neuropathy/
+      - https://www.nhs.uk/conditions/guillain-barre-syndrome/
+      # Cardiometabolic (D21, D22)
+      - https://www.nhs.uk/conditions/high-blood-pressure/
+      - https://www.nhs.uk/conditions/coronary-heart-disease/
+      - https://www.nhs.uk/conditions/heart-failure/
+      - https://www.nhs.uk/conditions/type-1-diabetes/
+      - https://www.nhs.uk/conditions/type-2-diabetes/
+      - https://www.nhs.uk/conditions/overweight-and-obesity/
+      # Musculoskeletal (D05), sleep and fatigue (D25)
+      - https://www.nhs.uk/conditions/osteoporosis/
+      - https://www.nhs.uk/conditions/back-pain/
+      - https://www.nhs.uk/conditions/fibromyalgia/
+      - https://www.nhs.uk/conditions/insomnia/
+      - https://www.nhs.uk/conditions/chronic-fatigue-syndrome-cfs/
+    allowed_domain: nhs.uk
+    allowed_url_patterns:
+      - "^https://www\\.nhs\\.uk/conditions/.*"
+    rights_terms_state: OGL
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_23_urls"
+    entity_coverage: [D05, D18, D19, D21, D22, D24, D25]
+    knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D05, D18, D19, D21, D22, D24, D25]
+    license_notes: "OGL v3.0 — attribution required (Information from the NHS website); consumer education not diagnosis; UK triage boxes (111/999/GP) are dropped at extraction"
+
+  - source_key: nhs_uk_mental_health
+    publisher: NHS UK Mental Health
+    publisher_family: nhs.uk/mental-health
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder-gad/
+    additional_urls: []
+    allowed_domain: nhs.uk
+    allowed_url_patterns:
+      - "^https://www\\.nhs\\.uk/mental-health/conditions/.*"
+    rights_terms_state: OGL
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_1_urls"
+    entity_coverage: [D23]
+    knowledge_domains: [mental_health_psychology]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    # D23 mental-health education boundary applies (medication/crisis content fails closed; I4 owns crisis)
+    specialized_serving_eligibility: [D23]
+    license_notes: "OGL v3.0 — attribution required; educational mental-health information, not diagnosis or treatment selection"
+
+  - source_key: cdc_chronic_disease
+    publisher: CDC Chronic Disease and Neurology
+    publisher_family: cdc.gov/chronic-disease
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cdc.gov/als/
+    additional_urls:
+      - https://www.cdc.gov/epilepsy/about/index.html
+      - https://www.cdc.gov/stroke/about/index.html
+      - https://www.cdc.gov/alzheimers-dementia/about/alzheimers.html
+      - https://www.cdc.gov/heart-disease/about/index.html
+      - https://www.cdc.gov/high-blood-pressure/about/index.html
+      - https://www.cdc.gov/diabetes/about/index.html
+      - https://www.cdc.gov/sleep/about/index.html
+      - https://www.cdc.gov/mental-health/about/index.html
+      - https://www.cdc.gov/womens-health/about/index.html
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/(als|epilepsy|stroke|alzheimers-dementia|heart-disease|high-blood-pressure|diabetes|sleep|mental-health|womens-health)(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_10_urls"
+    entity_coverage: [D10, D18, D21, D22, D23, D24, D25]
+    knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, mental_health_psychology]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D10, D18, D21, D22, D23, D24, D25]
+    license_notes: "CDC public domain — attribute CDC/HHS; non-endorsement disclaimer; consumer education not diagnosis"
+
+  - source_key: nccih_mind_body
+    publisher: NCCIH / NIH
+    publisher_family: nccih.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nccih.nih.gov/health/meditation-and-mindfulness-effectiveness-and-safety
+    additional_urls: []
+    allowed_domain: nccih.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nccih\\.nih\\.gov/health/.*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_1_urls"
+    entity_coverage: []
+    knowledge_domains: [mental_health_psychology]
+    activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
+    license_notes: "NIH/NCCIH public domain — attribute NCCIH; evidence summary on meditation and mindfulness (wellbeing)"
