@@ -280,6 +280,18 @@ def retrieve_scis_governed_runtime_items(
             meta["scis_evidence_count"] = 0
             return [], meta
         authorized_ku_ids = set(authority.knowledge_unit_ids)
+        if not str(lang).startswith("en"):
+            # Cross-language: the verified concept's own EN labels are retrieval hints
+            # (non-authoritative); results stay inside the concept's linked KUs.
+            from backend.app.services.i5.know02.taxonomy import verified_label_texts
+
+            for label in verified_label_texts(db, concept_id=int(authority.concept_id), language="en"):
+                if len(hints) >= 4:
+                    break
+                if label not in hints:
+                    hints.append(label)
+            meta["alias_hint_count"] = len(hints)
+            meta["concept_label_hints"] = True
 
     retrieve_top_k = top_k
     if authorized_ku_ids:

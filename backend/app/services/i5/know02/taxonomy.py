@@ -151,6 +151,52 @@ def add_label(
     return row
 
 
+def upsert_label(
+    db: Session,
+    *,
+    concept_id: int,
+    language: str,
+    label_kind: str,
+    label_text: str,
+    verified: bool,
+    provenance_note: Optional[str] = None,
+) -> models.I5ClinicalConceptLabel:
+    """Idempotent label upsert keyed by (concept, language, text); updates review state."""
+    row = (
+        db.query(models.I5ClinicalConceptLabel)
+        .filter_by(concept_id=concept_id, language=language, label_text=label_text)
+        .first()
+    )
+    if row is None:
+        return add_label(
+            db,
+            concept_id=concept_id,
+            language=language,
+            label_kind=label_kind,
+            label_text=label_text,
+            verified=verified,
+            provenance_note=provenance_note,
+        )
+    row.label_kind = label_kind
+    row.verified = bool(verified)
+    row.provenance_note = provenance_note
+    db.flush()
+    return row
+
+
+def verified_label_texts(db: Session, *, concept_id: int, language: str) -> tuple[str, ...]:
+    """Verified label texts of one concept in one language (stable insertion order)."""
+    root = _language_root(language)
+    labels = (
+        db.query(models.I5ClinicalConceptLabel)
+        .filter(models.I5ClinicalConceptLabel.concept_id == concept_id)
+        .filter(models.I5ClinicalConceptLabel.verified.is_(True))
+        .order_by(models.I5ClinicalConceptLabel.id)
+        .all()
+    )
+    return tuple(str(l.label_text) for l in labels if _language_root(l.language) == root)
+
+
 def set_priority_overlay(
     db: Session,
     *,
@@ -262,10 +308,21 @@ def _language_root(language: Optional[str]) -> str:
     return lang.split("-", 1)[0] if lang else ""
 
 
+_TOKEN_EDGE_PUNCTUATION = "?!.,;:()[]{}\"'«»؟،؛…-–—/"
+
+
+def _phrase_tokens(text: str) -> list[str]:
+    tokens = (tok.strip(_TOKEN_EDGE_PUNCTUATION) for tok in (text or "").split(" "))
+    return [tok for tok in tokens if tok]
+
+
 def _bounded_phrase_in_query(label_norm: str, query_norm: str) -> bool:
-    """Contiguous token phrase only. Not a raw character substring."""
-    label_tokens = [tok for tok in (label_norm or "").split(" ") if tok]
-    query_tokens = [tok for tok in (query_norm or "").split(" ") if tok]
+    """Contiguous token phrase only. Not a raw character substring.
+
+    Punctuation at token edges (e.g. a trailing "?" or "؟") does not break a match.
+    """
+    label_tokens = _phrase_tokens(label_norm)
+    query_tokens = _phrase_tokens(query_norm)
     if not label_tokens or not query_tokens or len(label_tokens) > len(query_tokens):
         return False
     width = len(label_tokens)

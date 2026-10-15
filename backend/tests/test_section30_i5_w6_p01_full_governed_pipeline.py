@@ -1290,3 +1290,126 @@ def test_W6P01_FG20_lifecycle_counters_reflect_real_outcome() -> None:
     runtime.record_lifecycle_counters(only_sweep, None, stale_unconfirmed_ids=[1])
     assert only_sweep.superseded_knowledge_count == 1
     assert only_sweep.new_knowledge_count == 0
+
+
+# ---------------------------------------------------------------------------
+# Multilingual knowledge identity (concept catalog + 81-B authority) and chat intent.
+# ---------------------------------------------------------------------------
+
+
+def test_W6P01_FG21_concept_catalog_contract() -> None:
+    from backend.app.services.i5.know02.concept_catalog import (
+        VERIFIED_LABEL_STATUSES,
+        concept_key_for_url,
+        dimension_for_section,
+        load_concept_catalog,
+    )
+
+    catalog = load_concept_catalog()
+    concepts = catalog["concepts"]
+    assert len({c["concept_key"] for c in concepts}) == len(concepts)
+    for concept in concepts:
+        langs = {lab["language"] for lab in concept["labels"]}
+        assert {"en", "fa", "ar"} <= langs, concept["concept_key"]
+        for lab in concept["labels"]:
+            if lab["language"] == "en":
+                # EN terms come from the governed sources' own titles.
+                assert lab["status"] in VERIFIED_LABEL_STATUSES
+            else:
+                # FA/AR are model-assisted drafts until Javad approves them (D-010).
+                assert lab["status"] in {"MODEL_ASSISTED_DRAFT", "FOUNDER_APPROVED"}
+                if lab["status"] == "FOUNDER_APPROVED":
+                    assert lab.get("approved_on"), concept["concept_key"]
+    assert concept_key_for_url("https://www.nhs.uk/conditions/motor-neurone-disease/") == "disease:als"
+    assert concept_key_for_url("https://medlineplus.gov/multiplesclerosis.html") == "disease:ms"
+    assert concept_key_for_url("https://www.cdc.gov/physical-activity-basics/guidelines/adults.html") == "topic:physical_activity"
+    assert concept_key_for_url("https://www.nhlbi.nih.gov/health/asthma") is None
+    assert dimension_for_section("h2:symptoms-of-mnd") == "SYMPTOMS"
+    assert dimension_for_section("h3:medicines-for-high-blood-pressure") == "PHARMACOLOGICAL_TREATMENT"
+    assert dimension_for_section("h2:how-you-can-help-lower-your-blood-pressure") == "PREVENTION"
+    assert dimension_for_section("h2:intro") == "DEFINITION"
+    assert dimension_for_section("") is None
+
+
+def test_W6P01_FG22_cross_language_serving_needs_founder_approved_label(db) -> None:
+    from backend.app.services.i5.know02.concept_catalog import ensure_concept_catalog
+    from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
+    from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
+    from backend.app.services.scis.contracts import RetrievalMode
+
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    counts = ensure_concept_catalog(db)
+    assert counts["concepts"] >= 20
+    again = ensure_concept_catalog(db)  # idempotent
+    assert again == counts
+
+    activation = runtime.activate_nhs_sleep_source(db, models)
+    profile_id = int(activation.governed_source_profile_id)
+    run = _governed_run(db, models, "k-multilingual-run")
+    url = "https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-for-adults-aged-19-to-64/"
+    statement = (
+        "Physical activity guidelines for adults — Recommendations: adults should do some type of "
+        "physical activity every day, at least 150 minutes of moderate intensity activity a week."
+    )
+    hs = _identity_handoffs(
+        source_profile_id=profile_id, canonical_url=url, statement=statement,
+        content_token="ml1", section_key="h2:recommendations-for-adults",
+    )
+    for h in hs:
+        h.payload["domain"] = "physical_activity_exercise"
+        h.payload["topic"] = "exercise"
+    result = runtime.execute_governed_persistence(db, models, handoffs=hs, run_id=int(run.id), attempt_id=1)
+    assert result.document_failures == []
+    ku = db.query(models.KnowledgeUnit).filter_by(id=result.knowledge_unit_ids[0]).one()
+    concept = db.query(models.I5ClinicalConcept).filter_by(concept_key="topic:physical_activity").one()
+    links = db.query(models.I5KnowledgeUnitConcept).filter_by(knowledge_unit_id=ku.id).all()
+    assert [link.concept_id for link in links] == [concept.id]
+    dims = db.query(models.I5KnowledgeUnitDimension).filter_by(knowledge_unit_id=ku.id).all()
+    assert dims == []  # "recommendations for adults" implies no dimension rule
+
+    fa_query = "فعالیت بدنی برای بزرگسالان چقدر باید باشد؟"
+    # Draft FA label: no authority, and the same-language gate keeps EN evidence out.
+    assert resolve_verified_concept_authority(db, fa_query, "fa") is None
+    items, meta = retrieve_scis_governed_runtime_items(
+        db, fa_query, language="fa", allow_network=False, force_mode=RetrievalMode.LEXICAL
+    )
+    assert items == [] and meta["concept_authority_applied"] is False
+
+    # Javad approves the FA label -> verified concept authority + EN label hints.
+    fa_label = (
+        db.query(models.I5ClinicalConceptLabel)
+        .filter_by(concept_id=concept.id, language="fa", label_text="فعالیت بدنی")
+        .one()
+    )
+    fa_label.verified = True
+    db.flush()
+    authority = resolve_verified_concept_authority(db, fa_query, "fa")
+    assert authority is not None and ku.id in authority.knowledge_unit_ids
+    assert ku.runtime_eligibility == "ELIGIBLE"  # NHS low-risk source, physical-activity domain
+    items, meta = retrieve_scis_governed_runtime_items(
+        db, fa_query, language="fa", allow_network=False, force_mode=RetrievalMode.LEXICAL
+    )
+    assert meta["concept_authority_applied"] is True
+    assert meta.get("concept_label_hints") is True
+    # Persian question -> English governed evidence, only from the concept's linked KUs.
+    assert {item.knowledge_unit_id for item in items} == {ku.id}
+
+
+def test_W6P01_FG23_chat_intent_covers_fa_ar_en_and_whole_words() -> None:
+    from backend.app.services.gate3.medical_intent import (
+        is_medical_care_intent,
+        is_mental_wellbeing_intent,
+    )
+
+    assert is_medical_care_intent("What is ALS?", "en")
+    assert not is_medical_care_intent("I also walk every day", "en")
+    assert is_medical_care_intent("I feel stressed at work", "en")
+    assert is_medical_care_intent("ام اس من بدتر شده", "fa")
+    assert is_medical_care_intent("درباره MS سوال دارم", "fa")
+    assert is_medical_care_intent("برنامه ورزش برای کاهش وزن", "fa")
+    assert is_medical_care_intent("ما هي أعراض التصلب المتعدد؟", "ar")
+    assert is_mental_wellbeing_intent("أشعر بالقلق كل يوم", "ar")
+    assert not is_medical_care_intent("سلام، خوبی؟", "fa")
+    assert not is_medical_care_intent("مرحبا كيف حالك", "ar")

@@ -740,6 +740,8 @@ class _DocumentContext:
     changed_current_ids: list[int] = field(default_factory=list)
     # (source_profile_id, canonical_url) -> section identities seen on the page this run.
     section_layouts: dict[tuple[int, str], set[str]] = field(default_factory=dict)
+    # Serving KUs of this document with their URL/section, for semantic linking.
+    semantic_targets: list[tuple[Any, str, str]] = field(default_factory=list)
 
 
 def _handoff_payload(h: Any) -> Mapping[str, Any]:
@@ -900,6 +902,7 @@ def _persist_document(
             db.flush()
             if latest is not None:
                 sup_svc.validate_supersession_link(ku, latest)
+            ctx.semantic_targets.append((ku, canonical_url, section_key))
             ku_by_fingerprint[fingerprint] = ku
             result.knowledge_unit_ids.append(int(ku.id))
             result.new_knowledge_count += 1
@@ -909,6 +912,7 @@ def _persist_document(
         if not stale_current and not _served_statement_changed(current, statement, canonical_url):
             # NO_CHANGE: same served content for the same logical identity.
             current.last_reviewed_at = utc_now()
+            ctx.semantic_targets.append((current, canonical_url, section_key))
             ku_by_fingerprint[fingerprint] = current
             result.knowledge_unit_ids.append(int(current.id))
             continue
@@ -935,6 +939,7 @@ def _persist_document(
         sup_svc.validate_supersession_link(ku, current)
         # Old version: SUPERSEDED + STALE + NOT_ELIGIBLE, and its KCE stop serving.
         _apply_living_knowledge_event(db, int(current.id), SUPERSESSION_EVENT)
+        ctx.semantic_targets.append((ku, canonical_url, section_key))
         ku_by_fingerprint[fingerprint] = ku
         result.knowledge_unit_ids.append(int(ku.id))
         result.superseded_knowledge_unit_ids.append(int(current.id))
@@ -1056,6 +1061,17 @@ def _persist_document(
             result.knowledge_memory_writes = 0
         else:
             result.knowledge_memory_writes = 0
+
+    # Concept / dimension links (KNOW02 taxonomy) for every serving KU of the document.
+    from backend.app.services.i5.know02.concept_catalog import link_knowledge_unit_semantics
+
+    for ku_row, ku_url, ku_section in ctx.semantic_targets:
+        link_knowledge_unit_semantics(
+            db,
+            knowledge_unit_id=int(ku_row.id),
+            canonical_url=ku_url,
+            section_key=ku_section,
+        )
 
     for (layout_source_id, layout_url), section_ids in ctx.section_layouts.items():
         result.retired_knowledge_unit_ids.extend(
@@ -1353,6 +1369,7 @@ def run_weekly_scheduled_job(
                     detail="weekly advisory lock held by another worker",
                 )
 
+        _ensure_concept_catalog_isolated(session)
         if candidates is not None:
             resolved = list(candidates)
         else:
@@ -1393,6 +1410,23 @@ def run_weekly_scheduled_job(
                 session.close()
             except Exception:
                 pass
+
+
+def _ensure_concept_catalog_isolated(db: Any) -> None:
+    """Seed the governed concept catalog; a catalog problem never blocks the knowledge refresh."""
+    if db is None:
+        return
+    savepoint = db.begin_nested()
+    try:
+        from backend.app.services.i5.know02.concept_catalog import ensure_concept_catalog
+
+        counts = ensure_concept_catalog(db)
+        savepoint.commit()
+        print(f"[I5 W6-P01] concept catalog ensured {counts}")
+    except Exception as exc:  # noqa: BLE001 — isolate; linking simply skips missing concepts
+        if savepoint.is_active:
+            savepoint.rollback()
+        print(f"[I5 W6-P01] concept catalog skipped: {type(exc).__name__}: {str(exc)[:200]}")
 
 
 def weekly_interval_minutes() -> int:

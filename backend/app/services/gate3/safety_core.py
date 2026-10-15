@@ -15,8 +15,10 @@ from backend.app import models
 from backend.app.services.rag_context.medical_risk_gate_v1 import is_high_risk_medical
 from backend.app.services.gate3.emergency_templates import get_template
 from backend.app.services.gate3.constants import (
+    MENTAL_WELLBEING_KEYWORDS_AR,
     MENTAL_WELLBEING_KEYWORDS_EN,
     MENTAL_WELLBEING_KEYWORDS_FA,
+    keywords_for_language,
 )
 
 
@@ -57,7 +59,12 @@ class RiskClassifier:
         if any(w in norm or w in text for w in medical_words):
             return RiskResult("medium", ["medical_topic"])
 
-        wb_words = MENTAL_WELLBEING_KEYWORDS_FA if lang.startswith("fa") else MENTAL_WELLBEING_KEYWORDS_EN
+        wb_words = keywords_for_language(
+            lang,
+            fa=MENTAL_WELLBEING_KEYWORDS_FA,
+            ar=MENTAL_WELLBEING_KEYWORDS_AR,
+            en=MENTAL_WELLBEING_KEYWORDS_EN,
+        )
         if any(w in norm or w in text for w in wb_words):
             return RiskResult("medium", ["mental_wellbeing_topic"])
 
