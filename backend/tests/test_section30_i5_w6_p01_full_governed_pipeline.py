@@ -975,3 +975,27 @@ def test_W6P01_FG13_c2_unchanged_source_reevaluation_never_revives_retired_versi
         conflict_state = "NONE"
 
     assert ku_blocks_governed_reevaluation(_Stale()) is True
+
+
+def test_W6P01_FG14_c2_healed_specialized_statement_is_not_a_change() -> None:
+    """Specialized eligibility stores a healed claim window; the raw claim must still match."""
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        select_clinical_claim_window,
+    )
+
+    url = "https://medlineplus.gov/amyotrophiclateralsclerosis.html"
+    claim = (
+        "Amyotrophic Lateral Sclerosis | ALS | MedlinePlus Learn how to cope with ALS and more. "
+        "Summary What is amyotrophic lateral sclerosis (ALS)? Amyotrophic lateral sclerosis (ALS) "
+        "is a nervous system disease that attacks nerve cells called neurons in your brain and "
+        "spinal cord. These neurons transmit messages from your brain and spinal cord to your "
+        "voluntary muscles. At first, this causes mild muscle problems."
+    )
+    healed = select_clinical_claim_window(claim, canonical_url=url)
+    assert healed and healed != claim
+
+    class _Stored:
+        normalized_statement = healed
+
+    assert runtime._served_statement_changed(_Stored(), claim, url) is False
+    assert runtime._served_statement_changed(_Stored(), claim.replace("mild", "severe"), url) is True

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -80,7 +81,7 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["080_i9_device_reported_vital_status"]
+    assert heads == [current_script_head()]
     rev080 = script.get_revision("080_i9_device_reported_vital_status")
     assert rev080.down_revision == "079_i10_cni_owner_provenance_nullable"
     rev079 = script.get_revision("079_i10_cni_owner_provenance_nullable")

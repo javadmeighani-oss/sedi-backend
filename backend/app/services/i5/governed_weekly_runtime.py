@@ -600,12 +600,26 @@ def _current_knowledge_version(
     return latest, latest_number
 
 
-def _served_statement_changed(current: Any, statement: str) -> bool:
-    """Material change = change in the served statement (not page chrome / page hash)."""
-    kind = sup_svc.detect_change_kind(
-        {"normalized_statement": getattr(current, "normalized_statement", None)},
-        {"normalized_statement": statement},
+def _served_statement_changed(
+    current: Any, statement: str, canonical_url: Optional[str] = None
+) -> bool:
+    """Material change = change in the served statement (not page chrome / page hash).
+
+    Specialized eligibility may store a healed claim window instead of the raw claim,
+    so the incoming claim is also compared after the same healing step.
+    """
+    stored = {"normalized_statement": getattr(current, "normalized_statement", None)}
+    kind = sup_svc.detect_change_kind(stored, {"normalized_statement": statement})
+    if kind == MemoryChangeKind.NO_MATERIAL_CHANGE:
+        return False
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        select_clinical_claim_window,
     )
+
+    healed = select_clinical_claim_window(statement, canonical_url=canonical_url)
+    if not healed:
+        return True
+    kind = sup_svc.detect_change_kind(stored, {"normalized_statement": healed})
     return kind != MemoryChangeKind.NO_MATERIAL_CHANGE
 
 
@@ -854,7 +868,7 @@ def _persist_document(
             continue
 
         stale_current = str(current.freshness_state or "") == FreshnessState.STALE.value
-        if not stale_current and not _served_statement_changed(current, statement):
+        if not stale_current and not _served_statement_changed(current, statement, canonical_url):
             # NO_CHANGE: same served content for the same logical identity.
             ku_by_fingerprint[fingerprint] = current
             result.knowledge_unit_ids.append(int(current.id))
