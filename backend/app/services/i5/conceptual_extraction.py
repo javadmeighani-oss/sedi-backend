@@ -74,11 +74,225 @@ def _candidate(
     )
 
 
+# --- Section-level extraction (one candidate per content section of a page) -------------
+
+SECTION_EXTRACTOR_VERSION = "w3p01-conceptual-sections-1.0.0"
+MAX_SECTIONS_PER_DOCUMENT = 16
+MIN_SECTION_TEXT_CHARS = 160
+MAX_SECTION_STATEMENT_CHARS = 1400
+# Share of section text that sits inside links; above this the section is a link list.
+MAX_SECTION_LINK_TEXT_RATIO = 0.45
+
+# Chrome containers. Not "form"/"button": some sites wrap whole pages in a <form> and
+# leave <button> unclosed, which would silence the entire document.
+_SECTION_SKIP_TAGS = frozenset(
+    {"script", "style", "noscript", "nav", "header", "footer", "aside", "svg", "template", "iframe"}
+)
+_SECTION_HEADING_TAGS = frozenset({"h1", "h2", "h3"})
+# Boilerplate sections are dropped entirely.
+_BOILERPLATE_SECTION_HEADINGS = re.compile(
+    r"^(?:(?:related(?: health topics| issues| links| pages| resources)?|references?|sources"
+    r"|more information|learn more|clinical trials?|journal articles|find an expert"
+    r"|(?:additional |other |federal )?resources|see also|share(?: this page)?|connect with \w+"
+    r"|contact(?: us)?|en español|español|page last reviewed.*|next review due.*|start here"
+    r"|reprints?|patient handouts|multimedia|topic image|medical encyclopedia|disclaimers?"
+    r"|footnotes|acknowledg(?:e)?ments?|newsletters?|subscribe.*|citations?|for more information.*"
+    r"|where can i (?:learn|find) more.*|additional (?:federal )?(?:resources|information).*"
+    r"|explore clinical trials.*|why is \w+ studying.*|how is \w+ research.*"
+    r"|statistics and research|book traversal links.*)\s*[:?.]?\s*)$",
+    re.IGNORECASE,
+)
+# Page widgets whose heading carries no meaning; their text continues the page introduction.
+_WIDGET_SECTION_HEADINGS = re.compile(
+    r"^(?:language switcher|on this page|in this section|quick links|contents|print(?: this page)?)\s*:?\s*$",
+    re.IGNORECASE,
+)
+_BOILERPLATE_INTRO_PREFIXES = ("download pdf", "print ", "share ", "en español")
+_LANGUAGE_SWITCHER_PREFIX = re.compile(r"^(?:English\s+Español\s+|Español\s+English\s+)", re.IGNORECASE)
+
+
+class _SectionExtractor(HTMLParser):
+    """Collect (level, heading, text, link_text_chars) sections from page content."""
+
+    def __init__(self, *, main_only: bool) -> None:
+        super().__init__(convert_charrefs=True)
+        self._main_only = main_only
+        self._main_depth = 0
+        self._skip: list[str] = []
+        self._anchor = 0
+        self._heading: Optional[str] = None
+        self._heading_buf: list[str] = []
+        self._in_title = False
+        self.title = ""
+        self.h1 = ""
+        self.sections: list[dict] = []
+        self._h1_index: Optional[int] = None
+
+    def _recording(self) -> bool:
+        return not self._skip and (not self._main_only or self._main_depth > 0)
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag == "main":
+            self._main_depth += 1
+        if tag in _SECTION_SKIP_TAGS:
+            self._skip.append(tag)
+        if tag == "title":
+            self._in_title = True
+        if tag == "a":
+            self._anchor += 1
+        if tag in _SECTION_HEADING_TAGS and self._recording():
+            self._heading = tag
+            self._heading_buf = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "main" and self._main_depth:
+            self._main_depth -= 1
+        if tag in _SECTION_SKIP_TAGS and tag in self._skip:
+            # Pop the innermost matching container (tolerates sloppy nesting).
+            idx = len(self._skip) - 1 - self._skip[::-1].index(tag)
+            del self._skip[idx:]
+        if tag == "title":
+            self._in_title = False
+        if tag == "a" and self._anchor:
+            self._anchor -= 1
+        if self._heading is not None and tag == self._heading:
+            text = " ".join(" ".join(self._heading_buf).split())
+            if self._heading == "h1":
+                if not self.h1 and text:
+                    self.h1 = text
+                    self._h1_index = len(self.sections)
+            elif text:
+                self.sections.append(
+                    {"level": int(self._heading[1]), "heading": text, "parts": [], "link_chars": 0}
+                )
+            self._heading = None
+            self._heading_buf = []
+
+    def handle_data(self, data: str) -> None:
+        if self._in_title:
+            self.title += data
+            return
+        if not self._recording():
+            return
+        text = data.strip()
+        if not text:
+            return
+        if self._heading is not None:
+            self._heading_buf.append(text)
+            return
+        if not self.sections or (self._h1_index is not None and len(self.sections) == self._h1_index):
+            # Text between the H1 and the first section heading → page introduction.
+            self.sections.append({"level": 2, "heading": "", "parts": [], "link_chars": 0})
+        section = self.sections[-1]
+        section["parts"].append(text)
+        if self._anchor:
+            section["link_chars"] += len(text)
+
+    def content_sections(self) -> list[dict]:
+        start = self._h1_index or 0
+        return self.sections[start:]
+
+
+def _page_title(parser: _SectionExtractor) -> str:
+    if parser.h1:
+        return parser.h1
+    raw = " ".join(parser.title.split())
+    return re.split(r"\s+[|\-–]\s+", raw)[0].strip() if raw else ""
+
+
+def _section_key(level: int, heading: str, seen: set[str]) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", heading.casefold()).strip("-")[:80]
+    if not slug:
+        slug = "intro" if not heading else sha256_hex(heading.encode("utf-8"))[:12]
+    key = f"h{level}:{slug}"
+    n = 2
+    while key in seen:
+        key = f"h{level}:{slug}-{n}"
+        n += 1
+    seen.add(key)
+    return key
+
+
+def _bounded_statement(prefix: str, text: str) -> str:
+    statement = f"{prefix}{text}"
+    if len(statement) <= MAX_SECTION_STATEMENT_CHARS:
+        return statement
+    cut = statement[:MAX_SECTION_STATEMENT_CHARS]
+    end = cut.rfind(". ")
+    return cut[: end + 1] if end >= MAX_SECTION_STATEMENT_CHARS // 2 else cut
+
+
+def extract_sections_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
+    """One candidate per narrative content section; empty when the page has no usable sections.
+
+    Navigation/header/footer chrome, link-list sections and boilerplate headings are dropped.
+    Each statement carries the page title and section heading, so a section is
+    self-describing for eligibility and retrieval.
+    """
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        statement_dominated_by_nav_chrome,
+    )
+
+    html = envelope.body.decode(envelope.charset or "utf-8", errors="replace")
+    parser = _SectionExtractor(main_only=bool(re.search(r"<main[\s>]", html, re.IGNORECASE)))
+    try:
+        parser.feed(html)
+    except Exception as exc:  # noqa: BLE001 — map to taxonomy
+        raise AdapterFrameworkError("PARSING_FAILED", type(exc).__name__) from exc
+    title = _page_title(parser)
+    seen: set[str] = set()
+    out: list[ExtractionCandidate] = []
+    for section in parser.content_sections():
+        heading = section["heading"]
+        if heading and _BOILERPLATE_SECTION_HEADINGS.match(heading):
+            continue
+        if heading and _WIDGET_SECTION_HEADINGS.match(heading):
+            heading = ""
+        text = " ".join(" ".join(section["parts"]).split())
+        text = _LANGUAGE_SWITCHER_PREFIX.sub("", text)
+        if len(text) < MIN_SECTION_TEXT_CHARS:
+            continue
+        if not heading and text.casefold().startswith(_BOILERPLATE_INTRO_PREFIXES):
+            continue
+        if section["link_chars"] / max(len(text), 1) > MAX_SECTION_LINK_TEXT_RATIO:
+            continue
+        if statement_dominated_by_nav_chrome(text[:520]):
+            continue
+        key = _section_key(section["level"], heading, seen)
+        if title and heading:
+            prefix = f"{title} — {heading}: "
+        elif title:
+            prefix = f"{title}: "
+        else:
+            prefix = f"{heading}: " if heading else ""
+        out.append(
+            ExtractionCandidate(
+                title=title or "html-document",
+                normalized_text=canonicalize_text(text),
+                language="en",
+                source_location=f"{envelope.canonical_url}#{key}",
+                content_hash=sha256_hex(canonicalize_text(text).encode("utf-8")),
+                extractor_version=SECTION_EXTRACTOR_VERSION,
+                extraction_confidence=0.6,
+                warnings=("candidate_only_not_approved_knowledge", "section"),
+                section_anchor=key,
+                claim_candidate=_bounded_statement(prefix, text),
+            )
+        )
+        if len(out) >= MAX_SECTIONS_PER_DOCUMENT:
+            break
+    return tuple(out)
+
+
 def extract_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
     if envelope.error_category is not None:
         raise AdapterFrameworkError("EXTRACTION_FAILED", envelope.error_category)
     if envelope.content_type not in {"text/html", "application/xhtml+xml"}:
         raise AdapterFrameworkError("UNSUPPORTED_FORMAT", envelope.content_type)
+    sections = extract_sections_from_html(envelope)
+    if sections:
+        return sections
+    # No usable sections (e.g. heading-less page): single document-level claim window.
     parser = _TextExtractor()
     try:
         parser.feed(envelope.body.decode(envelope.charset or "utf-8", errors="replace"))

@@ -983,6 +983,10 @@ def can_apply_specialized_entity_eligibility(
     if "/niosh/archive/" in url:
         return False, "ROBOTS_DISALLOW_ARCHIVE", None
     statement = getattr(ku, "normalized_statement", None)
+    ok, reason = content_quality_pass(statement, spec, canonical_url=canonical_url)
+    if ok:
+        # Clean section-level statements keep their full text (no 520-char re-windowing).
+        return True, "OK", spec
     healed = select_clinical_claim_window(str(statement or ""), canonical_url=canonical_url)
     if healed and healed != str(statement or "").strip():
         try:

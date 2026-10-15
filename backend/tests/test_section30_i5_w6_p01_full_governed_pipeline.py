@@ -999,3 +999,219 @@ def test_W6P01_FG14_c2_healed_specialized_statement_is_not_a_change() -> None:
 
     assert runtime._served_statement_changed(_Stored(), claim, url) is False
     assert runtime._served_statement_changed(_Stored(), claim.replace("mild", "severe"), url) is True
+
+
+# ---------------------------------------------------------------------------
+# Knowledge depth — one KU per content section of a page.
+# ---------------------------------------------------------------------------
+
+_SECTION_PAGE = (
+    "<html><head><title>Motor neurone disease - NHS</title></head><body>"
+    "<header><nav><a href='/'>Home</a> <h2>Health A to Z</h2><a href='/a'>Conditions A to Z</a></nav></header>"
+    "<button class='menu'>Menu"  # unclosed button must not silence the page
+    "<main><h1>Motor neurone disease (MND)</h1>"
+    "<p>Motor neurone disease (MND) is a rare condition that progressively damages parts of the "
+    "nervous system. It leads to muscle weakness, often with visible wasting.</p>"
+    "<h2>Language switcher</h2><p>English Español Motor neurone disease happens when specialist "
+    "nerve cells called motor neurones stop working properly and progressively lose function. "
+    "It is not known exactly why this happens in most people.</p>"
+    "<h2>Symptoms of MND</h2><p>Early symptoms can include weakness in the ankle or leg, slurred speech, "
+    "a weak grip, muscle cramps and twitches, and weight loss. Symptoms usually start gradually and "
+    "get worse over time as the condition progresses.</p>"
+    "<h2>Treatment for MND</h2><p>There is no cure for MND, but treatment can help reduce the impact the "
+    "symptoms have on your life. A care team will help you stay as independent as possible and plan for "
+    "the future, including physiotherapy, speech therapy and nutritional support.</p>"
+    "<h3>Riluzole</h3><p>Riluzole is a medicine that may slow the progression of MND slightly. It is taken "
+    "as a tablet twice a day and your care team will monitor how it affects you over time.</p>"
+    "<h2>Related conditions</h2><p><a href='/x'>Kennedy disease is a related neuromuscular condition</a> "
+    "<a href='/y'>Spinal muscular atrophy is also a motor neurone condition</a> "
+    "<a href='/z'>Myasthenia gravis affects how nerves and muscles communicate</a></p>"
+    "<h2>Page last reviewed: 01 May 2026</h2><p>Next review due: 01 May 2029 and this page is checked "
+    "regularly by the clinical content team to make sure it stays accurate and current.</p>"
+    "</main><footer><h2>Support links</h2><p>Home Health A to Z Live Well Mental health Care and support</p></footer>"
+    "</body></html>"
+).encode("utf-8")
+
+
+def _section_envelope(body: bytes, url: str = "https://www.nhs.uk/conditions/motor-neurone-disease/"):
+    return FetchEnvelope(
+        request_id="t",
+        adapter_id="i5.public_web_fetch",
+        adapter_version="1",
+        canonical_url=url,
+        final_url=url,
+        http_status=200,
+        content_type="text/html",
+        charset="utf-8",
+        body=body,
+        byte_count=len(body),
+        content_hash=hashlib.sha256(body).hexdigest(),
+        retrieved_at=datetime(2026, 10, 15, 0, 0, 0),
+        disposition="OK",
+        error_category=None,
+    )
+
+
+def test_W6P01_FG15_section_extraction_drops_chrome_and_keeps_narrative() -> None:
+    cands = extract_candidates(_section_envelope(_SECTION_PAGE), mode="PUBLIC_WEB_FETCH")
+    keys = [c.section_anchor for c in cands]
+    # Intro (incl. the widget-headed continuation), symptoms, treatment and its sub-section.
+    assert keys == ["h2:intro", "h2:intro-2", "h2:symptoms-of-mnd", "h2:treatment-for-mnd", "h3:riluzole"]
+    by_key = {c.section_anchor: c for c in cands}
+    treatment = by_key["h2:treatment-for-mnd"].claim_candidate
+    assert treatment.startswith("Motor neurone disease (MND) — Treatment for MND: There is no cure for MND")
+    assert "physiotherapy, speech therapy" in treatment  # natural case, full section text
+    assert not by_key["h2:intro-2"].claim_candidate.split(": ", 1)[1].startswith("English")
+    joined = " ".join(c.claim_candidate for c in cands)
+    for chrome in ("Health A to Z", "Kennedy disease", "Next review due", "Support links"):
+        assert chrome not in joined
+    for c in cands:
+        assert "candidate_only_not_approved_knowledge" in c.warnings
+        assert len(c.claim_candidate) <= 1400
+
+
+def test_W6P01_FG16_section_page_yields_one_handoff_pair_per_section() -> None:
+    from backend.app.services.i5.source_discovery import build_discovery_work_item
+
+    class _Resp:
+        status_code = 200
+        content = _SECTION_PAGE
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+        text = _SECTION_PAGE.decode()
+
+    import backend.app.services.gate3.fetch_security as fs
+    import backend.app.services.gate3.robots_checker as rc
+
+    old_dns, old_robots = fs.socket.getaddrinfo, rc.requests.get
+    fs.socket.getaddrinfo = lambda *_a, **_k: [(0, 0, 0, "", ("93.184.216.34", 0))]
+    rc.requests.get = lambda *_a, **_k: type(
+        "R", (), {"status_code": 200, "text": "User-agent: *\nAllow: /\n"}
+    )()
+    try:
+        work = build_discovery_work_item(
+            SourceCandidateDescriptor(
+                source_profile_id=1,
+                adapter_mode="PUBLIC_WEB_FETCH",
+                url="https://www.nhs.uk/conditions/motor-neurone-disease/",
+                registry_state="ACTIVE",
+                runtime_eligibility="ELIGIBLE",
+                rights_terms_state="OGL",
+                robots_access_state="ALLOWED",
+                rate_limit_policy="DEFINED",
+                allowed_domain="nhs.uk",
+            )
+        )
+        status, code, handoffs = orch._apply_live_source(work=work, http_get=lambda *_a, **_k: _Resp())
+    finally:
+        fs.socket.getaddrinfo, rc.requests.get = old_dns, old_robots
+    assert (status, code) == ("EXTRACTED", None)
+    kinds = [h.handoff_kind for h in handoffs]
+    assert kinds.count("RAW_EVIDENCE") == 1
+    assert kinds.count("CANDIDATE") == kinds.count("PROVENANCE") == 5
+    cands = [h for h in handoffs if h.handoff_kind == "CANDIDATE"]
+    provs = [h for h in handoffs if h.handoff_kind == "PROVENANCE"]
+    assert len({h.request_key for h in provs}) == 5
+    assert {h.payload["section_key"] for h in cands} == {h.payload["section_key"] for h in provs}
+    assert len({h.payload["candidate_fingerprint"] for h in cands}) == 5
+
+
+def test_W6P01_FG17_section_layout_lifecycle(db) -> None:
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    profile_id = _plain_source(db, models, "k-depth-source")
+    run = _governed_run(db, models, "k-depth-run")
+    url = "https://example.org/k-depth/condition"
+    doc_identity = runtime.stable_document_identity(profile_id, url)
+
+    # Legacy document-level KU for the page.
+    legacy = _persist(db, models, run, profile_id=profile_id, url=url, statement="Doc-level claim.", token="d1")
+    legacy_ku = db.query(models.KnowledgeUnit).filter_by(id=legacy.knowledge_unit_ids[0]).one()
+    assert legacy_ku.canonical_unit_id == doc_identity
+
+    def _page(sections: dict, token: str):
+        handoffs = []
+        for key, text in sections.items():
+            hs = _identity_handoffs(
+                source_profile_id=profile_id,
+                canonical_url=url,
+                statement=text,
+                content_token=f"{token}-{key}",
+                section_key=key,
+            )
+            for h in hs:
+                h.payload["extraction_process"] = "w3p01-conceptual-sections-1.0.0"
+                h.payload["raw_evidence_request_key"] = f"raw-{token}"
+                h.payload["content_sha256"] = _sha(token)
+            hs[0].request_key = f"raw-{token}"
+            handoffs.extend(hs if not handoffs else hs[1:])
+        return runtime.execute_governed_persistence(
+            db, models, handoffs=handoffs, run_id=int(run.id), attempt_id=1
+        )
+
+    first = _page(
+        {"h2:symptoms": "Condition — Symptoms: weakness.", "h2:treatment": "Condition — Treatment: care team."},
+        "p1",
+    )
+    assert first.document_failures == []
+    assert first.new_knowledge_count == 2
+    assert first.retired_knowledge_unit_ids == [legacy_ku.id]
+    db.refresh(legacy_ku)
+    assert legacy_ku.publication_state == "SUPERSEDED"
+    sec_ids = {
+        k: runtime.stable_document_identity(profile_id, url, k) for k in ("h2:symptoms", "h2:treatment")
+    }
+    for cid in sec_ids.values():
+        ku = db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=cid).one()
+        prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku.id).one()
+        assert prov.extraction_process.startswith(runtime.SECTION_EXTRACTION_PROCESS_PREFIX)
+        assert prov.source_document_id == doc_identity
+
+    # The treatment section disappears -> retired; symptoms unchanged.
+    second = _page({"h2:symptoms": "Condition — Symptoms: weakness."}, "p2")
+    treatment_v1 = (
+        db.query(models.KnowledgeUnit).filter_by(canonical_unit_id=sec_ids["h2:treatment"]).one()
+    )
+    assert second.retired_knowledge_unit_ids == [treatment_v1.id]
+    assert second.new_knowledge_count == 0
+    db.refresh(treatment_v1)
+    assert treatment_v1.publication_state == "SUPERSEDED"
+
+    # It comes back -> next version of the same identity, linked to the retired one.
+    third = _page(
+        {"h2:symptoms": "Condition — Symptoms: weakness.", "h2:treatment": "Condition — Treatment: new plan."},
+        "p3",
+    )
+    assert third.document_failures == []
+    versions = _versions(db, models, sec_ids["h2:treatment"])
+    assert [v.immutable_version_id for v in versions] == ["v1", "v2"]
+    assert versions[1].supersedes_unit_id == treatment_v1.id
+    assert third.retired_knowledge_unit_ids == []
+
+
+def test_W6P01_FG18_specialized_eligibility_keeps_clean_section_statement() -> None:
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        can_apply_specialized_entity_eligibility,
+    )
+
+    statement = (
+        "Amyotrophic Lateral Sclerosis — Summary: Amyotrophic lateral sclerosis (ALS) is a nervous "
+        "system disease that attacks nerve cells called neurons in your brain and spinal cord. "
+        + "These neurons transmit messages from your brain and spinal cord to your voluntary muscles. " * 6
+    )
+
+    class _Ku:
+        provenance_complete = True
+        retraction_reason = None
+        conflict_state = "NONE"
+        manifest_entity_id = "D18"
+        normalized_statement = statement
+
+    ku = _Ku()
+    ok, reason, spec = can_apply_specialized_entity_eligibility(
+        source_key="medlineplus_consumer_health",
+        ku=ku,
+        canonical_url="https://medlineplus.gov/amyotrophiclateralsclerosis.html",
+    )
+    assert (ok, reason, spec.entity_id) == (True, "OK", "D18")
+    assert ku.normalized_statement == statement  # not re-windowed to 520 chars

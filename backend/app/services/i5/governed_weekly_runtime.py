@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
 import pytz
-from sqlalchemy import text
+from sqlalchemy import or_, text
 
 from backend.app.services.governance import kb_b2_source_profile_persistence as gsp_persist
 from backend.app.services.governance.contracts import (
@@ -100,6 +100,9 @@ STALE_AFTER_FAILED_CHANGE_EVENT = "CORRECTION"
 # Identity-scoped dedupe key used when the content key is already taken (content revert,
 # or identical text under another source/URL identity).
 VERSION_DEDUPE_NAMESPACE = "w6p01-ku-version-dedupe-v1"
+# Provenance extraction_process prefix that marks section-level KUs (schema-free marker;
+# KnowledgeUnit.canonicalization_version is constrained to "v1").
+SECTION_EXTRACTION_PROCESS_PREFIX = "w3p01-conceptual-sections"
 _NON_CURRENT_PUBLICATION_STATES = frozenset(
     {PublicationState.SUPERSEDED.value, PublicationState.WITHDRAWN.value}
 )
@@ -121,6 +124,9 @@ class GovernedPersistResult:
     new_knowledge_count: int = 0
     detail: str = ""
     superseded_knowledge_unit_ids: list[int] = field(default_factory=list)
+    # Current versions retired because the page layout changed (document-level KU replaced
+    # by section KUs, or a section that no longer exists on the page).
+    retired_knowledge_unit_ids: list[int] = field(default_factory=list)
     stale_retired_knowledge_unit_ids: list[int] = field(default_factory=list)
     document_failures: list[dict[str, Any]] = field(default_factory=list)
 
@@ -516,7 +522,11 @@ def _prior_canonical_unit_ids(
     *,
     source_profile_id: int,
     canonical_url: str,
+    section_level: bool = False,
 ) -> set[str]:
+    marker = models.KnowledgeProvenance.extraction_process.like(
+        f"{SECTION_EXTRACTION_PROCESS_PREFIX}%"
+    )
     rows = (
         db.query(models.KnowledgeUnit.canonical_unit_id)
         .join(
@@ -529,6 +539,11 @@ def _prior_canonical_unit_ids(
         )
         .filter(models.I5RawEvidence.source_profile_id == int(source_profile_id))
         .filter(models.I5RawEvidence.canonical_url == canonical_url)
+        .filter(
+            marker
+            if section_level
+            else or_(models.KnowledgeProvenance.extraction_process.is_(None), ~marker)
+        )
         .distinct()
         .all()
     )
@@ -573,15 +588,20 @@ def _current_knowledge_version(
     db: Any,
     models: Any,
     canonical_unit_id: str,
-) -> tuple[Optional[Any], int]:
-    """Return (current version row, its number) for a logical identity; fail closed on ambiguity."""
+) -> tuple[Optional[Any], int, Optional[Any]]:
+    """Return (current version, latest version number, latest row) for a logical identity.
+
+    current is None when the identity is new, or when every version was retired by the
+    lifecycle (e.g. a section that disappeared and came back): the caller then opens the
+    next version. Ambiguous chains fail closed.
+    """
     rows = (
         db.query(models.KnowledgeUnit)
         .filter(models.KnowledgeUnit.canonical_unit_id == canonical_unit_id)
         .all()
     )
     if not rows:
-        return None, 0
+        return None, 0, None
     numbered = sorted(((_version_number(r.immutable_version_id), r) for r in rows), key=lambda p: p[0])
     latest_number, latest = numbered[-1]
     if getattr(latest, "retraction_reason", None) or (
@@ -595,9 +615,11 @@ def _current_knowledge_version(
     ]
     if len(open_rows) > 1:
         raise GovernedWeeklyRuntimeError("KU_MULTIPLE_CURRENT_VERSIONS", canonical_unit_id)
-    if not open_rows or open_rows[0] is not latest:
+    if not open_rows:
+        return None, latest_number, latest
+    if open_rows[0] is not latest:
         raise GovernedWeeklyRuntimeError("KU_VERSION_CHAIN_BROKEN", canonical_unit_id)
-    return latest, latest_number
+    return latest, latest_number, latest
 
 
 def _served_statement_changed(
@@ -712,6 +734,8 @@ def _apply_living_knowledge_event(db: Any, knowledge_unit_id: int, event: str) -
 class _DocumentContext:
     # Current versions whose source content changed in this document (for fail-closed retire).
     changed_current_ids: list[int] = field(default_factory=list)
+    # (source_profile_id, canonical_url) -> section identities seen on the page this run.
+    section_layouts: dict[tuple[int, str], set[str]] = field(default_factory=dict)
 
 
 def _handoff_payload(h: Any) -> Mapping[str, Any]:
@@ -837,31 +861,40 @@ def _persist_document(
         canonical_url = str(payload.get("canonical_url") or "").strip()
         if source_profile_id is None or not canonical_url:
             raise GovernedWeeklyRuntimeError("KU_DOCUMENT_IDENTITY_INCOMPLETE")
+        section_key = str(payload.get("section_key") or "").strip()
         canonical_unit_id = _resolve_canonical_unit_id(
             db,
             models,
             source_profile_id=int(source_profile_id),
             canonical_url=canonical_url,
-            section_key=str(payload.get("section_key") or ""),
+            section_key=section_key,
         )
-        current, current_number = _current_knowledge_version(db, models, canonical_unit_id)
+        layout = (int(source_profile_id), canonical_url)
+        if section_key:
+            ctx.section_layouts.setdefault(layout, set()).add(canonical_unit_id)
+        current, current_number, latest = _current_knowledge_version(db, models, canonical_unit_id)
 
         if current is None:
-            # New logical identity: different source/URL never reuses another identity's KU.
+            # New identity (v1), or every earlier version was retired by the lifecycle (vN+1).
+            # A different source/URL/section never reuses another identity's KU.
+            version_id = f"v{current_number + 1}"
             ku = _new_candidate_knowledge_unit(
                 models,
                 payload,
                 canonical_unit_id=canonical_unit_id,
-                version_id="v1",
+                version_id=version_id,
                 statement=statement,
                 domain=domain,
                 topic=topic,
                 jurisdiction=jurisdiction,
-                dedupe=_row_dedupe_key(db, models, dedupe, canonical_unit_id, "v1"),
+                dedupe=_row_dedupe_key(db, models, dedupe, canonical_unit_id, version_id),
                 canon=canon,
+                supersedes_unit_id=int(latest.id) if latest is not None else None,
             )
             db.add(ku)
             db.flush()
+            if latest is not None:
+                sup_svc.validate_supersession_link(ku, latest)
             ku_by_fingerprint[fingerprint] = ku
             result.knowledge_unit_ids.append(int(ku.id))
             result.new_knowledge_count += 1
@@ -965,6 +998,7 @@ def _persist_document(
             "adapter_id": payload.get("adapter_id"),
             "adapter_version": payload.get("adapter_version"),
             "representation": payload.get("representation") or payload.get("content_format"),
+            "section": payload.get("section_key") or None,
         }
         # Drop null provenance keys to keep attribution compact
         attribution = {k: v for k, v in attribution.items() if v is not None}
@@ -981,7 +1015,7 @@ def _persist_document(
             content_hash=lineage.get("content_hash"),
             byte_hash=lineage.get("byte_hash"),
             normalized_hash=lineage.get("normalized_hash"),
-            extraction_process=str(payload.get("extraction_process") or "w3p01-conceptual-1.0.0"),
+            extraction_process=_provenance_extraction_process(payload),
             normalization_process=str(payload.get("normalization_process") or "w3p01-normalize"),
             attribution_data=json.dumps(attribution, sort_keys=True),
             citation_rendering_data=json.dumps(
@@ -1015,6 +1049,64 @@ def _persist_document(
             result.knowledge_memory_writes = 0
         else:
             result.knowledge_memory_writes = 0
+
+    for (layout_source_id, layout_url), section_ids in ctx.section_layouts.items():
+        result.retired_knowledge_unit_ids.extend(
+            _retire_replaced_layout_versions(
+                db,
+                models,
+                source_profile_id=layout_source_id,
+                canonical_url=layout_url,
+                keep_canonical_unit_ids=section_ids,
+            )
+        )
+
+
+def _provenance_extraction_process(payload: Mapping[str, Any]) -> str:
+    process = str(payload.get("extraction_process") or "w3p01-conceptual-1.0.0")
+    if str(payload.get("section_key") or "").strip() and not process.startswith(
+        SECTION_EXTRACTION_PROCESS_PREFIX
+    ):
+        return f"{SECTION_EXTRACTION_PROCESS_PREFIX}-1.0.0"
+    return process
+
+
+def _retire_replaced_layout_versions(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+    keep_canonical_unit_ids: set[str],
+) -> list[int]:
+    """The page is now section-based: retire the document-level KU and vanished sections.
+
+    Uses the same know07 supersession event as a content change, so retired versions stop
+    serving (SUPERSEDED, STALE, NOT_ELIGIBLE, KCE retracted). A retired section that comes
+    back later opens a new version of its identity.
+    """
+    candidates = _prior_canonical_unit_ids(
+        db, models, source_profile_id=source_profile_id, canonical_url=canonical_url
+    ) | {stable_document_identity(source_profile_id, canonical_url)}
+    candidates |= _prior_canonical_unit_ids(
+        db,
+        models,
+        source_profile_id=source_profile_id,
+        canonical_url=canonical_url,
+        section_level=True,
+    ) - set(keep_canonical_unit_ids)
+    retired: list[int] = []
+    for canonical_unit_id in sorted(candidates):
+        open_rows = (
+            db.query(models.KnowledgeUnit)
+            .filter(models.KnowledgeUnit.canonical_unit_id == canonical_unit_id)
+            .filter(~models.KnowledgeUnit.publication_state.in_(sorted(_NON_CURRENT_PUBLICATION_STATES)))
+            .all()
+        )
+        for row in open_rows:
+            _apply_living_knowledge_event(db, int(row.id), SUPERSESSION_EVENT)
+            retired.append(int(row.id))
+    return retired
 
 
 def _retire_stale_after_failed_change(db: Any, knowledge_unit_ids: Sequence[int]) -> list[int]:
@@ -1098,6 +1190,7 @@ def execute_governed_persistence(
         result.provenance_ids.extend(doc_result.provenance_ids)
         result.new_knowledge_count += doc_result.new_knowledge_count
         result.superseded_knowledge_unit_ids.extend(doc_result.superseded_knowledge_unit_ids)
+        result.retired_knowledge_unit_ids.extend(doc_result.retired_knowledge_unit_ids)
         executed.extend(doc_handoffs)
 
     result.detail = "governed_raw_ku_provenance_persisted"
