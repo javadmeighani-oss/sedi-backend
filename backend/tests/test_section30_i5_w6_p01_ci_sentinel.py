@@ -45,9 +45,10 @@ def test_W6P01_CI01_authorized_paths_pass() -> None:
 
 
 def test_W6P01_CI02_unauthorized_app_path_fails() -> None:
-    lines = ["M\tbackend/app/main.py"]
+    # main.py is allowlisted since the CAP23-25 router mount; use a path that is not.
+    lines = ["M\tbackend/app/routers/auth.py"]
     unexpected = unexpected_app_mutations(lines, ALLOWED_APP_PATH_PREFIXES)
-    assert unexpected == ["backend/app/main.py"]
+    assert unexpected == ["backend/app/routers/auth.py"]
 
 
 def test_W6P01_CI03_mixed_authorized_and_unauthorized() -> None:
