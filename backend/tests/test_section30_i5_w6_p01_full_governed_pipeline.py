@@ -1413,3 +1413,105 @@ def test_W6P01_FG23_chat_intent_covers_fa_ar_en_and_whole_words() -> None:
     assert is_mental_wellbeing_intent("أشعر بالقلق كل يوم", "ar")
     assert not is_medical_care_intent("سلام، خوبی؟", "fa")
     assert not is_medical_care_intent("مرحبا كيف حالك", "ar")
+
+
+# ---------------------------------------------------------------------------
+# Smart RAG — flag-gated semantic vectors on governed KCE; identical-text dedupe.
+# ---------------------------------------------------------------------------
+
+
+def test_W6P01_FG24_semantic_vectors_are_flag_gated_and_fail_safe(db, monkeypatch: pytest.MonkeyPatch) -> None:
+    from sqlalchemy import text as sql_text
+
+    from backend.app.services.scis import serving_bridge
+    from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider
+    from backend.app.services.scis.lexical_indexing import LEXICAL_ONLY_MODEL_ID
+    from backend.app.services.scis.vector import vector_search
+
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    fake = FakeScisEmbeddingProvider()
+    # Never resolve a network provider in tests.
+    monkeypatch.setattr(serving_bridge, "_semantic_provider", lambda provider: provider or fake)
+    activation = runtime.activate_nhs_sleep_source(db, models)
+    profile_id = int(activation.governed_source_profile_id)
+    run = _governed_run(db, models, "k-semantic-run")
+
+    def _vector_rows(ku_id: int):
+        return db.execute(
+            sql_text(
+                "SELECT model_identifier, backend_kind, embedding_vector IS NOT NULL AS has_vec "
+                "FROM knowledge_chunk_embeddings WHERE knowledge_unit_id = :k"
+            ),
+            {"k": ku_id},
+        ).mappings().all()
+
+    # Flag OFF (default): lexical-only rows, zero vectors.
+    monkeypatch.delenv(serving_bridge.SEMANTIC_INDEX_ENV, raising=False)
+    off = _persist(
+        db, models, run, profile_id=profile_id,
+        url="https://www.nhs.uk/live-well/sleep-and-tiredness/k-sem-off",
+        statement="Adults need between 7 and 9 hours of sleep a night for good health.", token="so1",
+    )
+    off_ku = db.query(models.KnowledgeUnit).filter_by(id=off.knowledge_unit_ids[0]).one()
+    assert off_ku.runtime_eligibility == "ELIGIBLE"
+    rows = _vector_rows(off_ku.id)
+    assert rows and all(r["model_identifier"] == LEXICAL_ONLY_MODEL_ID and not r["has_vec"] for r in rows)
+
+    # Flag ON: new rows are upgraded in place; one row serves lexical and vector branches.
+    monkeypatch.setenv(serving_bridge.SEMANTIC_INDEX_ENV, "true")
+    statement = "Regular physical activity and a consistent bedtime routine help you sleep better."
+    on = _persist(
+        db, models, run, profile_id=profile_id,
+        url="https://www.nhs.uk/live-well/sleep-and-tiredness/k-sem-on", statement=statement, token="so2",
+    )
+    on_ku = db.query(models.KnowledgeUnit).filter_by(id=on.knowledge_unit_ids[0]).one()
+    rows = _vector_rows(on_ku.id)
+    assert rows and all(
+        r["model_identifier"] == fake.model_identifier and r["backend_kind"] == "PGVECTOR" and r["has_vec"]
+        for r in rows
+    )
+    chunk_text = db.query(models.KnowledgeChunk).join(
+        models.KnowledgeChunkEmbedding, models.KnowledgeChunkEmbedding.chunk_id == models.KnowledgeChunk.id
+    ).filter(models.KnowledgeChunkEmbedding.knowledge_unit_id == on_ku.id).first().content
+    qvec = fake.embed_texts([chunk_text], input_type="search_document")[0]
+    hits, meta = vector_search(db, qvec, model_identifier=fake.model_identifier, top_k=5)
+    assert meta["error"] is None
+    assert on_ku.id in {h.payload.get("knowledge_unit_id") for h in hits}
+
+    # Bounded backfill upgrades the earlier lexical-only rows.
+    upgraded = serving_bridge.backfill_semantic_vectors(db, provider=fake)
+    assert upgraded >= len(_vector_rows(off_ku.id))
+    assert all(r["has_vec"] for r in _vector_rows(off_ku.id))
+
+    # Fail-safe: a provider error leaves lexical rows serving.
+    class _Broken:
+        provider_name = "broken"
+        model_identifier = "broken"
+        model_version = "v0"
+        vector_dimension = fake.vector_dimension
+
+        def embed_texts(self, texts, *, input_type="search_document"):
+            raise RuntimeError("provider down")
+
+    broken = _persist(
+        db, models, run, profile_id=profile_id,
+        url="https://www.nhs.uk/live-well/sleep-and-tiredness/k-sem-broken",
+        statement="Avoid caffeine and screens before bed to improve the quality of your sleep.", token="so3",
+    )
+    broken_ku = db.query(models.KnowledgeUnit).filter_by(id=broken.knowledge_unit_ids[0]).one()
+    rows_before = _vector_rows(broken_ku.id)
+    lex = db.query(models.KnowledgeChunkEmbedding).filter_by(knowledge_unit_id=broken_ku.id).all()
+    for row in lex:
+        db.execute(
+            sql_text(
+                "UPDATE knowledge_chunk_embeddings SET model_identifier = :m, embedding_vector = NULL, "
+                "backend_kind = 'EXTERNAL_VECTOR_DEFERRED' WHERE id = :id"
+            ),
+            {"m": LEXICAL_ONLY_MODEL_ID, "id": int(row.id)},
+        )
+        db.refresh(row)
+    assert serving_bridge.attach_semantic_vectors(db, lex, provider=_Broken()) == 0
+    assert all(r["model_identifier"] == LEXICAL_ONLY_MODEL_ID for r in _vector_rows(broken_ku.id))
+    assert rows_before  # lexical rows still exist and serve

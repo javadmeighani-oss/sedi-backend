@@ -1398,6 +1398,12 @@ def orchestrate_weekly_run(
         )
         if stale_unconfirmed:
             production_write = True
+        if reached_sources:
+            # Smart RAG (flag-gated, default OFF): bounded vector backfill for serving rows.
+            from backend.app.services.scis.serving_bridge import backfill_semantic_vectors
+
+            if backfill_semantic_vectors(db):
+                production_write = True
     if knowledge_mutation_from_unchanged_source(unchanged_totals):
         production_write = True
         if not handoff_write:
