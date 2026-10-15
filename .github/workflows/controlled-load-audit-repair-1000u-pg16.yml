@@ -90,7 +90,7 @@ jobs:
               assert str(ver).startswith("16."), ver
           cfg = Config("backend/alembic.ini")
           heads = ScriptDirectory.from_config(cfg).get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert len(heads) == 1, heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB

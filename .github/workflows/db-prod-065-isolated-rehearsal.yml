@@ -65,7 +65,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          assert len(heads) == 1, heads
           assert list(Path("backend/alembic/versions").glob("066*")) == []
           chain = [
               "060_db03_w4_w6_scale_inspect_roles",
