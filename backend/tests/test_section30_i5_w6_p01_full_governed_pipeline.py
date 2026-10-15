@@ -1215,3 +1215,78 @@ def test_W6P01_FG18_specialized_eligibility_keeps_clean_section_statement() -> N
     )
     assert (ok, reason, spec.entity_id) == (True, "OK", "D18")
     assert ku.normalized_statement == statement  # not re-windowed to 520 chars
+
+
+# ---------------------------------------------------------------------------
+# Living knowledge — unconfirmed crawled knowledge stops serving; real counters.
+# ---------------------------------------------------------------------------
+
+
+def test_W6P01_FG19_unconfirmed_weekly_knowledge_goes_stale(db) -> None:
+    from datetime import timedelta
+
+    _require_postgres(db)
+    configure_mappers()
+    models = _load_models()
+    profile_id = _plain_source(db, models, "k-fresh-source")
+    run = _governed_run(db, models, "k-fresh-run")
+    old_url = "https://example.org/k-fresh/removed-page"
+    live_url = "https://example.org/k-fresh/live-page"
+    now = datetime(2026, 10, 15, 0, 0, 0)
+
+    old = _persist(db, models, run, profile_id=profile_id, url=old_url, statement="Old page text.", token="f1")
+    old_ku = db.query(models.KnowledgeUnit).filter_by(id=old.knowledge_unit_ids[0]).one()
+    live = _persist(db, models, run, profile_id=profile_id, url=live_url, statement="Live page text.", token="f2")
+    live_ku = db.query(models.KnowledgeUnit).filter_by(id=live.knowledge_unit_ids[0]).one()
+    for ku in (old_ku, live_ku):
+        ku.freshness_state = "CURRENT"  # as if published by governed eligibility
+    old_ku.last_reviewed_at = now - timedelta(days=runtime.WEEKLY_RECONFIRMATION_POLICY_DAYS + 1)
+    db.flush()
+
+    # Re-crawling the live page (NO_CHANGE) reconfirms it.
+    again = _persist(db, models, run, profile_id=profile_id, url=live_url, statement="Live page text.", token="f3")
+    assert again.knowledge_unit_ids == [live_ku.id]
+    db.refresh(live_ku)
+    assert live_ku.last_reviewed_at is not None
+    live_ku.last_reviewed_at = now - timedelta(days=1)
+    db.flush()
+
+    retired = runtime.retire_unconfirmed_weekly_knowledge(db, models, now=now)
+    assert retired == [old_ku.id]
+    db.refresh(old_ku)
+    db.refresh(live_ku)
+    assert old_ku.freshness_state == "STALE"
+    assert old_ku.runtime_eligibility == "NOT_ELIGIBLE"
+    assert _serving_kce(db, models, old_ku.id) == []
+    assert live_ku.freshness_state == "CURRENT"
+    # Idempotent: nothing left to retire.
+    assert runtime.retire_unconfirmed_weekly_knowledge(db, models, now=now) == []
+
+
+def test_W6P01_FG20_lifecycle_counters_reflect_real_outcome() -> None:
+    class _Attempt:
+        new_knowledge_count = 0
+        updated_knowledge_count = 0
+        superseded_knowledge_count = 0
+        rejected_knowledge_count = 0
+        warning_count = 1
+
+    result = runtime.GovernedPersistResult(
+        new_knowledge_count=3,
+        superseded_knowledge_unit_ids=[10, 11],
+        retired_knowledge_unit_ids=[12],
+        stale_retired_knowledge_unit_ids=[13],
+        document_failures=[{"code": "KU_MULTIPLE_CURRENT_VERSIONS"}],
+    )
+    attempt = _Attempt()
+    runtime.record_lifecycle_counters(attempt, result, stale_unconfirmed_ids=[14, 15])
+    assert attempt.new_knowledge_count == 3
+    assert attempt.updated_knowledge_count == 2
+    assert attempt.superseded_knowledge_count == 2 + 1 + 1 + 2
+    assert attempt.rejected_knowledge_count == 1
+    assert attempt.warning_count == 2
+
+    only_sweep = _Attempt()
+    runtime.record_lifecycle_counters(only_sweep, None, stale_unconfirmed_ids=[1])
+    assert only_sweep.superseded_knowledge_count == 1
+    assert only_sweep.new_knowledge_count == 0

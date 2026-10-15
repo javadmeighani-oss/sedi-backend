@@ -1374,9 +1374,30 @@ def orchestrate_weekly_run(
             run_id=int(run.id),
             attempt_id=int(attempt.id),
         )
-        attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
         handoff_write = True
         detail = persist_result.detail or "ledger_persisted_governed_pipeline"
+    if live_network and (not dry_run) and persist_ledger:
+        from backend.app.services.i5.governed_weekly_runtime import (
+            record_lifecycle_counters,
+            retire_unconfirmed_weekly_knowledge,
+        )
+
+        # Living knowledge: only sweep when this run actually reached sources, so an
+        # outage never ages out the whole corpus.
+        reached_sources = bool(
+            (handoff_write and persist_result.knowledge_unit_ids)
+            or int(unchanged_totals.examined or 0) > 0
+        )
+        stale_unconfirmed = (
+            retire_unconfirmed_weekly_knowledge(db, models) if reached_sources else []
+        )
+        record_lifecycle_counters(
+            attempt,
+            persist_result if handoff_write else None,
+            stale_unconfirmed_ids=stale_unconfirmed,
+        )
+        if stale_unconfirmed:
+            production_write = True
     if knowledge_mutation_from_unchanged_source(unchanged_totals):
         production_write = True
         if not handoff_write:

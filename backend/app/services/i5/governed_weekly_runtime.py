@@ -103,6 +103,10 @@ VERSION_DEDUPE_NAMESPACE = "w6p01-ku-version-dedupe-v1"
 # Provenance extraction_process prefix that marks section-level KUs (schema-free marker;
 # KnowledgeUnit.canonicalization_version is constrained to "v1").
 SECTION_EXTRACTION_PROCESS_PREFIX = "w3p01-conceptual-sections"
+# Living knowledge: a crawled KU that the weekly crawler has not reconfirmed for this many
+# days (page removed, URL dropped from the manifest, or fetch failing) stops serving.
+WEEKLY_RECONFIRMATION_POLICY_DAYS = 35
+WEEKLY_CRAWLER_ACCESS_ROUTE = "scheduled_weekly_crawler"
 _NON_CURRENT_PUBLICATION_STATES = frozenset(
     {PublicationState.SUPERSEDED.value, PublicationState.WITHDRAWN.value}
 )
@@ -891,6 +895,7 @@ def _persist_document(
                 canon=canon,
                 supersedes_unit_id=int(latest.id) if latest is not None else None,
             )
+            ku.last_reviewed_at = utc_now()
             db.add(ku)
             db.flush()
             if latest is not None:
@@ -903,6 +908,7 @@ def _persist_document(
         stale_current = str(current.freshness_state or "") == FreshnessState.STALE.value
         if not stale_current and not _served_statement_changed(current, statement, canonical_url):
             # NO_CHANGE: same served content for the same logical identity.
+            current.last_reviewed_at = utc_now()
             ku_by_fingerprint[fingerprint] = current
             result.knowledge_unit_ids.append(int(current.id))
             continue
@@ -923,6 +929,7 @@ def _persist_document(
             canon=canon,
             supersedes_unit_id=int(current.id),
         )
+        ku.last_reviewed_at = utc_now()
         db.add(ku)
         db.flush()
         sup_svc.validate_supersession_link(ku, current)
@@ -1060,6 +1067,66 @@ def _persist_document(
                 keep_canonical_unit_ids=section_ids,
             )
         )
+
+
+def retire_unconfirmed_weekly_knowledge(
+    db: Any,
+    models: Any,
+    *,
+    now: Optional[datetime] = None,
+    policy_days: int = WEEKLY_RECONFIRMATION_POLICY_DAYS,
+) -> list[int]:
+    """Serving crawled KUs not reconfirmed within policy_days become STALE (fail closed).
+
+    Reuses freshness_service for the decision and the know07 CORRECTION event for the
+    transition (STALE, NOT_ELIGIBLE, KCE retracted). Only KUs written by the weekly
+    crawler are in scope; other knowledge paths keep their own lifecycle.
+    """
+    from backend.app.services.i5.freshness_service import calculate_freshness_state
+
+    moment = now or utc_now()
+    rows = (
+        db.query(models.KnowledgeUnit)
+        .join(
+            models.KnowledgeProvenance,
+            models.KnowledgeProvenance.knowledge_unit_id == models.KnowledgeUnit.id,
+        )
+        .filter(models.KnowledgeProvenance.access_route == WEEKLY_CRAWLER_ACCESS_ROUTE)
+        .filter(models.KnowledgeUnit.freshness_state == FreshnessState.CURRENT.value)
+        .filter(~models.KnowledgeUnit.publication_state.in_(sorted(_NON_CURRENT_PUBLICATION_STATES)))
+        .all()
+    )
+    retired: list[int] = []
+    for ku in rows:
+        anchor = ku.last_reviewed_at or ku.created_at
+        state = calculate_freshness_state(now=moment, reviewed_at=anchor, policy_days=policy_days)
+        if state == FreshnessState.CURRENT:
+            continue
+        _apply_living_knowledge_event(db, int(ku.id), STALE_AFTER_FAILED_CHANGE_EVENT)
+        retired.append(int(ku.id))
+    return retired
+
+
+def record_lifecycle_counters(
+    attempt: Any,
+    persist_result: Optional[GovernedPersistResult],
+    *,
+    stale_unconfirmed_ids: Sequence[int] = (),
+) -> None:
+    """Write the run's real lifecycle outcome into the attempt ledger counters."""
+    superseded = len(stale_unconfirmed_ids)
+    if persist_result is not None:
+        attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
+        attempt.updated_knowledge_count = len(persist_result.superseded_knowledge_unit_ids)
+        attempt.rejected_knowledge_count = len(persist_result.document_failures)
+        superseded += (
+            len(persist_result.superseded_knowledge_unit_ids)
+            + len(persist_result.retired_knowledge_unit_ids)
+            + len(persist_result.stale_retired_knowledge_unit_ids)
+        )
+        # A document that failed closed is a warning on an otherwise completed run.
+        attempt.warning_count = int(attempt.warning_count or 0) + len(persist_result.document_failures)
+    attempt.superseded_knowledge_count = superseded
 
 
 def _provenance_extraction_process(payload: Mapping[str, Any]) -> str:

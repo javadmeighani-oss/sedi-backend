@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -238,6 +239,8 @@ def reevaluate_existing_kus_for_unchanged_source(
             skipped_fail_closed += 1
             continue
 
+        # HTTP 304 / no material change: the source still publishes this knowledge.
+        ku.last_reviewed_at = datetime.utcnow()
         prior_elig = _current_eligibility(ku)
         if prior_elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
             already_eligible += 1
