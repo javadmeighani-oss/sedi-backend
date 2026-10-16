@@ -118,7 +118,7 @@ def test_CASE_01_VERIFIED_SPECIALIST(mock_db, monkeypatch):
     assert ident.record_state == "ACTIVE"
     assert ident.is_clinical_authority is False
     assert "Dr Verified Neurologist" in result.user_message
-    assert "id:101" in result.user_message
+    assert "id:101" not in result.user_message and "[source" not in result.user_message  # Sedi voice: no tags
     public = result_to_public_dict(result)
     assert public["identities"][0]["directory_record_id"] == 101
 
@@ -469,7 +469,7 @@ def test_orchestrator_care_nav_verified_surfaces_identity(monkeypatch):
     )
     assert "CARE_NAVIGATION_VERIFIED" in result.reason_codes
     assert "Dr Verified Neurologist" in result.message
-    assert "irimc_member_search" in result.message
+    assert "irimc_member_search" not in result.message and "[id:" not in result.message
 
 
 # --- CASE 17 ---
@@ -552,3 +552,49 @@ def test_CASE_20_LEGACY_ACTIVE_CHAT_BYPASS_ABSENT():
     from backend.app.routers import i5_iran_directory as admin_router
 
     assert admin_router.router is not None
+
+
+# --- D-014: Sedi-voice rendering, sources only on request ---
+def _identity(**kw):
+    from backend.app.services.i5.care_navigation_directory import VerifiedDirectoryIdentity
+
+    base = dict(directory_record_id=7, entity_type="DOCTOR", canonical_name="دکتر الف", canonical_directory_key="k",
+                specialty_or_service="دندانپزشکی", city="تهران", province="تهران",
+                source_system_label="paziresh24_public_directory", record_state="ACTIVE", last_verified_at=None,
+                endorsement_disclaimer="d", address="خیابان ولیعصر", phone="02188052167",
+                rating_avg=4.8, rating_count=17, satisfaction_percent=96)
+    return VerifiedDirectoryIdentity(**{**base, **kw})
+
+
+def test_fa_reply_is_conversational_and_hides_sources_by_default():
+    from backend.app.services.i5.care_navigation_directory import _serialize_hits_message
+
+    msg = _serialize_hits_message([_identity()], "fa")
+    assert "دکتر الف" in msg and "02188052167" in msg and "خیابان ولیعصر" in msg
+    for banned in ("[id:", "[source", "http", "پذیرش۲۴", "رضایت", "paziresh24"):
+        assert banned not in msg.split("این‌ها فقط")[0]
+    assert "بپرس" in msg  # invites the user to ask for sources
+
+
+def test_sources_and_satisfaction_only_when_asked():
+    from backend.app.services.i5.care_navigation_directory import (
+        _serialize_hits_message, is_directory_source_question, parse_care_nav_request, wants_sources,
+    )
+
+    asked = "یه دندانپزشک تو تهران معرفی کن و رضایت بیمارا چقدره"
+    assert wants_sources(asked) and parse_care_nav_request(asked, language="fa").wants_sources
+    msg = _serialize_hits_message([_identity()], "fa", with_sources=True)
+    assert "پذیرش۲۴" in msg and "۹۶٪" in msg and "۴٫۸" in msg and "۱۷" in msg
+    no_data = _serialize_hits_message([_identity(rating_avg=None, rating_count=None, satisfaction_percent=None)], "fa", True)
+    assert "پذیرش۲۴" not in no_data  # nothing invented when the platform published no feedback
+    assert is_directory_source_question("منبعش چیه؟ این پزشکا رو از کجا آوردی")
+    assert not is_directory_source_question("یه منبع خوب برای یادگیری پایتون بگو")
+
+
+def test_dentist_query_routes_to_directory_with_specialty():
+    from backend.app.services.i5.care_navigation_directory import is_care_navigation_query, parse_care_nav_request
+
+    q = "یه دندانپزشک خوب در تهران میخوام"
+    assert is_care_navigation_query(q)
+    req = parse_care_nav_request(q, language="fa")
+    assert req.specialty_or_service == "دندان" and req.city == "تهران"

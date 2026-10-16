@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import os
 from datetime import datetime, timezone
 
@@ -378,4 +379,4 @@ def test_f17_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["087_a4_notification_inbox_visibility"]
+    assert heads == [current_script_head()]

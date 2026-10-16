@@ -103,7 +103,9 @@ def index_chunk_drafts_lexical_only(
             {"sd": search_doc, "id": row.id},
         )
         out.append(row)
-    db.commit()
+    # Flush only: the caller owns the transaction (the weekly crawler isolates each
+    # document in a savepoint and commits once at the end of the run).
+    db.flush()
     for r in out:
         db.refresh(r)
     return out

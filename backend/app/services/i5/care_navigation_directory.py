@@ -59,6 +59,7 @@ class CareNavRequest:
     target_health_subject_id: Optional[int] = None
     target_subject_kind: Optional[str] = None
     limit: int = 5
+    wants_sources: bool = False
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,11 @@ class VerifiedDirectoryIdentity:
     is_clinical_authority: bool = False
     is_knowledge_unit: bool = False
     authority: str = GOVERNED_DIRECTORY_PROVIDER
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    rating_avg: Optional[float] = None
+    rating_count: Optional[int] = None
+    satisfaction_percent: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -98,8 +104,8 @@ class CareNavResult:
 
 _SPECIALIST_PAT = re.compile(
     r"\b("
-    r"doctor|specialist|physician|neurologist|cardiologist|oncologist|"
-    r"پزشک|دکتر|متخصص|فوق\s*تخصص|"
+    r"doctor|specialist|physician|neurologist|cardiologist|oncologist|dentist|"
+    r"پزشک|دکتر|متخصص|فوق\s*تخصص|دندان\s*پزشک|دندانپزشک|دندان‌پزشک|"
     r"طبيب|دكتور|اخصائي|أخصائي"
     r")\b",
     re.I,
@@ -137,12 +143,16 @@ _SPECIALTY_HINT = re.compile(
     r"endocrinology|endocrinologist|pulmonology|pulmonologist|psychiatry|psychiatrist|"
     r"orthopedics|orthopedic|dermatology|dermatologist|"
     r"gastroenterology|gastroenterologist|urology|urologist|nephrology|nephrologist|"
-    r"اعصاب|قلب|سرطان|غدد|ریه|روان|ارتوپد|پوست|گوارش|"
+    r"dentist|dental|دندان\s*پزشک|دندانپزشک|دندان‌پزشک|اعصاب|قلب|سرطان|غدد|ریه|روان|ارتوپد|پوست|گوارش|دندان|"
     r"مغز\s*و\s*اعصاب"
     r")\b",
     re.I,
 )
 _SPECIALTY_NORMALIZE = {
+    "dentist": "دندان",
+    "dental": "دندان",
+    "دندانپزشک": "دندان",
+    "دندان‌پزشک": "دندان",
     "neurologist": "Neurology",
     "cardiologist": "Cardiology",
     "oncologist": "Oncology",
@@ -220,7 +230,7 @@ def parse_care_nav_request(
     specialty = None
     m_spec = _SPECIALTY_HINT.search(text)
     if m_spec:
-        raw_spec = m_spec.group(1).strip()
+        raw_spec = re.sub(r"\s+", "", m_spec.group(1).strip()) if "دندان" in m_spec.group(1) else m_spec.group(1).strip()
         specialty = _SPECIALTY_NORMALIZE.get(raw_spec.casefold(), raw_spec)
     return CareNavRequest(
         entity=entity,
@@ -228,6 +238,7 @@ def parse_care_nav_request(
         city=city,
         province=province,
         language=(language or "en")[:8],
+        wants_sources=wants_sources(text),
         authenticated_user_id=authenticated_user_id,
         target_health_subject_id=target_health_subject_id,
         target_subject_kind=target_subject_kind,
@@ -238,16 +249,15 @@ def _no_result_message(entity: CareNavEntity, language: str) -> str:
     lang = (language or "en").lower()
     if lang.startswith("fa"):
         return (
-            "در حال حاضر نتیجهٔ تأییدشده‌ای از فهرست معتبر ارائه‌دهندگان/مراکز "
-            "برای معیارهای درخواستی شما ندارم. می‌توانید شهر/استان را گسترده‌تر کنید "
-            "یا دستهٔ تخصصی دیگری را مشخص کنید. من هویت پزشک یا مرکز را بدون "
-            "رکورد تأییدشدهٔ فهرست رسمی اختراع نمی‌کنم."
+            "فعلاً توی اطلاعاتی که دارم موردی برای همین شهر و تخصص پیدا نکردم. "
+            "اگه شهر یا تخصص دیگه‌ای رو امتحان کنیم، دوباره برات می‌گردم. "
+            "اسم هیچ پزشک یا مرکزی رو هم از خودم نمی‌سازم."
         )
     if lang.startswith("ar"):
         return (
-            "لا توجد نتيجة موثّقة حالياً في الدليل المعتمد لمقدّمي/مرافق الرعاية "
-            "وفق معاييرك. يمكنك توسيع المدينة/المحافظة أو اختيار تخصص آخر. "
-            "لن أخترع اسم طبيب أو منشأة بدون سجل دليل موثّق."
+            "لم أجد حالياً في معلوماتي نتيجة مناسبة لهذه المدينة وهذا التخصص. "
+            "جرّب مدينة أو تخصصاً آخر وسأبحث لك من جديد. "
+            "ولن أختلق اسم طبيب أو مركز من عندي."
         )
     return (
         "Sedi currently has no verified matching provider or facility in the "
@@ -262,32 +272,133 @@ def fail_safe_user_message(entity: CareNavEntity, language: str = "en") -> str:
     return _no_result_message(entity, language)
 
 
+_SOURCE_NAMES = {
+    "paziresh24_public_directory": {"fa": "پذیرش۲۴", "ar": "Paziresh24", "en": "Paziresh24"},
+    "irimc_member_search": {"fa": "نظام پزشکی", "ar": "نقابة الأطباء الإيرانية", "en": "the Iranian Medical Council"},
+    "fed_sbmu_affiliated_hospitals": {
+        "fa": "سایت دانشگاه علوم پزشکی شهید بهشتی",
+        "ar": "موقع جامعة شهيد بهشتي للعلوم الطبية",
+        "en": "the Shahid Beheshti University of Medical Sciences site",
+    },
+}
+_SOURCE_Q = re.compile(
+    r"(منبع|رفرنس|مرجع|از\s*کجا|reference|source|مصدر|المصدر)",
+    re.I,
+)
+_SOURCE_Q_TOPIC = re.compile(
+    r"(پزشک|دکتر|بیمارستان|کلینیک|آزمایشگاه|اطلاعات|نتایج|لیست|پذیرش\s*۲۴|پذیرش24|"
+    r"doctor|hospital|clinic|lab|listing|طبيب|مستشفى)|(منبعش|رفرنسش|مرجعش)",
+    re.I,
+)
+_RATING_Q = re.compile(
+    r"(رضایت|نظر\s*(?:بیماران|کاربران|مراجعین)|امتیاز|satisfaction|reviews?|ratings?|رضا\s*المرضى|تقييم)",
+    re.I,
+)
+
+
+def _lk(lang: str) -> str:
+    return "fa" if lang.startswith("fa") else "ar" if lang.startswith("ar") else "en"
+
+
+def wants_sources(message: str) -> bool:
+    text = message or ""
+    return bool(_SOURCE_Q.search(text) or _RATING_Q.search(text))
+
+
+def is_directory_source_question(message: str) -> bool:
+    """Follow-up such as «منبعش چیه؟» or «رضایت بیماران چقدره؟». Needs topic words to avoid hijacking chat."""
+    text = message or ""
+    if _RATING_Q.search(text):
+        return bool(
+            _SPECIALIST_PAT.search(text)
+            or _HOSPITAL_PAT.search(text)
+            or _CENTER_PAT.search(text)
+            or _LAB_PAT.search(text)
+            or re.search(r"(پذیرش|بیمار|مراجع|patients?)", text, re.I)
+        )
+    return bool(_SOURCE_Q.search(text) and _SOURCE_Q_TOPIC.search(text))
+
+
+def source_info_message(language: str) -> str:
+    k = _lk((language or "en").lower())
+    if k == "fa":
+        return (
+            "این اطلاعات رو از فهرست‌های عمومی جمع کردم؛ مثل پذیرش۲۴، سایت نظام پزشکی و سایت دانشگاه‌های "
+            "علوم پزشکی، و مرتب به‌روزشون می‌کنم. امتیاز یا درصد رضایتِ بیماران هم دقیقاً همونیه که خودِ "
+            "پذیرش۲۴ نشون می‌ده و برای همه‌ی پزشک‌ها وجود نداره. اگه اسم پزشک یا تخصص و شهر رو بگی، "
+            "برات می‌گم نظر بیمارها دربارش چیه. این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی."
+        )
+    if k == "ar":
+        return (
+            "جمعتُ هذه المعلومات من قوائم عامة مثل Paziresh24 ونقابة الأطباء ومواقع الجامعات الطبية، وأحدّثها باستمرار. "
+            "أما التقييم أو نسبة رضا المرضى فهي كما يعرضها Paziresh24 نفسه وليست متاحة للجميع. "
+            "أخبرني باسم الطبيب أو التخصص والمدينة وسأذكر لك رأي المرضى. هذه معلومات فقط وليست توصية."
+        )
+    return (
+        "I gathered this from public listings such as Paziresh24, the Medical Council site and university "
+        "hospital pages, and I keep them updated. Patient ratings or satisfaction are exactly what Paziresh24 "
+        "shows and aren't available for every doctor. Tell me a doctor, specialty and city and I'll share what "
+        "patients say. This is information only, not a recommendation or ranking."
+    )
+
+
+def _feedback_phrase(h: "VerifiedDirectoryIdentity", lang: str) -> str:
+    k = _lk(lang)
+    src = _SOURCE_NAMES.get(h.source_system_label or "", {}).get(k)
+    has_rating = bool(h.rating_count and h.rating_avg is not None)
+    if not src or not (has_rating or h.satisfaction_percent is not None):
+        return ""
+    bits = []
+    if h.satisfaction_percent is not None:
+        bits.append(
+            {"fa": f"{str(h.satisfaction_percent).translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))}٪ رضایت", "ar": f"رضا {h.satisfaction_percent}٪",
+             "en": f"{h.satisfaction_percent}% satisfaction"}[k]
+        )
+    if has_rating:
+        avg = f"{h.rating_avg:.1f}"
+        fa_digits = str.maketrans("0123456789.", "۰۱۲۳۴۵۶۷۸۹٫")
+        bits.append(
+            {"fa": f"میانگین {avg.translate(fa_digits)} از ۵ بر پایه {str(h.rating_count).translate(fa_digits)} نظر",
+             "ar": f"متوسط {avg} من 5 من {h.rating_count} رأي",
+             "en": f"average {avg}/5 from {h.rating_count} reviews"}[k]
+        )
+    joined = ("، " if k != "en" else ", ").join(bits)
+    return {"fa": f"؛ بیمارها در {src}: {joined}", "ar": f"؛ المرضى في {src}: {joined}",
+            "en": f"; patients on {src}: {joined}"}[k]
+
+
 def _serialize_hits_message(
     hits: Sequence[VerifiedDirectoryIdentity],
     language: str,
+    with_sources: bool = False,
 ) -> str:
+    """Sedi-voice reply: no ids, no links, no source tags unless the user asked."""
     lang = (language or "en").lower()
-    lines: list[str] = []
-    if lang.startswith("fa"):
-        lines.append("نتایج تأییدشده از فهرست رسمی (اطلاعاتی؛ توصیه/رتبه‌بندی نیست):")
-    elif lang.startswith("ar"):
-        lines.append("نتائج موثّقة من الدليل الرسمي (معلوماتية؛ ليست توصية/ترتيب):")
-    else:
-        lines.append(
-            "Verified governed-directory listings (informational only; not a ranking or endorsement):"
-        )
+    k = _lk(lang)
+    lines = [{
+        "fa": "چند مورد از اطلاعاتی که دارم رو برات پیدا کردم:",
+        "ar": "هذه بعض النتائج من المعلومات التي لديّ:",
+        "en": "Here are a few options from the information I have:",
+    }[k]]
     for h in hits:
-        bit = h.canonical_name
-        if h.specialty_or_service:
-            bit += f" — {h.specialty_or_service}"
-        loc = ", ".join(x for x in (h.city, h.province) if x)
-        if loc:
-            bit += f" ({loc})"
-        if h.source_system_label:
-            bit += f" [source: {h.source_system_label}]"
-        bit += f" [id:{h.directory_record_id}]"
-        lines.append(f"- {bit}")
-    lines.append(GOVERNED_DIRECTORY_DISCLAIMER)
+        head = h.canonical_name + (f" — {h.specialty_or_service}" if h.specialty_or_service else "")
+        loc = ("، " if k != "en" else ", ").join(x for x in (h.city, h.province) if x)
+        line = "• " + head + (f"، {loc}" if loc else "")
+        if h.address:
+            line += {"fa": f"؛ آدرس: {h.address}", "ar": f"؛ العنوان: {h.address}", "en": f"; address: {h.address}"}[k]
+        if h.phone:
+            line += {"fa": f"؛ تلفن: {h.phone}", "ar": f"؛ الهاتف: {h.phone}", "en": f"; phone: {h.phone}"}[k]
+        if with_sources:
+            line += _feedback_phrase(h, lang)
+        lines.append(line)
+    lines.append({
+        "fa": "این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی؛ قبل از رفتن بهتره با خود مرکز هماهنگ کنی. "
+              "اگه خواستی بگم این اطلاعات از کجاست و بیمارها چه نظری دارن، بپرس.",
+        "ar": "هذه معلومات فقط وليست توصية أو ترتيباً؛ يُفضّل الاتصال بالمركز قبل الذهاب. "
+              "إن أردت أخبرتك بمصدر المعلومات ورأي المرضى.",
+        "en": "This is information only, not a recommendation or ranking; please confirm with the provider "
+              "before going. Ask me if you'd like to know where it comes from and what patients say.",
+    }[k])
     return "\n".join(lines)
 
 
@@ -312,6 +423,11 @@ def _map_backend_row(item: Mapping[str, Any]) -> VerifiedDirectoryIdentity:
         is_clinical_authority=False,
         is_knowledge_unit=False,
         authority=GOVERNED_DIRECTORY_PROVIDER,
+        phone=item.get("phone"),
+        address=item.get("address"),
+        rating_avg=item.get("rating_avg"),
+        rating_count=item.get("rating_count"),
+        satisfaction_percent=item.get("satisfaction_percent"),
     )
 
 
@@ -409,7 +525,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         entity=entity,
         identities=identities,
         reason_code=STATUS_VERIFIED,
-        user_message=_serialize_hits_message(identities, request.language),
+        user_message=_serialize_hits_message(identities, request.language, request.wants_sources),
         identity_notes=tuple(notes),
     )
 
@@ -425,6 +541,13 @@ def resolve_care_navigation(
 ) -> Optional[CareNavResult]:
     """If message is care-navigation, return governed result; else None."""
     if not is_care_navigation_query(message):
+        if is_directory_source_question(message):
+            return CareNavResult(
+                status=STATUS_VERIFIED,
+                entity=CareNavEntity.SPECIALIST,
+                reason_code="DIRECTORY_SOURCE_INFO",
+                user_message=source_info_message(language),
+            )
         return None
     req = parse_care_nav_request(
         message,

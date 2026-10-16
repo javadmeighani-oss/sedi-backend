@@ -307,3 +307,151 @@ def test_k04_chat_gap_side_effect_absent_on_empty(db, monkeypatch):
     build_care_context(db, user_id=42, language="en", query_hint="xyzzy unknown zzqq")
     after = _gap_count(db)
     assert after == before
+
+
+@pytestmark_db
+def test_k04_fa_query_against_eligible_english_evidence_characterization(db):
+    """Characterize current FA-query behavior against synthetic eligible EN evidence.
+
+    Statements are synthetic. They are not MedlinePlus or NIMH source text.
+    """
+    from backend.app.services.i5.runtime_knowledge_retrieval import (
+        STATUS_INSUFFICIENT_CONTEXT,
+        STATUS_OK,
+        retrieve_knowledge_context,
+    )
+    from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+    from backend.app.services.scis.governed_runtime_adapter import _map_evidence_to_items
+    from backend.app.services.scis.lexical import lexical_search
+    from backend.app.services.scis.retrieval import retrieve
+
+    token = str(int(datetime.utcnow().timestamp() * 1000))
+    ms_marker = f"k04faenms{token}"
+    stress_marker = f"k04faenstress{token}"
+    ms = _make_ku(
+        db,
+        canonical=f"k04-faen-ms-{token}",
+        statement=(
+            "Multiple sclerosis daily care monitoring covers symptoms and supportive care. "
+            f"{ms_marker}"
+        ),
+        domain="neurology",
+    )
+    stress = _make_ku(
+        db,
+        canonical=f"k04-faen-stress-{token}",
+        statement=(
+            "Stress self care coping covers relaxation and daily mental health habits. "
+            f"{stress_marker}"
+        ),
+        domain="mental_health_psychology",
+    )
+    _index(db, ms)
+    _index(db, stress)
+    db.commit()
+
+    gaps_before = _gap_count(db)
+    memory_before = _memory_count(db)
+    cases = (
+        (
+            ms,
+            f"multiple sclerosis daily care monitoring {ms_marker}",
+            "برای مراقبت روزانه بیماری ام اس چه مواردی باید تحت نظر باشد",
+        ),
+        (
+            stress,
+            f"stress self care coping {stress_marker}",
+            "برای مراقبت از استرس روزمره چه عادتهایی مفید است",
+        ),
+    )
+
+    for unit, en_query, fa_query in cases:
+        en_lexical, _en_meta = lexical_search(db, en_query, language="en", top_k=5)
+        en_lexical_ids = {
+            int(c.payload["knowledge_unit_id"])
+            for c in en_lexical
+            if c.payload.get("knowledge_unit_id") is not None
+        }
+        assert unit.id in en_lexical_ids
+
+        en_scis = retrieve(
+            db,
+            ScisRetrievalRequest(
+                query_text=en_query,
+                query_language="en",
+                retrieval_mode=RetrievalMode.LEXICAL,
+                top_k=5,
+            ),
+            provider=FakeScisEmbeddingProvider(),
+        )
+        en_evidence = [e for e in en_scis.evidence if e.knowledge_unit_id == unit.id]
+        assert en_evidence
+        assert all(e.immutable_version_id for e in en_evidence)
+        assert all((e.language or "").lower().startswith("en") for e in en_evidence)
+
+        en_served = retrieve_knowledge_context(
+            db, en_query, language="en", limit=5, enqueue_gap_on_empty=False
+        )
+        assert en_served.status == STATUS_OK
+        served_unit = [i for i in en_served.items if i.knowledge_unit_id == unit.id]
+        assert served_unit
+        assert all(str(i.memory_item_id).startswith("SCIS_KCE:") for i in served_unit)
+        assert all(i.immutable_version_id == "v1" for i in served_unit)
+        assert all(i.language == "en" for i in served_unit)
+        assert all(i.runtime_eligibility == "ELIGIBLE" for i in served_unit)
+        assert all("PROVENANCE_COMPLETE" in i.inclusion_reasons for i in served_unit)
+
+        fa_lexical, _fa_meta = lexical_search(db, fa_query, language="fa", top_k=20)
+        fa_lexical_for_unit = [
+            c for c in fa_lexical if c.payload.get("knowledge_unit_id") == unit.id
+        ]
+        assert fa_lexical_for_unit == []
+
+        fa_scis = retrieve(
+            db,
+            ScisRetrievalRequest(
+                query_text=fa_query,
+                query_language="fa",
+                retrieval_mode=RetrievalMode.LEXICAL,
+                top_k=5,
+            ),
+            provider=FakeScisEmbeddingProvider(),
+        )
+        assert [e for e in fa_scis.evidence if e.knowledge_unit_id == unit.id] == []
+
+        mapped_en = _map_evidence_to_items(
+            db,
+            en_evidence,
+            language="en",
+            domain=None,
+            top_k=5,
+            mode_tag="SCIS_LEXICAL",
+        )
+        assert [i.knowledge_unit_id for i in mapped_en] == [unit.id]
+        assert all(i.language == "en" for i in mapped_en)
+        assert all(i.runtime_eligibility == "ELIGIBLE" for i in mapped_en)
+        assert all(i.immutable_version_id == "v1" for i in mapped_en)
+
+        mapped_fa = _map_evidence_to_items(
+            db,
+            en_evidence,
+            language="fa",
+            domain=None,
+            top_k=5,
+            mode_tag="SCIS_LEXICAL",
+        )
+        assert mapped_fa == []
+        assert unit.language == "en"
+
+        fa_served = retrieve_knowledge_context(
+            db, fa_query, language="fa", limit=5, enqueue_gap_on_empty=False
+        )
+        assert all(i.knowledge_unit_id != unit.id for i in fa_served.items)
+        assert all(i.canonical_unit_id != unit.canonical_unit_id for i in fa_served.items)
+        assert fa_served.gap_id is None
+        if not fa_served.items:
+            assert fa_served.status == STATUS_INSUFFICIENT_CONTEXT
+            assert "LANGUAGE_GAP" in (fa_served.safe_user_facing_intent or "")
+
+    assert _gap_count(db) == gaps_before
+    assert _memory_count(db) == memory_before

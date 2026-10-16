@@ -393,8 +393,12 @@ def prepare_provenance_handoff(
     raw_request_key: str,
     dry_run: bool,
     extra_payload: Optional[Mapping[str, Any]] = None,
+    candidate_fingerprint: Optional[str] = None,
 ) -> HandoffRequest:
-    key = _sha256_hex(f"prov|{attempt_id}|{work.work_key}|{raw_request_key}")
+    material = f"prov|{attempt_id}|{work.work_key}|{raw_request_key}"
+    if candidate_fingerprint:
+        material = f"{material}|{candidate_fingerprint}"
+    key = _sha256_hex(material)
     payload: dict[str, Any] = {
         "owner_package": RAW_PROVENANCE_OWNED_BY,
         "attempt_id": attempt_id,
@@ -822,66 +826,77 @@ def _apply_live_source(
     except Exception:  # noqa: BLE001 — fail closed to historical lifestyle defaults
         domain = "lifestyle"
         topic = "sleep"
-    try:
-        normalized = normalize_document(
-            raw_text=primary.normalized_text,
-            domain=domain,
-            topic=topic,
-            population="general",
-            jurisdiction=jurisdiction,
-            language=primary.language or "en",
-        )
-    except AdapterFrameworkError as exc:
-        return RunSourceResultStatus.FAILED.value, exc.category, handoffs
+    canonical_url = str(getattr(envelope, "canonical_url", None) or "")
+    raw: Optional[HandoffRequest] = None
+    for candidate in candidates:
+        try:
+            normalized = normalize_document(
+                raw_text=candidate.normalized_text,
+                domain=domain,
+                topic=topic,
+                population="general",
+                jurisdiction=jurisdiction,
+                language=candidate.language or "en",
+            )
+        except AdapterFrameworkError as exc:
+            if candidate.section_anchor:
+                continue  # one unusable section does not discard the page
+            return RunSourceResultStatus.FAILED.value, exc.category, handoffs
 
-    # Fail closed: never manufacture KU statements from chrome-laden body text.
-    statement = (primary.claim_candidate or "").strip()
-    if not statement:
+        # Fail closed: never manufacture KU statements from chrome-laden body text.
+        statement = (candidate.claim_candidate or "").strip()
+        if not statement:
+            continue
+        candidate_fingerprint = candidate.content_hash or normalized.content_hash
+        enrich = {
+            "byte_hash": byte_hash,
+            "normalized_hash": normalized.content_hash,
+            "mime_type": envelope.content_type or "text/html",
+            "language": candidate.language or "en",
+            "jurisdiction": jurisdiction,
+            "extraction_count": len(candidates),
+            "extraction_process": candidate.extractor_version,
+            "normalization_process": "w3p01-normalize",
+            "normalized_statement": statement,
+            "section_key": candidate.section_anchor or "",
+            "domain": normalized.domain,
+            "topic": normalized.topic,
+            "dedupe_key": normalized.dedupe_key,
+            "canonical_hash": normalized.content_hash,
+            "candidate_fingerprint": candidate_fingerprint,
+            "candidate_warnings": list(candidate.warnings or ()),
+            "manifest_entity_id": entity_id,
+            "manifest_track_id": track_id,
+            "disease_or_health_condition": disease_label,
+            "canonical_url": canonical_url,
+        }
+        if raw is None:
+            raw = prepare_raw_evidence_handoff(
+                attempt_id=0,
+                work=work,
+                content_sha256=byte_hash,
+                dry_run=True,
+                extra_payload=enrich,
+            )
+            handoffs.append(raw)
+        prov = prepare_provenance_handoff(
+            attempt_id=0,
+            work=work,
+            raw_request_key=raw.request_key,
+            dry_run=True,
+            extra_payload=enrich,
+            candidate_fingerprint=candidate_fingerprint,
+        )
+        cand = prepare_candidate_handoff(
+            attempt_id=0,
+            work=work,
+            candidate_fingerprint=candidate_fingerprint,
+            dry_run=True,
+            extra_payload=enrich,
+        )
+        handoffs.extend([prov, cand])
+    if raw is None:
         return RunSourceResultStatus.FAILED.value, "EXTRACTION_NO_CLEAN_CLAIM", handoffs
-    candidate_fingerprint = primary.content_hash or normalized.content_hash
-    enrich = {
-        "byte_hash": byte_hash,
-        "normalized_hash": normalized.content_hash,
-        "mime_type": envelope.content_type or "text/html",
-        "language": primary.language or "en",
-        "jurisdiction": jurisdiction,
-        "extraction_count": len(candidates),
-        "extraction_process": primary.extractor_version,
-        "normalization_process": "w3p01-normalize",
-        "normalized_statement": statement,
-        "domain": normalized.domain,
-        "topic": normalized.topic,
-        "dedupe_key": normalized.dedupe_key,
-        "canonical_hash": normalized.content_hash,
-        "candidate_fingerprint": candidate_fingerprint,
-        "candidate_warnings": list(primary.warnings or ()),
-        "manifest_entity_id": entity_id,
-        "manifest_track_id": track_id,
-        "disease_or_health_condition": disease_label,
-        "canonical_url": str(getattr(envelope, "canonical_url", None) or ""),
-    }
-    raw = prepare_raw_evidence_handoff(
-        attempt_id=0,
-        work=work,
-        content_sha256=byte_hash,
-        dry_run=True,
-        extra_payload=enrich,
-    )
-    cand = prepare_candidate_handoff(
-        attempt_id=0,
-        work=work,
-        candidate_fingerprint=candidate_fingerprint,
-        dry_run=True,
-        extra_payload=enrich,
-    )
-    prov = prepare_provenance_handoff(
-        attempt_id=0,
-        work=work,
-        raw_request_key=raw.request_key,
-        dry_run=True,
-        extra_payload=enrich,
-    )
-    handoffs.extend([raw, prov, cand])
     return RunSourceResultStatus.EXTRACTED.value, None, handoffs
 
 
@@ -1359,9 +1374,36 @@ def orchestrate_weekly_run(
             run_id=int(run.id),
             attempt_id=int(attempt.id),
         )
-        attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
         handoff_write = True
         detail = persist_result.detail or "ledger_persisted_governed_pipeline"
+    if live_network and (not dry_run) and persist_ledger:
+        from backend.app.services.i5.governed_weekly_runtime import (
+            record_lifecycle_counters,
+            retire_unconfirmed_weekly_knowledge,
+        )
+
+        # Living knowledge: only sweep when this run actually reached sources, so an
+        # outage never ages out the whole corpus.
+        reached_sources = bool(
+            (handoff_write and persist_result.knowledge_unit_ids)
+            or int(unchanged_totals.examined or 0) > 0
+        )
+        stale_unconfirmed = (
+            retire_unconfirmed_weekly_knowledge(db, models) if reached_sources else []
+        )
+        record_lifecycle_counters(
+            attempt,
+            persist_result if handoff_write else None,
+            stale_unconfirmed_ids=stale_unconfirmed,
+        )
+        if stale_unconfirmed:
+            production_write = True
+        if reached_sources:
+            # Smart RAG (flag-gated, default OFF): bounded vector backfill for serving rows.
+            from backend.app.services.scis.serving_bridge import backfill_semantic_vectors
+
+            if backfill_semantic_vectors(db):
+                production_write = True
     if knowledge_mutation_from_unchanged_source(unchanged_totals):
         production_write = True
         if not handoff_write:

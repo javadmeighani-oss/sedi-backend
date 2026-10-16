@@ -957,7 +957,24 @@ def retrieve_knowledge_context(
                 )
             )
         ranked.sort(key=lambda i: (-i.rank_score, i.canonical_unit_id, i.knowledge_unit_id))
-        result.items = ranked[:serving_lim]
+        # The same text published at two URLs (e.g. redirecting hub pages) is one piece
+        # of evidence: keep the highest-ranked copy so the context window is not wasted.
+        seen_statements: set[str] = set()
+        unique: list[RetrievedKnowledgeItem] = []
+        for item in ranked:
+            key = " ".join(str(item.normalized_statement or "").split()).casefold()
+            if key and key in seen_statements:
+                _exclude(
+                    result.exclusions,
+                    result.exclusion_counts,
+                    ku_id=item.knowledge_unit_id,
+                    canonical_unit_id=item.canonical_unit_id,
+                    reason="DEDUPE_IDENTICAL_STATEMENT",
+                )
+                continue
+            seen_statements.add(key)
+            unique.append(item)
+        result.items = unique[:serving_lim]
         result.safe_user_facing_intent = (
             "Governed SCIS knowledge matched this query after eligibility filters."
         )

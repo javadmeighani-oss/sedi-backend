@@ -96,7 +96,7 @@ def _current_revision(engine) -> str | None:
 def test_W6P01_MIG_T01_repository_heads_single() -> None:
     script = ScriptDirectory(str(_backend_root() / "alembic"))
     heads = script.get_heads()
-    assert heads == [HEAD], heads
+    assert len(heads) == 1, heads  # single head; do not pin a revision id
 
 
 def test_W6P01_MIG_T02_upgrade_052_then_head_parity() -> None:

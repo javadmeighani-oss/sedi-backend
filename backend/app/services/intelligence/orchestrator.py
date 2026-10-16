@@ -1106,10 +1106,11 @@ class IntelligenceOrchestrator:
                 STATUS_VERIFIED,
                 fail_safe_user_message,
                 is_care_navigation_query,
+                is_directory_source_question,
                 resolve_care_navigation,
             )
 
-            if is_care_navigation_query(message):
+            if is_care_navigation_query(message) or is_directory_source_question(message):
                 care_nav_handled = True
                 try:
                     if self._db is None:

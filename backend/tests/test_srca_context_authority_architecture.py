@@ -6,6 +6,7 @@ NO schema/migration/I10/production/frontend. Reuses SCIS contracts.
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import ast
 import inspect
 import os
@@ -69,7 +70,7 @@ from backend.app.services.scis.sedi_retrieval_context import (
 
 GATE_ID = "SEDI-SMART-RAG-CONTEXT-AUTHORITY-ARCHITECTURE-INTEGRATION-01"
 SCIS_ROOT = Path(__file__).resolve().parents[1] / "app" / "services" / "scis"
-ALEMBIC_HEAD = "081_self_health_subject_1to1_hardening"
+ALEMBIC_HEAD = current_script_head()  # was pinned to 081; head moved on (087+)
 
 
 def _pg_url() -> str:

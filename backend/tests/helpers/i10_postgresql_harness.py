@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import os
 import uuid
 from dataclasses import dataclass
@@ -32,7 +33,7 @@ _REV_084 = "084_device_category_setup_code_authority"
 _REV_085 = "085_i9_absolute_vital_policy_schema_scaffold"
 _REV_086 = "086_i9_vital_observation_context_authority"
 _REV_087 = "087_a4_notification_inbox_visibility"
-ALEMBIC_HEAD = _REV_087
+ALEMBIC_HEAD = current_script_head()
 
 
 def i10_test_database_url() -> str | None:

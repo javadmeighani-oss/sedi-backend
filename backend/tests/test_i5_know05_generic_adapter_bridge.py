@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import ast
 import json
 import os
@@ -35,7 +36,7 @@ def _db_url():
 def _require_065(engine) -> None:
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "068_i7_wave2_governed_memory_lifecycle", head
+        assert head == current_script_head(), head
 
 
 def _guideline_item(gap_key: str = "dyn-guideline") -> CoveragePrioritizationItem:

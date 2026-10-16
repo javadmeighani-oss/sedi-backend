@@ -9,6 +9,7 @@ device rule activation.
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import inspect
 from pathlib import Path
 
@@ -153,4 +154,4 @@ def test_alembic_single_head_remains_086():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["087_a4_notification_inbox_visibility"]
+    assert script.get_heads() == [current_script_head()]

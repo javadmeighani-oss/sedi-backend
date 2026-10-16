@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import os
 from datetime import datetime
 
@@ -13,7 +14,16 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.services.scis.chunking import chunk_knowledge_text, chunk_knowledge_unit
 from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
 from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider, assert_global_knowledge_only
-from backend.app.services.scis.evaluation.corpus import CORPUS_VERSION, DOCS, QUERIES
+from backend.app.services.scis.evaluation.corpus import (
+    CORPUS_VERSION,
+    DOCS,
+    EVIDENCE_LABEL,
+    QUERIES,
+    SEMANTIC_EVAL_INPUT_BUDGET,
+    docs_by_id,
+    language_pair_matrix,
+    semantic_eval_input_count,
+)
 from backend.app.services.scis.evaluation.metrics import mrr, ndcg_at_k, precision_at_k, recall_at_k
 from backend.app.services.scis.hybrid import RankedCandidate, reciprocal_rank_fusion
 from backend.app.services.scis.lexical_query import formulate_lexical_query_plan
@@ -101,6 +111,43 @@ def test_scis_corpus_versioned_multilingual():
     assert {"en", "fa", "ar"} <= langs
     assert any("ALS" in d.entity_tags for d in DOCS)
     assert any(q.kind == "cross_lang" for q in QUERIES)
+
+
+def test_scis_multilingual_semantic_eval_corpus_contract():
+    """Structure only. Does not call a model or decide a relevance threshold."""
+    import backend.app.services.scis.evaluation.corpus as corpus
+
+    src = inspect.getsource(corpus)
+    assert "IntelligenceOrchestrator" not in src
+    assert "retrieve_knowledge_context" not in src
+    assert "UserContext" not in src
+
+    lookup = docs_by_id()
+    assert all(doc.evidence_label == EVIDENCE_LABEL for doc in DOCS)
+    assert all(query.evidence_label == EVIDENCE_LABEL for query in QUERIES)
+    assert semantic_eval_input_count() <= SEMANTIC_EVAL_INPUT_BUDGET
+
+    matrix = [q for q in QUERIES if q.topic in {"ms", "stress"} and q.kind == "cross_lang"]
+    assert {q.topic for q in matrix} == {"ms", "stress"}
+    assert {q.language for q in matrix} == {"en", "fa", "ar"}
+    pairs = language_pair_matrix(matrix)
+    assert pairs == {(q, d) for q in ("en", "fa", "ar") for d in ("en", "fa", "ar")}
+    for query in matrix:
+        for doc_id in query.relevant_doc_ids:
+            doc = lookup[doc_id]
+            assert doc.language in {"en", "fa", "ar"}
+            assert doc.evidence_label == EVIDENCE_LABEL
+
+    assert any("HARD_NEGATIVE" in doc.entity_tags and doc.domain == "neurology" for doc in DOCS)
+    assert any(
+        "HARD_NEGATIVE" in doc.entity_tags and doc.domain == "mental_health_psychology"
+        for doc in DOCS
+    )
+    assert any(doc.domain == "nutrition" for doc in DOCS)
+    negation = [q for q in QUERIES if q.kind == "safety_filter"]
+    assert negation
+    assert lookup[negation[0].relevant_doc_ids[0]].doc_id == "en_safety_limitation"
+    assert "threshold" not in src.lower()
 
 
 # ---------------------------------------------------------------------------

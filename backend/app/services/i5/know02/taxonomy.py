@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Sequence
 
 from sqlalchemy.orm import Session
 
 from backend.app import models
+from backend.app.services.scis.normalize import normalize_for_language
 from backend.app.services.i5.enums import (
     ClinicalConceptType,
     KnowledgeDimensionCode,
@@ -149,6 +151,52 @@ def add_label(
     return row
 
 
+def upsert_label(
+    db: Session,
+    *,
+    concept_id: int,
+    language: str,
+    label_kind: str,
+    label_text: str,
+    verified: bool,
+    provenance_note: Optional[str] = None,
+) -> models.I5ClinicalConceptLabel:
+    """Idempotent label upsert keyed by (concept, language, text); updates review state."""
+    row = (
+        db.query(models.I5ClinicalConceptLabel)
+        .filter_by(concept_id=concept_id, language=language, label_text=label_text)
+        .first()
+    )
+    if row is None:
+        return add_label(
+            db,
+            concept_id=concept_id,
+            language=language,
+            label_kind=label_kind,
+            label_text=label_text,
+            verified=verified,
+            provenance_note=provenance_note,
+        )
+    row.label_kind = label_kind
+    row.verified = bool(verified)
+    row.provenance_note = provenance_note
+    db.flush()
+    return row
+
+
+def verified_label_texts(db: Session, *, concept_id: int, language: str) -> tuple[str, ...]:
+    """Verified label texts of one concept in one language (stable insertion order)."""
+    root = _language_root(language)
+    labels = (
+        db.query(models.I5ClinicalConceptLabel)
+        .filter(models.I5ClinicalConceptLabel.concept_id == concept_id)
+        .filter(models.I5ClinicalConceptLabel.verified.is_(True))
+        .order_by(models.I5ClinicalConceptLabel.id)
+        .all()
+    )
+    return tuple(str(l.label_text) for l in labels if _language_root(l.language) == root)
+
+
 def set_priority_overlay(
     db: Session,
     *,
@@ -247,6 +295,104 @@ def upsert_coverage_cell(
     row.updated_at = datetime.utcnow()
     db.flush()
     return row
+
+
+def _language_root(language: Optional[str]) -> str:
+    lang = (language or "").strip().lower()
+    if lang in {"persian", "farsi"} or lang.startswith("fa"):
+        return "fa"
+    if lang == "arabic" or lang.startswith("ar"):
+        return "ar"
+    if lang.startswith("en"):
+        return "en"
+    return lang.split("-", 1)[0] if lang else ""
+
+
+_TOKEN_EDGE_PUNCTUATION = "?!.,;:()[]{}\"'«»؟،؛…-–—/"
+
+
+def _phrase_tokens(text: str) -> list[str]:
+    tokens = (tok.strip(_TOKEN_EDGE_PUNCTUATION) for tok in (text or "").split(" "))
+    return [tok for tok in tokens if tok]
+
+
+def _bounded_phrase_in_query(label_norm: str, query_norm: str) -> bool:
+    """Contiguous token phrase only. Not a raw character substring.
+
+    Punctuation at token edges (e.g. a trailing "?" or "؟") does not break a match.
+    """
+    label_tokens = _phrase_tokens(label_norm)
+    query_tokens = _phrase_tokens(query_norm)
+    if not label_tokens or not query_tokens or len(label_tokens) > len(query_tokens):
+        return False
+    width = len(label_tokens)
+    for start in range(len(query_tokens) - width + 1):
+        if query_tokens[start : start + width] == label_tokens:
+            return True
+    return False
+
+
+def linked_knowledge_unit_ids_for_concept(db: Session, concept_id: int) -> tuple[int, ...]:
+    """KU ids linked to one concept. No dimension filter."""
+    rows = (
+        db.query(models.I5KnowledgeUnitConcept.knowledge_unit_id)
+        .filter(models.I5KnowledgeUnitConcept.concept_id == concept_id)
+        .distinct()
+        .all()
+    )
+    return tuple(sorted({int(row[0]) for row in rows}))
+
+
+@dataclass(frozen=True)
+class VerifiedConceptAuthority:
+    concept_id: int
+    concept_key: str
+    knowledge_unit_ids: tuple[int, ...]
+
+
+def resolve_verified_concept_authority(
+    db: Session, query: str, language: Optional[str]
+) -> Optional[VerifiedConceptAuthority]:
+    """Fail-closed verified label identity. None means no concept authority.
+
+    Zero matches and more than one distinct concept are both no authority.
+    Several verified labels for the same concept are one authority.
+    """
+    root = _language_root(language)
+    if not root:
+        return None
+    query_norm = normalize_for_language(query or "", root)
+    if not query_norm:
+        return None
+    rows = (
+        db.query(models.I5ClinicalConceptLabel, models.I5ClinicalConcept)
+        .join(
+            models.I5ClinicalConcept,
+            models.I5ClinicalConcept.id == models.I5ClinicalConceptLabel.concept_id,
+        )
+        .filter(models.I5ClinicalConceptLabel.verified.is_(True))
+        .filter(models.I5ClinicalConcept.status == "ACTIVE")
+        .all()
+    )
+    concept_ids: set[int] = set()
+    chosen: Optional[models.I5ClinicalConcept] = None
+    for label, concept in rows:
+        if _language_root(label.language) != root:
+            continue
+        label_norm = normalize_for_language(str(label.label_text or ""), label.language)
+        if not _bounded_phrase_in_query(label_norm, query_norm):
+            continue
+        concept_ids.add(int(concept.id))
+        chosen = concept
+        if len(concept_ids) > 1:
+            return None
+    if chosen is None or len(concept_ids) != 1:
+        return None
+    return VerifiedConceptAuthority(
+        concept_id=int(chosen.id),
+        concept_key=str(chosen.concept_key),
+        knowledge_unit_ids=linked_knowledge_unit_ids_for_concept(db, int(chosen.id)),
+    )
 
 
 def query_kus_by_concept_and_dimension(

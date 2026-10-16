@@ -10,7 +10,8 @@ from .iran_directory_normalization import normalize_records
 from .iran_directory_service import refuse_ir_directory_to_knowledge_unit
 
 _MODEL_BY_FAMILY = {
-    "DOCTOR": ("IranDoctor", ("full_name", "specialty", "city", "province", "phone", "address", "record_state")),
+    "DOCTOR": ("IranDoctor", ("full_name", "specialty", "city", "province", "phone", "address", "record_state",
+                            "rating_avg", "rating_count", "satisfaction_percent")),
     "LABORATORY": ("IranLaboratory", ("name", "city", "province", "services_text", "phone", "address", "record_state")),
     "HOSPITAL": ("IranHospital", ("name", "facility_type", "city", "province", "phone", "address", "record_state")),
 }

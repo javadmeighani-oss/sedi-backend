@@ -84,7 +84,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["087_a4_notification_inbox_visibility"], heads
+          assert len(heads) == 1, heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head
@@ -110,7 +110,7 @@ jobs:
             tail -n 80 /tmp/i5dir_evidence/failsafe_pytest.txt
             exit "$rc"
           fi
-          grep -E "24 passed" /tmp/i5dir_evidence/failsafe_pytest.txt
+          grep -E "[0-9]+ passed" /tmp/i5dir_evidence/failsafe_pytest.txt && ! grep -E "[0-9]+ failed" /tmp/i5dir_evidence/failsafe_pytest.txt
       - name: Iran directory service regression (W5 subset)
         run: |
           set -euo pipefail

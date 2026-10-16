@@ -1010,7 +1010,7 @@ jobs:
           python - <<'PY'
           from alembic.script import ScriptDirectory
           heads = ScriptDirectory("backend/alembic").get_heads()
-          assert heads == ["056_i5_w2_p02_conflict_safety"], heads
+          assert len(heads) == 1, heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
 
@@ -1046,7 +1046,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        # pgvector required since Alembic 061 (SCIS KCE); PG16 matches production.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: sedi_w6p01_real_test
           POSTGRES_PASSWORD: sedi_w6p01_real_test_password
@@ -1111,7 +1112,7 @@ jobs:
           python - <<'PY'
           from alembic.script import ScriptDirectory
           heads = ScriptDirectory("backend/alembic").get_heads()
-          assert heads == ["056_i5_w2_p02_conflict_safety"], heads
+          assert len(heads) == 1, heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
 

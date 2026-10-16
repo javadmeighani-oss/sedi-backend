@@ -11,6 +11,7 @@ Does not invent schema, parallel crawler architecture, or medical approval.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -18,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
 import pytz
-from sqlalchemy import text
+from sqlalchemy import or_, text
 
 from backend.app.services.governance import kb_b2_source_profile_persistence as gsp_persist
 from backend.app.services.governance.contracts import (
@@ -35,6 +36,7 @@ from backend.app.services.governance.contracts import (
 from backend.app.services.i5 import knowledge_memory_service as mem_svc
 from backend.app.services.i5 import knowledge_unit_service as ku_svc
 from backend.app.services.i5 import provenance_service as prov_svc
+from backend.app.services.i5 import supersession_service as sup_svc
 from backend.app.services.i5.enums import (
     ConflictState,
     EvidenceStrength,
@@ -42,6 +44,7 @@ from backend.app.services.i5.enums import (
     KnowledgeType,
     KnowledgeUnitRuntimeEligibility,
     MedicalSafetyState,
+    MemoryChangeKind,
     PublicationState,
     RawRetentionMode,
     RawStorageMode,
@@ -90,6 +93,23 @@ WEEKLY_CRAWLER_ADVISORY_LOCK_KEY = 0x57365031  # 'W6P1'
 CONTROLLED_ADAPTER_MODE = "PUBLIC_WEB_FETCH"
 CONTROLLED_FETCH_METHOD = "html_page"
 CONFIG_VERSION = "w6p01-governed-v1"
+CANDIDATE_APPLICABILITY = "candidate_only_not_approved_knowledge"
+# Existing know07 living-knowledge events reused for version lifecycle (no new engine).
+SUPERSESSION_EVENT = "GUIDELINE_SUPERSESSION"
+STALE_AFTER_FAILED_CHANGE_EVENT = "CORRECTION"
+# Identity-scoped dedupe key used when the content key is already taken (content revert,
+# or identical text under another source/URL identity).
+VERSION_DEDUPE_NAMESPACE = "w6p01-ku-version-dedupe-v1"
+# Provenance extraction_process prefix that marks section-level KUs (schema-free marker;
+# KnowledgeUnit.canonicalization_version is constrained to "v1").
+SECTION_EXTRACTION_PROCESS_PREFIX = "w3p01-conceptual-sections"
+# Living knowledge: a crawled KU that the weekly crawler has not reconfirmed for this many
+# days (page removed, URL dropped from the manifest, or fetch failing) stops serving.
+WEEKLY_RECONFIRMATION_POLICY_DAYS = 35
+WEEKLY_CRAWLER_ACCESS_ROUTE = "scheduled_weekly_crawler"
+_NON_CURRENT_PUBLICATION_STATES = frozenset(
+    {PublicationState.SUPERSEDED.value, PublicationState.WITHDRAWN.value}
+)
 
 
 class GovernedWeeklyRuntimeError(ValueError):
@@ -107,6 +127,12 @@ class GovernedPersistResult:
     knowledge_memory_writes: int = 0
     new_knowledge_count: int = 0
     detail: str = ""
+    superseded_knowledge_unit_ids: list[int] = field(default_factory=list)
+    # Current versions retired because the page layout changed (document-level KU replaced
+    # by section KUs, or a section that no longer exists on the page).
+    retired_knowledge_unit_ids: list[int] = field(default_factory=list)
+    stale_retired_knowledge_unit_ids: list[int] = field(default_factory=list)
+    document_failures: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -473,30 +499,293 @@ def _resolve_source_key(db: Any, models: Any, source_profile_id: int) -> str:
     return str(gsp.canonical_key or "")
 
 
-def execute_governed_persistence(
+def stable_document_identity(
+    source_profile_id: int, canonical_url: str, section_key: str = ""
+) -> str:
+    """Content-independent document key. Fits source_document_id and canonical_unit_id.
+
+    Without section_key this is the 81-C1 document identity. A non-empty section_key
+    gives a per-section identity inside the same document (same 64-char column).
+    """
+    material = f"{int(source_profile_id)}|{(canonical_url or '').strip()}"
+    section = (section_key or "").strip()
+    if section:
+        material = f"{material}|{section}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _backfill_source_document_id(row: Any, document_id: str) -> None:
+    current = str(getattr(row, "source_document_id", None) or "").strip()
+    if not current:
+        row.source_document_id = document_id
+
+
+def _prior_canonical_unit_ids(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+    section_level: bool = False,
+) -> set[str]:
+    marker = models.KnowledgeProvenance.extraction_process.like(
+        f"{SECTION_EXTRACTION_PROCESS_PREFIX}%"
+    )
+    rows = (
+        db.query(models.KnowledgeUnit.canonical_unit_id)
+        .join(
+            models.KnowledgeProvenance,
+            models.KnowledgeProvenance.knowledge_unit_id == models.KnowledgeUnit.id,
+        )
+        .join(
+            models.I5RawEvidence,
+            models.I5RawEvidence.id == models.KnowledgeProvenance.raw_evidence_id,
+        )
+        .filter(models.I5RawEvidence.source_profile_id == int(source_profile_id))
+        .filter(models.I5RawEvidence.canonical_url == canonical_url)
+        .filter(
+            marker
+            if section_level
+            else or_(models.KnowledgeProvenance.extraction_process.is_(None), ~marker)
+        )
+        .distinct()
+        .all()
+    )
+    return {str(row[0]) for row in rows if row[0]}
+
+
+def _resolve_canonical_unit_id(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+    section_key: str = "",
+) -> str:
+    if (section_key or "").strip():
+        # Section identities are new; no legacy content-derived ids to adopt.
+        return stable_document_identity(source_profile_id, canonical_url, section_key)
+    prior = _prior_canonical_unit_ids(
+        db,
+        models,
+        source_profile_id=source_profile_id,
+        canonical_url=canonical_url,
+    )
+    if len(prior) > 1:
+        raise GovernedWeeklyRuntimeError(
+            "KU_DOCUMENT_IDENTITY_AMBIGUOUS",
+            f"source_profile_id={int(source_profile_id)}",
+        )
+    if len(prior) == 1:
+        return next(iter(prior))
+    return stable_document_identity(source_profile_id, canonical_url)
+
+
+def _version_number(version_id: Any) -> int:
+    token = str(version_id or "").strip()
+    if not (token.startswith("v") and token[1:].isdigit() and int(token[1:]) >= 1):
+        raise GovernedWeeklyRuntimeError("KU_VERSION_ID_UNPARSEABLE", token)
+    return int(token[1:])
+
+
+def _current_knowledge_version(
+    db: Any,
+    models: Any,
+    canonical_unit_id: str,
+) -> tuple[Optional[Any], int, Optional[Any]]:
+    """Return (current version, latest version number, latest row) for a logical identity.
+
+    current is None when the identity is new, or when every version was retired by the
+    lifecycle (e.g. a section that disappeared and came back): the caller then opens the
+    next version. Ambiguous chains fail closed.
+    """
+    rows = (
+        db.query(models.KnowledgeUnit)
+        .filter(models.KnowledgeUnit.canonical_unit_id == canonical_unit_id)
+        .all()
+    )
+    if not rows:
+        return None, 0, None
+    numbered = sorted(((_version_number(r.immutable_version_id), r) for r in rows), key=lambda p: p[0])
+    latest_number, latest = numbered[-1]
+    if getattr(latest, "retraction_reason", None) or (
+        str(getattr(latest, "publication_state", "") or "") == PublicationState.WITHDRAWN.value
+    ):
+        raise GovernedWeeklyRuntimeError("KU_CURRENT_VERSION_RETRACTED", canonical_unit_id)
+    open_rows = [
+        r
+        for _, r in numbered
+        if str(getattr(r, "publication_state", "") or "") not in _NON_CURRENT_PUBLICATION_STATES
+    ]
+    if len(open_rows) > 1:
+        raise GovernedWeeklyRuntimeError("KU_MULTIPLE_CURRENT_VERSIONS", canonical_unit_id)
+    if not open_rows:
+        return None, latest_number, latest
+    if open_rows[0] is not latest:
+        raise GovernedWeeklyRuntimeError("KU_VERSION_CHAIN_BROKEN", canonical_unit_id)
+    return latest, latest_number, latest
+
+
+def _served_statement_changed(
+    current: Any, statement: str, canonical_url: Optional[str] = None
+) -> bool:
+    """Material change = change in the served statement (not page chrome / page hash).
+
+    Specialized eligibility may store a healed claim window instead of the raw claim,
+    so the incoming claim is also compared after the same healing step.
+    """
+    stored = {"normalized_statement": getattr(current, "normalized_statement", None)}
+    kind = sup_svc.detect_change_kind(stored, {"normalized_statement": statement})
+    if kind == MemoryChangeKind.NO_MATERIAL_CHANGE:
+        return False
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        select_clinical_claim_window,
+    )
+
+    healed = select_clinical_claim_window(statement, canonical_url=canonical_url)
+    if not healed:
+        return True
+    kind = sup_svc.detect_change_kind(stored, {"normalized_statement": healed})
+    return kind != MemoryChangeKind.NO_MATERIAL_CHANGE
+
+
+def _version_dedupe_key(canonical_unit_id: str, version_id: str) -> str:
+    material = f"{VERSION_DEDUPE_NAMESPACE}|{canonical_unit_id}|{version_id}"
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _row_dedupe_key(
+    db: Any, models: Any, content_dedupe: str, canonical_unit_id: str, version_id: str
+) -> str:
+    """Content dedupe key when free (KNOW05 paths still see it); identity-scoped on collision.
+
+    A collision means the same content already exists as another row (content revert to an
+    older version, or identical text under another source/URL identity).
+    """
+    taken = (
+        db.query(models.KnowledgeUnit.id)
+        .filter(models.KnowledgeUnit.deduplication_key == content_dedupe)
+        .first()
+    )
+    if taken is None:
+        return content_dedupe
+    return _version_dedupe_key(canonical_unit_id, version_id)
+
+
+def _new_candidate_knowledge_unit(
+    models: Any,
+    payload: Mapping[str, Any],
+    *,
+    canonical_unit_id: str,
+    version_id: str,
+    statement: str,
+    domain: str,
+    topic: str,
+    jurisdiction: str,
+    dedupe: str,
+    canon: str,
+    supersedes_unit_id: Optional[int] = None,
+) -> Any:
+    assert_allowed_medical_safety_transition(
+        MedicalSafetyState.UNKNOWN,
+        MedicalSafetyState.PENDING_REVIEW,
+    )
+    medical = MedicalSafetyState.PENDING_REVIEW.value
+    conflict = ConflictState.NONE.value
+    high_risk = False
+    if requires_human_review(domain, medical, conflict, high_risk):
+        review_state = ReviewState.NOT_REVIEWED.value
+    else:
+        review_state = ReviewState.NOT_REVIEWED.value
+
+    return models.KnowledgeUnit(
+        canonical_unit_id=canonical_unit_id,
+        immutable_version_id=version_id,
+        supersedes_unit_id=supersedes_unit_id,
+        domain=domain,
+        topic_taxonomy=topic,
+        disease_or_health_condition=str(payload.get("disease_or_health_condition") or "") or None,
+        manifest_entity_id=str(payload.get("manifest_entity_id") or "") or None,
+        manifest_track_id=str(payload.get("manifest_track_id") or "") or None,
+        language=str(payload.get("language") or "en"),
+        knowledge_type=KnowledgeType.OTHER.value,
+        normalized_statement=statement,
+        applicability=CANDIDATE_APPLICABILITY,
+        population="general",
+        jurisdiction=jurisdiction,
+        evidence_strength=EvidenceStrength.UNKNOWN.value,
+        medical_safety_state=medical,
+        conflict_state=conflict,
+        freshness_state=FreshnessState.UNKNOWN.value,
+        review_state=review_state,
+        publication_state=PublicationState.DRAFT.value,
+        runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
+        provenance_complete=False,
+        deduplication_key=dedupe,
+        canonical_hash=canon,
+        hash_algorithm="SHA-256",
+        canonicalization_version="v1",
+    )
+
+
+def _apply_living_knowledge_event(db: Any, knowledge_unit_id: int, event: str) -> None:
+    from backend.app.services.i5.know07.living_knowledge import apply_living_knowledge_event_to_ku
+
+    apply_living_knowledge_event_to_ku(db, knowledge_unit_id=int(knowledge_unit_id), event=event)
+
+
+@dataclass
+class _DocumentContext:
+    # Current versions whose source content changed in this document (for fail-closed retire).
+    changed_current_ids: list[int] = field(default_factory=list)
+    # (source_profile_id, canonical_url) -> section identities seen on the page this run.
+    section_layouts: dict[tuple[int, str], set[str]] = field(default_factory=dict)
+    # Serving KUs of this document with their URL/section, for semantic linking.
+    semantic_targets: list[tuple[Any, str, str]] = field(default_factory=list)
+
+
+def _handoff_payload(h: Any) -> Mapping[str, Any]:
+    return getattr(h, "payload", None) or {}
+
+
+def _handoff_kind(h: Any) -> Optional[str]:
+    return getattr(h, "handoff_kind", None) or (h.get("handoff_kind") if isinstance(h, Mapping) else None)
+
+
+def _group_handoffs_by_document(handoffs: Sequence[Any]) -> list[list[Any]]:
+    """One group per (source_profile_id, canonical_url) — the unit of savepoint isolation."""
+    groups: dict[tuple[str, str], list[Any]] = {}
+    for h in handoffs:
+        if _handoff_kind(h) not in {"RAW_EVIDENCE", "CANDIDATE", "PROVENANCE"}:
+            continue
+        payload = _handoff_payload(h)
+        key = (
+            str(payload.get("source_profile_id") or ""),
+            str(payload.get("canonical_url") or "").strip(),
+        )
+        groups.setdefault(key, []).append(h)
+    return list(groups.values())
+
+
+def _persist_document(
     db: Any,
     models: Any,
     *,
     handoffs: Sequence[Any],
     run_id: int,
-    attempt_id: int,
-) -> GovernedPersistResult:
-    """Persist RAW → draft KU → provenance using enriched handoff payloads."""
-    if db is None or models is None:
-        raise GovernedWeeklyRuntimeError("PERSISTENCE_REQUIRES_DB")
-
+    result: GovernedPersistResult,
+    ctx: _DocumentContext,
+) -> None:
+    """Persist RAW → KU version → provenance for one document (caller owns the savepoint)."""
     by_kind: dict[str, list[Any]] = {"RAW_EVIDENCE": [], "CANDIDATE": [], "PROVENANCE": []}
     for h in handoffs:
-        kind = getattr(h, "handoff_kind", None) or (h.get("handoff_kind") if isinstance(h, Mapping) else None)
-        if kind in by_kind:
-            by_kind[kind].append(h)
+        by_kind[_handoff_kind(h)].append(h)
 
-    result = GovernedPersistResult()
     raw_by_request_key: dict[str, Any] = {}
     ku_by_fingerprint: dict[str, Any] = {}
 
     for h in by_kind["RAW_EVIDENCE"]:
-        payload = getattr(h, "payload", None) or {}
+        payload = _handoff_payload(h)
         request_key = getattr(h, "request_key", "") or ""
         rights_token = str(payload.get("rights_terms_state") or "UNKNOWN")
         robots_token = str(payload.get("robots_access_state") or "UNKNOWN")
@@ -509,6 +798,7 @@ def execute_governed_persistence(
             raise GovernedWeeklyRuntimeError("RAW_CONTENT_HASH_INVALID", content_hash)
         canonical_url = str(payload.get("canonical_url") or "")
         source_profile_id = int(payload["source_profile_id"])
+        document_id = stable_document_identity(source_profile_id, canonical_url)
         existing = (
             db.query(models.I5RawEvidence)
             .filter(
@@ -519,11 +809,13 @@ def execute_governed_persistence(
             .one_or_none()
         )
         if existing is not None:
+            _backfill_source_document_id(existing, document_id)
             raw_by_request_key[request_key] = existing
             result.raw_evidence_ids.append(int(existing.id))
             continue
         raw = models.I5RawEvidence(
             source_profile_id=source_profile_id,
+            source_document_id=document_id,
             source_version_id=str(payload.get("source_version_id") or "") or None,
             retrieval_run_id=int(run_id),
             retrieval_timestamp=utc_now(),
@@ -550,7 +842,7 @@ def execute_governed_persistence(
         result.raw_evidence_ids.append(int(raw.id))
 
     for h in by_kind["CANDIDATE"]:
-        payload = getattr(h, "payload", None) or {}
+        payload = _handoff_payload(h)
         fingerprint = str(payload.get("candidate_fingerprint") or "")
         statement = str(payload.get("normalized_statement") or "").strip()
         if not statement:
@@ -559,105 +851,110 @@ def execute_governed_persistence(
         domain = str(payload.get("domain") or "lifestyle")
         topic = str(payload.get("topic") or "sleep")
         jurisdiction = str(payload.get("jurisdiction") or "GB")
-        knowledge_type = KnowledgeType.OTHER.value
         dedupe = str(
             payload.get("dedupe_key")
             or ku_svc.build_deduplication_key(domain, topic, "general", jurisdiction, statement)
         )
         canon = str(
             payload.get("canonical_hash")
-            or ku_svc.build_canonical_hash(statement, domain, knowledge_type, topic_taxonomy=topic)
-        )
-        existing_ku = (
-            db.query(models.KnowledgeUnit)
-            .filter(models.KnowledgeUnit.deduplication_key == dedupe)
-            .one_or_none()
-        )
-        if existing_ku is not None:
-            ku_by_fingerprint[fingerprint] = existing_ku
-            result.knowledge_unit_ids.append(int(existing_ku.id))
-            continue
-
-        # Idempotent reuse when metadata drift changes dedupe_key but content
-        # fingerprint still maps to the same (canonical_unit_id, v1) row.
-        canonical_unit_id = f"ku-w6p01-{fingerprint[:16]}"
-        existing_by_version = (
-            db.query(models.KnowledgeUnit)
-            .filter(
-                models.KnowledgeUnit.canonical_unit_id == canonical_unit_id,
-                models.KnowledgeUnit.immutable_version_id == "v1",
+            or ku_svc.build_canonical_hash(
+                statement, domain, KnowledgeType.OTHER.value, topic_taxonomy=topic
             )
-            .one_or_none()
         )
-        if existing_by_version is not None:
-            existing_hash = str(getattr(existing_by_version, "canonical_hash", "") or "")
-            if existing_hash != canon:
-                raise GovernedWeeklyRuntimeError(
-                    "KU_CANONICAL_VERSION_CONTENT_MISMATCH",
-                    f"{canonical_unit_id}:v1",
-                )
-            ku_by_fingerprint[fingerprint] = existing_by_version
-            result.knowledge_unit_ids.append(int(existing_by_version.id))
+
+        # Logical identity is source+URL(+section), not content.
+        source_profile_id = payload.get("source_profile_id")
+        canonical_url = str(payload.get("canonical_url") or "").strip()
+        if source_profile_id is None or not canonical_url:
+            raise GovernedWeeklyRuntimeError("KU_DOCUMENT_IDENTITY_INCOMPLETE")
+        section_key = str(payload.get("section_key") or "").strip()
+        canonical_unit_id = _resolve_canonical_unit_id(
+            db,
+            models,
+            source_profile_id=int(source_profile_id),
+            canonical_url=canonical_url,
+            section_key=section_key,
+        )
+        layout = (int(source_profile_id), canonical_url)
+        if section_key:
+            ctx.section_layouts.setdefault(layout, set()).add(canonical_unit_id)
+        current, current_number, latest = _current_knowledge_version(db, models, canonical_unit_id)
+
+        if current is None:
+            # New identity (v1), or every earlier version was retired by the lifecycle (vN+1).
+            # A different source/URL/section never reuses another identity's KU.
+            version_id = f"v{current_number + 1}"
+            ku = _new_candidate_knowledge_unit(
+                models,
+                payload,
+                canonical_unit_id=canonical_unit_id,
+                version_id=version_id,
+                statement=statement,
+                domain=domain,
+                topic=topic,
+                jurisdiction=jurisdiction,
+                dedupe=_row_dedupe_key(db, models, dedupe, canonical_unit_id, version_id),
+                canon=canon,
+                supersedes_unit_id=int(latest.id) if latest is not None else None,
+            )
+            ku.last_reviewed_at = utc_now()
+            db.add(ku)
+            db.flush()
+            if latest is not None:
+                sup_svc.validate_supersession_link(ku, latest)
+            ctx.semantic_targets.append((ku, canonical_url, section_key))
+            ku_by_fingerprint[fingerprint] = ku
+            result.knowledge_unit_ids.append(int(ku.id))
+            result.new_knowledge_count += 1
             continue
 
-        assert_allowed_medical_safety_transition(
-            MedicalSafetyState.UNKNOWN,
-            MedicalSafetyState.PENDING_REVIEW,
-        )
-        medical = MedicalSafetyState.PENDING_REVIEW.value
-        conflict = ConflictState.NONE.value
-        high_risk = False
-        if requires_human_review(domain, medical, conflict, high_risk):
-            review_state = ReviewState.NOT_REVIEWED.value
-        else:
-            review_state = ReviewState.NOT_REVIEWED.value
+        stale_current = str(current.freshness_state or "") == FreshnessState.STALE.value
+        if not stale_current and not _served_statement_changed(current, statement, canonical_url):
+            # NO_CHANGE: same served content for the same logical identity.
+            current.last_reviewed_at = utc_now()
+            ctx.semantic_targets.append((current, canonical_url, section_key))
+            ku_by_fingerprint[fingerprint] = current
+            result.knowledge_unit_ids.append(int(current.id))
+            continue
 
-        ku = models.KnowledgeUnit(
+        # CONTENT_CHANGE (or refresh of a version retired as stale): next immutable version.
+        ctx.changed_current_ids.append(int(current.id))
+        next_version = f"v{current_number + 1}"
+        ku = _new_candidate_knowledge_unit(
+            models,
+            payload,
             canonical_unit_id=canonical_unit_id,
-            immutable_version_id="v1",
+            version_id=next_version,
+            statement=statement,
             domain=domain,
-            topic_taxonomy=topic,
-            disease_or_health_condition=str(payload.get("disease_or_health_condition") or "") or None,
-            manifest_entity_id=str(payload.get("manifest_entity_id") or "") or None,
-            manifest_track_id=str(payload.get("manifest_track_id") or "") or None,
-            language=str(payload.get("language") or "en"),
-            knowledge_type=knowledge_type,
-            normalized_statement=statement,
-            applicability="candidate_only_not_approved_knowledge",
-            population="general",
+            topic=topic,
             jurisdiction=jurisdiction,
-            evidence_strength=EvidenceStrength.UNKNOWN.value,
-            medical_safety_state=medical,
-            conflict_state=conflict,
-            freshness_state=FreshnessState.UNKNOWN.value,
-            review_state=review_state,
-            publication_state=PublicationState.DRAFT.value,
-            runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
-            provenance_complete=False,
-            deduplication_key=dedupe,
-            canonical_hash=canon,
-            hash_algorithm="SHA-256",
-            canonicalization_version="v1",
+            dedupe=_row_dedupe_key(db, models, dedupe, canonical_unit_id, next_version),
+            canon=canon,
+            supersedes_unit_id=int(current.id),
         )
+        ku.last_reviewed_at = utc_now()
         db.add(ku)
         db.flush()
+        sup_svc.validate_supersession_link(ku, current)
+        # Old version: SUPERSEDED + STALE + NOT_ELIGIBLE, and its KCE stop serving.
+        _apply_living_knowledge_event(db, int(current.id), SUPERSESSION_EVENT)
+        ctx.semantic_targets.append((ku, canonical_url, section_key))
         ku_by_fingerprint[fingerprint] = ku
         result.knowledge_unit_ids.append(int(ku.id))
-        result.new_knowledge_count += 1
+        result.superseded_knowledge_unit_ids.append(int(current.id))
 
-    # Pair provenance handoffs to KU + raw via payload keys.
+    # Pair provenance handoffs to KU + raw via payload keys (within this document only).
     for h in by_kind["PROVENANCE"]:
-        payload = getattr(h, "payload", None) or {}
+        payload = _handoff_payload(h)
         raw_key = str(payload.get("raw_evidence_request_key") or "")
         fingerprint = str(payload.get("candidate_fingerprint") or "")
         raw = raw_by_request_key.get(raw_key)
         ku = ku_by_fingerprint.get(fingerprint)
-        if raw is None or ku is None:
-            # Fall back: single-source controlled path — use first raw/ku.
-            if raw is None and raw_by_request_key:
-                raw = next(iter(raw_by_request_key.values()))
-            if ku is None and ku_by_fingerprint:
-                ku = next(iter(ku_by_fingerprint.values()))
+        if raw is None and len(raw_by_request_key) == 1:
+            raw = next(iter(raw_by_request_key.values()))
+        if ku is None and len(ku_by_fingerprint) == 1:
+            ku = next(iter(ku_by_fingerprint.values()))
         if raw is None or ku is None:
             raise GovernedWeeklyRuntimeError("PROVENANCE_LINKAGE_INCOMPLETE")
 
@@ -667,6 +964,10 @@ def execute_governed_persistence(
             .one_or_none()
         )
         if existing_prov is not None:
+            _backfill_source_document_id(
+                existing_prov,
+                stable_document_identity(int(raw.source_profile_id), str(raw.canonical_url or "")),
+            )
             result.provenance_ids.append(int(existing_prov.id))
             incoming_source_profile_id = int(payload.get("source_profile_id") or raw.source_profile_id)
             source_key = _resolve_source_key(db, models, incoming_source_profile_id)
@@ -709,12 +1010,16 @@ def execute_governed_persistence(
             "adapter_id": payload.get("adapter_id"),
             "adapter_version": payload.get("adapter_version"),
             "representation": payload.get("representation") or payload.get("content_format"),
+            "section": payload.get("section_key") or None,
         }
         # Drop null provenance keys to keep attribution compact
         attribution = {k: v for k, v in attribution.items() if v is not None}
         prov = models.KnowledgeProvenance(
             knowledge_unit_id=int(ku.id),
             source_profile_id=int(prov_payload["source_profile_id"]),
+            source_document_id=stable_document_identity(
+                int(raw.source_profile_id), str(raw.canonical_url or "")
+            ),
             source_version_id=str(payload.get("source_version_id") or "") or None,
             raw_evidence_id=int(raw.id),
             retrieval_method=str(prov_payload["retrieval_method"]),
@@ -722,7 +1027,7 @@ def execute_governed_persistence(
             content_hash=lineage.get("content_hash"),
             byte_hash=lineage.get("byte_hash"),
             normalized_hash=lineage.get("normalized_hash"),
-            extraction_process=str(payload.get("extraction_process") or "w3p01-conceptual-1.0.0"),
+            extraction_process=_provenance_extraction_process(payload),
             normalization_process=str(payload.get("normalization_process") or "w3p01-normalize"),
             attribution_data=json.dumps(attribution, sort_keys=True),
             citation_rendering_data=json.dumps(
@@ -757,8 +1062,222 @@ def execute_governed_persistence(
         else:
             result.knowledge_memory_writes = 0
 
+    # Concept / dimension links (KNOW02 taxonomy) for every serving KU of the document.
+    from backend.app.services.i5.know02.concept_catalog import link_knowledge_unit_semantics
+
+    for ku_row, ku_url, ku_section in ctx.semantic_targets:
+        link_knowledge_unit_semantics(
+            db,
+            knowledge_unit_id=int(ku_row.id),
+            canonical_url=ku_url,
+            section_key=ku_section,
+        )
+
+    for (layout_source_id, layout_url), section_ids in ctx.section_layouts.items():
+        result.retired_knowledge_unit_ids.extend(
+            _retire_replaced_layout_versions(
+                db,
+                models,
+                source_profile_id=layout_source_id,
+                canonical_url=layout_url,
+                keep_canonical_unit_ids=section_ids,
+            )
+        )
+
+
+def retire_unconfirmed_weekly_knowledge(
+    db: Any,
+    models: Any,
+    *,
+    now: Optional[datetime] = None,
+    policy_days: int = WEEKLY_RECONFIRMATION_POLICY_DAYS,
+) -> list[int]:
+    """Serving crawled KUs not reconfirmed within policy_days become STALE (fail closed).
+
+    Reuses freshness_service for the decision and the know07 CORRECTION event for the
+    transition (STALE, NOT_ELIGIBLE, KCE retracted). Only KUs written by the weekly
+    crawler are in scope; other knowledge paths keep their own lifecycle.
+    """
+    from backend.app.services.i5.freshness_service import calculate_freshness_state
+
+    moment = now or utc_now()
+    rows = (
+        db.query(models.KnowledgeUnit)
+        .join(
+            models.KnowledgeProvenance,
+            models.KnowledgeProvenance.knowledge_unit_id == models.KnowledgeUnit.id,
+        )
+        .filter(models.KnowledgeProvenance.access_route == WEEKLY_CRAWLER_ACCESS_ROUTE)
+        .filter(models.KnowledgeUnit.freshness_state == FreshnessState.CURRENT.value)
+        .filter(~models.KnowledgeUnit.publication_state.in_(sorted(_NON_CURRENT_PUBLICATION_STATES)))
+        .all()
+    )
+    retired: list[int] = []
+    for ku in rows:
+        anchor = ku.last_reviewed_at or ku.created_at
+        state = calculate_freshness_state(now=moment, reviewed_at=anchor, policy_days=policy_days)
+        if state == FreshnessState.CURRENT:
+            continue
+        _apply_living_knowledge_event(db, int(ku.id), STALE_AFTER_FAILED_CHANGE_EVENT)
+        retired.append(int(ku.id))
+    return retired
+
+
+def record_lifecycle_counters(
+    attempt: Any,
+    persist_result: Optional[GovernedPersistResult],
+    *,
+    stale_unconfirmed_ids: Sequence[int] = (),
+) -> None:
+    """Write the run's real lifecycle outcome into the attempt ledger counters."""
+    superseded = len(stale_unconfirmed_ids)
+    if persist_result is not None:
+        attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
+        attempt.updated_knowledge_count = len(persist_result.superseded_knowledge_unit_ids)
+        attempt.rejected_knowledge_count = len(persist_result.document_failures)
+        superseded += (
+            len(persist_result.superseded_knowledge_unit_ids)
+            + len(persist_result.retired_knowledge_unit_ids)
+            + len(persist_result.stale_retired_knowledge_unit_ids)
+        )
+        # A document that failed closed is a warning on an otherwise completed run.
+        attempt.warning_count = int(attempt.warning_count or 0) + len(persist_result.document_failures)
+    attempt.superseded_knowledge_count = superseded
+
+
+def _provenance_extraction_process(payload: Mapping[str, Any]) -> str:
+    process = str(payload.get("extraction_process") or "w3p01-conceptual-1.0.0")
+    if str(payload.get("section_key") or "").strip() and not process.startswith(
+        SECTION_EXTRACTION_PROCESS_PREFIX
+    ):
+        return f"{SECTION_EXTRACTION_PROCESS_PREFIX}-1.0.0"
+    return process
+
+
+def _retire_replaced_layout_versions(
+    db: Any,
+    models: Any,
+    *,
+    source_profile_id: int,
+    canonical_url: str,
+    keep_canonical_unit_ids: set[str],
+) -> list[int]:
+    """The page is now section-based: retire the document-level KU and vanished sections.
+
+    Uses the same know07 supersession event as a content change, so retired versions stop
+    serving (SUPERSEDED, STALE, NOT_ELIGIBLE, KCE retracted). A retired section that comes
+    back later opens a new version of its identity.
+    """
+    candidates = _prior_canonical_unit_ids(
+        db, models, source_profile_id=source_profile_id, canonical_url=canonical_url
+    ) | {stable_document_identity(source_profile_id, canonical_url)}
+    candidates |= _prior_canonical_unit_ids(
+        db,
+        models,
+        source_profile_id=source_profile_id,
+        canonical_url=canonical_url,
+        section_level=True,
+    ) - set(keep_canonical_unit_ids)
+    retired: list[int] = []
+    for canonical_unit_id in sorted(candidates):
+        open_rows = (
+            db.query(models.KnowledgeUnit)
+            .filter(models.KnowledgeUnit.canonical_unit_id == canonical_unit_id)
+            .filter(~models.KnowledgeUnit.publication_state.in_(sorted(_NON_CURRENT_PUBLICATION_STATES)))
+            .all()
+        )
+        for row in open_rows:
+            _apply_living_knowledge_event(db, int(row.id), SUPERSESSION_EVENT)
+            retired.append(int(row.id))
+    return retired
+
+
+def _retire_stale_after_failed_change(db: Any, knowledge_unit_ids: Sequence[int]) -> list[int]:
+    """Source changed but the new version could not be persisted: old evidence must not serve."""
+    retired: list[int] = []
+    for ku_id in knowledge_unit_ids:
+        savepoint = db.begin_nested()
+        try:
+            _apply_living_knowledge_event(db, int(ku_id), STALE_AFTER_FAILED_CHANGE_EVENT)
+            savepoint.commit()
+        except Exception:
+            savepoint.rollback()
+            # Cannot fail closed for this document → fail the whole run (caller rolls back).
+            raise
+        retired.append(int(ku_id))
+    return retired
+
+
+def execute_governed_persistence(
+    db: Any,
+    models: Any,
+    *,
+    handoffs: Sequence[Any],
+    run_id: int,
+    attempt_id: int,
+) -> GovernedPersistResult:
+    """Persist RAW → KU version → provenance per document, each inside its own savepoint.
+
+    Same served content reuses the current version; changed content creates the next
+    immutable version and supersedes the old one through existing know07 lifecycle events.
+    A failing document rolls back alone (fail closed) and does not block other documents.
+    """
+    if db is None or models is None:
+        raise GovernedWeeklyRuntimeError("PERSISTENCE_REQUIRES_DB")
+
+    result = GovernedPersistResult()
+    executed: list[Any] = []
+    for doc_handoffs in _group_handoffs_by_document(handoffs):
+        doc_result = GovernedPersistResult()
+        ctx = _DocumentContext()
+        savepoint = db.begin_nested()
+        try:
+            _persist_document(
+                db,
+                models,
+                handoffs=doc_handoffs,
+                run_id=run_id,
+                result=doc_result,
+                ctx=ctx,
+            )
+            # SCIS lexical indexing commits the session itself, which also ends this
+            # savepoint; the document's work is then already durable.
+            if savepoint.is_active:
+                savepoint.commit()
+        except Exception as exc:  # noqa: BLE001 — isolate and fail closed per document
+            if not savepoint.is_active:
+                # Failed after an inner commit: this document cannot be isolated any more.
+                # Fail the whole run closed (caller rolls back the open transaction).
+                raise
+            savepoint.rollback()
+            first = _handoff_payload(doc_handoffs[0])
+            code = str(getattr(exc, "code", None) or type(exc).__name__)
+            retired = _retire_stale_after_failed_change(db, ctx.changed_current_ids)
+            result.stale_retired_knowledge_unit_ids.extend(retired)
+            result.document_failures.append(
+                {
+                    "source_profile_id": first.get("source_profile_id"),
+                    "canonical_url": str(first.get("canonical_url") or ""),
+                    "code": code,
+                    "stale_retired_knowledge_unit_ids": retired,
+                }
+            )
+            print(
+                "[I5 W6-P01] document persistence fail-closed "
+                f"code={code} source_profile_id={first.get('source_profile_id')} "
+                f"url={first.get('canonical_url')} stale_retired={retired} detail={str(exc)[:300]!r}"
+            )
+            continue
+        result.raw_evidence_ids.extend(doc_result.raw_evidence_ids)
+        result.knowledge_unit_ids.extend(doc_result.knowledge_unit_ids)
+        result.provenance_ids.extend(doc_result.provenance_ids)
+        result.new_knowledge_count += doc_result.new_knowledge_count
+        result.superseded_knowledge_unit_ids.extend(doc_result.superseded_knowledge_unit_ids)
+        result.retired_knowledge_unit_ids.extend(doc_result.retired_knowledge_unit_ids)
+        executed.extend(doc_handoffs)
+
     result.detail = "governed_raw_ku_provenance_persisted"
-    for h in handoffs:
+    for h in executed:
         if hasattr(h, "execute"):
             h.execute = True
             if isinstance(getattr(h, "payload", None), dict):
@@ -850,6 +1369,7 @@ def run_weekly_scheduled_job(
                     detail="weekly advisory lock held by another worker",
                 )
 
+        _ensure_concept_catalog_isolated(session)
         if candidates is not None:
             resolved = list(candidates)
         else:
@@ -890,6 +1410,23 @@ def run_weekly_scheduled_job(
                 session.close()
             except Exception:
                 pass
+
+
+def _ensure_concept_catalog_isolated(db: Any) -> None:
+    """Seed the governed concept catalog; a catalog problem never blocks the knowledge refresh."""
+    if db is None:
+        return
+    savepoint = db.begin_nested()
+    try:
+        from backend.app.services.i5.know02.concept_catalog import ensure_concept_catalog
+
+        counts = ensure_concept_catalog(db)
+        savepoint.commit()
+        print(f"[I5 W6-P01] concept catalog ensured {counts}")
+    except Exception as exc:  # noqa: BLE001 — isolate; linking simply skips missing concepts
+        if savepoint.is_active:
+            savepoint.rollback()
+        print(f"[I5 W6-P01] concept catalog skipped: {type(exc).__name__}: {str(exc)[:200]}")
 
 
 def weekly_interval_minutes() -> int:

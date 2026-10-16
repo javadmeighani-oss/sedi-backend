@@ -90,7 +90,7 @@ jobs:
               ver = c.execute(text("SHOW server_version")).scalar()
               assert str(ver).startswith("16."), ver
           heads = ScriptDirectory.from_config(Config("backend/alembic.ini")).get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert len(heads) == 1, heads
           print("OK", ver, heads[0])
           PY
       - name: Upgrade ephemeral DB

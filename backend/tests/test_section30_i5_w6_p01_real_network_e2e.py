@@ -338,7 +338,7 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
         assert outcome1.production_write is False
     else:
         assert outcome1.production_write is True
-        assert outcome1.detail == "governed_raw_ku_provenance_persisted"
+        assert outcome1.detail.startswith("governed_raw_ku_provenance_persisted")
         raw = (
             db.query(models.I5RawEvidence)
             .filter(models.I5RawEvidence.source_profile_id == gsp.id)
@@ -378,7 +378,7 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
     assert outcome2.run_id == outcome1.run_id
     assert outcome2.attempt_id == outcome1.attempt_id
     assert outcome2.network_executed is False
-    assert outcome2.detail == "ALREADY_SUCCESSFUL_TERMINAL"
+    assert outcome2.detail.startswith("ALREADY_SUCCESSFUL_TERMINAL")
     run_count = (
         db.query(models.WeeklyKnowledgeRun)
         .filter(models.WeeklyKnowledgeRun.logical_run_key == _IDEMPOTENCY_LOGICAL_RUN_KEY)

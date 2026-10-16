@@ -1,0 +1,285 @@
+# Governed clinical concept catalog (EN / FA / AR) — Javad-editable.
+#
+# Purpose: link crawled knowledge units to clinical concepts (I5KnowledgeUnitConcept) and
+# give verified multilingual labels to the existing 81-B concept-authority mechanism.
+#
+# Verification law (ledger D-010):
+#   OFFICIAL_SOURCE_TITLE  -> verified (term is the governed source page's own title/name)
+#   FOUNDER_APPROVED       -> verified (reviewed and approved by Javad / clinician)
+#   MODEL_ASSISTED_DRAFT   -> NOT verified (model-generated draft; no retrieval authority)
+# To approve a FA/AR draft, change its status to FOUNDER_APPROVED and set `approved_on`.
+#
+# Ambiguity is fail-closed by design (a query matching two concepts gets no authority),
+# so overlapping generic labels are avoided (one diabetes concept, not three).
+catalog_version: "i5-concept-catalog-v1"
+concepts:
+  - concept_key: "disease:als"
+    preferred_name: "Amyotrophic lateral sclerosis"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["amyotrophiclateralsclerosis", "motor-neurone-disease", "genetics/condition/amyotrophic-lateral-sclerosis", "cdc.gov/als"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "amyotrophic lateral sclerosis", status: OFFICIAL_SOURCE_TITLE, source: "medlineplus.gov"}
+      - {language: en, kind: ABBREVIATION, text: "ALS", status: OFFICIAL_SOURCE_TITLE, source: "medlineplus.gov"}
+      - {language: en, kind: COMMON_NAME, text: "motor neurone disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "اسکلروز جانبی آمیوتروفیک", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: ABBREVIATION, text: "ای ال اس", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "بیماری نورون حرکتی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "التصلب الجانبي الضموري", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: COMMON_NAME, text: "مرض العصبون الحركي", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:ms"
+    preferred_name: "Multiple sclerosis"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["multiplesclerosis", "conditions/multiple-sclerosis"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "multiple sclerosis", status: OFFICIAL_SOURCE_TITLE, source: "medlineplus.gov"}
+      - {language: fa, kind: PREFERRED, text: "مولتیپل اسکلروزیس", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: ABBREVIATION, text: "ام اس", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "اسکلروز چندگانه", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "التصلب المتعدد", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:parkinsons"
+    preferred_name: "Parkinson's disease"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["parkinsons-disease", "genetics/condition/parkinson-disease"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "parkinson's disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "بیماری پارکینسون", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "پارکینسون", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "مرض باركنسون", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:alzheimers"
+    preferred_name: "Alzheimer's disease"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["alzheimers-disease", "cdc.gov/alzheimers-dementia", "genetics/condition/alzheimer-disease"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "alzheimer's disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "بیماری آلزایمر", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "آلزایمر", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "مرض الزهايمر", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:dementia"
+    preferred_name: "Dementia"
+    concept_type: DISEASE_FAMILY
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["nhs.uk/conditions/dementia"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "dementia", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "زوال عقل", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "دمانس", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الخرف", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:epilepsy"
+    preferred_name: "Epilepsy"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["conditions/epilepsy", "cdc.gov/epilepsy"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "epilepsy", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "صرع", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الصرع", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:stroke"
+    preferred_name: "Stroke"
+    concept_type: DISEASE
+    root_category: CIRCULATORY_CARDIOVASCULAR
+    url_needles: ["conditions/stroke", "cdc.gov/stroke"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "stroke", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "سکته مغزی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "السكتة الدماغية", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:migraine"
+    preferred_name: "Migraine"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["conditions/migraine"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "migraine", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "میگرن", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الصداع النصفي", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:myasthenia_gravis"
+    preferred_name: "Myasthenia gravis"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["myasthenia-gravis"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "myasthenia gravis", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "میاستنی گراویس", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الوهن العضلي الوبيل", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:huntingtons"
+    preferred_name: "Huntington's disease"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["huntingtons-disease", "genetics/condition/huntington-disease"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "huntington's disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "بیماری هانتینگتون", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "داء هنتنغتون", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:peripheral_neuropathy"
+    preferred_name: "Peripheral neuropathy"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["peripheral-neuropathy"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "peripheral neuropathy", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "نوروپاتی محیطی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الاعتلال العصبي المحيطي", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:guillain_barre"
+    preferred_name: "Guillain-Barre syndrome"
+    concept_type: DISEASE
+    root_category: NERVOUS_SYSTEM
+    url_needles: ["guillain-barre-syndrome"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "guillain-barre syndrome", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "سندرم گیلن باره", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "متلازمة غيلان باريه", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:hypertension"
+    preferred_name: "High blood pressure"
+    concept_type: DISEASE
+    root_category: CIRCULATORY_CARDIOVASCULAR
+    url_needles: ["high-blood-pressure"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "high blood pressure", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: en, kind: SYNONYM, text: "hypertension", status: OFFICIAL_SOURCE_TITLE, source: "nhlbi.nih.gov"}
+      - {language: fa, kind: PREFERRED, text: "فشار خون بالا", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: SYNONYM, text: "پرفشاری خون", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "ارتفاع ضغط الدم", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:coronary_heart_disease"
+    preferred_name: "Coronary heart disease"
+    concept_type: DISEASE
+    root_category: CIRCULATORY_CARDIOVASCULAR
+    url_needles: ["coronary-heart-disease", "cdc.gov/heart-disease"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "coronary heart disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "بیماری عروق کرونر", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "مرض الشريان التاجي", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:heart_failure"
+    preferred_name: "Heart failure"
+    concept_type: DISEASE
+    root_category: CIRCULATORY_CARDIOVASCULAR
+    url_needles: ["heart-failure"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "heart failure", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "نارسایی قلبی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "قصور القلب", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:diabetes_mellitus"
+    preferred_name: "Diabetes"
+    concept_type: DISEASE
+    root_category: ENDOCRINE_NUTRITIONAL_METABOLIC
+    url_needles: ["diabetes"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "diabetes", status: OFFICIAL_SOURCE_TITLE, source: "niddk.nih.gov"}
+      - {language: fa, kind: PREFERRED, text: "دیابت", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "السكري", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:obesity"
+    preferred_name: "Overweight and obesity"
+    concept_type: DISEASE
+    root_category: ENDOCRINE_NUTRITIONAL_METABOLIC
+    url_needles: ["overweight-and-obesity"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "obesity", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "چاقی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "السمنة", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:osteoporosis"
+    preferred_name: "Osteoporosis"
+    concept_type: DISEASE
+    root_category: MUSCULOSKELETAL
+    url_needles: ["osteoporosis"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "osteoporosis", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "پوکی استخوان", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "هشاشة العظام", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:back_pain"
+    preferred_name: "Back pain"
+    concept_type: SYMPTOM
+    root_category: MUSCULOSKELETAL
+    url_needles: ["conditions/back-pain"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "back pain", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "کمردرد", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: COMMON_NAME, text: "کمر درد", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "ألم الظهر", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:fibromyalgia"
+    preferred_name: "Fibromyalgia"
+    concept_type: DISEASE
+    root_category: MUSCULOSKELETAL
+    url_needles: ["fibromyalgia"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "fibromyalgia", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "فیبرومیالژیا", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الألم العضلي الليفي", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:insomnia"
+    preferred_name: "Insomnia"
+    concept_type: DISEASE
+    root_category: SLEEP_WAKE
+    url_needles: ["conditions/insomnia", "sleepdisorders.html", "cdc.gov/sleep"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "insomnia", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "بی خوابی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الأرق", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:chronic_fatigue_syndrome"
+    preferred_name: "Chronic fatigue syndrome"
+    concept_type: DISEASE
+    root_category: MULTISYSTEM
+    url_needles: ["chronic-fatigue-syndrome-cfs"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "chronic fatigue syndrome", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "سندرم خستگی مزمن", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "متلازمة التعب المزمن", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "disease:generalised_anxiety_disorder"
+    preferred_name: "Generalised anxiety disorder"
+    concept_type: DISEASE
+    root_category: MENTAL_BEHAVIORAL_NEURODEVELOPMENTAL
+    url_needles: ["generalised-anxiety-disorder", "anxiety-disorders"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "generalised anxiety disorder", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: en, kind: SYNONYM, text: "anxiety disorder", status: OFFICIAL_SOURCE_TITLE, source: "nimh.nih.gov"}
+      - {language: fa, kind: PREFERRED, text: "اختلال اضطراب فراگیر", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "اضطراب القلق العام", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "topic:stress"
+    preferred_name: "Stress"
+    concept_type: OTHER
+    root_category: MENTAL_BEHAVIORAL_NEURODEVELOPMENTAL
+    url_needles: ["so-stressed-out", "tips-to-reduce-stress", "breathing-exercises-for-stress"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "stress", status: OFFICIAL_SOURCE_TITLE, source: "nimh.nih.gov"}
+      - {language: fa, kind: PREFERRED, text: "استرس", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "التوتر", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "topic:mental_wellbeing"
+    preferred_name: "Mental wellbeing"
+    concept_type: OTHER
+    root_category: MENTAL_BEHAVIORAL_NEURODEVELOPMENTAL
+    url_needles: ["five-steps-to-mental-wellbeing", "caring-for-your-mental-health", "live-well/mental-health", "exercise-for-depression", "cdc.gov/mental-health"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "mental wellbeing", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "سلامت روان", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الصحة النفسية", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "topic:mindfulness"
+    preferred_name: "Meditation and mindfulness"
+    concept_type: INTERVENTION
+    root_category: MENTAL_BEHAVIORAL_NEURODEVELOPMENTAL
+    url_needles: ["meditation-and-mindfulness"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "mindfulness", status: OFFICIAL_SOURCE_TITLE, source: "nccih.nih.gov"}
+      - {language: en, kind: SYNONYM, text: "meditation", status: OFFICIAL_SOURCE_TITLE, source: "nccih.nih.gov"}
+      - {language: fa, kind: PREFERRED, text: "ذهن آگاهی", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: SYNONYM, text: "مدیتیشن", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "اليقظة الذهنية", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: SYNONYM, text: "التأمل", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "topic:physical_activity"
+    preferred_name: "Physical activity and exercise"
+    concept_type: INTERVENTION
+    root_category: HEALTHY_POPULATION
+    url_needles: ["live-well/exercise", "physical-activity", "physicalactivity"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "physical activity", status: OFFICIAL_SOURCE_TITLE, source: "cdc.gov"}
+      - {language: fa, kind: PREFERRED, text: "فعالیت بدنی", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "النشاط البدني", status: MODEL_ASSISTED_DRAFT}
+  - concept_key: "topic:healthy_eating"
+    preferred_name: "Healthy eating"
+    concept_type: INTERVENTION
+    root_category: HEALTHY_POPULATION
+    url_needles: ["live-well/eat-well", "cdc.gov/nutrition", "healthy-weight-growth/healthy-eating", "nutrition.html"]
+    labels:
+      - {language: en, kind: PREFERRED, text: "healthy eating", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
+      - {language: fa, kind: PREFERRED, text: "تغذیه سالم", status: MODEL_ASSISTED_DRAFT}
+      - {language: fa, kind: SYNONYM, text: "رژیم غذایی سالم", status: MODEL_ASSISTED_DRAFT}
+      - {language: ar, kind: PREFERRED, text: "الأكل الصحي", status: MODEL_ASSISTED_DRAFT}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import os
 import subprocess
 import sys
@@ -113,7 +114,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "087_a4_notification_inbox_visibility (head)" in result.stdout
+    assert f"{current_script_head()} (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):

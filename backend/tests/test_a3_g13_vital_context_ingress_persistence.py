@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -45,7 +46,7 @@ def test_g13_static_safety():
     )
     for token in ("37.5", "TACHYCARDIA", "FEVER", "enqueue_i10", "hr > 100"):
         assert token not in src
-    assert ALEMBIC_HEAD == "087_a4_notification_inbox_visibility"
+    assert ALEMBIC_HEAD == current_script_head()
 
 
 def test_g13_alembic_single_head_086():

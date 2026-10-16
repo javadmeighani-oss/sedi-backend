@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import os
 import re
 from datetime import date
@@ -68,7 +69,7 @@ def test_alembic_single_head_is_086():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["087_a4_notification_inbox_visibility"]
+    assert script.get_heads() == [current_script_head()]
 
 
 def test_evaluation_identity_families():

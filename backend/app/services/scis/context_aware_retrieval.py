@@ -15,11 +15,20 @@ from sqlalchemy.orm import Session
 
 from backend.app.services.i5.runtime_knowledge_retrieval import RetrievalPersonalizationContext
 from backend.app.services.scis.authority_router import route_sedi_retrieval_context
-from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest, ScisRetrievalResponse
+from backend.app.services.scis.contracts import (
+    FallbackState,
+    RetrievalMode,
+    ScisRetrievalRequest,
+    ScisRetrievalResponse,
+)
 from backend.app.services.scis.evidence_package import SediEvidencePackage
 from backend.app.services.scis.governed_runtime_adapter import (
+    UnsupportedGovernedLanguageError,
+    _lang_matches,
+    filter_scis_evidence_for_governed_boundary,
     is_supported_governed_language,
     normalize_governed_language,
+    resolve_verified_concept_authority,
 )
 from backend.app.services.scis.retrieval import retrieve
 from backend.app.services.scis.sedi_retrieval_context import SediRetrievalContext
@@ -110,9 +119,45 @@ def retrieve_sedi_evidence_package(
     Single retrieve path. Reuses existing embedding resolution + lexical fallback
     semantics via resolve_product_governed_embedding (same as I5 adapter).
     """
+    lang = normalize_governed_language(ctx.language)
+    if not is_supported_governed_language(lang):
+        raise UnsupportedGovernedLanguageError(lang)
+
     routes = route_sedi_retrieval_context(ctx)
     personalization = bounded_personalization_from_context(ctx, relevance_terms=relevance_terms)
     assert_personal_not_governed(personalization)
+    authority = resolve_verified_concept_authority(db, query_text or "", lang)
+    authorized_ku_ids: Optional[set[int]] = None
+    if authority is not None:
+        if not authority.knowledge_unit_ids:
+            empty = ScisRetrievalResponse(
+                request_trace_id=ctx.trace_id,
+                mode=RetrievalMode.LEXICAL.value,
+                language=lang,
+                evidence=[],
+                fallback_state=FallbackState.NO_RESULTS,
+            )
+            package = SediEvidencePackage.from_scis_response(
+                empty,
+                ctx=ctx,
+                routes=routes,
+                knowledge_authority_label=RESULT_LABEL_GOVERNED,
+            )
+            package.assert_no_semantic_escalation()
+            return package, {
+                "cohere_used": False,
+                "stage17_rag_embeddings_used": False,
+                "authority_label": RESULT_LABEL_GOVERNED,
+                "openai_failure_lexical_fallback": False,
+                "concept_authority_applied": True,
+                "concept_key": authority.concept_key,
+                "concept_id": int(authority.concept_id),
+                "authorized_ku_count": 0,
+                "cross_language_authorized": False,
+                "fallback_state": FallbackState.NO_RESULTS.value,
+                "effective_mode": RetrievalMode.LEXICAL.value,
+            }
+        authorized_ku_ids = set(authority.knowledge_unit_ids)
 
     alias_hints: list[str] = []
     if personalization is not None:
@@ -163,8 +208,6 @@ def retrieve_sedi_evidence_package(
     meta["effective_mode"] = response.mode
 
     # Safe lexical fallback on embedding/vector failure (preserve CASE16 locks).
-    from backend.app.services.scis.contracts import FallbackState
-
     if mode == RetrievalMode.HYBRID and response.fallback_state in {
         FallbackState.EMBEDDING_FAILURE,
         FallbackState.VECTOR_BACKEND_UNAVAILABLE,
@@ -186,6 +229,21 @@ def retrieve_sedi_evidence_package(
         response = retrieve(db, lexical_req, provider=None, alias_hints=alias_hints or None)
         meta["fallback_state"] = getattr(response.fallback_state, "value", str(response.fallback_state))
         meta["effective_mode"] = response.mode
+
+    response.evidence = filter_scis_evidence_for_governed_boundary(
+        db,
+        response.evidence,
+        language=ctx.language,
+        authorized_ku_ids=authorized_ku_ids,
+    )
+    meta["concept_authority_applied"] = authority is not None
+    meta["concept_key"] = authority.concept_key if authority is not None else None
+    meta["concept_id"] = int(authority.concept_id) if authority is not None else None
+    meta["authorized_ku_count"] = len(authority.knowledge_unit_ids) if authority is not None else 0
+    meta["cross_language_authorized"] = bool(
+        authority is not None
+        and any(not _lang_matches(ev.language, ctx.language) for ev in response.evidence)
+    )
 
     obs = dict(response.observability or {})
     obs.update(

@@ -2867,12 +2867,17 @@ class IranDoctor(Base):
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
     canonical_directory_key = Column(String(128), nullable=False)
+    country = Column(String(2), nullable=False, default="IR", server_default="IR")
     full_name = Column(String(256), nullable=False)
     specialty = Column(String(128), nullable=True)
     city = Column(String(128), nullable=True)
     province = Column(String(128), nullable=True)
     phone = Column(String(64), nullable=True)
     address = Column(String(512), nullable=True)
+    # Public patient-feedback aggregates published by the source platform (nullable; never computed here).
+    rating_avg = Column(Float, nullable=True)
+    rating_count = Column(Integer, nullable=True)
+    satisfaction_percent = Column(Integer, nullable=True)
     record_state = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
     # Future governed-source readiness only — no live IR source embedded.
     source_system_label = Column(String(128), nullable=True)
@@ -2907,6 +2912,7 @@ class IranLaboratory(Base):
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
     canonical_directory_key = Column(String(128), nullable=False)
+    country = Column(String(2), nullable=False, default="IR", server_default="IR")
     name = Column(String(256), nullable=False)
     city = Column(String(128), nullable=True)
     province = Column(String(128), nullable=True)
@@ -2951,6 +2957,7 @@ class IranHospital(Base):
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
     canonical_directory_key = Column(String(128), nullable=False)
+    country = Column(String(2), nullable=False, default="IR", server_default="IR")
     name = Column(String(256), nullable=False)
     facility_type = Column(String(32), nullable=False, default="HOSPITAL", server_default="HOSPITAL")
     city = Column(String(128), nullable=True)

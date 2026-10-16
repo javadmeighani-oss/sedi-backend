@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import hashlib
 import os
 from pathlib import Path
@@ -66,7 +67,7 @@ def _db_url():
 def _require_065(engine) -> None:
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "068_i7_wave2_governed_memory_lifecycle", head
+        assert head == current_script_head(), head
 
 
 def test_repo_write_path_universe_and_scanner_completeness():

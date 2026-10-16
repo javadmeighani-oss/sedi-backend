@@ -85,7 +85,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["080_i9_device_reported_vital_status"], heads
+          assert len(heads) == 1, heads
           PY
 
       - name: Fresh upgrade to head

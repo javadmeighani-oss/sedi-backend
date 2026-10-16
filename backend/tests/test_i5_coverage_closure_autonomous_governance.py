@@ -63,10 +63,10 @@ def test_autonomous_side_stage_default_on_path(tmp_path, monkeypatch):
 def test_coverage_closure_allowlist_activates_only_gap_set():
     load_trusted_source_manifest.cache_clear()
     data = load_trusted_source_manifest()
-    assert data["allowlist_version"] == "i5-multisource-v1-coverage-closure-gap01"
+    assert data["allowlist_version"] == "i5-multisource-v1-knowledge-breadth-01"
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 17
+    assert len(rows) == 21
     assert GAP_KEYS.keys() <= keys
     assert "who_fact_sheets" not in keys
     for key, entity in GAP_KEYS.items():

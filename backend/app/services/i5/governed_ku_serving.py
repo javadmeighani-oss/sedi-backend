@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
 from backend.app import models
-from backend.app.services.i5.enums import ConflictState, KnowledgeUnitRuntimeEligibility
+from backend.app.services.i5.enums import (
+    ConflictState,
+    FreshnessState,
+    KnowledgeUnitRuntimeEligibility,
+    PublicationState,
+)
 from backend.app.services.i5.governed_low_risk_eligibility import (
     can_apply_governed_low_risk,
     connector_blocks_governed_low_risk,
@@ -64,6 +70,13 @@ def provenance_source_identity_matches(
 
 def ku_blocks_governed_reevaluation(ku: Any) -> bool:
     if getattr(ku, "retraction_reason", None):
+        return True
+    # Versions retired by the living-knowledge lifecycle (81-C2) must never be
+    # re-published by governed re-evaluation; only a new version can become current.
+    publication = str(getattr(ku, "publication_state", "") or "")
+    if publication in {PublicationState.SUPERSEDED.value, PublicationState.WITHDRAWN.value}:
+        return True
+    if str(getattr(ku, "freshness_state", "") or "") == FreshnessState.STALE.value:
         return True
     conflict = str(getattr(ku, "conflict_state", "") or "")
     return bool(conflict and conflict != ConflictState.NONE.value)
@@ -226,6 +239,8 @@ def reevaluate_existing_kus_for_unchanged_source(
             skipped_fail_closed += 1
             continue
 
+        # HTTP 304 / no material change: the source still publishes this knowledge.
+        ku.last_reviewed_at = datetime.utcnow()
         prior_elig = _current_eligibility(ku)
         if prior_elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
             already_eligible += 1
