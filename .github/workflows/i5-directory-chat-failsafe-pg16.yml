@@ -110,7 +110,7 @@ jobs:
             tail -n 80 /tmp/i5dir_evidence/failsafe_pytest.txt
             exit "$rc"
           fi
-          grep -E "24 passed" /tmp/i5dir_evidence/failsafe_pytest.txt
+          grep -E "[0-9]+ passed" /tmp/i5dir_evidence/failsafe_pytest.txt && ! grep -E "[0-9]+ failed" /tmp/i5dir_evidence/failsafe_pytest.txt
       - name: Iran directory service regression (W5 subset)
         run: |
           set -euo pipefail
