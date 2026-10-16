@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -405,7 +406,7 @@ def test_t14_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["087_a4_notification_inbox_visibility"]
+    assert heads == [current_script_head()]
 
 
 def test_managed_subject_api(client, db, monkeypatch):

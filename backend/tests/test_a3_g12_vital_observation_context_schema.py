@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,8 +49,8 @@ def test_g12_static_alembic_single_head():
     cfg = Config("backend/alembic.ini")
     cfg.set_main_option("script_location", "backend/alembic")
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == [_REV_087]
-    assert ALEMBIC_HEAD == _REV_087
+    assert script.get_heads() == [current_script_head()]
+    assert ALEMBIC_HEAD == current_script_head()
     assert script.get_revision(_REV_087).down_revision == _REV_086
     assert script.get_revision(_REV_086).down_revision == _REV_085
 

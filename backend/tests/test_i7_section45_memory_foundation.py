@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.helpers.alembic_head import current_script_head
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -74,7 +75,7 @@ def test_alembic_head_is_071():
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["087_a4_notification_inbox_visibility"]
+    assert script.get_heads() == [current_script_head()]
     rev087 = script.get_revision("087_a4_notification_inbox_visibility")
     assert rev087.down_revision == "086_i9_vital_observation_context_authority"
     rev086 = script.get_revision("086_i9_vital_observation_context_authority")
