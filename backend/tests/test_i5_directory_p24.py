@@ -107,3 +107,22 @@ def test_rolling_window_wraps_and_advances():
     assert window(urls, 4, 1) == ["u4", "u5", "u6", "u7"]
     assert window(urls, 4, 2) == ["u8", "u9", "u0", "u1"]
     assert len(window(urls, 50, 3)) == 10 and window([], 4, 0) == []
+
+
+def test_feedback_aggregates_are_taken_as_published_and_validated():
+    page = _page({"slug": "دکتر-الف", "information": {"display_name": "الف ب"},
+                  "expertises": {"expertises": []}, "centers": [_center()],
+                  "feedbacks": {"details": {"average_rates": {"a": "5.0", "b": "4.0", "c": None},
+                                            "count_of_feedbacks": 17, "satisfaction_percent": 96}}})
+    doc, _ = parse_doctor_page(page)
+    assert doc["rating_avg"] == 4.5 and doc["rating_count"] == 17 and doc["satisfaction_percent"] == 96
+    valid, _ = normalize_records([doc])
+    assert (valid[0]["rating_avg"], valid[0]["rating_count"], valid[0]["satisfaction_percent"]) == (4.5, 17, 96)
+    bad = {**doc, "rating_avg": 9, "satisfaction_percent": 400, "rating_count": 0}
+    v2, _ = normalize_records([bad])
+    assert v2[0]["rating_avg"] is None and v2[0]["satisfaction_percent"] is None and v2[0]["rating_count"] is None
+
+
+def test_doctor_without_feedback_has_none_not_zero():
+    doc, _ = parse_doctor_page(_doctor([_center()]))
+    assert doc["rating_avg"] is None and doc["rating_count"] is None and doc["satisfaction_percent"] is None

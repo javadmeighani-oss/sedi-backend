@@ -76,6 +76,23 @@ def _clean(value: Any, field: str) -> str | None:
     return text[: FIELD_LIMITS[field]]
 
 
+def _feedback(raw: dict[str, Any]) -> dict[str, Any]:
+    """Source-published feedback aggregates; invalid values become None (never guessed)."""
+    def num(key: str, lo: float, hi: float, cast):
+        try:
+            v = float(raw.get(key))
+        except (TypeError, ValueError):
+            return None
+        return cast(v) if lo <= v <= hi else None
+    count = num("rating_count", 0, 10_000_000, int)
+    avg = num("rating_avg", 0, 5, lambda v: round(v, 2))
+    return {
+        "rating_avg": avg if count else None,
+        "rating_count": count or None,
+        "satisfaction_percent": num("satisfaction_percent", 0, 100, int),
+    }
+
+
 def _normalize_one(raw: dict[str, Any]) -> dict[str, Any]:
     family = str(raw.get("entity_family", "DOCTOR")).strip().upper()
     if family not in {"DOCTOR", "LABORATORY", "HOSPITAL"}:
@@ -103,6 +120,7 @@ def _normalize_one(raw: dict[str, Any]) -> dict[str, Any]:
     }
     if family == "DOCTOR":
         normalized["specialty"] = _clean(raw.get("specialty"), "specialty")
+        normalized.update(_feedback(raw))
     elif family == "LABORATORY":
         normalized["services_text"] = _clean(raw.get("services_text"), "services_text")
     else:

@@ -78,6 +78,14 @@ def _page_props(html: bytes | str) -> dict[str, Any]:
         return {}
 
 
+def _is_number(v: Any) -> bool:
+    try:
+        float(v)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
 def _center_record(center: dict[str, Any]) -> Optional[dict[str, Any]]:
     """Facility record from a center object; None for private offices and online services."""
     if int(center.get("type_id") or 0) == 3:  # online-visit pseudo center
@@ -120,6 +128,8 @@ def parse_doctor_page(html: bytes | str) -> tuple[Optional[dict[str, Any]], list
     office = next((c for c in physical if c.get("is_active")), physical[0] if physical else None)
     exps = (pp.get("expertises") or {}).get("expertises") or []
     specialty = " ".join(str(exps[0].get("alias_title") or "").split()) if exps else None
+    fb = (pp.get("feedbacks") or {}).get("details") or {}
+    rates = [float(v) for v in (fb.get("average_rates") or {}).values() if _is_number(v)]
     doctor = {
         "entity_family": "DOCTOR",
         "full_name": name,
@@ -130,6 +140,9 @@ def parse_doctor_page(html: bytes | str) -> tuple[Optional[dict[str, Any]], list
         "address": " ".join(str((office or {}).get("address") or "").split())[:512] or None,
         "source_system_label": P24_SOURCE,
         "canonical_directory_key": key,
+        "rating_avg": round(sum(rates) / len(rates), 2) if rates else None,
+        "rating_count": fb.get("count_of_feedbacks"),
+        "satisfaction_percent": fb.get("satisfaction_percent"),
     }
     if not (doctor["address"] or doctor["phone"]):
         return None, facilities  # nothing a patient can act on
@@ -153,13 +166,21 @@ def parse_center_page(html: bytes | str) -> Optional[dict[str, Any]]:
     return None
 
 
-def _default_get(url: str, *, timeout: int = 30):
+def _default_get(url: str, *, timeout: int = 60, attempts: int = 4):
+    """urllib GET with retries: the platform sometimes truncates large bodies (IncompleteRead)."""
     import urllib.request
     from types import SimpleNamespace
 
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return SimpleNamespace(status_code=int(resp.status), content=resp.read(), url=resp.geturl())
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return SimpleNamespace(status_code=int(resp.status), content=resp.read(), url=resp.geturl())
+        except Exception as exc:  # noqa: BLE001 — includes http.client.IncompleteRead
+            last = exc
+            time.sleep(1.5 * (attempt + 1))
+    raise OSError(f"P24_FETCH_FAILED:{last}")
 
 
 def list_doctor_urls(http_get: HttpGet = _default_get) -> list[str]:
