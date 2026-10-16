@@ -8,9 +8,11 @@ Coverage class: OFFICIAL_FEDERATED_SEED / PARTIAL_GOVERNED_COVERAGE (not nationw
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass
+from html import unescape
 from typing import Any, Callable, Optional
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from backend.app.services.i5.iran_directory_source_manifest import SBMU_FED_HOSPITAL_SOURCE
 
@@ -69,6 +71,44 @@ def _name_present(page_text: str, name: str) -> bool:
     return all(token in page_text for token in tokens)
 
 
+_DETAIL_LINK_RE = re.compile(r'href="(/Virtual_Tour/[^"]+)"[^>]*aria-label="([^"]+)"')
+_ADDRESS_RE = re.compile(r'data-address="([^"]+)"')
+_MAP_ITEM_RE = re.compile(r'class="place-map__item">([\s\S]*?)</div>\s*</div>')
+_HONORIFICS_RE = re.compile(r"\((?:ع|ره|س)\)")
+
+
+def _phone_like(value: str) -> bool:
+    # Official pages mix forms: "021-22227021-9", "22001072 - 021", "021...55الی 021...59".
+    return bool(re.match(r"^[0-9۰-۹]", value)) and len(re.findall(r"[0-9۰-۹]", value)) >= 6 and len(value) <= 64
+
+
+def _link_key(name: str) -> str:
+    return " ".join(_HONORIFICS_RE.sub(" ", name).split())
+
+
+def parse_sbmu_detail_links(html: bytes | str) -> dict[str, str]:
+    """Honorific-free aria-label → absolute official detail-page URL from the hospital list page."""
+    text = html.decode("utf-8", "replace") if isinstance(html, bytes) else html
+    links: dict[str, str] = {}
+    for path, label in _DETAIL_LINK_RE.findall(text):
+        links.setdefault(_link_key(unescape(label)), "https://sbmu.ac.ir" + quote(unescape(path)))
+    return links
+
+
+def parse_sbmu_facility_contact(html: bytes | str) -> dict[str, Optional[str]]:
+    """Official per-facility page: address (data-address) and phone (place-map item)."""
+    text = html.decode("utf-8", "replace") if isinstance(html, bytes) else html
+    m = _ADDRESS_RE.search(text)
+    address = " ".join(unescape(m.group(1)).split()) if m else None
+    phone = None
+    for block in _MAP_ITEM_RE.findall(text):
+        value = " ".join(unescape(re.sub(r"<[^>]+>", " ", block)).split())
+        if value and _phone_like(value):
+            phone = value
+            break
+    return {"address": address or None, "phone": phone}
+
+
 def parse_sbmu_affiliated_facilities(html: bytes | str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     text = html.decode("utf-8", "replace") if isinstance(html, bytes) else html
     plain = re.sub(r"<script[\s\S]*?</script>", " ", text, flags=re.I)
@@ -119,10 +159,47 @@ def _default_http_get(url: str, *, timeout: int = 30, headers: Optional[dict[str
         return requests.get(url, timeout=timeout, headers=headers or {}, allow_redirects=allow_redirects)
 
 
+def _enrich_contacts(
+    records: list[dict[str, Any]],
+    links: dict[str, str],
+    getter: HttpGet,
+    timeout: int,
+    delay_seconds: float,
+) -> None:
+    """Fill address/phone from each facility's official page; failure leaves them empty."""
+    for i, rec in enumerate(records):
+        seed_name = rec["canonical_directory_key"].split(":", 1)[1].replace("_", " ")
+        url = links.get(_link_key(seed_name))
+        if not url:
+            continue
+        if i and delay_seconds:
+            time.sleep(delay_seconds)
+        resp = None
+        for attempt in range(2):  # official site drops requests transiently; one polite retry
+            try:
+                resp = getter(url, timeout=timeout, headers={"User-Agent": "SediKB/1.0 (governed-directory-federation)"}, allow_redirects=True)
+                if int(getattr(resp, "status_code", 0) or 0) == 200:
+                    break
+            except Exception:  # noqa: BLE001 — contact is optional; keep the verified record
+                resp = None
+            if attempt == 0 and delay_seconds:
+                time.sleep(delay_seconds * 2)
+        if resp is None:
+            continue
+        final = str(getattr(resp, "url", url) or url)
+        if int(getattr(resp, "status_code", 0) or 0) != 200 or not (urlparse(final).hostname or "").endswith("sbmu.ac.ir"):
+            continue
+        contact = parse_sbmu_facility_contact(getattr(resp, "content", b"") or b"")
+        rec.update({k: v for k, v in contact.items() if v})
+        rec["contact_source_url"] = url
+
+
 def acquire_sbmu_affiliated_hospitals(
     *,
     http_get: Optional[HttpGet] = None,
     timeout: int = 30,
+    fetch_contacts: bool = True,
+    detail_delay_seconds: float = 2.0,
 ) -> FederationFetchResult:
     """Fetch official SBMU page and emit verified facility facts only."""
     getter = http_get or _default_http_get
@@ -162,6 +239,8 @@ def acquire_sbmu_affiliated_hospitals(
     records, rejected = parse_sbmu_affiliated_facilities(body)
     if not records:
         raise ValueError("FEDERATION_ZERO_VERIFIED_RECORDS")
+    if fetch_contacts:
+        _enrich_contacts(records, parse_sbmu_detail_links(body), getter, timeout, detail_delay_seconds)
     return FederationFetchResult(
         source_url=used_url,
         final_url=final_url,
