@@ -1,0 +1,86 @@
+# D-016 — I5 directory web lookup flag (SEDI_DIRECTORY_WEB_LOOKUP_ENABLED).
+# workflow_dispatch only. Pins running image SHA+digest. NO migration. NO image change.
+name: DB-PROD I5 Directory Web Flag
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "PREFLIGHT | ACTIVATE | KILL_SWITCH"
+        required: true
+      confirmation:
+        description: "WEBFLAG_PREFLIGHT | WEBFLAG_ACTIVATE_ON | WEBFLAG_KILL_SWITCH_OFF"
+        required: true
+      image_tag:
+        description: "Exact 40-char running backend image SHA tag"
+        required: true
+      image_digest:
+        description: "Exact sha256:<64 hex> running image digest"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Directory web flag ${{ github.event.inputs.phase }}
+    if: >-
+      (github.event.inputs.phase == 'PREFLIGHT' && github.event.inputs.confirmation == 'WEBFLAG_PREFLIGHT') ||
+      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'WEBFLAG_ACTIVATE_ON') ||
+      (github.event.inputs.phase == 'KILL_SWITCH' && github.event.inputs.confirmation == 'WEBFLAG_KILL_SWITCH_OFF')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validate pins
+        env:
+          TAG: ${{ github.event.inputs.image_tag }}
+          DIG: ${{ github.event.inputs.image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+      - uses: actions/checkout@v4
+      - name: Static bounds (script touches only this flag)
+        run: |
+          set -Eeuo pipefail
+          F=backend/ops/db03/db_prod_i5_directory_web_flag_remote.sh
+          ! grep -Eiq 'alembic[[:space:]]+upgrade|docker[[:space:]]+pull' "$F"
+          grep -Fq 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' "$F"
+      - name: SSH run
+        env:
+          TAG: ${{ github.event.inputs.image_tag }}
+          DIG: ${{ github.event.inputs.image_digest }}
+          PHASE: ${{ github.event.inputs.phase }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_i5_directory_web_flag_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") PHASE=$(printf '%q' "${PHASE}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh")" \
+            2>&1 | tee /tmp/webflag.log
+          grep -Eq 'WEBFLAG\|phase_(preflight|activate|kill_switch)\|PASS' /tmp/webflag.log
+          if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/webflag.log; then
+            echo "SECRET_LEAK"; exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webflag-${{ github.event.inputs.phase }}
+          path: /tmp/webflag.log
+          retention-days: 14
