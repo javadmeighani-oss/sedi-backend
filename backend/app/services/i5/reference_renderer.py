@@ -423,6 +423,7 @@ def render_grounded_answer(
         "no_base_model_fallback": NO_BASE_MODEL_MEDICAL_FALLBACK,
         "reference_count": len(refs),
         "status": status,
+        "domains": sorted({e.domain for e in evidence if e.domain}),
     }
 
     return GroundedAnswerView(
@@ -444,6 +445,16 @@ def render_grounded_answer(
     )
 
 
+_PSYCHOLOGY_DOMAINS = frozenset({"mental_health_psychology", "wellbeing"})
+_PSYCHOLOGICAL_SUPPORT_STYLE = (
+    "PSYCHOLOGICAL SUPPORT STYLE: first acknowledge the feeling in one warm sentence; then offer 1 to 3 "
+    "practical, evidence-based steps taken from the summary (for example slow breathing, movement, a sleep "
+    "routine, talking to someone you trust), phrased as gentle invitations, never orders. Never diagnose or "
+    "label the user. If the difficulty is persistent, severe or affects daily life, encourage speaking with a "
+    "GP or mental-health professional. Ask at most one soft follow-up question."
+)
+
+
 def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 4400) -> str:
     """Compact CARE_CONTEXT / brain system block from a grounded answer."""
     lines = [
@@ -459,6 +470,9 @@ def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 44
                 "management, prevention). Plain text only: no markdown, no asterisks, no headings. "
                 "Do not say you lack a verified source when it is present."
             )
+        domains = set((answer.chat_metadata or {}).get("domains") or [])
+        if answer.status == "OK" and domains & _PSYCHOLOGY_DOMAINS:
+            lines.append(_PSYCHOLOGICAL_SUPPORT_STYLE)
         lines.append("Grounded summary:")
         lines.append(answer.synthesized_text[:3300])
     if answer.show_sources:

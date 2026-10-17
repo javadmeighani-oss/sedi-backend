@@ -30,3 +30,18 @@ def test_long_statements_are_clipped_at_a_boundary_so_every_item_fits():
 
 def test_clip_keeps_short_text_intact():
     assert _clip_statement("Short sentence.") == "Short sentence."
+
+
+def test_psychology_domain_adds_support_style_and_other_domains_do_not():
+    from backend.app.services.i5.reference_renderer import format_care_context_block, render_grounded_answer
+
+    def block(domain):
+        ev = {"status": "OK", "knowledge_snippets": [{
+            "knowledge_unit_id": 1, "canonical_unit_id": "c1", "immutable_version_id": "v1", "content": "Tip: slow breathing helps stress.",
+            "normalized_statement": "Tip: slow breathing helps stress.", "domain": domain, "evidence_strength": "MODERATE",
+            "freshness_state": "CURRENT", "conflict_state": "NONE", "medical_safety_state": "CLEARED", "language": "en"}]}
+        return format_care_context_block(render_grounded_answer(ev, language="fa", user_requested_sources=True))
+
+    assert "PSYCHOLOGICAL SUPPORT STYLE" in block("mental_health_psychology")
+    assert "PSYCHOLOGICAL SUPPORT STYLE" in block("wellbeing")
+    assert "PSYCHOLOGICAL SUPPORT STYLE" not in block("neurology_als")
