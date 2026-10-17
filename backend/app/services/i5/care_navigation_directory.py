@@ -13,7 +13,7 @@ Chat MUST NOT import that module directly.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Mapping, Optional, Sequence
 
@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 # Private governed backend — Chat/orchestrator import THIS facade only.
 from backend.app.services.i5 import iran_directory_service as _governed_directory
 from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFEST
+from backend.app.services.i5 import directory_web_lookup as _web_lookup
 
 PACKAGE_ID = "I5-DIRECTORY-CHAT-FAILSAFE-01"
 CANONICAL_AUTHORITY = "I5_GOVERNED_CARE_DIRECTORY"
@@ -323,8 +324,8 @@ def source_info_message(language: str) -> str:
     k = _lk((language or "en").lower())
     if k == "fa":
         return (
-            "این اطلاعات رو از فهرست‌های عمومی جمع کردم؛ مثل پذیرش۲۴، سایت نظام پزشکی و سایت دانشگاه‌های "
-            "علوم پزشکی، و مرتب به‌روزشون می‌کنم. امتیاز یا درصد رضایتِ بیماران هم دقیقاً همونیه که خودِ "
+            "این اطلاعات رو از منابع معتبر پیدا می‌کنم؛ مثل سایت نظام پزشکی، سایت دانشگاه‌ها و بیمارستان‌ها و "
+            "سامانه‌هایی مثل پذیرش۲۴، و وقتی لازم باشه همون لحظه در وب جست‌وجو می‌کنم. امتیاز یا درصد رضایتِ بیماران هم دقیقاً همونیه که خودِ "
             "پذیرش۲۴ نشون می‌ده و برای همه‌ی پزشک‌ها وجود نداره. اگه اسم پزشک یا تخصص و شهر رو بگی، "
             "برات می‌گم نظر بیمارها دربارش چیه. این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی."
         )
@@ -344,6 +345,9 @@ def source_info_message(language: str) -> str:
 
 def _feedback_phrase(h: "VerifiedDirectoryIdentity", lang: str) -> str:
     k = _lk(lang)
+    domain = _web_lookup.source_domain(h.canonical_directory_key)
+    if domain:
+        return {"fa": f"؛ منبع: {domain}", "ar": f"؛ المصدر: {domain}", "en": f"; source: {domain}"}[k]
     src = _SOURCE_NAMES.get(h.source_system_label or "", {}).get(k)
     has_rating = bool(h.rating_count and h.rating_avg is not None)
     if not src or not (has_rating or h.satisfaction_percent is not None):
@@ -509,7 +513,25 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         _map_backend_row(item)
         for item in hits_raw
         if str(item.get("record_state") or "").upper() == "ACTIVE"
+        and not _web_lookup.is_stale_web_row(item.get("source_system_label"), item.get("last_verified_at"))
     )
+
+    # Too few governed hits → one guarded web lookup that writes into the SAME governed store,
+    # then re-read through the governed service (no second store, no LLM-invented identity).
+    if len(identities) < _web_lookup.MIN_LOCAL_HITS and _web_lookup.web_lookup_enabled():
+        keys = set(_web_lookup.lookup_and_store(
+            db, entity=entity.value, specialty=request.specialty_or_service,
+            city=request.city, province=request.province,
+        ))
+        if keys:
+            known = {i.canonical_directory_key for i in identities}
+            extra = tuple(
+                _map_backend_row(item)
+                for item in _dispatch_governed_search(db, replace(request, specialty_or_service=None, limit=50))
+                if item.get("canonical_directory_key") in keys and item.get("canonical_directory_key") not in known
+            )
+            identities = (identities + extra)[: max(request.limit, 5)]
+            notes.append("WEB_LOOKUP_ENRICHED")
 
     if not identities:
         return CareNavResult(
