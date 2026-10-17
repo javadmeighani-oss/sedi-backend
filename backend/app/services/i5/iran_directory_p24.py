@@ -18,7 +18,7 @@ P24_HOST = "www.paziresh24.com"
 P24_SITEMAP_INDEX = "https://www.paziresh24.com/sitemap.xml"
 P24_DOCTOR_PREFIX = "https://www.paziresh24.com/dr/"
 USER_AGENT = "SediKB/1.0 (governed-directory; +https://sedi.health)"
-MIN_INTERVAL_SECONDS = 0.5
+MIN_INTERVAL_SECONDS = 3.0
 MAX_KEY_LEN = 128
 
 HttpGet = Callable[..., Any]
