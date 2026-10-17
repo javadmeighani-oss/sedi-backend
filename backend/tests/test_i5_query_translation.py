@@ -93,19 +93,30 @@ def test_adapter_merges_distinct_kus_across_alternatives(monkeypatch):
     assert meta["translated_queries_hit"] == ["mnd treatment", "als treatment"]  # "als" added nothing new
 
 
-def test_adapter_stops_when_enough_items_and_skips_empty(monkeypatch):
-    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["x", "y", "z"])
-    many = [SimpleNamespace(knowledge_unit_id=i) for i in range(5)]
+def test_adapter_takes_a_few_per_alternative_for_coverage_and_stops_at_limit(monkeypatch):
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["x", "overview", "symptoms", "treatment", "causes"])
+    sets = {
+        "x": [],
+        "overview": [SimpleNamespace(knowledge_unit_id=i) for i in (1, 2, 3)],
+        "symptoms": [SimpleNamespace(knowledge_unit_id=i) for i in (4, 5, 6)],
+        "treatment": [SimpleNamespace(knowledge_unit_id=i) for i in (7, 8)],
+        "causes": [SimpleNamespace(knowledge_unit_id=9)],
+    }
     calls = []
 
     def fake(db, query, **kw):
         calls.append(query)
-        return ([], {}) if query == "x" else (list(many), {})
+        return list(sets[query]), {}
 
     monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", fake)
     items, _ = adapter._retry_via_english_query(None, "q", "fa", limit=5)
-    assert len(items) == 5 and calls == ["x", "y"]
+    assert [i.knowledge_unit_id for i in items] == [1, 2, 4, 5, 7]  # 2 per alternative, capped at 5
+    assert calls == ["x", "overview", "symptoms", "treatment"]  # stopped once 5 reached
 
 
 def test_prompt_mentions_alternative_official_names():
     assert "motor neurone disease" in qt._INSTRUCTIONS and "different names" in qt._INSTRUCTIONS
+
+
+def test_prompt_covers_general_questions_with_aspect_queries():
+    assert "general" in qt._INSTRUCTIONS and "with treatment" in qt._INSTRUCTIONS
