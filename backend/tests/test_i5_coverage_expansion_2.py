@@ -49,3 +49,12 @@ def test_agency_self_description_headings_are_boilerplate_but_guidance_is_not():
         assert R.match(h), h
     for h in ("Treatment for MND", "How much activity do adults need?", "Symptoms", "Why it matters"):
         assert not R.match(h), h
+
+
+def test_arabic_chest_pain_and_breathing_difficulty_are_terminal_emergencies():
+    from backend.app.services.intelligence.safety_risk import assess_safety_risk, requires_terminal_safety_response
+
+    for msg in ("ألم شديد في الصدر وضيق في التنفس", "أعاني من ألم في الصدر", "لدي صعوبة في التنفس"):
+        assert requires_terminal_safety_response(assess_safety_risk(message=msg, language="ar")), msg
+    for msg in ("كيف أتعامل مع القلق وقلة النوم؟", "ما هو مرض التصلب الجانبي الضموري"):
+        assert not requires_terminal_safety_response(assess_safety_risk(message=msg, language="ar")), msg
