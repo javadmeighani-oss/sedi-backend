@@ -230,6 +230,7 @@ def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) 
     seen: set = set()
     first_meta: Optional[dict] = None
     used: List[str] = []
+    per_alt = 2  # round-robin: a few distinct KUs from each alternative (overview, symptoms, treatment…)
     for english in translate_query_alternatives(query or "", lang):
         items, meta = retrieve_scis_governed_runtime_items(db, english, language="en", _via_translation=True, **kwargs)
         added = 0
@@ -240,6 +241,8 @@ def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) 
             seen.add(key)
             merged.append(item)
             added += 1
+            if added >= per_alt or len(merged) >= want:
+                break
         if added:
             used.append(english)
             first_meta = first_meta or meta
