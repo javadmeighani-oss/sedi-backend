@@ -371,12 +371,31 @@ def test_sufficiency_zero_eligible():
 
 def test_sufficiency_low_only_fail_closed():
     items = [
-        _item(ku_id=1, canon="a", statement="weak tip one", strength="LOW"),
-        _item(ku_id=2, canon="b", statement="weak tip two", strength="LOW", topic="other"),
+        _item(ku_id=1, canon="a", statement="weak tip one", strength="LOW", domain="cardiovascular"),
+        _item(ku_id=2, canon="b", statement="weak tip two", strength="LOW", domain="cardiovascular", topic="other"),
     ]
     d = evaluate_retrieval_sufficiency(items)
     assert d.sufficient is False
     assert d.reason == SUFFICIENCY_LOW_ONLY
+
+
+def test_sufficiency_low_only_is_ok_for_official_lifestyle_guidance():
+    items = [
+        _item(ku_id=1, canon="a", statement="adults should do 150 minutes a week", strength="LOW",
+              domain="physical_activity_exercise", topic="exercise"),
+        _item(ku_id=2, canon="b", statement="eat five portions of fruit and veg", strength="LOW",
+              domain="nutrition", topic="nutrition"),
+    ]
+    d = evaluate_retrieval_sufficiency(items)
+    assert d.sufficient is True and d.reason == SUFFICIENCY_OK
+
+
+def test_sufficiency_mixed_lifestyle_and_clinical_low_still_fails():
+    items = [
+        _item(ku_id=1, canon="a", statement="tip", strength="LOW", domain="nutrition"),
+        _item(ku_id=2, canon="b", statement="tip two", strength="LOW", domain="oncology", topic="x"),
+    ]
+    assert evaluate_retrieval_sufficiency(items).reason == SUFFICIENCY_LOW_ONLY
 
 
 def test_sufficiency_moderate_and_high_ok():

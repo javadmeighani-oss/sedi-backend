@@ -344,6 +344,7 @@ def test_phase3_cross_b_arabic_contradiction_sufficiency():
     low = [_item(ku_id=1, canon="a"), _item(ku_id=2, canon="b")]
     for it in low:
         it.evidence_strength = "LOW"
+        it.domain = "cardiovascular"  # LOW-only refusal applies to clinical domains (lifestyle LOW is governed)
     decision = evaluate_retrieval_sufficiency(low)
     assert decision.reason == SUFFICIENCY_LOW_ONLY
     assert decision.sufficient is False
