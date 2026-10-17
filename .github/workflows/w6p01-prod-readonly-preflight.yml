@@ -331,6 +331,16 @@ jobs:
             summary "inv_${tbl}" "$(inv x "SELECT CASE WHEN to_regclass('public.${tbl}') IS NULL THEN 'TABLE_ABSENT' ELSE (xpath('/row/c/text()', query_to_xml('SELECT COUNT(*) c FROM ${tbl}', false, true, '')))[1]::text END;")"
           done
           summary "inv_chat_mode_flags_hint" "see env flags in preflight above"
+          summary "dx_ku_als_related" "$(inv x "SELECT COUNT(*) FROM knowledge_units WHERE normalized_statement ILIKE '%amyotrophic%' OR normalized_statement ILIKE '%motor neurone%' OR normalized_statement ILIKE '%motor neuron disease%';")"
+          summary "dx_ku_neuro_any" "$(inv x "SELECT COUNT(*) FROM knowledge_units WHERE normalized_statement ILIKE '%multiple sclerosis%' OR normalized_statement ILIKE '%parkinson%' OR normalized_statement ILIKE '%epilep%' OR normalized_statement ILIKE '%stroke%' OR normalized_statement ILIKE '%dementia%';")"
+          summary "dx_ku_by_domain" "$(inv x "SELECT string_agg(domain||'='||n, ',') FROM (SELECT domain, COUNT(*) n FROM knowledge_units GROUP BY 1 ORDER BY 2 DESC) t;")"
+          summary "dx_ku_by_topic_top" "$(inv x "SELECT string_agg(t||'='||n, ',') FROM (SELECT topic_taxonomy::text t, COUNT(*) n FROM knowledge_units GROUP BY 1 ORDER BY 2 DESC LIMIT 14) q;")"
+          summary "dx_ku_by_language" "$(inv x "SELECT string_agg(language||'='||n, ',') FROM (SELECT language, COUNT(*) n FROM knowledge_units GROUP BY 1) t;")"
+          summary "dx_ku_eligible_by_language" "$(inv x "SELECT string_agg(language||'='||n, ',') FROM (SELECT language, COUNT(*) n FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE' GROUP BY 1) t;")"
+          summary "dx_sources_by_state" "$(inv x "SELECT string_agg(registry_state||'/'||runtime_eligibility||'='||n, ',') FROM (SELECT registry_state, runtime_eligibility, COUNT(*) n FROM governed_source_profiles GROUP BY 1,2) t;")"
+          summary "dx_source_keys" "$(inv x "SELECT string_agg(canonical_key, ',' ORDER BY canonical_key) FROM governed_source_profiles;")"
+          summary "dx_kce_total_vs_retracted" "$(inv x "SELECT COUNT(*)||'/'||COUNT(retracted_at) FROM knowledge_chunk_embeddings;")"
+          summary "dx_last_runs" "$(inv x "SELECT string_agg(id||':'||status, ',') FROM (SELECT id, status FROM weekly_knowledge_runs ORDER BY id DESC LIMIT 6) t;")"
 
           log "=== BACKUP DIR METADATA (filenames only) ==="
           BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"

@@ -217,6 +217,22 @@ def _map_evidence_to_items(
     return items
 
 
+def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) -> Optional[Tuple[List[RetrievedKnowledgeItem], dict]]:
+    from backend.app.services.i5.query_translation import translate_query_to_english
+
+    english = translate_query_to_english(query or "", lang)
+    if not english:
+        return None
+    items, meta = retrieve_scis_governed_runtime_items(db, english, language="en", _via_translation=True, **kwargs)
+    if not items:
+        return None
+    meta["cross_language_via_translation"] = True
+    meta["translated_query_used"] = True
+    meta["language"] = lang
+    meta["cross_language_authorized"] = True
+    return items, meta
+
+
 def retrieve_scis_governed_runtime_items(
     db: Session,
     query: str,
@@ -233,6 +249,7 @@ def retrieve_scis_governed_runtime_items(
     safety_classification: Optional[str] = None,
     request_trace_id: Optional[str] = None,
     allowed_knowledge_classes: Optional[Sequence[str]] = None,
+    _via_translation: bool = False,
 ) -> Tuple[List[RetrievedKnowledgeItem], dict]:
     """Canonical governed I5 runtime: HYBRID when OpenAI available, else lexical.
 
@@ -266,6 +283,17 @@ def retrieve_scis_governed_runtime_items(
     }
 
     authority = resolve_verified_concept_authority(db, query or "", lang)
+    if authority is None and not _via_translation and not lang.startswith("en"):
+        # D-017: no verified label for this topic -> English search query (hint only), evidence
+        # still comes from governed English KUs. Falls through to the same-language path if empty.
+        via = _retry_via_english_query(
+            db, query, lang, domain=domain, limit=limit, allow_network=allow_network, provider=provider,
+            force_mode=force_mode, alias_hints=alias_hints, user_authorization_context=user_authorization_context,
+            intent=intent, safety_classification=safety_classification, request_trace_id=request_trace_id,
+            allowed_knowledge_classes=allowed_knowledge_classes,
+        )
+        if via is not None:
+            return via
     authorized_ku_ids: Optional[set[int]] = None
     if authority is not None:
         meta["concept_authority_applied"] = True
