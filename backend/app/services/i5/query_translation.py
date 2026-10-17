@@ -25,9 +25,10 @@ _CACHE: "OrderedDict[str, str]" = OrderedDict()
 _CACHE_MAX = 512
 _NON_LATIN = re.compile(r"[\u0600-\u06FF]")
 _INSTRUCTIONS = (
-    "Rewrite the user's health question as a short English search query for official medical sources "
-    "(condition, treatment, care, prevention, nutrition, exercise or mental-health topic names in English). "
-    "Output only the query, no explanation, no quotes. Do not answer the question."
+    "Extract the health topic of the user's question as a short English keyword query for official medical "
+    "sources: the condition or topic name only (expand abbreviations, e.g. ALS -> amyotrophic lateral sclerosis), "
+    "at most 5 words, no question words, no filler such as care/prevention/explain. "
+    "Output only the keywords, no explanation, no quotes. Do not answer the question."
 )
 
 

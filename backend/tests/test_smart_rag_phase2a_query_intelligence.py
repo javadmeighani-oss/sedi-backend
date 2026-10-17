@@ -302,9 +302,27 @@ def test_evidence_strength_only_must_not_create_contradiction():
     assert detect_retrieval_set_contradictions(items) == ()
 
 
+def test_complementary_sections_of_one_topic_are_not_a_contradiction():
+    items = [
+        _item(ku_id=1, canon="a", domain="neurology_als", topic="als",
+              statement="Amyotrophic lateral sclerosis — Summary: ALS is a nervous system disease."),
+        _item(ku_id=2, canon="b", domain="neurology_als", topic="als",
+              statement="Amyotrophic lateral sclerosis — Treatment: riluzole may slow progression."),
+    ]
+    assert detect_retrieval_set_contradictions(items) == ()
+    assert evaluate_retrieval_sufficiency(items).sufficient is True
+
+
+def test_diverging_medical_safety_state_is_still_a_contradiction():
+    a = _item(ku_id=1, canon="a", statement="guidance A")
+    b = _item(ku_id=2, canon="b", statement="guidance B")
+    b.medical_safety_state = "BLOCKED"
+    assert evaluate_retrieval_sufficiency([a, b]).reason == SUFFICIENCY_UNRESOLVED_CONFLICT
+
+
 def test_contradiction_unresolved_fail_closed():
     items = [
-        _item(ku_id=1, canon="a", statement="do X for sleep", strength="HIGH"),
+        _item(ku_id=1, canon="a", statement="do X for sleep", strength="HIGH", conflict="CONFIRMED"),
         _item(ku_id=2, canon="b", statement="avoid X for sleep", strength="HIGH"),
     ]
     hits = detect_retrieval_set_contradictions(items)
@@ -318,7 +336,7 @@ def test_contradiction_unresolved_fail_closed():
 
 def test_contradiction_serving_path_clears_items():
     items = [
-        _item(ku_id=1, canon="a", statement="prefer rest", strength="HIGH"),
+        _item(ku_id=1, canon="a", statement="prefer rest", strength="HIGH", conflict="CONFIRMED"),
         _item(ku_id=2, canon="b", statement="prefer activity", strength="HIGH"),
     ]
     db = MagicMock()
@@ -335,7 +353,7 @@ def test_contradiction_serving_path_clears_items():
 
 def test_lower_authority_cannot_override_via_conflict_clearance():
     # Both governed; unresolved conflict clears the whole set (no override).
-    governed = _item(ku_id=1, canon="gov", statement="guidance A", strength="HIGH")
+    governed = _item(ku_id=1, canon="gov", statement="guidance A", strength="HIGH", conflict="SUSPECTED")
     other = _item(ku_id=2, canon="low", statement="guidance B", strength="LOW")
     d = evaluate_retrieval_sufficiency([governed, other])
     assert d.sufficient is False
