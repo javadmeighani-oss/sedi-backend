@@ -125,7 +125,7 @@ jobs:
               from backend.app.core.conversation.prompts import build_system_prompt_with_context, resolve_openai_chat_model
               from openai import OpenAI
               sysmsg = build_system_prompt_with_context("fa", "جواد", None)
-              print("BREADTH|sysprompt|chars=%d" % len(sysmsg))
+              print("BREADTH|sysprompt|chars=%d full=%s" % (len(sysmsg), sysmsg.replace(chr(10), " / ")))
               for ln in sysmsg.split(chr(10)):
                   if any(k in ln.lower() for k in ("source", "منبع", "verified", "تأیید", "medical", "پزشک", "invent", "حدس", "guess", "knowledge", "دانش")):
                       print("BREADTH|sysline|%s" % ln.strip()[:240])
@@ -134,7 +134,7 @@ jobs:
               _maybe_append_gate3_care_context(msgs, db, uid, msg, "fa")
               msgs.append({"role": "user", "content": msg})
               print("BREADTH|msgs|n=%d roles=%s" % (len(msgs), [m["role"] for m in msgs]))
-              rsp = OpenAI().chat.completions.create(model=resolve_openai_chat_model(), messages=msgs, temperature=0.4, max_tokens=500)
+              rsp = OpenAI().chat.completions.create(model=resolve_openai_chat_model(), messages=msgs, max_completion_tokens=700)
               print("BREADTH|model|%s" % resolve_openai_chat_model())
               print("BREADTH|reply|%s" % rsp.choices[0].message.content.replace(chr(10), " / ")[:900])
               db.rollback()
