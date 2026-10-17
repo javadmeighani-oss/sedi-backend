@@ -136,7 +136,7 @@ SOURCE_MANIFEST: dict[str, dict[str, Any]] = {
         "RIGHTS_BASIS": "Public listing facts, founder-approved D-013; attribution via source_system_label",
         "FACTS_ONLY_EXTRACTION": True,
         "ATTRIBUTION_REQUIRED": True,
-        "CONSERVATIVE_REQUEST_POLICY": "single concurrency; >=0.5s between pages; bounded pages per run",
+        "CONSERVATIVE_REQUEST_POLICY": "single concurrency; >=3s between pages; bounded pages per run",
         "STABLE_EXTERNAL_RECORD_ID_AVAILABLE": True,
         "FIELDS_AVAILABLE": ("name", "specialty", "city", "province", "address", "landline_phone"),
         "PROVIDER_DATA_TYPE": "commercial_directory_public_listing_facts",

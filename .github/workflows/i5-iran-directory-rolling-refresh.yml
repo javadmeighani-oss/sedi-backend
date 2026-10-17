@@ -19,7 +19,7 @@ on:
       page_budget:
         description: "Max doctor pages to crawl in this run."
         required: true
-        default: "3000"
+        default: "500"
       payload_artifact_name:
         description: "Artifact name for the normalized Iran directory payload."
         required: true
@@ -39,7 +39,7 @@ jobs:
     name: Bounded Paziresh24 slice → artifact
     if: github.event_name == 'workflow_dispatch' || vars.SEDI_DIRECTORY_REFRESH_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - name: Validate confirmation
         id: validate_inputs
@@ -82,7 +82,7 @@ jobs:
       - name: Run bounded Paziresh24 slice
         id: acquire
         env:
-          PAGE_BUDGET: ${{ github.event.inputs.page_budget || '3000' }}
+          PAGE_BUDGET: ${{ github.event.inputs.page_budget || '500' }}
         run: |
           set -Eeuo pipefail
           export PYTHONPATH="${GITHUB_WORKSPACE}${PYTHONPATH:+:${PYTHONPATH}}"

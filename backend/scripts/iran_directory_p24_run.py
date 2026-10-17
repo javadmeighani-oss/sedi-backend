@@ -24,9 +24,9 @@ def window(urls: list[str], budget: int, week_index: int) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Paziresh24 rolling directory crawl")
-    parser.add_argument("--budget", type=int, default=2000, help="max doctor pages this run")
+    parser.add_argument("--budget", type=int, default=500, help="max doctor pages this run (polite weekly slice)")
     parser.add_argument("--week-index", type=int, default=date.today().toordinal() // 7)
-    parser.add_argument("--interval", type=float, default=0.5)
+    parser.add_argument("--interval", type=float, default=3.0)
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
