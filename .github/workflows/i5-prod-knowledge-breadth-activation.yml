@@ -125,20 +125,28 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              import collections
-              from sqlalchemy import func
-              runs = db.query(models.WeeklyKnowledgeRun, models.WeeklyKnowledgeRunAttempt).join(models.WeeklyKnowledgeRunAttempt, models.WeeklyKnowledgeRunAttempt.id == models.WeeklyKnowledgeRun.latest_attempt_id).order_by(models.WeeklyKnowledgeRun.id.desc()).limit(8).all()
-              for r, a in runs:
-                  print("BREADTH|run|id=%s trigger=%s schedule=%s status=%s started=%s total=%s fetched=%s blocked=%s failed=%s" % (r.id, r.trigger_type, r.schedule_key, a.status, a.started_at, a.total_sources, a.fetched_sources, a.blocked_sources, a.failed_sources))
-              att = runs[0][1]
-              rows = db.query(models.WeeklyRunSourceResult).filter_by(attempt_id=att.id).all()
-              print("BREADTH|last_counts|new=%s updated=%s superseded=%s rejected=%s" % (sum(r.knowledge_new_count or 0 for r in rows), sum(r.knowledge_updated_count or 0 for r in rows), sum(r.knowledge_superseded_count or 0 for r in rows), sum(r.knowledge_rejected_count or 0 for r in rows)))
-              fr = db.query(models.KnowledgeUnit.freshness_state, models.KnowledgeUnit.runtime_eligibility, func.count()).group_by(models.KnowledgeUnit.freshness_state, models.KnowledgeUnit.runtime_eligibility).all()
-              print("BREADTH|freshness|%s" % fr)
-              lr = db.query(func.min(models.KnowledgeUnit.last_reviewed_at), func.max(models.KnowledgeUnit.last_reviewed_at)).filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE").one()
-              print("BREADTH|last_reviewed_range|%s .. %s" % lr)
-              print("BREADTH|vectors|%s" % db.execute(__import__("sqlalchemy").text("SELECT COUNT(*) FILTER (WHERE embedding_vector IS NOT NULL), COUNT(*) FROM knowledge_chunk_embeddings WHERE retracted_at IS NULL")).fetchone())
-              print("BREADTH|ku_new_last_8d|%s" % db.query(func.count()).select_from(models.KnowledgeUnit).filter(models.KnowledgeUnit.created_at > func.now() - __import__("sqlalchemy").text("interval '8 days'")).scalar())
+              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
+              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
+              from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+              from backend.app.services.intelligence.safety_risk import requires_terminal_safety_response
+              from backend.app.services.i5.care_navigation_directory import resolve_care_navigation
+              orch = IntelligenceOrchestrator(db=db)
+              for text, lang in (("از ساعت دو شب درد شدید قفسه سینه دارم و نفسم بند اومده", "fa"), ("I have crushing chest pain and cannot breathe", "en"), ("ألم شديد في الصدر وضيق في التنفس", "ar"), ("چقدر باید ورزش کنم؟", "fa")):
+                  a = orch.precheck_safety_risk(message=text, language=lang)
+                  print("BREADTH|safety|lang=%s terminal=%s q=%s" % (lang, requires_terminal_safety_response(a), text[:30]))
+              r = resolve_care_navigation(db, "یه دندانپزشک در تهران معرفی کن", language="fa")
+              print("BREADTH|directory|status=%s msg=%s" % (getattr(r, "status", None), (getattr(r, "user_message", "") or "").replace(chr(10), " / ")[:240]))
+              cases = (("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"), ("ar", "كيف أتعامل مع القلق والتوتر وقلة النوم؟"),
+                       ("en", "How much exercise do adults need each week?"), ("en", "I feel anxious and cannot sleep, what can help?"),
+                       ("fa", "دست‌هام گاهی می‌لرزه و ضعف دارم؛ ممکنه ام اس یا ای ال اس باشه؟ چه کار کنم؟"),
+                       ("fa", "برای پیشگیری از دیابت و فشار خون چه برنامه‌ی غذایی و ورزشی پیشنهاد می‌کنی؟"))
+              for lang, text in cases:
+                  msgs = [{"role": "system", "content": build_system_prompt_with_context(lang, "جواد", None)}]
+                  _maybe_append_gate3_care_context(msgs, db, uids[1], text, lang)
+                  ctx = sum(len(m["content"]) for m in msgs[1:])
+                  msgs.append({"role": "user", "content": text})
+                  rsp = create_primary_chat_response(msgs)
+                  print("BREADTH|chat|lang=%s ctx=%d q=%s reply=%s" % (lang, ctx, text[:32], (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:780]))
               db.rollback()
           finally:
               db.close()
