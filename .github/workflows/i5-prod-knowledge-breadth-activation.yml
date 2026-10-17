@@ -1,0 +1,149 @@
+# D-017 — Activate the I5 knowledge-breadth allowlist (21 sources / 143 URLs) on production and run
+# the governed weekly crawl once. workflow_dispatch only. The allowlist comes from the deployed image
+# (no file sync). Pre-activation pg_dump; image revision pinned; counts before/after; no secrets printed.
+name: I5 Production Knowledge Breadth Activation
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "PREFLIGHT | ACTIVATE"
+        required: true
+      confirmation:
+        description: "BREADTH_PREFLIGHT | BREADTH_ACTIVATE_AND_RUN"
+        required: true
+      deployed_image_sha:
+        description: "40-char SHA of the deployed backend image"
+        required: true
+      expected_alembic_revision:
+        description: "Exact production alembic_version"
+        required: true
+      allowlist_version:
+        description: "Expected allowlist_version inside the image"
+        required: true
+        default: i5-multisource-v1-knowledge-breadth-01
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Knowledge breadth ${{ github.event.inputs.phase }}
+    if: >-
+      (github.event.inputs.phase == 'PREFLIGHT' && github.event.inputs.confirmation == 'BREADTH_PREFLIGHT') ||
+      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'BREADTH_ACTIVATE_AND_RUN')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+          AL: ${{ github.event.inputs.allowlist_version }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+          echo "${AL}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - name: SSH run
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+          AL: ${{ github.event.inputs.allowlist_version }}
+          PHASE: ${{ github.event.inputs.phase }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DP="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=240 \
+            -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DP} IMAGE_SHA=$(printf '%q' "${SHA}") EXPECTED_REV=$(printf '%q' "${REV}") ALLOW_VER=$(printf '%q' "${AL}") PHASE=$(printf '%q' "${PHASE}") bash -s" \
+            2>&1 <<'REMOTE' | tee /tmp/breadth.log
+          set -Eeuo pipefail
+          s() { echo "BREADTH|$1|$2"; }
+          psql_prod() { docker exec sedi-postgres psql -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -tA -c "$1" | tr -d '\r'; }
+          cd "${DEPLOY_PATH}"
+          IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "${IMG}" | grep -Fq "${IMAGE_SHA}" || { s image_tag_guard FAIL; exit 10; }
+          REVL="$(docker image inspect "$(docker inspect sedi-backend --format '{{.Image}}')" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          [ "${REVL}" = "${IMAGE_SHA}" ] || { s oci_revision_guard FAIL; exit 11; }
+          s image_guard PASS
+          [ "$(psql_prod 'SELECT COUNT(*) FROM alembic_version;')" = "1" ] && [ "$(psql_prod 'SELECT version_num FROM alembic_version;')" = "${EXPECTED_REV}" ] || { s alembic_guard FAIL; exit 12; }
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health PASS
+          counts() {
+            s "$1_ku" "$(psql_prod 'SELECT COUNT(*) FROM knowledge_units;')"
+            s "$1_ku_eligible" "$(psql_prod "SELECT COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE';")"
+            s "$1_kce" "$(psql_prod 'SELECT COUNT(*) FROM knowledge_chunk_embeddings;')"
+            s "$1_sources_active_eligible" "$(psql_prod "SELECT COUNT(*) FROM governed_source_profiles WHERE runtime_eligibility='ELIGIBLE';")"
+            s "$1_ku_neuro" "$(psql_prod "SELECT COUNT(*) FROM knowledge_units WHERE domain LIKE 'neurology%' AND runtime_eligibility='ELIGIBLE';")"
+            s "$1_ku_mental" "$(psql_prod "SELECT COUNT(*) FROM knowledge_units WHERE domain='mental_health_psychology' AND runtime_eligibility='ELIGIBLE';")"
+            s "$1_ku_als_text" "$(psql_prod "SELECT COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE' AND (normalized_statement ILIKE '%amyotrophic%' OR normalized_statement ILIKE '%motor neurone%');")"
+          }
+          counts before
+          docker exec -i -e ALLOW_VER="${ALLOW_VER}" sedi-backend python - <<'PY'
+          import os, json
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest
+          from backend.app.services.i5.multisource_activation import active_allowlist_rows, multisource_enabled
+          load_trusted_source_manifest.cache_clear()
+          d = load_trusted_source_manifest()
+          rows = active_allowlist_rows()
+          urls = sum(1 + len(r.get("additional_urls") or []) for r in rows)
+          print("BREADTH|allowlist_version|%s" % d.get("allowlist_version"))
+          print("BREADTH|active_sources|%d" % len(rows))
+          print("BREADTH|controlled_urls|%d" % urls)
+          print("BREADTH|multisource_enabled|%s" % multisource_enabled())
+          assert d.get("allowlist_version") == os.environ["ALLOW_VER"], "ALLOWLIST_VERSION_MISMATCH"
+          assert multisource_enabled(), "MULTISOURCE_ENV_NOT_ENABLED"
+          PY
+          if [ "${PHASE}" = "PREFLIGHT" ]; then s phase_preflight PASS; exit 0; fi
+          TS="$(date -u +%Y%m%d_%H%M%S)"
+          mkdir -p "${DEPLOY_PATH}/backups/postgres"
+          BK="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_breadth_${TS}.sql.gz"
+          docker exec sedi-postgres pg_dump -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" | gzip > "${BK}"
+          gzip -t "${BK}" && [ -s "${BK}" ] || { s backup FAIL; exit 20; }
+          s backup_file "sedi_db_pre_breadth_${TS}.sql.gz"
+          s backup_sha256 "$(sha256sum "${BK}" | awk '{print $1}')"
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.multisource_activation import activate_multisource_allowlist
+          db = next(get_db())
+          try:
+              r = activate_multisource_allowlist(db, models)
+              db.commit()
+              print("BREADTH|activated|%d" % len(r.activated_source_keys))
+              print("BREADTH|fetch_enabled|%d" % r.fetch_enabled_count)
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+          s phase_activated PASS
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          o = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print("BREADTH|weekly_outcome|%s network=%s detail=%s run_id=%s" % (o.outcome, o.network_executed, o.detail, o.run_id))
+          assert o.outcome not in {"ERROR", "FAILED"}, "WEEKLY_FAILED"
+          PY
+          counts after
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health_after PASS
+          s phase_activate_and_run PASS
+          REMOTE
+          grep -Eq 'BREADTH\|phase_(preflight|activate_and_run)\|PASS' /tmp/breadth.log
+          if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/breadth.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: breadth-${{ github.event.inputs.phase }}
+          path: /tmp/breadth.log
+          retention-days: 30
