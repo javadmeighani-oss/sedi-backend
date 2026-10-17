@@ -122,17 +122,22 @@ jobs:
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
               from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              for uid in uids:
-                  try:
-                      msgs = []
-                      _maybe_append_gate3_care_context(msgs, db, uid, msg, "fa")
-                      txt = chr(10).join(m["content"] for m in msgs)
-                      print("BREADTH|brain|uid=%s msgs=%d chars=%d has_ALS_text=%s has_nofallback=%s head=%s" % (uid, len(msgs), len(txt), "Amyotrophic" in txt, "NO_BASE_MODEL" in txt, txt[:260].replace(chr(10), " | ")))
-                      print("BREADTH|brain_tail|uid=%s %s" % (uid, txt[-200:].replace(chr(10), " | ")))
-                      db.rollback()
-                  except Exception as e:
-                      db.rollback()
-                      print("BREADTH|chat_error|uid=%s %s:%s" % (uid, type(e).__name__, str(e)[:200].replace(chr(10), " ")))
+              from backend.app.core.conversation.prompts import build_system_prompt_with_context, resolve_openai_chat_model
+              from openai import OpenAI
+              sysmsg = build_system_prompt_with_context("fa", "جواد", None)
+              print("BREADTH|sysprompt|chars=%d" % len(sysmsg))
+              for ln in sysmsg.split(chr(10)):
+                  if any(k in ln.lower() for k in ("source", "منبع", "verified", "تأیید", "medical", "پزشک", "invent", "حدس", "guess", "knowledge", "دانش")):
+                      print("BREADTH|sysline|%s" % ln.strip()[:240])
+              uid = uids[0]
+              msgs = [{"role": "system", "content": sysmsg}]
+              _maybe_append_gate3_care_context(msgs, db, uid, msg, "fa")
+              msgs.append({"role": "user", "content": msg})
+              print("BREADTH|msgs|n=%d roles=%s" % (len(msgs), [m["role"] for m in msgs]))
+              rsp = OpenAI().chat.completions.create(model=resolve_openai_chat_model(), messages=msgs, temperature=0.4, max_tokens=500)
+              print("BREADTH|model|%s" % resolve_openai_chat_model())
+              print("BREADTH|reply|%s" % rsp.choices[0].message.content.replace(chr(10), " / ")[:900])
+              db.rollback()
           finally:
               db.close()
           PY
