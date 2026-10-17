@@ -805,7 +805,16 @@ def retrieve_knowledge_context(
     result.observability.update(coref.to_audit_dict())
     # ORIGINAL_QUERY always preserved on result.original_query (never rewritten).
 
-    if coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED}:
+    # Pronoun / "for me" cues only matter for PERSONAL referents (medication, result, another person).
+    # A general-knowledge question such as "explain ALS for me" or "tell me about it" binds no personal
+    # data, so an unresolved generic/self cue must not block governed retrieval (it made natural Persian
+    # phrasings like "برای من توضیح بده" / "در موردش" refuse). Medication/result/other-person cues still do.
+    _coref_blocks = coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED} and (
+        coref.cue_kind not in {"GENERIC", "HEALTH_SUBJECT_SELF"}
+    )
+    if coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED} and not _coref_blocks:
+        result.query_intelligence["coreference_general_knowledge_continue"] = True
+    if _coref_blocks:
         result.status = STATUS_INSUFFICIENT_CONTEXT
         result.clarification_required = True
         result.safe_user_facing_intent = (
