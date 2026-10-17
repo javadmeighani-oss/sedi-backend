@@ -124,20 +124,20 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, resolve_openai_chat_model, create_primary_chat_response
-              refusal1 = "جواد، می‌فهمم می‌خوای درباره‌ی ALS و مراقبت و پیشگیری‌اش بدانی. اما در این گفت‌وگو منبع پزشکیِ تأییدشده‌ای برای ارائه‌ی اطلاعات دقیق ندارم و نمی‌خوام درباره‌ی بیماری یا پیشگیری از آن حدس بزنم."
-              refusal2 = "جواد، دوباره بررسی کردم، اما در این گفت‌وگو به منبع پزشکیِ تأییدشده‌ای درباره‌ی ALS دسترسی ندارم و نمی‌خوام اطلاعاتش رو حدس بزنم یا نادرست بگم."
-              msg2 = "در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی"
-              for label, hist in (("fresh", []), ("with_refusal_history", [("user", msg), ("assistant", refusal1), ("user", "دوباره بررسی کن و در مورد این بیماری برای من توضیح بده"), ("assistant", refusal2)])):
-                  sysmsg = build_system_prompt_with_context("fa", "جواد", None)
-                  msgs = [{"role": "system", "content": sysmsg}]
-                  _maybe_append_gate3_care_context(msgs, db, uids[0], msg2, "fa")
-                  for role, text in hist:
-                      msgs.append({"role": role, "content": text})
-                  msgs.append({"role": "user", "content": msg2})
-                  rsp = create_primary_chat_response(msgs)
-                  print("BREADTH|replay|%s reply=%s" % (label, (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:420]))
+              from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
+              from backend.app.services.i5.query_translation import translate_query_alternatives
+              tests = ["در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی",
+                       "دوباره بررسی کن و در مورد این بیماری برای من توضیح بده",
+                       "ALS چیست؟",
+                       "در مورد بیماری ALS توضیح بده",
+                       "ALS رو توضیح بده"]
+              for q in tests:
+                  alts = translate_query_alternatives(q, "fa")
+                  r = retrieve_knowledge_context(db, q, user_id=uids[1], language="fa", limit=5, enqueue_gap_on_empty=False)
+                  d = r.to_dict()
+                  sa = d.get("sufficiency_audit") or {}
+                  qi = d.get("query_intelligence") or {}
+                  print("BREADTH|q|%s | alts=%s status=%s reason=%s clar=%s items=%d intent=%s coref=%s" % (q[:40], alts, d.get("status"), sa.get("reason"), d.get("clarification_required"), len(d.get("knowledge_snippets") or []), str(d.get("safe_user_facing_intent"))[:90], str((qi.get("coreference") or {}).get("state"))))
               db.rollback()
           finally:
               db.close()
