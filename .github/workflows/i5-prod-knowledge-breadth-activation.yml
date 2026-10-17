@@ -133,6 +133,11 @@ jobs:
               from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
               for lang, q in qs:
                   alts = translate_query_alternatives(q, lang)
+                  if not alts:
+                      from openai import OpenAI
+                      from backend.app.services.i5 import query_translation as _qt
+                      rr = OpenAI().chat.completions.create(model=_qt.DEFAULT_MODEL, messages=[{"role": "system", "content": _qt._INSTRUCTIONS}, {"role": "user", "content": q}], temperature=0, max_tokens=80)
+                      print("BREADTH|rawout|%r enabled=%s needs=%s" % (rr.choices[0].message.content, _qt.translation_enabled(), _qt.needs_translation(q, lang)))
                   print("BREADTH|alts|lang=%s %r" % (lang, alts))
                   for a in alts:
                       its, mt = retrieve_scis_governed_runtime_items(db, a, language="en", limit=3, allow_network=True, _via_translation=True)
