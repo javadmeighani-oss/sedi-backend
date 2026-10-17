@@ -1452,7 +1452,9 @@ class IntelligenceOrchestrator:
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
             validated = self._safety_validator(text=out_message, language=lang)
-            out_message = validated.message
+            from backend.app.services.intelligence.plain_text import to_plain_chat_text
+
+            out_message = to_plain_chat_text(validated.message)
             post_val_status = validated.status
             ctx.append_stage(
                 StageName.VALIDATE_GENERATION_RESULT,
