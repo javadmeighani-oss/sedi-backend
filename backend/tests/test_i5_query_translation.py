@@ -46,7 +46,7 @@ def test_rejects_non_english_or_failed_output():
 
 
 def test_adapter_retries_with_english_and_marks_meta(monkeypatch):
-    monkeypatch.setattr(qt, "translate_query_to_english", lambda q, l, client=None: "amyotrophic lateral sclerosis care")
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda q, l, client=None: ["amyotrophic lateral sclerosis care"])
     seen = {}
 
     def fake(db, query, **kw):
@@ -61,8 +61,27 @@ def test_adapter_retries_with_english_and_marks_meta(monkeypatch):
 
 
 def test_adapter_falls_through_when_no_translation_or_no_items(monkeypatch):
-    monkeypatch.setattr(qt, "translate_query_to_english", lambda *a, **k: None)
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: [])
     assert adapter._retry_via_english_query(None, "q", "fa") is None
-    monkeypatch.setattr(qt, "translate_query_to_english", lambda *a, **k: "english query")
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["english query"])
     monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", lambda *a, **k: ([], {}))
     assert adapter._retry_via_english_query(None, "q", "fa") is None
+
+
+def test_alternatives_are_parsed_deduped_and_limited():
+    c = _Client("1. multiple sclerosis" + chr(10) + "- Multiple Sclerosis" + chr(10) + "neurological disease" + chr(10) + "extra query four")
+    alts = qt.translate_query_alternatives("علائم ام اس چیست؟", "fa", c)
+    assert alts == ["multiple sclerosis", "neurological disease", "extra query four"]
+
+
+def test_adapter_tries_alternatives_until_one_hits(monkeypatch):
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["anxiety stress self help", "anxiety"])
+    calls = []
+
+    def fake(db, query, **kw):
+        calls.append(query)
+        return (["ITEM"], {}) if query == "anxiety" else ([], {})
+
+    monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", fake)
+    items, meta = adapter._retry_via_english_query(None, "اضطراب", "fa")
+    assert calls == ["anxiety stress self help", "anxiety"] and items == ["ITEM"]

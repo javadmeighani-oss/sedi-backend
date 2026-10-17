@@ -218,19 +218,18 @@ def _map_evidence_to_items(
 
 
 def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) -> Optional[Tuple[List[RetrievedKnowledgeItem], dict]]:
-    from backend.app.services.i5.query_translation import translate_query_to_english
+    from backend.app.services.i5.query_translation import translate_query_alternatives
 
-    english = translate_query_to_english(query or "", lang)
-    if not english:
-        return None
-    items, meta = retrieve_scis_governed_runtime_items(db, english, language="en", _via_translation=True, **kwargs)
-    if not items:
-        return None
-    meta["cross_language_via_translation"] = True
-    meta["translated_query_used"] = True
-    meta["language"] = lang
-    meta["cross_language_authorized"] = True
-    return items, meta
+    # Lexical search ANDs tokens, so try specific -> general keyword queries until one hits.
+    for english in translate_query_alternatives(query or "", lang):
+        items, meta = retrieve_scis_governed_runtime_items(db, english, language="en", _via_translation=True, **kwargs)
+        if items:
+            meta["cross_language_via_translation"] = True
+            meta["translated_query_used"] = True
+            meta["language"] = lang
+            meta["cross_language_authorized"] = True
+            return items, meta
+    return None
 
 
 def retrieve_scis_governed_runtime_items(

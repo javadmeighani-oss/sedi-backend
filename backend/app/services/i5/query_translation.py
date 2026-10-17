@@ -21,14 +21,15 @@ MODEL_ENV = "SEDI_I5_QUERY_TRANSLATION_MODEL"
 DEFAULT_MODEL = "gpt-4o-mini"
 MAX_QUERY_CHARS = 400
 MAX_OUT_CHARS = 200
-_CACHE: "OrderedDict[str, str]" = OrderedDict()
+_CACHE: "OrderedDict[str, tuple]" = OrderedDict()
 _CACHE_MAX = 512
 _NON_LATIN = re.compile(r"[\u0600-\u06FF]")
 _INSTRUCTIONS = (
-    "Extract the health topic of the user's question as a short English keyword query for official medical "
-    "sources: the condition or topic name only (expand abbreviations, e.g. ALS -> amyotrophic lateral sclerosis), "
-    "at most 5 words, no question words, no filler such as care/prevention/explain. "
-    "Output only the keywords, no explanation, no quotes. Do not answer the question."
+    "Turn the user's health question into English keyword search queries for official medical sources. "
+    "Output up to 3 alternative queries, one per line, from most specific to most general. "
+    "Each query: the condition or topic name only (expand abbreviations, e.g. ALS -> amyotrophic lateral sclerosis), "
+    "1 to 3 words, no question words, no filler such as care, prevention, symptoms, treatment, explain. "
+    "No numbering, no quotes, no explanation. Do not answer the question."
 )
 
 
@@ -41,14 +42,14 @@ def needs_translation(query: str, language: Optional[str]) -> bool:
     return bool(query and query.strip()) and not lang.startswith("en") and bool(_NON_LATIN.search(query))
 
 
-def translate_query_to_english(query: str, language: Optional[str], client: Any = None) -> Optional[str]:
-    """English search query, or None when disabled/unavailable. Never raises."""
+def translate_query_alternatives(query: str, language: Optional[str], client: Any = None) -> list[str]:
+    """Up to 3 English keyword queries (specific → general), [] when disabled/unavailable. Never raises."""
     if not translation_enabled() or not needs_translation(query, language):
-        return None
+        return []
     text = " ".join(query.split())[:MAX_QUERY_CHARS]
     if text in _CACHE:
         _CACHE.move_to_end(text)
-        return _CACHE[text]
+        return list(_CACHE[text])
     try:
         if client is None:
             from openai import OpenAI
@@ -58,14 +59,27 @@ def translate_query_to_english(query: str, language: Optional[str], client: Any 
             model=os.getenv(MODEL_ENV, DEFAULT_MODEL),
             messages=[{"role": "system", "content": _INSTRUCTIONS}, {"role": "user", "content": text}],
             temperature=0,
-            max_tokens=60,
+            max_tokens=80,
         )
-        out = " ".join(str(resp.choices[0].message.content or "").replace('"', " ").split())[:MAX_OUT_CHARS]
+        raw = str(resp.choices[0].message.content or "")
     except Exception:  # noqa: BLE001 — retrieval aid only
-        return None
-    if not out or _NON_LATIN.search(out) or len(out) < 3:
-        return None
-    _CACHE[text] = out
+        return []
+    out: list[str] = []
+    for line in raw.splitlines():
+        cand = " ".join(re.sub(r'^[\s\-\*\d\.\)]+', "", line).replace('"', " ").split())[:MAX_OUT_CHARS]
+        if len(cand) >= 3 and not _NON_LATIN.search(cand) and cand.lower() not in {c.lower() for c in out}:
+            out.append(cand)
+        if len(out) == 3:
+            break
+    if not out:
+        return []
+    _CACHE[text] = tuple(out)
     if len(_CACHE) > _CACHE_MAX:
         _CACHE.popitem(last=False)
     return out
+
+
+def translate_query_to_english(query: str, language: Optional[str], client: Any = None) -> Optional[str]:
+    """First (most specific) English keyword query, or None."""
+    alts = translate_query_alternatives(query, language, client)
+    return alts[0] if alts else None
