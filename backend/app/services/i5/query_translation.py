@@ -25,11 +25,16 @@ _CACHE: "OrderedDict[str, tuple]" = OrderedDict()
 _CACHE_MAX = 512
 _NON_LATIN = re.compile(r"[\u0600-\u06FF]")
 _INSTRUCTIONS = (
-    "Turn the user's health question into English keyword search queries for official medical sources. "
-    "Output up to 3 alternative queries, one per line, from most specific to most general. "
-    "Each query: the condition or topic name only (expand abbreviations, e.g. ALS -> amyotrophic lateral sclerosis), "
-    "1 to 3 words, no question words, no filler such as care, prevention, symptoms, treatment, explain. "
-    "No numbering, no quotes, no explanation. Do not answer the question."
+    "You translate health questions (Persian, Arabic or other) into ENGLISH keyword search queries for "
+    "official medical sources. The output MUST be in English using Latin letters only, never in the "
+    "user's language. Output up to 3 alternative queries, one per line, from most specific to most "
+    "general. Each query is the condition or topic name only (expand abbreviations), 1 to 3 words, no "
+    "question words, no filler. No numbering, no quotes, no explanation. Do not answer the question."
+    "\nExamples:\n"
+    "Question: علائم و درمان ام اس چیست؟ -> multiple sclerosis\nneurological disease\n"
+    "Question: برای اضطراب چه کنم؟ -> anxiety\nstress management\nmental health\n"
+    "Question: چقدر باید ورزش کنم؟ -> physical activity\nexercise\n"
+    "Question: ما هو مرض السكري؟ -> diabetes\nblood sugar\n"
 )
 
 
@@ -57,7 +62,7 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
             client = OpenAI()
         resp = client.chat.completions.create(
             model=os.getenv(MODEL_ENV, DEFAULT_MODEL),
-            messages=[{"role": "system", "content": _INSTRUCTIONS}, {"role": "user", "content": text}],
+            messages=[{"role": "system", "content": _INSTRUCTIONS}, {"role": "user", "content": "Question: " + text + " ->"}],
             temperature=0,
             max_tokens=80,
         )

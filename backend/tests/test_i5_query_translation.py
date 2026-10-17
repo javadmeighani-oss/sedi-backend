@@ -27,7 +27,7 @@ def test_translates_persian_and_caches():
     q = "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"
     assert qt.translate_query_to_english(q, "fa", c) == "ALS amyotrophic lateral sclerosis care and prevention"
     assert qt.translate_query_to_english(q, "fa", c) is not None and len(c.calls) == 1
-    assert c.calls[0]["messages"][1]["content"] == q  # only the question text, nothing else
+    assert c.calls[0]["messages"][1]["content"] == "Question: " + q + " ->"  # only the question text, nothing else
 
 
 def test_not_needed_for_english_or_latin_only_and_kill_switch(monkeypatch):
@@ -85,3 +85,8 @@ def test_adapter_tries_alternatives_until_one_hits(monkeypatch):
     monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", fake)
     items, meta = adapter._retry_via_english_query(None, "اضطراب", "fa")
     assert calls == ["anxiety stress self help", "anxiety"] and items == ["ITEM"]
+
+
+def test_prompt_demands_english_output_and_has_examples():
+    assert "ENGLISH" in qt._INSTRUCTIONS and "Latin letters only" in qt._INSTRUCTIONS
+    assert "multiple sclerosis" in qt._INSTRUCTIONS and "anxiety" in qt._INSTRUCTIONS
