@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "PREFLIGHT | ACTIVATE"
+        description: "PREFLIGHT | ACTIVATE | VECTOR_BACKFILL"
         required: true
       confirmation:
-        description: "BREADTH_PREFLIGHT | BREADTH_ACTIVATE_AND_RUN"
+        description: "BREADTH_PREFLIGHT | BREADTH_ACTIVATE_AND_RUN | BREADTH_VECTOR_BACKFILL"
         required: true
       deployed_image_sha:
         description: "40-char SHA of the deployed backend image"
@@ -35,7 +35,8 @@ jobs:
     name: Knowledge breadth ${{ github.event.inputs.phase }}
     if: >-
       (github.event.inputs.phase == 'PREFLIGHT' && github.event.inputs.confirmation == 'BREADTH_PREFLIGHT') ||
-      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'BREADTH_ACTIVATE_AND_RUN')
+      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'BREADTH_ACTIVATE_AND_RUN') ||
+      (github.event.inputs.phase == 'VECTOR_BACKFILL' && github.event.inputs.confirmation == 'BREADTH_VECTOR_BACKFILL')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -103,6 +104,38 @@ jobs:
           assert multisource_enabled(), "MULTISOURCE_ENV_NOT_ENABLED"
           PY
           if [ "${PHASE}" = "PREFLIGHT" ]; then s phase_preflight PASS; exit 0; fi
+          if [ "${PHASE}" = "VECTOR_BACKFILL" ]; then
+            TS="$(date -u +%Y%m%d_%H%M%S)"
+            mkdir -p "${DEPLOY_PATH}/backups/postgres"
+            BK="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_vectors_${TS}.sql.gz"
+            docker exec sedi-postgres pg_dump -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -t knowledge_chunk_embeddings | gzip > "${BK}"
+            gzip -t "${BK}" && [ -s "${BK}" ] || { s backup FAIL; exit 20; }
+            s backup_file "sedi_db_pre_vectors_${TS}.sql.gz"
+            s vectors_before "$(psql_prod 'SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE embedding_vector IS NOT NULL;')"
+            docker exec -i sedi-backend python - <<'PY'
+          import os
+          os.environ["SEDI_SCIS_SEMANTIC_INDEX_ENABLED"] = "true"
+          from backend.app.database import get_db
+          from backend.app.services.scis.serving_bridge import backfill_semantic_vectors
+          db = next(get_db())
+          total = 0
+          try:
+              for i in range(40):
+                  n = backfill_semantic_vectors(db, limit=100)
+                  db.commit()
+                  total += n
+                  print("BREADTH|backfill_batch|%d upgraded=%d" % (i, n))
+                  if n == 0:
+                      break
+          finally:
+              db.close()
+          print("BREADTH|backfill_total|%d" % total)
+          PY
+            s vectors_after "$(psql_prod 'SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE embedding_vector IS NOT NULL;')"
+            s lexical_only_left "$(psql_prod "SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE embedding_vector IS NULL AND retracted_at IS NULL;")"
+            curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health_after PASS
+            s phase_vector_backfill PASS; exit 0
+          fi
           TS="$(date -u +%Y%m%d_%H%M%S)"
           mkdir -p "${DEPLOY_PATH}/backups/postgres"
           BK="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_breadth_${TS}.sql.gz"
@@ -139,7 +172,7 @@ jobs:
           curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health_after PASS
           s phase_activate_and_run PASS
           REMOTE
-          grep -Eq 'BREADTH\|phase_(preflight|activate_and_run)\|PASS' /tmp/breadth.log
+          grep -Eq 'BREADTH\|phase_(preflight|activate_and_run|vector_backfill)\|PASS' /tmp/breadth.log
           if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/breadth.log; then echo SECRET_LEAK; exit 2; fi
       - if: always()
         uses: actions/upload-artifact@v4
