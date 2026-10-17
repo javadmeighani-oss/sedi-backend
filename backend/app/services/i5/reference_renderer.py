@@ -268,6 +268,19 @@ def build_disclosures(
     return unique
 
 
+_STATEMENT_CLIP = 560
+
+
+def _clip_statement(text: Any, limit: int = _STATEMENT_CLIP) -> str:
+    """Clip one statement for the chat budget at a sentence boundary (full text stays in the KU)."""
+    t = " ".join(str(text or "").split())
+    if len(t) <= limit:
+        return t
+    cut = t[:limit]
+    end = max(cut.rfind(". "), cut.rfind("; "), cut.rfind(": "))
+    return (cut[: end + 1] if end > limit // 2 else cut.rstrip()) + " …"
+
+
 def synthesize_grounded_text(
     evidence: Sequence[EvidenceHandoff],
     *,
@@ -279,7 +292,9 @@ def synthesize_grounded_text(
             "No safe governed knowledge is available. Do not invent medical content.",
             [],
         )
-    ordered = sorted(evidence, key=lambda e: (e.label, e.knowledge_unit_id))
+    # Keep retrieval rank order (most relevant first). Sorting by label put long reference pages first
+    # and the character budget then cut off the sections that answer the question (e.g. treatment).
+    ordered = list(evidence)
     claims: list[SupportedClaimView] = []
     lines: list[str] = []
     wrapper = "Educational summary from governed knowledge sources:"
@@ -296,7 +311,7 @@ def synthesize_grounded_text(
         )
     )
     for idx, ev in enumerate(ordered, start=1):
-        line = f"{idx}. {ev.normalized_statement} [{ev.label}]"
+        line = f"{idx}. {_clip_statement(ev.normalized_statement)} [{ev.label}]"
         lines.append(line)
         claims.append(
             SupportedClaimView(
@@ -429,7 +444,7 @@ def render_grounded_answer(
     )
 
 
-def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 3200) -> str:
+def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 4400) -> str:
     """Compact CARE_CONTEXT / brain system block from a grounded answer."""
     lines = [
         "[CARE_CONTEXT] W4-P02 grounded synthesis + references (educational use only):",
@@ -444,7 +459,7 @@ def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 32
                 "management, prevention). Do not say you lack a verified source when it is present."
             )
         lines.append("Grounded summary:")
-        lines.append(answer.synthesized_text[:2400])
+        lines.append(answer.synthesized_text[:3300])
     if answer.show_sources:
         lines.append("SHOW SOURCES:")
         for src in answer.show_sources[:5]:

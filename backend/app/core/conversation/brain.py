@@ -234,7 +234,7 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
             )
             ctx["i5_grounded_answer"] = grounded.model_dump()
             ctx["i5_chat_metadata"] = grounded.chat_metadata
-            w4p02_block = format_care_context_block(grounded, max_chars=3200)
+            w4p02_block = format_care_context_block(grounded, max_chars=4400)
             lines.append(w4p02_block)
         except Exception as render_exc:
             print(f"[BRAIN WARNING] W4-P02 reference renderer failed (non-critical): {render_exc}")
@@ -250,7 +250,7 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
                 lines.append(
                     "No safe governed knowledge available; do not invent medical content."
                 )
-        block = "\n".join(lines)[:4000]
+        block = "\n".join(lines)[:5200]
         messages.append({"role": "system", "content": block})
     except Exception as e:
         print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
@@ -290,9 +290,9 @@ def _maybe_append_structured_governed_knowledge(
             language=language,
             user_requested_sources=True,
         )
-        block = format_care_context_block(grounded, max_chars=3200)
+        block = format_care_context_block(grounded, max_chars=4400)
         if block and str(block).strip():
-            messages.append({"role": "system", "content": str(block).strip()[:3600]})
+            messages.append({"role": "system", "content": str(block).strip()[:4800]})
     except Exception as e:
         # Clear the aborted transaction so later Brain/I6 writes still proceed.
         # Do not retrieve again and do not supply invented evidence.
