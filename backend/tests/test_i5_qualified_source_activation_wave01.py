@@ -113,7 +113,7 @@ def test_who_remains_inactive_and_registry_activation_no():
 # --- D-010 knowledge breadth (neurology, chronic disease, mental health, lifestyle) ---------
 
 BREADTH_SPECIALIZED = {
-    "nhs_uk_conditions": {"D05", "D18", "D19", "D21", "D22", "D24", "D25"},
+    "nhs_uk_conditions": {"D01", "D02", "D03", "D05", "D10", "D18", "D19", "D21", "D22", "D24", "D25"},
     "nhs_uk_mental_health": {"D23"},
     "cdc_chronic_disease": {"D10", "D18", "D21", "D22", "D23", "D24", "D25"},
 }

@@ -213,6 +213,11 @@ D01 = SpecializedEntitySpec(
         "cancer.gov/types/",
         "medlineplus.gov/cancers.html",
         "cancers.html",
+        "nhs.uk/conditions/breast-cancer",
+        "nhs.uk/conditions/prostate-cancer",
+        "nhs.uk/conditions/lung-cancer",
+        "nhs.uk/conditions/bowel-cancer",
+        "nhs.uk/conditions/cervical-cancer",
     ),
     clinical_tokens=("cancer", "tumor", "oncology", "pdq", "chemotherapy", "radiation"),
     disease_label="oncology and supportive cancer care",
@@ -296,6 +301,7 @@ D02 = SpecializedEntitySpec(
     domain="respiratory",
     topic="lung_health",
     url_needles=(
+        "nhs.uk/conditions/asthma",
         "nhlbi.nih.gov/health",
         "medlineplus.gov/lungdiseases.html",
         "lungdiseases.html",
@@ -378,6 +384,8 @@ D10 = SpecializedEntitySpec(
         "medlineplus.gov/womenshealth.html",
         "womenshealth.html",
         "cdc.gov/womens-health",
+        "nhs.uk/conditions/menopause",
+        "nhs.uk/pregnancy/",
     ),
     clinical_tokens=(
         "women",
@@ -589,6 +597,8 @@ D23 = SpecializedEntitySpec(
         "nimh.nih.gov/health/topics/anxiety-disorders",
         "anxiety-disorders",
         "nhs.uk/mental-health/conditions/",
+        "nhs.uk/mental-health/feelings-symptoms-behaviours/",
+        "nhs.uk/tests-and-treatments/cognitive-behavioural-therapy",
         "cdc.gov/mental-health",
     ),
     clinical_tokens=(

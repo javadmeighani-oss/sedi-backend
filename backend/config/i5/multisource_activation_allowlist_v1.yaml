@@ -584,18 +584,29 @@ sources:
       - https://www.nhs.uk/conditions/fibromyalgia/
       - https://www.nhs.uk/conditions/insomnia/
       - https://www.nhs.uk/conditions/chronic-fatigue-syndrome-cfs/
+      # Cancer (D01), kidney (D03), asthma (D02), women's health and pregnancy (D10)
+      - https://www.nhs.uk/conditions/breast-cancer-in-women/
+      - https://www.nhs.uk/conditions/prostate-cancer/
+      - https://www.nhs.uk/conditions/lung-cancer/
+      - https://www.nhs.uk/conditions/bowel-cancer/
+      - https://www.nhs.uk/conditions/cervical-cancer/
+      - https://www.nhs.uk/conditions/kidney-disease/
+      - https://www.nhs.uk/conditions/asthma/
+      - https://www.nhs.uk/conditions/menopause-and-perimenopause/
+      - https://www.nhs.uk/pregnancy/keeping-well/have-a-healthy-diet/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/conditions/.*"
+      - "^https://www\\.nhs\\.uk/pregnancy/keeping-well/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_23_urls"
-    entity_coverage: [D05, D18, D19, D21, D22, D24, D25]
+    rate_limit: "weekly_controlled_max_32_urls"
+    entity_coverage: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic]
     activation: YES
     governed_low_risk_eligibility: NO
-    specialized_serving_eligibility: [D05, D18, D19, D21, D22, D24, D25]
+    specialized_serving_eligibility: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25]
     license_notes: "OGL v3.0 — attribution required (Information from the NHS website); consumer education not diagnosis; UK triage boxes (111/999/GP) are dropped at extraction"
 
   - source_key: nhs_uk_mental_health
@@ -604,14 +615,26 @@ sources:
     authority_class: OFFICIAL_NATIONAL
     adapter: PUBLIC_WEB_FETCH
     exact_url: https://www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder-gad/
-    additional_urls: []
+    additional_urls:
+      - https://www.nhs.uk/mental-health/conditions/depression-in-adults/
+      - https://www.nhs.uk/mental-health/conditions/panic-disorder/
+      - https://www.nhs.uk/mental-health/conditions/obsessive-compulsive-disorder-ocd/
+      - https://www.nhs.uk/mental-health/conditions/ptsd-post-traumatic-stress-disorder/
+      - https://www.nhs.uk/mental-health/conditions/bipolar-disorder/
+      - https://www.nhs.uk/mental-health/conditions/phobias/
+      - https://www.nhs.uk/mental-health/conditions/seasonal-affective-disorder-sad/
+      - https://www.nhs.uk/mental-health/conditions/postnatal-depression/
+      - https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/stress/
+      - https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/mental-health/conditions/.*"
+      - "^https://www\\.nhs\\.uk/mental-health/feelings-symptoms-behaviours/.*"
+      - "^https://www\\.nhs\\.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_1_urls"
+    rate_limit: "weekly_controlled_max_11_urls"
     entity_coverage: [D23]
     knowledge_domains: [mental_health_psychology]
     activation: YES
