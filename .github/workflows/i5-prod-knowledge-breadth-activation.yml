@@ -108,6 +108,7 @@ jobs:
             s running_image "$(docker inspect sedi-backend --format '{{.Config.Image}}' | sed 's/.*://')"
             s container_started "$(docker inspect sedi-backend --format '{{.State.StartedAt}}')"
             s now_utc "$(date -u +%FT%TZ)"
+            s scheduler_line "$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler registered' | tail -n1 | cut -c1-260)"
             docker exec -i sedi-backend python - <<'PY'
           import collections
           from backend.app.database import get_db
@@ -124,21 +125,20 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              qs = ["چقدر باید ورزش کنم؟", "ورزش برای سالمندان", "چطور آرام شوم؟", "خیلی استرس دارم و نمی‌تونم بخوابم", "غذای مناسب برای فشار خون", "علائم دیابت", "افسردگی چه راه‌هایی داره؟", "برای قلب چه بخورم؟"]
-              for q in qs:
-                  r = retrieve_knowledge_context(db, q, user_id=None, language="fa", limit=5, enqueue_gap_on_empty=False).to_dict()
-                  sn = r.get("knowledge_snippets") or []
-                  ob = r.get("observability") or {}
-                  print("BREADTH|vec|%s | %s n=%d mode=%s sem=%s first=%s" % (q, r.get("status"), len(sn), ob.get("effective_mode"), ob.get("semantic_count"), [x.get("content", "")[:46].replace(chr(10), " ") for x in sn[:3]]))
-              for label, text in (("anxiety_sleep", "خیلی استرس دارم و نمی‌تونم بخوابم، چیکار کنم؟"), ("exercise", "چقدر باید در هفته ورزش کنم؟"), ("heart_diet", "برای سلامت قلب چه بخورم؟")):
-                  msgs = [{"role": "system", "content": build_system_prompt_with_context("fa", "جواد", None)}]
-                  _maybe_append_gate3_care_context(msgs, db, uids[1], text, "fa")
-                  msgs.append({"role": "user", "content": text})
-                  rsp = create_primary_chat_response(msgs)
-                  print("BREADTH|replay|%s reply=%s" % (label, (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:900]))
+              import collections
+              from sqlalchemy import func
+              runs = db.query(models.WeeklyKnowledgeRun, models.WeeklyKnowledgeRunAttempt).join(models.WeeklyKnowledgeRunAttempt, models.WeeklyKnowledgeRunAttempt.id == models.WeeklyKnowledgeRun.latest_attempt_id).order_by(models.WeeklyKnowledgeRun.id.desc()).limit(8).all()
+              for r, a in runs:
+                  print("BREADTH|run|id=%s trigger=%s schedule=%s status=%s started=%s total=%s fetched=%s blocked=%s failed=%s" % (r.id, r.trigger_type, r.schedule_key, a.status, a.started_at, a.total_sources, a.fetched_sources, a.blocked_sources, a.failed_sources))
+              att = runs[0][1]
+              rows = db.query(models.WeeklyRunSourceResult).filter_by(attempt_id=att.id).all()
+              print("BREADTH|last_counts|new=%s updated=%s superseded=%s rejected=%s" % (sum(r.knowledge_new_count or 0 for r in rows), sum(r.knowledge_updated_count or 0 for r in rows), sum(r.knowledge_superseded_count or 0 for r in rows), sum(r.knowledge_rejected_count or 0 for r in rows)))
+              fr = db.query(models.KnowledgeUnit.freshness_state, models.KnowledgeUnit.runtime_eligibility, func.count()).group_by(models.KnowledgeUnit.freshness_state, models.KnowledgeUnit.runtime_eligibility).all()
+              print("BREADTH|freshness|%s" % fr)
+              lr = db.query(func.min(models.KnowledgeUnit.last_reviewed_at), func.max(models.KnowledgeUnit.last_reviewed_at)).filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE").one()
+              print("BREADTH|last_reviewed_range|%s .. %s" % lr)
+              print("BREADTH|vectors|%s" % db.execute(__import__("sqlalchemy").text("SELECT COUNT(*) FILTER (WHERE embedding_vector IS NOT NULL), COUNT(*) FROM knowledge_chunk_embeddings WHERE retracted_at IS NULL")).fetchone())
+              print("BREADTH|ku_new_last_8d|%s" % db.query(func.count()).select_from(models.KnowledgeUnit).filter(models.KnowledgeUnit.created_at > func.now() - __import__("sqlalchemy").text("interval '8 days'")).scalar())
               db.rollback()
           finally:
               db.close()
