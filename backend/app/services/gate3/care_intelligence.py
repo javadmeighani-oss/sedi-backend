@@ -65,7 +65,7 @@ def build_care_context(db: Session, user_id: int, language: str = "fa", query_hi
             query_hint,
             user_id=user_id,
             language=language,
-            limit=3,
+            limit=5,
             enqueue_gap_on_empty=False,
             personalization=personalization,
         )

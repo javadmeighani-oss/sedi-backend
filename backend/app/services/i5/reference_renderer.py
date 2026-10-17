@@ -429,7 +429,7 @@ def render_grounded_answer(
     )
 
 
-def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 1200) -> str:
+def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 3200) -> str:
     """Compact CARE_CONTEXT / brain system block from a grounded answer."""
     lines = [
         "[CARE_CONTEXT] W4-P02 grounded synthesis + references (educational use only):",
@@ -437,12 +437,18 @@ def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 12
         "NO_BASE_MODEL_MEDICAL_FALLBACK=1",
     ]
     if answer.synthesized_text:
+        if answer.status == "OK":
+            lines.append(
+                "INSTRUCTION: Answer from the grounded summary below. It may be in English: translate it "
+                "faithfully into the user's language and organise it for the question (what it is, care and "
+                "management, prevention). Do not say you lack a verified source when it is present."
+            )
         lines.append("Grounded summary:")
-        lines.append(answer.synthesized_text[:600])
+        lines.append(answer.synthesized_text[:2400])
     if answer.show_sources:
         lines.append("SHOW SOURCES:")
         for src in answer.show_sources[:5]:
-            lines.append(f"- {src[:180]}")
+            lines.append(f"- {src[:120]}")
     if answer.why_sedi_said_this:
         lines.append("WHY SEDI SAID THIS:")
         for why in answer.why_sedi_said_this[:5]:
