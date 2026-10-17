@@ -121,15 +121,14 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
+              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
               for uid in uids:
                   try:
-                      ctx = build_care_context(db, uid, "fa", query_hint=msg)
-                      env = ctx.get("i5_knowledge_retrieval") or {}
-                      sa = env.get("sufficiency_audit") or {}
-                      print("BREADTH|chat|uid=%s i5_status=%s reason=%s snippets=%d pers=%s" % (uid, ctx.get("i5_retrieval_status"), sa.get("reason"), len(ctx.get("knowledge_snippets") or []), ctx.get("personalization_applied")))
-                      g = render_from_care_context(ctx, language="fa", user_requested_sources=True)
-                      blk = format_care_context_block(g, max_chars=900) or ""
-                      print("BREADTH|block|uid=%s chars=%d head=%s" % (uid, len(blk), blk[:300].replace(chr(10), " | ")))
+                      msgs = []
+                      _maybe_append_gate3_care_context(msgs, db, uid, msg, "fa")
+                      txt = chr(10).join(m["content"] for m in msgs)
+                      print("BREADTH|brain|uid=%s msgs=%d chars=%d has_ALS_text=%s has_nofallback=%s head=%s" % (uid, len(msgs), len(txt), "Amyotrophic" in txt, "NO_BASE_MODEL" in txt, txt[:260].replace(chr(10), " | ")))
+                      print("BREADTH|brain_tail|uid=%s %s" % (uid, txt[-200:].replace(chr(10), " | ")))
                       db.rollback()
                   except Exception as e:
                       db.rollback()
