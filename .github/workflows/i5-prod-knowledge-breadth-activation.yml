@@ -124,18 +124,26 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              for label, text in (("als_full", "در مورد ALS کامل توضیح بده"),
-                                  ("als_care_prevention", "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"),
-                                  ("ms_treatment", "درمان ام اس چیه؟"),
-                                  ("parkinson", "پارکینسون چه علائمی داره و چطور مراقبت کنم؟")):
-                  msgs = [{"role": "system", "content": build_system_prompt_with_context("fa", "جواد", None)}]
-                  _maybe_append_gate3_care_context(msgs, db, uids[1], text, "fa")
-                  ctxlen = sum(len(m["content"]) for m in msgs[1:])
-                  msgs.append({"role": "user", "content": text})
-                  rsp = create_primary_chat_response(msgs)
-                  print("BREADTH|replay|%s ctx_chars=%d reply=%s" % (label, ctxlen, (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:1500]))
+              import collections
+              from sqlalchemy import func
+              rows = db.query(models.KnowledgeUnit.domain, func.count()).filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE").group_by(models.KnowledgeUnit.domain).order_by(func.count().desc()).all()
+              print("BREADTH|domains|%s" % rows)
+              from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
+              qs = ["علائم و درمان دیابت چیست؟", "رژیم غذایی مناسب برای دیابت", "فشار خون بالا را چطور کنترل کنم؟", "بیماری قلبی و پیشگیری از آن",
+                    "سرطان سینه علائم و غربالگری", "آسم چیست و چطور مراقبت کنم؟", "بیماری مزمن کلیه و رژیم غذایی", "ام اس چه درمانی دارد؟",
+                    "پارکینسون و مراقبت", "آلزایمر و زوال عقل علائم", "سکته مغزی علائم هشدار و پیشگیری", "صرع و کمک‌های اولیه",
+                    "رژیم غذایی سالم چیست؟", "برای کاهش وزن چه بخورم؟", "چقدر باید ورزش کنم؟", "ورزش برای سالمندان",
+                    "چطور بهتر بخوابم؟ بی‌خوابی", "اضطراب و استرس راهکار", "افسردگی علائم و درمان", "تنفس عمیق برای آرامش",
+                    "ترک سیگار", "سلامت دهان و دندان", "سلامت چشم و پیشگیری", "بارداری و تغذیه", "سلامت کودکان رشد", "پوکی استخوان و کلسیم",
+                    "سلامت مردان پروستات", "یائسگی علائم", "کم‌خونی و آهن", "میگرن و سردرد"]
+              ok = 0
+              for q in qs:
+                  r = retrieve_knowledge_context(db, q, user_id=None, language="fa", limit=5, enqueue_gap_on_empty=False).to_dict()
+                  sn = r.get("knowledge_snippets") or []
+                  ok += 1 if sn else 0
+                  doms = sorted({x.get("domain", "") for x in sn})
+                  print("BREADTH|cov|%s | %s n=%d doms=%s first=%s" % (q, r.get("status"), len(sn), doms, (sn[0].get("content", "")[:55].replace(chr(10), " ") if sn else "-")))
+              print("BREADTH|cov_total|%d/%d" % (ok, len(qs)))
               db.rollback()
           finally:
               db.close()
