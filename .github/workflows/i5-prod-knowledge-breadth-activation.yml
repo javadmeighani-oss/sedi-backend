@@ -127,21 +127,19 @@ jobs:
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
               from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, resolve_openai_chat_model
-              from openai import OpenAI
-              sysmsg = build_system_prompt_with_context("fa", "جواد", None)
-              print("BREADTH|sysprompt|chars=%d full=%s" % (len(sysmsg), sysmsg.replace(chr(10), " / ")))
-              for ln in sysmsg.split(chr(10)):
-                  if any(k in ln.lower() for k in ("source", "منبع", "verified", "تأیید", "medical", "پزشک", "invent", "حدس", "guess", "knowledge", "دانش")):
-                      print("BREADTH|sysline|%s" % ln.strip()[:240])
-              uid = uids[0]
-              msgs = [{"role": "system", "content": sysmsg}]
-              _maybe_append_gate3_care_context(msgs, db, uid, msg, "fa")
-              msgs.append({"role": "user", "content": msg})
-              print("BREADTH|msgs|n=%d roles=%s" % (len(msgs), [m["role"] for m in msgs]))
-              rsp = OpenAI().chat.completions.create(model=resolve_openai_chat_model(), messages=msgs, max_completion_tokens=700)
-              print("BREADTH|model|%s" % resolve_openai_chat_model())
-              print("BREADTH|reply|%s" % rsp.choices[0].message.content.replace(chr(10), " / ")[:900])
+              from backend.app.core.conversation.prompts import build_system_prompt_with_context, resolve_openai_chat_model, create_primary_chat_response
+              refusal1 = "جواد، می‌فهمم می‌خوای درباره‌ی ALS و مراقبت و پیشگیری‌اش بدانی. اما در این گفت‌وگو منبع پزشکیِ تأییدشده‌ای برای ارائه‌ی اطلاعات دقیق ندارم و نمی‌خوام درباره‌ی بیماری یا پیشگیری از آن حدس بزنم."
+              refusal2 = "جواد، دوباره بررسی کردم، اما در این گفت‌وگو به منبع پزشکیِ تأییدشده‌ای درباره‌ی ALS دسترسی ندارم و نمی‌خوام اطلاعاتش رو حدس بزنم یا نادرست بگم."
+              msg2 = "در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی"
+              for label, hist in (("fresh", []), ("with_refusal_history", [("user", msg), ("assistant", refusal1), ("user", "دوباره بررسی کن و در مورد این بیماری برای من توضیح بده"), ("assistant", refusal2)])):
+                  sysmsg = build_system_prompt_with_context("fa", "جواد", None)
+                  msgs = [{"role": "system", "content": sysmsg}]
+                  _maybe_append_gate3_care_context(msgs, db, uids[0], msg2, "fa")
+                  for role, text in hist:
+                      msgs.append({"role": role, "content": text})
+                  msgs.append({"role": "user", "content": msg2})
+                  rsp = create_primary_chat_response(msgs)
+                  print("BREADTH|replay|%s reply=%s" % (label, (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:420]))
               db.rollback()
           finally:
               db.close()
