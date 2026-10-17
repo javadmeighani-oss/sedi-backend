@@ -74,19 +74,38 @@ def test_alternatives_are_parsed_deduped_and_limited():
     assert alts == ["multiple sclerosis", "neurological disease", "extra query four"]
 
 
-def test_adapter_tries_alternatives_until_one_hits(monkeypatch):
-    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["anxiety stress self help", "anxiety"])
+def test_adapter_merges_distinct_kus_across_alternatives(monkeypatch):
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["mnd treatment", "als treatment", "als"])
+    A = SimpleNamespace(knowledge_unit_id=1)
+    B = SimpleNamespace(knowledge_unit_id=2)
+    C = SimpleNamespace(knowledge_unit_id=3)
+    results = {"mnd treatment": [A, B], "als treatment": [B, C], "als": [C]}
     calls = []
 
     def fake(db, query, **kw):
         calls.append(query)
-        return (["ITEM"], {}) if query == "anxiety" else ([], {})
+        return list(results[query]), {"language": "en"}
 
     monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", fake)
-    items, meta = adapter._retry_via_english_query(None, "اضطراب", "fa")
-    assert calls == ["anxiety stress self help", "anxiety"] and items == ["ITEM"]
+    items, meta = adapter._retry_via_english_query(None, "q", "fa", limit=5)
+    assert [i.knowledge_unit_id for i in items] == [1, 2, 3]  # deduped, alternative order
+    assert calls == ["mnd treatment", "als treatment", "als"]
+    assert meta["translated_queries_hit"] == ["mnd treatment", "als treatment"]  # "als" added nothing new
 
 
-def test_prompt_demands_english_output_and_has_examples():
-    assert "ENGLISH" in qt._INSTRUCTIONS and "Latin letters only" in qt._INSTRUCTIONS
-    assert "multiple sclerosis" in qt._INSTRUCTIONS and "anxiety" in qt._INSTRUCTIONS
+def test_adapter_stops_when_enough_items_and_skips_empty(monkeypatch):
+    monkeypatch.setattr(qt, "translate_query_alternatives", lambda *a, **k: ["x", "y", "z"])
+    many = [SimpleNamespace(knowledge_unit_id=i) for i in range(5)]
+    calls = []
+
+    def fake(db, query, **kw):
+        calls.append(query)
+        return ([], {}) if query == "x" else (list(many), {})
+
+    monkeypatch.setattr(adapter, "retrieve_scis_governed_runtime_items", fake)
+    items, _ = adapter._retry_via_english_query(None, "q", "fa", limit=5)
+    assert len(items) == 5 and calls == ["x", "y"]
+
+
+def test_prompt_mentions_alternative_official_names():
+    assert "motor neurone disease" in qt._INSTRUCTIONS and "different names" in qt._INSTRUCTIONS

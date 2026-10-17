@@ -21,22 +21,24 @@ MODEL_ENV = "SEDI_I5_QUERY_TRANSLATION_MODEL"
 DEFAULT_MODEL = "gpt-4o-mini"
 MAX_QUERY_CHARS = 400
 MAX_OUT_CHARS = 200
+MAX_ALTERNATIVES = 4
 _CACHE: "OrderedDict[str, tuple]" = OrderedDict()
 _CACHE_MAX = 512
 _NON_LATIN = re.compile(r"[\u0600-\u06FF]")
 _INSTRUCTIONS = (
     "You translate health questions (Persian, Arabic or other) into ENGLISH keyword search queries for "
     "official medical sources. The output MUST be in English using Latin letters only, never in the "
-    "user's language. Output up to 3 alternative queries, one per line, from most specific to most "
-    "general. Each query is the condition or topic name only (expand abbreviations), 1 to 3 words, no "
-    "question words, no filler. If the question asks about a specific aspect (symptoms, treatment, care, "
-    "prevention, diet, exercise) the FIRST query is the topic plus that aspect word, then the topic alone. "
-    "No numbering, no quotes, no explanation. Do not answer the question."
+    "user's language. Output up to 4 alternative queries, one per line. Each query is the condition or "
+    "topic name only (1 to 3 words), no question words, no filler. Official sources name the same condition "
+    "differently (US: amyotrophic lateral sclerosis; UK: motor neurone disease), so use the different names "
+    "in different queries. If the question asks about a specific aspect (symptoms, treatment, care, "
+    "prevention, diet, exercise), make the first two queries topic+aspect using two different names, then "
+    "the topic alone using each name. No numbering, no quotes, no explanation. Do not answer the question."
     "\nExamples:\n"
-    "Question: علائم و درمان ام اس چیست؟ -> multiple sclerosis\nneurological disease\n"
-    "Question: مراقبت و پیشگیری از ای ال اس -> amyotrophic lateral sclerosis treatment\namyotrophic lateral sclerosis\nmotor neuron disease\n"
+    "Question: مراقبت و درمان ای ال اس -> motor neurone disease treatment\namyotrophic lateral sclerosis treatment\nmotor neurone disease\namyotrophic lateral sclerosis\n"
+    "Question: علائم و درمان ام اس چیست؟ -> multiple sclerosis symptoms\nmultiple sclerosis treatment\nmultiple sclerosis\n"
     "Question: برای اضطراب چه کنم؟ -> anxiety\nstress management\nmental health\n"
-    "Question: چقدر باید ورزش کنم؟ -> physical activity\nexercise\n"
+    "Question: چقدر باید ورزش کنم؟ -> physical activity guidelines\nphysical activity\nexercise\n"
     "Question: ما هو مرض السكري؟ -> diabetes\nblood sugar\n"
 )
 
@@ -67,7 +69,7 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
             model=os.getenv(MODEL_ENV, DEFAULT_MODEL),
             messages=[{"role": "system", "content": _INSTRUCTIONS}, {"role": "user", "content": "Question: " + text + " ->"}],
             temperature=0,
-            max_tokens=80,
+            max_tokens=100,
         )
         raw = str(resp.choices[0].message.content or "")
     except Exception:  # noqa: BLE001 — retrieval aid only
@@ -77,7 +79,7 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
         cand = " ".join(re.sub(r'^[\s\-\*\d\.\)]+', "", line).replace('"', " ").split())[:MAX_OUT_CHARS]
         if len(cand) >= 3 and not _NON_LATIN.search(cand) and cand.lower() not in {c.lower() for c in out}:
             out.append(cand)
-        if len(out) == 3:
+        if len(out) == MAX_ALTERNATIVES:
             break
     if not out:
         return []
