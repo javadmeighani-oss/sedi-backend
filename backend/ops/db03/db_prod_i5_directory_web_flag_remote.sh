@@ -21,9 +21,18 @@ require_identity() {
   img="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
   id="$(docker inspect sedi-backend --format '{{.Image}}')"
   echo "${img}" | grep -Fq "${IMAGE_SHA}" || { s "image_tag_guard" "FAIL"; return 10; }
-  docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fq "${IMAGE_DIGEST}" \
-    || { s "image_digest_guard" "FAIL"; return 11; }
-  s "image_digest_guard" "PASS"
+  local digests rev
+  digests="$(docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}')"
+  if [ -n "${digests}" ]; then
+    echo "${digests}" | grep -Fq "${IMAGE_DIGEST}" || { s "image_digest_guard" "FAIL"; return 11; }
+    s "image_digest_guard" "PASS"
+  else
+    # Secure-transfer deploys load an archive (no RepoDigests); the deploy job verified the digest
+    # before transfer, so require the exact OCI revision label instead.
+    rev="$(docker image inspect "${id}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+    [ "${rev}" = "${IMAGE_SHA}" ] || { s "image_revision_guard" "FAIL"; return 11; }
+    s "image_digest_guard" "PASS_BY_OCI_REVISION"
+  fi
   local head; head="$(psql_prod "SELECT version_num FROM alembic_version;")"
   s "alembic_head" "${head}"
   [ "${head}" = "${EXPECTED_HEAD}" ] || return 12
