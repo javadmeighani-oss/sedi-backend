@@ -129,6 +129,14 @@ jobs:
                     ("fa", "چقدر باید ورزش کنم؟"),
                     ("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"),
                     ("en", "amyotrophic lateral sclerosis care")]
+              from backend.app.services.i5.query_translation import translate_query_alternatives
+              from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
+              for lang, q in qs:
+                  alts = translate_query_alternatives(q, lang)
+                  print("BREADTH|alts|lang=%s %r" % (lang, alts))
+                  for a in alts:
+                      its, mt = retrieve_scis_governed_runtime_items(db, a, language="en", limit=3, allow_network=True, _via_translation=True)
+                      print("BREADTH|alt|%r items=%d lex=%s ev=%s fb=%s drops=%s" % (a, len(its), mt.get("lexical_count"), mt.get("scis_evidence_count"), mt.get("fallback_state"), mt.get("governance_drop_counts")))
               for lang, q in qs:
                   r = retrieve_knowledge_context(db, q, user_id=None, language=lang, limit=3, enqueue_gap_on_empty=False)
                   d = r.to_dict()
