@@ -1331,7 +1331,9 @@ def test_W6P01_FG21_concept_catalog_contract() -> None:
     assert dimension_for_section("") is None
 
 
-def test_W6P01_FG22_cross_language_serving_needs_founder_approved_label(db) -> None:
+def test_W6P01_FG22_cross_language_serving_needs_founder_approved_label(db, monkeypatch) -> None:
+    # This test pins the label-authority path; the English-query fallback has its own tests.
+    monkeypatch.setenv("SEDI_I5_QUERY_TRANSLATION_DISABLED", "true")
     from backend.app.services.i5.know02.concept_catalog import ensure_concept_catalog
     from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
     from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
