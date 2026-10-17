@@ -105,6 +105,11 @@ jobs:
           PY
           if [ "${PHASE}" = "PREFLIGHT" ]; then s phase_preflight PASS; exit 0; fi
           if [ "${PHASE}" = "PROBE" ]; then
+            s running_image "$(docker inspect sedi-backend --format '{{.Config.Image}}' | sed 's/.*://')"
+            s container_started "$(docker inspect sedi-backend --format '{{.State.StartedAt}}')"
+            s now_utc "$(date -u +%FT%TZ)"
+            docker logs --since 90m sedi-backend 2>&1 | grep -E "BRAIN WARNING|Gate3|W4-P0|governed|care context|CARE|structured|Traceback|Error|i5_|I5 " | grep -viE "user message|User Message|Response:" | cut -c1-230 | tail -60 | sed 's/^/BREADTH|log|/'
+            docker logs --since 90m sedi-backend 2>&1 | grep -E "POST /(chat|api|v1)" | cut -c1-140 | tail -8 | sed 's/^/BREADTH|req|/'
             docker exec -i sedi-backend python - <<'PY'
           import collections
           from backend.app.database import get_db
