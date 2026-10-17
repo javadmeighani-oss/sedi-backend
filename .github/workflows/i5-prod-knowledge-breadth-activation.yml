@@ -124,20 +124,21 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
-              from backend.app.services.i5.query_translation import translate_query_alternatives
-              tests = ["در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی",
-                       "دوباره بررسی کن و در مورد این بیماری برای من توضیح بده",
-                       "ALS چیست؟",
-                       "در مورد بیماری ALS توضیح بده",
-                       "ALS رو توضیح بده"]
-              for q in tests:
-                  alts = translate_query_alternatives(q, "fa")
-                  r = retrieve_knowledge_context(db, q, user_id=uids[1], language="fa", limit=5, enqueue_gap_on_empty=False)
-                  d = r.to_dict()
-                  sa = d.get("sufficiency_audit") or {}
-                  qi = d.get("query_intelligence") or {}
-                  print("BREADTH|q|%s | alts=%s status=%s reason=%s clar=%s items=%d intent=%s coref=%s" % (q[:40], alts, d.get("status"), sa.get("reason"), d.get("clarification_required"), len(d.get("knowledge_snippets") or []), str(d.get("safe_user_facing_intent"))[:90], str((qi.get("coreference") or {}).get("state"))))
+              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
+              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
+              refusal = "جواد، دوباره بررسی کردم، اما در این گفت‌وگو به منبع پزشکیِ تأییدشده‌ای درباره‌ی ALS دسترسی ندارم و نمی‌خوام اطلاعاتش رو حدس بزنم یا نادرست بگم."
+              for label, text, hist in (
+                  ("phone_phrase_fresh", "در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی", []),
+                  ("phone_phrase_after_refusals", "در زمینه ALS دوباره بررسی کن تا در موردش برام توضیح بدی", [("user", "دوباره بررسی کن و در مورد این بیماری برای من توضیح بده"), ("assistant", refusal)]),
+                  ("exercise", "چقدر باید در هفته ورزش کنم؟", []),
+                  ("anxiety", "برای اضطراب چه راهکارهایی دارم؟", [])):
+                  msgs = [{"role": "system", "content": build_system_prompt_with_context("fa", "جواد", None)}]
+                  _maybe_append_gate3_care_context(msgs, db, uids[1], text, "fa")
+                  for role, t in hist:
+                      msgs.append({"role": role, "content": t})
+                  msgs.append({"role": "user", "content": text})
+                  rsp = create_primary_chat_response(msgs)
+                  print("BREADTH|replay|%s reply=%s" % (label, (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:700]))
               db.rollback()
           finally:
               db.close()
