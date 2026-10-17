@@ -96,16 +96,17 @@ q = w.build_query('SPECIALIST', 'قلب', 'شیراز', 'فارس')
 try:
     from openai import OpenAI
     import os
-    doms = ['paziresh24.com','drdr.ir','doctoreto.com','nobat.ir','irimc.org','sums.ac.ir','tums.ac.ir','sbmu.ac.ir','iums.ac.ir','mums.ac.ir']
-    resp = OpenAI().responses.create(model=os.getenv(w.MODEL_ENV, w.DEFAULT_MODEL), tools=[{'type': 'web_search', 'filters': {'allowed_domains': doms}}], instructions=w._instructions('IR'), input=q, text={'format': {'type': 'json_schema', 'name': 'providers', 'schema': w._SCHEMA, 'strict': True}})
-    raw = [r for r in (json.loads(resp.output_text or '{}').get('results') or [])]
-    ok = w.validate_results(raw, city='شیراز')
-    print('WEBFLAG|probe_raw_count|%d' % len(raw))
-    print('WEBFLAG|probe_valid_count|%d' % len(ok))
-    print('WEBFLAG|probe_domains|' + ','.join(sorted({__import__('urllib.parse').parse.urlparse(r['source_url']).hostname or '' for r in ok})))
     from urllib.parse import urlparse as up
-    for r in raw:
-        print('WEBFLAG|probe_raw|host=%s trusted=%s city=%s has_addr=%s has_phone=%s' % (up(r.get('source_url','')).hostname, w.is_trusted_url(r.get('source_url','')), r.get('city',''), bool(r.get('address')), bool(r.get('phone'))))
+    doms = ['paziresh24.com','drdr.ir','doctoreto.com','nobat.ir','irimc.org','sums.ac.ir','tums.ac.ir','sbmu.ac.ir','iums.ac.ir','mums.ac.ir']
+    for model in ('gpt-4.1-mini', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1-nano'):
+        try:
+            resp = OpenAI().responses.create(model=model, tools=[{'type': 'web_search', 'filters': {'allowed_domains': doms}}], instructions=w._instructions('IR'), input=q, text={'format': {'type': 'json_schema', 'name': 'providers', 'schema': w._SCHEMA, 'strict': True}})
+            raw = json.loads(resp.output_text or '{}').get('results') or []
+            ok = w.validate_results(raw, city='شیراز')
+            u = getattr(resp, 'usage', None)
+            print('WEBFLAG|probe_model|%s raw=%d valid=%d hosts=%s in_tok=%s out_tok=%s' % (model, len(raw), len(ok), ','.join(sorted({up(r.get('source_url','')).hostname or '' for r in raw})), getattr(u,'input_tokens',None), getattr(u,'output_tokens',None)))
+        except Exception as e:
+            print('WEBFLAG|probe_model|%s error=%s' % (model, (type(e).__name__ + ':' + str(e))[:140].replace(chr(10),' ')))
 except Exception as e:
     print('WEBFLAG|probe_error|' + type(e).__name__ + ':' + str(e)[:160].replace(chr(10), ' '))
 "
