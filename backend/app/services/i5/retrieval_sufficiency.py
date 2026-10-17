@@ -105,6 +105,16 @@ def detect_retrieval_set_contradictions(
             )
             if not (stmt_differs or safety_differs):
                 continue
+            # Section-level KUs of one topic (Summary / Description / Treatment, from different
+            # official sources) always differ in wording but are complementary, not contradictory.
+            # Different text alone is therefore NOT a contradiction; a governed conflict flag on
+            # either unit, or diverging medical-safety state, is.
+            flagged = any(
+                str(getattr(x, "conflict_state", "") or "") in {c.value for c in _UNRESOLVED}
+                for x in (a, b)
+            )
+            if not (flagged or safety_differs):
+                continue
             hits.append(
                 RetrievalSetConflictHit(
                     left_canonical_unit_id=str(getattr(a, "canonical_unit_id", "")),
