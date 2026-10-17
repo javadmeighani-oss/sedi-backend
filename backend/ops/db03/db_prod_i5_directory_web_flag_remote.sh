@@ -98,15 +98,24 @@ try:
     import os
     from urllib.parse import urlparse as up
     doms = ['paziresh24.com','drdr.ir','doctoreto.com','nobat.ir','irimc.org','sums.ac.ir','tums.ac.ir','sbmu.ac.ir','iums.ac.ir','mums.ac.ir']
-    for model in ('gpt-4.1-mini', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1-nano'):
+    variants = [
+        ('gpt-4o-mini', q + ' site:paziresh24.com', None),
+        ('gpt-4o-mini', q + ' پذیرش24 OR دکتر دکتر OR دکترتو', None),
+        ('gpt-4o-mini', 'cardiologist Shiraz Iran paziresh24 OR drdr OR doctoreto', None),
+        ('gpt-5-mini', 'cardiologist in Shiraz, Iran', doms),
+    ]
+    for model, inp, fl in variants:
+        tool = {'type': 'web_search'}
+        if fl:
+            tool['filters'] = {'allowed_domains': fl}
         try:
-            resp = OpenAI().responses.create(model=model, tools=[{'type': 'web_search', 'filters': {'allowed_domains': doms}}], instructions=w._instructions('IR'), input=q, text={'format': {'type': 'json_schema', 'name': 'providers', 'schema': w._SCHEMA, 'strict': True}})
+            resp = OpenAI().responses.create(model=model, tools=[tool], instructions=w._instructions('IR'), input=inp, text={'format': {'type': 'json_schema', 'name': 'providers', 'schema': w._SCHEMA, 'strict': True}})
             raw = json.loads(resp.output_text or '{}').get('results') or []
-            ok = w.validate_results(raw, city='شیراز')
+            ok = w.validate_results(raw, city='شیراز') or w.validate_results(raw, city='Shiraz')
             u = getattr(resp, 'usage', None)
-            print('WEBFLAG|probe_model|%s raw=%d valid=%d hosts=%s in_tok=%s out_tok=%s' % (model, len(raw), len(ok), ','.join(sorted({up(r.get('source_url','')).hostname or '' for r in raw})), getattr(u,'input_tokens',None), getattr(u,'output_tokens',None)))
+            print('WEBFLAG|probe_variant|%s | %s | raw=%d valid=%d hosts=%s tok=%s/%s' % (model, inp[-40:], len(raw), len(ok), ','.join(sorted({up(r.get('source_url','')).hostname or '' for r in raw})), getattr(u,'input_tokens',None), getattr(u,'output_tokens',None)))
         except Exception as e:
-            print('WEBFLAG|probe_model|%s error=%s' % (model, (type(e).__name__ + ':' + str(e))[:140].replace(chr(10),' ')))
+            print('WEBFLAG|probe_variant|%s error=%s' % (model, (type(e).__name__ + ':' + str(e))[:140].replace(chr(10),' ')))
 except Exception as e:
     print('WEBFLAG|probe_error|' + type(e).__name__ + ':' + str(e)[:160].replace(chr(10), ' '))
 "
