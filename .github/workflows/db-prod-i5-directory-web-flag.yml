@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "PREFLIGHT | ACTIVATE | KILL_SWITCH"
+        description: "PREFLIGHT | ACTIVATE | KILL_SWITCH | PROBE"
         required: true
       confirmation:
         description: "WEBFLAG_PREFLIGHT | WEBFLAG_ACTIVATE_ON | WEBFLAG_KILL_SWITCH_OFF"
@@ -31,7 +31,8 @@ jobs:
     if: >-
       (github.event.inputs.phase == 'PREFLIGHT' && github.event.inputs.confirmation == 'WEBFLAG_PREFLIGHT') ||
       (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'WEBFLAG_ACTIVATE_ON') ||
-      (github.event.inputs.phase == 'KILL_SWITCH' && github.event.inputs.confirmation == 'WEBFLAG_KILL_SWITCH_OFF')
+      (github.event.inputs.phase == 'KILL_SWITCH' && github.event.inputs.confirmation == 'WEBFLAG_KILL_SWITCH_OFF') ||
+      (github.event.inputs.phase == 'PROBE' && github.event.inputs.confirmation == 'WEBFLAG_PROBE')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -74,7 +75,7 @@ jobs:
              IMAGE_SHA=$(printf '%q' "${TAG}") IMAGE_DIGEST=$(printf '%q' "${DIG}") \
              bash $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh")" \
             2>&1 | tee /tmp/webflag.log
-          grep -Eq 'WEBFLAG\|phase_(preflight|activate|kill_switch)\|PASS' /tmp/webflag.log
+          grep -Eq 'WEBFLAG\|phase_(preflight|activate|kill_switch|probe)\|PASS' /tmp/webflag.log
           if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/webflag.log; then
             echo "SECRET_LEAK"; exit 2
           fi

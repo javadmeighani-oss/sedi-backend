@@ -88,5 +88,20 @@ case "${PHASE}" in
   PREFLIGHT) require_identity; flag_state; s "phase_preflight" "PASS" ;;
   ACTIVATE) require_identity; set_flag_and_recreate "true"; flag_state; s "phase_activate" "PASS" ;;
   KILL_SWITCH) require_identity; set_flag_and_recreate "false"; flag_state; s "phase_kill_switch" "PASS" ;;
+  PROBE) require_identity; flag_state
+    docker exec sedi-backend python -c "
+import json
+from backend.app.services.i5 import directory_web_lookup as w
+q = w.build_query('SPECIALIST', 'قلب', 'شیراز', 'فارس')
+try:
+    raw = w._call_web_search(q, 'IR')
+    ok = w.validate_results(raw, city='شیراز')
+    print('WEBFLAG|probe_raw_count|%d' % len(raw))
+    print('WEBFLAG|probe_valid_count|%d' % len(ok))
+    print('WEBFLAG|probe_domains|' + ','.join(sorted({__import__('urllib.parse').parse.urlparse(r['source_url']).hostname or '' for r in ok})))
+except Exception as e:
+    print('WEBFLAG|probe_error|' + type(e).__name__ + ':' + str(e)[:160].replace(chr(10), ' '))
+"
+    s "phase_probe" "PASS" ;;
   *) echo "bad phase"; exit 2 ;;
 esac
