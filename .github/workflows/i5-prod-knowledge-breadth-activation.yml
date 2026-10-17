@@ -106,23 +106,30 @@ jobs:
           if [ "${PHASE}" = "PREFLIGHT" ]; then s phase_preflight PASS; exit 0; fi
           if [ "${PHASE}" = "PROBE" ]; then
             docker exec -i sedi-backend python - <<'PY'
+          import json
           from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.query_translation import translate_query_to_english
+          from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
           from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
-          from backend.app.services.i5.reference_renderer import render_grounded_answer, format_care_context_block
           db = next(get_db())
-          qs = [("fa", "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"),
-                ("en", "amyotrophic lateral sclerosis care"),
-                ("en", "how much exercise do adults need")]
           try:
-              for lang, q in qs:
+              fa = "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"
+              en = translate_query_to_english(fa, "fa")
+              print("BREADTH|tr|translated=%r" % en)
+              for lang, q in [("fa", fa), ("en", "amyotrophic lateral sclerosis care"), ("en", "multiple sclerosis symptoms and treatment"),
+                              ("en", "physical activity guidelines for adults"), ("en", "anxiety and stress self help")]:
+                  items, meta = retrieve_scis_governed_runtime_items(db, q, language=lang, limit=3, allow_network=True)
+                  print("BREADTH|scis|lang=%s q=%s items=%d via_tr=%s lex=%s ev=%s domains=%s" % (lang, q[:30], len(items), meta.get("cross_language_via_translation"), meta.get("lexical_count"), meta.get("scis_evidence_count"), ",".join(sorted({i.domain for i in items}))))
                   r = retrieve_knowledge_context(db, q, user_id=None, language=lang, limit=3, enqueue_gap_on_empty=False)
-                  d = r.to_dict() if hasattr(r, "to_dict") else r
-                  items = d.get("knowledge_snippets") or []
-                  g = render_grounded_answer(d, language=lang, user_requested_sources=True)
-                  blk = format_care_context_block(g, max_chars=900)
-                  print("BREADTH|diag|%s" % str({k: d.get(k) for k in ("safe_user_facing_intent","sufficiency_audit","exclusion_counts","clarification_required")})[:600])
-                  print("BREADTH|diag_obs|%s" % str({k: v for k, v in (d.get("observability") or {}).items() if k in ("retrieval_mode","effective_mode","fallback_state","provider_failure","scis_evidence_count","mapped_item_count","lexical_count","semantic_count","cross_language_via_translation","translated_query_used","concept_authority_applied","governance_drop_counts","language")})[:600])
-                  print("BREADTH|probe|lang=%s status=%s items=%d block_chars=%d first=%s" % (lang, d.get("status"), len(items), len(blk or ""), (items[0].get("content","")[:70].replace(chr(10)," ") if items else "-")))
+                  d = r.to_dict()
+                  sa = d.get("sufficiency_audit") or {}
+                  print("BREADTH|ctx|q=%s status=%s reason=%s conflicts=%d snippets=%d" % (q[:30], d.get("status"), sa.get("reason"), len(sa.get("conflict_hits") or []), len(d.get("knowledge_snippets") or [])))
+                  for h in (sa.get("conflict_hits") or [])[:2]:
+                      for key in ("left_ku_id", "right_ku_id"):
+                          ku = db.query(models.KnowledgeUnit).filter_by(id=h.get(key)).one_or_none()
+                          if ku:
+                              print("BREADTH|conflict|%s id=%s domain=%s topic=%s state=%s stmt=%s" % (key, ku.id, ku.domain, ku.topic_taxonomy, ku.conflict_state, (ku.normalized_statement or "")[:110].replace(chr(10), " ")))
           finally:
               db.close()
           PY
