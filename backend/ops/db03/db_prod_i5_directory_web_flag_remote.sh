@@ -94,7 +94,11 @@ import json
 from backend.app.services.i5 import directory_web_lookup as w
 q = w.build_query('SPECIALIST', 'قلب', 'شیراز', 'فارس')
 try:
-    raw = w._call_web_search(q, 'IR')
+    from openai import OpenAI
+    import os
+    doms = ['paziresh24.com','drdr.ir','doctoreto.com','nobat.ir','irimc.org','sums.ac.ir','tums.ac.ir','sbmu.ac.ir','iums.ac.ir','mums.ac.ir']
+    resp = OpenAI().responses.create(model=os.getenv(w.MODEL_ENV, w.DEFAULT_MODEL), tools=[{'type': 'web_search', 'filters': {'allowed_domains': doms}}], instructions=w._instructions('IR'), input=q, text={'format': {'type': 'json_schema', 'name': 'providers', 'schema': w._SCHEMA, 'strict': True}})
+    raw = [r for r in (json.loads(resp.output_text or '{}').get('results') or [])]
     ok = w.validate_results(raw, city='شیراز')
     print('WEBFLAG|probe_raw_count|%d' % len(raw))
     print('WEBFLAG|probe_valid_count|%d' % len(ok))
