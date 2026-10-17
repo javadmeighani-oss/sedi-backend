@@ -86,6 +86,8 @@ class VerifiedDirectoryIdentity:
     rating_avg: Optional[float] = None
     rating_count: Optional[int] = None
     satisfaction_percent: Optional[int] = None
+    source_url: Optional[str] = None  # set only for transient web-search results
+    web_trusted: Optional[bool] = None
 
 
 @dataclass(frozen=True)
@@ -394,7 +396,15 @@ def _serialize_hits_message(
             line += {"fa": f"؛ تلفن: {h.phone}", "ar": f"؛ الهاتف: {h.phone}", "en": f"; phone: {h.phone}"}[k]
         if with_sources:
             line += _feedback_phrase(h, lang)
+        if h.source_url:
+            line += {"fa": f"؛ منبع: {h.source_url}", "ar": f"؛ المصدر: {h.source_url}", "en": f"; source: {h.source_url}"}[k]
         lines.append(line)
+    if any(h.source_url and not h.web_trusted for h in hits):
+        lines.append({
+            "fa": "بعضی از این موارد را از جست‌وجوی وب پیدا کردم و تأیید نشده‌اند؛ قبل از مراجعه حتماً تماس بگیر و مطمئن شو.",
+            "ar": "وجدتُ بعض هذه النتائج عبر البحث في الويب وهي غير مؤكدة؛ يرجى الاتصال والتأكد قبل الذهاب.",
+            "en": "I found some of these through a web search and they are not verified; please call to confirm before going.",
+        }[k])
     lines.append({
         "fa": "این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی؛ قبل از رفتن بهتره با خود مرکز هماهنگ کنی. "
               "اگه خواستی بگم این اطلاعات از کجاست و بیمارها چه نظری دارن، بپرس.",
@@ -486,6 +496,39 @@ def _dispatch_governed_search(
     return []
 
 
+def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
+    """Transient web-search results as identities (never stored; labelled by link and trust)."""
+    results = _web_lookup.search_web_providers(
+        entity=request.entity.value,
+        specialty=request.specialty_or_service,
+        city=request.city,
+        province=request.province,
+    )
+    kind = "DOCTOR" if request.entity is CareNavEntity.SPECIALIST else (
+        "LABORATORY" if request.entity is CareNavEntity.LABORATORY else "HOSPITAL"
+    )
+    return tuple(
+        VerifiedDirectoryIdentity(
+            directory_record_id=0,
+            entity_type=kind,
+            canonical_name=r["name"],
+            canonical_directory_key=_web_lookup.web_record_key(r["source_url"]),
+            specialty_or_service=r.get("specialty"),
+            city=r.get("city"),
+            province=request.province,
+            source_system_label=_web_lookup.WEB_LOOKUP_SOURCE,
+            record_state="ACTIVE",
+            last_verified_at=None,
+            endorsement_disclaimer=GOVERNED_DIRECTORY_DISCLAIMER,
+            phone=r.get("phone"),
+            address=r.get("address"),
+            source_url=r["source_url"],
+            web_trusted=bool(r.get("trusted")),
+        )
+        for r in results
+    )
+
+
 def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavResult:
     """Resolve care-navigation via canonical I5 governed directory only."""
     notes: list[str] = []
@@ -497,6 +540,17 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     entity = request.entity
 
     if entity is CareNavEntity.LABORATORY and not LAB_POPULATION_AUTHORIZED:
+        web_labs = _web_identities(request) if _web_lookup.web_lookup_enabled() else ()
+        if web_labs:
+            return CareNavResult(
+                status=STATUS_VERIFIED,
+                entity=entity,
+                identities=web_labs,
+                reason_code="WEB_SEARCH_RESULTS",
+                user_message=_serialize_hits_message(web_labs, request.language, request.wants_sources),
+                lab_population_authorized=False,
+                identity_notes=tuple(notes + ["WEB_SEARCH_ONLY"]),
+            )
         return CareNavResult(
             status=STATUS_NO_VERIFIED,
             entity=entity,
@@ -516,22 +570,14 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         and not _web_lookup.is_stale_web_row(item.get("source_system_label"), item.get("last_verified_at"))
     )
 
-    # Too few governed hits → one guarded web lookup that writes into the SAME governed store,
-    # then re-read through the governed service (no second store, no LLM-invented identity).
+    # Too few governed hits → search the web for what the user asked (transient, linked, unverified unless on a
+    # known listing/official domain). Nothing from the web enters the governed store.
     if len(identities) < _web_lookup.MIN_LOCAL_HITS and _web_lookup.web_lookup_enabled():
-        keys = set(_web_lookup.lookup_and_store(
-            db, entity=entity.value, specialty=request.specialty_or_service,
-            city=request.city, province=request.province,
-        ))
-        if keys:
-            known = {i.canonical_directory_key for i in identities}
-            extra = tuple(
-                _map_backend_row(item)
-                for item in _dispatch_governed_search(db, replace(request, specialty_or_service=None, limit=50))
-                if item.get("canonical_directory_key") in keys and item.get("canonical_directory_key") not in known
-            )
-            identities = (identities + extra)[: max(request.limit, 5)]
-            notes.append("WEB_LOOKUP_ENRICHED")
+        web = _web_identities(request)
+        if web:
+            known = {i.canonical_name for i in identities}
+            identities = (identities + tuple(w for w in web if w.canonical_name not in known))[: max(request.limit, 5)]
+            notes.append("WEB_SEARCH_ENRICHED")
 
     if not identities:
         return CareNavResult(

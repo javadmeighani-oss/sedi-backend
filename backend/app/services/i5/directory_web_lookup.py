@@ -1,12 +1,12 @@
-"""On-demand web lookup that fills the governed I5 directory (D-016).
+"""On-demand web SEARCH for providers when the governed directory has no good answer (D-016/D-019).
 
-Used only when the governed directory has too few results for a care-navigation request.
-It is not a second store: validated results are written into the same directory tables
-(source_system_label=web_lookup) and served by the existing directory service.
+Sedi only searches and prepares what websites publish, according to the user's request. Nothing from the
+web is written into the governed directory: results are transient (short in-memory cache), carry the page
+link, and are labelled unverified unless the page is on a known listing/official domain.
 
-Privacy: the outbound query is built ONLY from structured fields (entity, specialty, city,
-province, language). The user's message text or any health detail is never sent.
-Results are accepted only from trusted domains; nothing is invented. Behind a flag (default OFF).
+Privacy: the outbound query is built ONLY from structured fields (entity, specialty, city, province).
+The user's message text or any health detail is never sent. Mobile numbers are dropped.
+Behind a flag (SEDI_DIRECTORY_WEB_LOOKUP_ENABLED) with a daily cap.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from datetime import date, datetime, timedelta
 from typing import Any, Optional, Sequence
 from urllib.parse import urlparse
@@ -30,17 +31,21 @@ DEFAULT_DAILY_CAP = 200
 FRESH_DAYS = 30
 MAX_RESULTS = 5
 MIN_LOCAL_HITS = 2
+CACHE_TTL_SECONDS = 24 * 3600
+_CACHE_MAX = 256
 
-# Trusted listing / official domains. Exact host or any subdomain matches.
+# Known listing / official domains: results from these are shown without the "unverified site" caveat.
 TRUSTED_DOMAINS: dict[str, tuple[str, ...]] = {
     "IR": ("paziresh24.com", "drdr.ir", "doctoreto.com", "nobat.ir", "irimc.org", "behdasht.gov.ir"),
     "*": ("nhs.uk", "who.int"),
 }
-# Official suffixes (government / academic) are trusted in every country.
 TRUSTED_SUFFIXES: tuple[str, ...] = (".gov.ir", ".ac.ir", ".gov", ".edu", ".nhs.uk")
+# Never a provider listing: search engines, maps share links, generic social posts without a profile.
+_BLOCKED_HOSTS = ("google.", "bing.com", "duckduckgo.com", "wikipedia.org", "facebook.com", "twitter.com", "x.com")
 
 _lock = threading.Lock()
 _usage: dict[str, int] = {}
+_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
 
 def web_lookup_enabled() -> bool:
@@ -65,8 +70,12 @@ def _take_quota() -> bool:
         return True
 
 
+def _host(url: str) -> str:
+    return (urlparse(url or "").hostname or "").lower().removeprefix("www.")
+
+
 def is_trusted_url(url: str, country: str = "IR") -> bool:
-    host = (urlparse(url or "").hostname or "").lower().removeprefix("www.")
+    host = _host(url)
     if not host:
         return False
     extra = tuple(d.strip().lower() for d in os.getenv(EXTRA_DOMAINS_ENV, "").split(",") if d.strip())
@@ -74,6 +83,12 @@ def is_trusted_url(url: str, country: str = "IR") -> bool:
     if any(host == d or host.endswith("." + d) for d in domains):
         return True
     return any(host.endswith(s) for s in TRUSTED_SUFFIXES)
+
+
+def _usable_url(url: str) -> bool:
+    parsed = urlparse(url or "")
+    host = _host(url)
+    return parsed.scheme in {"http", "https"} and "." in host and not any(b in host for b in _BLOCKED_HOSTS)
 
 
 _ENTITY_WORDS = {
@@ -127,7 +142,8 @@ def _instructions(country: str) -> str:
         "use an empty string when a field is not shown. source_url must be the exact page the data came from. "
         "Prefer official sites and well-known medical booking directories"
         + (" in Iran (e.g. paziresh24.com, drdr.ir, doctoreto.com, irimc.org, *.ac.ir hospitals)" if country == "IR" else "")
-        + ". Never invent providers, phones or addresses. Return at most 8 results."
+        + ", but a clinic's or doctor's own website is acceptable when it shows the address or phone. "
+        "Never invent providers, phones or addresses. Return at most 8 results."
     )
 
 
@@ -148,13 +164,17 @@ def _call_web_search(query: str, country: str, client: Any = None) -> list[dict[
 
 
 def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], country: str = "IR") -> list[dict[str, Any]]:
-    """Trusted source + matching city + something actionable. Mobile numbers dropped."""
+    """Real page link + the requested city + something actionable. Mobile numbers dropped.
+
+    Any site is accepted (clinic and doctor sites are legitimate sources); results from known listing or
+    official domains are marked trusted and ranked first. Everything is shown as web-published information.
+    """
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
     for it in items:
         name = " ".join(str(it.get("name") or "").split())
         url = str(it.get("source_url") or "").strip()
-        if not name or not is_trusted_url(url, country):
+        if not name or not _usable_url(url):
             continue
         address = " ".join(str(it.get("address") or "").split())[:512] or None
         item_city = " ".join(str(it.get("city") or "").split()) or None
@@ -168,10 +188,40 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
             continue
         seen.add(key)
         out.append({"name": name, "specialty": " ".join(str(it.get("specialty") or "").split()) or None,
-                    "city": item_city or city, "address": address, "phone": phone, "source_url": url})
-        if len(out) >= MAX_RESULTS:
-            break
-    return out
+                    "city": item_city or city, "address": address, "phone": phone, "source_url": url,
+                    "trusted": is_trusted_url(url, country)})
+    out.sort(key=lambda r: not r["trusted"])  # stable: trusted listings first
+    return out[:MAX_RESULTS]
+
+
+def search_web_providers(*, entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
+                         country: str = "IR", client: Any = None) -> list[dict[str, Any]]:
+    """One guarded web search (cached 24h per structured query). Never raises, never writes to the DB."""
+    if not web_lookup_enabled():
+        return []
+    query = build_query(entity, specialty, city, province, country)
+    if not query:
+        return []
+    now = time.time()
+    with _lock:
+        hit = _cache.get(query)
+        if hit and now - hit[0] < CACHE_TTL_SECONDS:
+            return [dict(r) for r in hit[1]]
+    if not _take_quota():
+        return []
+    try:
+        results = validate_results(_call_web_search(query, country, client), city=city, country=country)
+    except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
+        return []
+    with _lock:
+        if len(_cache) >= _CACHE_MAX:
+            _cache.pop(next(iter(_cache)))
+        _cache[query] = (now, [dict(r) for r in results])
+    return results
+
+
+def web_record_key(source_url: str) -> str:
+    return f"{WEB_LOOKUP_SOURCE}:{_host(source_url)}:{hashlib.sha256(source_url.encode('utf-8')).hexdigest()[:24]}"[:128]
 
 
 def source_domain(canonical_directory_key: str) -> Optional[str]:
@@ -179,55 +229,8 @@ def source_domain(canonical_directory_key: str) -> Optional[str]:
     return parts[1] if len(parts) >= 3 and parts[0] == WEB_LOOKUP_SOURCE else None
 
 
-def to_directory_records(results: Sequence[dict[str, Any]], *, entity: str, province: Optional[str],
-                         country: str = "IR") -> list[dict[str, Any]]:
-    records = []
-    for r in results:
-        host = (urlparse(r["source_url"]).hostname or "").lower().removeprefix("www.")
-        digest = hashlib.sha256(r["source_url"].encode("utf-8")).hexdigest()[:24]
-        base = {
-            "city": r["city"], "province": province, "phone": r["phone"], "address": r["address"],
-            "source_system_label": WEB_LOOKUP_SOURCE,
-            "canonical_directory_key": f"{WEB_LOOKUP_SOURCE}:{host}:{digest}"[:128],
-        }
-        if entity == "SPECIALIST":
-            records.append({**base, "entity_family": "DOCTOR", "full_name": r["name"], "specialty": r["specialty"]})
-        elif entity in {"HOSPITAL", "SPECIALTY_CENTER"}:
-            records.append({**base, "entity_family": "HOSPITAL", "name": r["name"],
-                            "facility_type": "HOSPITAL" if entity == "HOSPITAL" else "MEDICAL_CENTER"})
-    return records
-
-
-def lookup_and_store(db: Any, *, entity: str, specialty: Optional[str], city: Optional[str],
-                     province: Optional[str], country: str = "IR", client: Any = None) -> list[str]:
-    """Run one guarded lookup, store validated records, return their canonical keys. Never raises."""
-    if entity == "LABORATORY" or not web_lookup_enabled():
-        return []
-    query = build_query(entity, specialty, city, province, country)
-    if not query or not _take_quota():
-        return []
-    try:
-        raw = _call_web_search(query, country, client)
-        records = to_directory_records(validate_results(raw, city=city, country=country),
-                                       entity=entity, province=province, country=country)
-        if not records:
-            return []
-        from backend.app import models
-        from backend.app.services.i5.iran_directory_import import apply_plan
-
-        apply_plan(db, records)
-        now = datetime.utcnow()
-        keys = [r["canonical_directory_key"] for r in records]
-        for cls in (models.IranDoctor, models.IranHospital):
-            for row in db.query(cls).filter(cls.canonical_directory_key.in_(keys)).all():
-                row.last_verified_at = now  # re-confirmed today even if unchanged
-        db.flush()
-        return keys
-    except Exception:  # noqa: BLE001 — lookup is optional; the governed answer path must not break
-        return []
-
-
 def is_stale_web_row(source_system_label: Optional[str], last_verified_at: Any) -> bool:
+    """Legacy rows stored by the earlier cache design expire after FRESH_DAYS."""
     if source_system_label != WEB_LOOKUP_SOURCE:
         return False
     if isinstance(last_verified_at, str):
