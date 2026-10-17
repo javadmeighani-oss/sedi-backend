@@ -113,48 +113,27 @@ jobs:
           from backend.app.services.i5.reference_renderer import render_grounded_answer, format_care_context_block
           db = next(get_db())
           try:
-              att = db.query(models.WeeklyKnowledgeRunAttempt).order_by(models.WeeklyKnowledgeRunAttempt.id.desc()).first()
-              print("BREADTH|attempt|id=%s status=%s total=%s fetched=%s failed=%s blocked=%s skipped=%s" % (att.id, att.status, att.total_sources, att.fetched_sources, att.failed_sources, att.blocked_sources, att.skipped_sources))
-              rows = db.query(models.WeeklyRunSourceResult).filter_by(attempt_id=att.id).all()
-              c = collections.Counter((r.result_status, r.fetch_outcome, r.extraction_outcome, r.publication_outcome, r.failure_code) for r in rows)
-              for k, n in c.most_common(12):
-                  print("BREADTH|srcres|n=%d %s" % (n, k))
-              for r in rows:
-                  if r.error_count or r.failure_code:
-                      sp = db.query(models.GovernedSourceProfile).filter_by(id=r.source_profile_id).one_or_none()
-                      print("BREADTH|srcfail|%s code=%s reason=%s err=%s warn=%s" % (sp.canonical_key if sp else r.source_profile_id, r.failure_code, (r.failure_reason or "")[:120].replace(chr(10), " "), r.error_count, r.warning_count))
-              from sqlalchemy import func
-              dist = db.query(models.KnowledgeUnit.evidence_strength, func.count()).filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE").group_by(models.KnowledgeUnit.evidence_strength).all()
-              print("BREADTH|strength_all|%s" % dist)
-              d2 = db.query(models.KnowledgeUnit.domain, models.KnowledgeUnit.evidence_strength, func.count()).filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE", models.KnowledgeUnit.domain.in_(["physical_activity_exercise", "nutrition", "mental_health_psychology", "neurology_als"])).group_by(models.KnowledgeUnit.domain, models.KnowledgeUnit.evidence_strength).all()
-              print("BREADTH|strength_domains|%s" % d2)
-              qs = [("fa", "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"),
-                    ("fa", "برای اضطراب و استرس چه راهکارهای روانشناختی پیشنهاد می‌کنی؟"),
-                    ("fa", "علائم و درمان ام اس چیست؟"),
-                    ("fa", "چقدر باید ورزش کنم؟"),
-                    ("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"),
-                    ("en", "amyotrophic lateral sclerosis care")]
-              from backend.app.services.i5.query_translation import translate_query_alternatives
-              from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
-              for lang, q in qs:
-                  alts = translate_query_alternatives(q, lang)
-                  if not alts:
-                      from openai import OpenAI
-                      from backend.app.services.i5 import query_translation as _qt
-                      rr = OpenAI().chat.completions.create(model=_qt.DEFAULT_MODEL, messages=[{"role": "system", "content": _qt._INSTRUCTIONS}, {"role": "user", "content": q}], temperature=0, max_tokens=80)
-                      print("BREADTH|rawout|%r enabled=%s needs=%s" % (rr.choices[0].message.content, _qt.translation_enabled(), _qt.needs_translation(q, lang)))
-                  print("BREADTH|alts|lang=%s %r" % (lang, alts))
-                  for a in alts:
-                      its, mt = retrieve_scis_governed_runtime_items(db, a, language="en", limit=3, allow_network=True, _via_translation=True)
-                      print("BREADTH|alt|%r items=%d lex=%s ev=%s fb=%s drops=%s" % (a, len(its), mt.get("lexical_count"), mt.get("scis_evidence_count"), mt.get("fallback_state"), mt.get("governance_drop_counts")))
-              for lang, q in qs:
-                  r = retrieve_knowledge_context(db, q, user_id=None, language=lang, limit=3, enqueue_gap_on_empty=False)
-                  d = r.to_dict()
-                  items = d.get("knowledge_snippets") or []
-                  sa = d.get("sufficiency_audit") or {}
-                  g = render_grounded_answer(d, language=lang, user_requested_sources=True)
-                  blk = format_care_context_block(g, max_chars=900) or ""
-                  print("BREADTH|ctx|lang=%s status=%s reason=%s items=%d block=%d first=%s" % (lang, d.get("status"), sa.get("reason"), len(items), len(blk), (items[0].get("content", "")[:80].replace(chr(10), " ") if items else "-")))
+              from backend.app.services.gate3.medical_intent import is_medical_care_intent
+              from backend.app.services.gate3.care_intelligence import build_care_context
+              from backend.app.services.i5.reference_renderer import render_from_care_context, format_care_context_block
+              msg = "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"
+              for lang in ("fa", "en"):
+                  print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
+              uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
+              print("BREADTH|users|%s" % uids)
+              for uid in uids:
+                  try:
+                      ctx = build_care_context(db, uid, "fa", query_hint=msg)
+                      env = ctx.get("i5_knowledge_retrieval") or {}
+                      sa = env.get("sufficiency_audit") or {}
+                      print("BREADTH|chat|uid=%s i5_status=%s reason=%s snippets=%d pers=%s" % (uid, ctx.get("i5_retrieval_status"), sa.get("reason"), len(ctx.get("knowledge_snippets") or []), ctx.get("personalization_applied")))
+                      g = render_from_care_context(ctx, language="fa", user_requested_sources=True)
+                      blk = format_care_context_block(g, max_chars=900) or ""
+                      print("BREADTH|block|uid=%s chars=%d head=%s" % (uid, len(blk), blk[:300].replace(chr(10), " | ")))
+                      db.rollback()
+                  except Exception as e:
+                      db.rollback()
+                      print("BREADTH|chat_error|uid=%s %s:%s" % (uid, type(e).__name__, str(e)[:200].replace(chr(10), " ")))
           finally:
               db.close()
           PY
