@@ -160,14 +160,22 @@ def evaluate_retrieval_sufficiency(
         )
 
     strengths = [str(getattr(i, "evidence_strength", "") or "") for i in seq]
-    if strengths and all(s == _LOW for s in strengths):
+    # LOW is the governed grade for official lifestyle guidance (manifest low-risk path: exercise,
+    # nutrition, sleep, wellbeing). Refusing those would make the core lifestyle domains unanswerable;
+    # the LOW-only fail-closed rule therefore applies to clinical/other domains only.
+    from backend.app.services.i5.governed_low_risk_eligibility import domain_is_recognized_low_risk
+
+    all_lifestyle = all(domain_is_recognized_low_risk(getattr(i, "domain", None)) for i in seq)
+    if strengths and all(s == _LOW for s in strengths) and not all_lifestyle:
         return SufficiencyDecision(
             sufficient=False,
             reason=SUFFICIENCY_LOW_ONLY,
             clarification_required=True,
         )
 
-    if any(s in _MODERATE_OR_HIGH for s in strengths):
+    if any(s in _MODERATE_OR_HIGH for s in strengths) or (
+        strengths and all_lifestyle and all(s in {_LOW, *_MODERATE_OR_HIGH} for s in strengths)
+    ):
         return SufficiencyDecision(
             sufficient=True,
             reason=SUFFICIENCY_OK,
