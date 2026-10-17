@@ -17,6 +17,10 @@ on:
       image_digest:
         description: "Exact sha256:<64 hex> running image digest"
         required: true
+      flag_name:
+        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED"
+        required: false
+        default: SEDI_DIRECTORY_WEB_LOOKUP_ENABLED
 
 permissions:
   contents: read
@@ -50,11 +54,13 @@ jobs:
           F=backend/ops/db03/db_prod_i5_directory_web_flag_remote.sh
           ! grep -Eiq 'alembic[[:space:]]+upgrade|docker[[:space:]]+pull' "$F"
           grep -Fq 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' "$F"
+          grep -Fq 'SEDI_SCIS_SEMANTIC_INDEX_ENABLED' "$F"
       - name: SSH run
         env:
           TAG: ${{ github.event.inputs.image_tag }}
           DIG: ${{ github.event.inputs.image_digest }}
           PHASE: ${{ github.event.inputs.phase }}
+          FLAG_NAME: ${{ github.event.inputs.flag_name || 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' }}
         run: |
           set -Eeuo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -70,7 +76,7 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh"
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh") && \
-             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") PHASE=$(printf '%q' "${PHASE}") \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") PHASE=$(printf '%q' "${PHASE}") FLAG_NAME=$(printf '%q' "${FLAG_NAME}") \
              IMAGE_SHA=$(printf '%q' "${TAG}") IMAGE_DIGEST=$(printf '%q' "${DIG}") \
              bash $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh")" \
             2>&1 | tee /tmp/webflag.log

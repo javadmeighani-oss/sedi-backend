@@ -8,7 +8,12 @@ s() { echo "WEBFLAG|$1|$2"; }
 echo "${IMAGE_SHA}" | grep -Eq '^[0-9a-f]{40}$'
 echo "${IMAGE_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'
 ENV_FILE="/etc/sedi/sedi-backend.env"
-FLAG="SEDI_DIRECTORY_WEB_LOOKUP_ENABLED"
+FLAG="${FLAG_NAME:-SEDI_DIRECTORY_WEB_LOOKUP_ENABLED}"
+case "${FLAG}" in
+  SEDI_DIRECTORY_WEB_LOOKUP_ENABLED|SEDI_SCIS_SEMANTIC_INDEX_ENABLED) ;;
+  *) echo "FLAG_NOT_ALLOWED"; exit 2 ;;
+esac
+s "flag_name" "${FLAG}"
 EXPECTED_HEAD="089_i5_directory_doctor_feedback"
 
 psql_prod() {
