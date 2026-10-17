@@ -111,10 +111,8 @@ jobs:
           from backend.app.services.i5.reference_renderer import render_grounded_answer, format_care_context_block
           db = next(get_db())
           qs = [("fa", "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"),
-                ("fa", "برای اضطراب و استرس چه راهکارهای روانشناختی پیشنهاد می‌کنی؟"),
-                ("fa", "علائم و درمان ام اس چیست؟"),
-                ("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"),
-                ("en", "amyotrophic lateral sclerosis care")]
+                ("en", "amyotrophic lateral sclerosis care"),
+                ("en", "how much exercise do adults need")]
           try:
               for lang, q in qs:
                   r = retrieve_knowledge_context(db, q, user_id=None, language=lang, limit=3, enqueue_gap_on_empty=False)
@@ -122,6 +120,8 @@ jobs:
                   items = d.get("knowledge_snippets") or []
                   g = render_grounded_answer(d, language=lang, user_requested_sources=True)
                   blk = format_care_context_block(g, max_chars=900)
+                  print("BREADTH|diag|%s" % str({k: d.get(k) for k in ("safe_user_facing_intent","sufficiency_audit","exclusion_counts","clarification_required")})[:600])
+                  print("BREADTH|diag_obs|%s" % str({k: v for k, v in (d.get("observability") or {}).items() if k in ("retrieval_mode","effective_mode","fallback_state","provider_failure","scis_evidence_count","mapped_item_count","lexical_count","semantic_count","cross_language_via_translation","translated_query_used","concept_authority_applied","governance_drop_counts","language")})[:600])
                   print("BREADTH|probe|lang=%s status=%s items=%d block_chars=%d first=%s" % (lang, d.get("status"), len(items), len(blk or ""), (items[0].get("content","")[:70].replace(chr(10)," ") if items else "-")))
           finally:
               db.close()
