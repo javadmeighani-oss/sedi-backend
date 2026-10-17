@@ -99,6 +99,9 @@ try:
     print('WEBFLAG|probe_raw_count|%d' % len(raw))
     print('WEBFLAG|probe_valid_count|%d' % len(ok))
     print('WEBFLAG|probe_domains|' + ','.join(sorted({__import__('urllib.parse').parse.urlparse(r['source_url']).hostname or '' for r in ok})))
+    from urllib.parse import urlparse as up
+    for r in raw:
+        print('WEBFLAG|probe_raw|host=%s trusted=%s city=%s has_addr=%s has_phone=%s' % (up(r.get('source_url','')).hostname, w.is_trusted_url(r.get('source_url','')), r.get('city',''), bool(r.get('address')), bool(r.get('phone'))))
 except Exception as e:
     print('WEBFLAG|probe_error|' + type(e).__name__ + ':' + str(e)[:160].replace(chr(10), ' '))
 "
