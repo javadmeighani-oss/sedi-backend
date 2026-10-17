@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "PREFLIGHT | ACTIVATE"
+        description: "PREFLIGHT | ACTIVATE | PROBE"
         required: true
       confirmation:
         description: "BREADTH_PREFLIGHT | BREADTH_ACTIVATE_AND_RUN"
@@ -35,7 +35,8 @@ jobs:
     name: Knowledge breadth ${{ github.event.inputs.phase }}
     if: >-
       (github.event.inputs.phase == 'PREFLIGHT' && github.event.inputs.confirmation == 'BREADTH_PREFLIGHT') ||
-      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'BREADTH_ACTIVATE_AND_RUN')
+      (github.event.inputs.phase == 'ACTIVATE' && github.event.inputs.confirmation == 'BREADTH_ACTIVATE_AND_RUN') ||
+      (github.event.inputs.phase == 'PROBE' && github.event.inputs.confirmation == 'BREADTH_PROBE')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -103,6 +104,30 @@ jobs:
           assert multisource_enabled(), "MULTISOURCE_ENV_NOT_ENABLED"
           PY
           if [ "${PHASE}" = "PREFLIGHT" ]; then s phase_preflight PASS; exit 0; fi
+          if [ "${PHASE}" = "PROBE" ]; then
+            docker exec -i sedi-backend python - <<'PY'
+          from backend.app.database import get_db
+          from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
+          from backend.app.services.i5.reference_renderer import render_grounded_answer, format_care_context_block
+          db = next(get_db())
+          qs = [("fa", "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"),
+                ("fa", "برای اضطراب و استرس چه راهکارهای روانشناختی پیشنهاد می‌کنی؟"),
+                ("fa", "علائم و درمان ام اس چیست؟"),
+                ("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"),
+                ("en", "amyotrophic lateral sclerosis care")]
+          try:
+              for lang, q in qs:
+                  r = retrieve_knowledge_context(db, q, user_id=None, language=lang, limit=3, enqueue_gap_on_empty=False)
+                  d = r.to_dict() if hasattr(r, "to_dict") else r
+                  items = d.get("knowledge_snippets") or []
+                  g = render_grounded_answer(d, language=lang, user_requested_sources=True)
+                  blk = format_care_context_block(g, max_chars=900)
+                  print("BREADTH|probe|lang=%s status=%s items=%d block_chars=%d first=%s" % (lang, d.get("status"), len(items), len(blk or ""), (items[0].get("content","")[:70].replace(chr(10)," ") if items else "-")))
+          finally:
+              db.close()
+          PY
+            s phase_probe PASS; exit 0
+          fi
           TS="$(date -u +%Y%m%d_%H%M%S)"
           mkdir -p "${DEPLOY_PATH}/backups/postgres"
           BK="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_breadth_${TS}.sql.gz"
@@ -139,7 +164,7 @@ jobs:
           curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health_after PASS
           s phase_activate_and_run PASS
           REMOTE
-          grep -Eq 'BREADTH\|phase_(preflight|activate_and_run)\|PASS' /tmp/breadth.log
+          grep -Eq 'BREADTH\|phase_(preflight|activate_and_run|probe)\|PASS' /tmp/breadth.log
           if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/breadth.log; then echo SECRET_LEAK; exit 2; fi
       - if: always()
         uses: actions/upload-artifact@v4
