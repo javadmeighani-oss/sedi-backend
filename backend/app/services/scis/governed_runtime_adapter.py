@@ -218,18 +218,42 @@ def _map_evidence_to_items(
 
 
 def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) -> Optional[Tuple[List[RetrievedKnowledgeItem], dict]]:
+    """English keyword alternatives (aspect first, different official names), merged across hits.
+
+    Lexical search ANDs tokens and US/UK sources name conditions differently (ALS vs motor neurone
+    disease), so each alternative is searched and distinct KUs are merged in alternative order.
+    """
     from backend.app.services.i5.query_translation import translate_query_alternatives
 
-    # Lexical search ANDs tokens, so try specific -> general keyword queries until one hits.
+    want = max(1, min(int(kwargs.get("limit") or DEFAULT_SERVING_TOP_K), DEFAULT_SERVING_TOP_K))
+    merged: List[RetrievedKnowledgeItem] = []
+    seen: set = set()
+    first_meta: Optional[dict] = None
+    used: List[str] = []
     for english in translate_query_alternatives(query or "", lang):
         items, meta = retrieve_scis_governed_runtime_items(db, english, language="en", _via_translation=True, **kwargs)
-        if items:
-            meta["cross_language_via_translation"] = True
-            meta["translated_query_used"] = True
-            meta["language"] = lang
-            meta["cross_language_authorized"] = True
-            return items, meta
-    return None
+        added = 0
+        for item in items:
+            key = getattr(item, "knowledge_unit_id", None)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(item)
+            added += 1
+        if added:
+            used.append(english)
+            first_meta = first_meta or meta
+        if len(merged) >= want:
+            break
+    if not merged or first_meta is None:
+        return None
+    first_meta["cross_language_via_translation"] = True
+    first_meta["translated_query_used"] = True
+    first_meta["translated_queries_hit"] = used
+    first_meta["language"] = lang
+    first_meta["cross_language_authorized"] = True
+    first_meta["mapped_item_count"] = len(merged[:want])
+    return merged[:want], first_meta
 
 
 def retrieve_scis_governed_runtime_items(
