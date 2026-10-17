@@ -100,6 +100,10 @@ _BOILERPLATE_SECTION_HEADINGS = re.compile(
     r"|where can i (?:learn|find) more.*|additional (?:federal )?(?:resources|information).*"
     r"|explore clinical trials.*|why is \w+ studying.*|how is \w+ research.*"
     r"|statistics and research|book traversal links.*|support links|find out more"
+    # Agency self-description (CDC/NIH "What CDC is doing", "About us"): administrative text that
+    # outranked real guidance for questions such as "how much exercise".
+    r"|what (?:cdc|nih|nci|nhs|who|\w+) (?:is|are) doing.*|how (?:cdc|nih|nci|\w+) (?:is )?helps?.*"
+    r"|about us|our work|our partners|partners(?: and .*)?|funding(?: opportunities)?"
     # Country-specific triage boxes (e.g. NHS 111 / 999 / "see a GP"): emergency and
     # escalation guidance is owned by I4 and must not be served from foreign knowledge.
     r"|(?:non-)?urgent advice.*|immediate action required.*|important: get urgent help.*"
