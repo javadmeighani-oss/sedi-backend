@@ -90,6 +90,44 @@ def _last_user_message_at(db: Session, user_id: int) -> Optional[datetime]:
     return row[0] if row else None
 
 
+_REQUEST_MARKERS = (
+    "؟", "?", "بده", "بگو", "توضیح", "چیه", "چطور", "چگونه", "چرا", "می‌خوام", "میخوام",
+    "explain", "tell me", "how ", "what ", "why ", "please", "can you",
+)
+
+
+def _safe_continuity_snippet(text: Optional[str], *, max_len: int = 80) -> Optional[str]:
+    """The user's own short statement as a topic, or None when it is a request/question (never quote those back)."""
+    cleaned = " ".join((text or "").split()).strip()
+    if not cleaned:
+        return None
+    lowered = cleaned.lower()
+    if any(m in lowered for m in _REQUEST_MARKERS):
+        return None
+    if len(cleaned) > max_len:
+        cleaned = cleaned[: max_len - 1].rstrip() + "…"
+    return cleaned
+
+
+def authorized_last_eligible_turn(db: Session, user_id: int) -> Optional[models.Memory]:
+    """I6/I7 read boundary: user-owned, retention-eligible raw only when memory.read is active."""
+    try:
+        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+        from backend.app.services.i7.retention import query_eligible_raw
+
+        if not has_permission(db, user_id, PERM_READ):
+            return None
+        rows = query_eligible_raw(db, user_id, limit=1)
+        if not rows:
+            return None
+        row = rows[0]
+        if int(getattr(row, "user_id", 0) or 0) != int(user_id):
+            return None
+        return row
+    except Exception:
+        return None
+
+
 def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
     templates = {
         "en": (
@@ -97,7 +135,7 @@ def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
             "Would you like to continue that?"
         ),
         "fa": (
-            "سلام{name_part}، خوش برگشتی! دفعه‌ی قبل درباره‌ی {snippet} حرف می‌زدیم؛ "
+            "سلام{name_part}، خوش برگشتی! دفعه‌ی قبل درباره‌ی «{snippet}» حرف می‌زدیم؛ "
             "می‌خوای از همون‌جا ادامه بدیم؟"
         ),
         "ar": (
@@ -121,20 +159,31 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
             return None
     lang = _lang(user)
     name_part = _name_part(user, lang)
-    # The user's own last sentence ("در مورد ALS بیشتر توضیح بده") is not a topic and must not be quoted
-    # back; only the privacy-safe coarse topic label may be named, otherwise a plain warm welcome.
-    snippet = None
-    try:
-        from backend.app.services.i7.privacy_safe_recent_topic import (
-            display_phrase_for_topic_label,
-            get_privacy_safe_recent_topic_label,
-        )
+    turn = authorized_last_eligible_turn(db, user.id)
+    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
+    if not snippet:
+        try:
+            from backend.app.services.i7.derived_continuity import (
+                get_bounded_continuity_topic,
+                should_project_derived_continuity,
+            )
 
-        label = get_privacy_safe_recent_topic_label(db, user.id)
-        if label and label != "general":
-            snippet = display_phrase_for_topic_label(label, lang)
-    except Exception:
-        snippet = None
+            if should_project_derived_continuity(db, user.id):
+                snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+        except Exception:
+            snippet = None
+    if not snippet:
+        try:
+            from backend.app.services.i7.privacy_safe_recent_topic import (
+                display_phrase_for_topic_label,
+                get_privacy_safe_recent_topic_label,
+            )
+
+            label = get_privacy_safe_recent_topic_label(db, user.id)
+            if label and label != "general":
+                snippet = display_phrase_for_topic_label(label, lang)
+        except Exception:
+            snippet = None
     if snippet:
         return _continuity_opener(lang, snippet, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])

@@ -72,11 +72,21 @@ def test_brand_spelling_is_sadi_never_sedi_in_persian_arabic_text():
     assert offenders == [], offenders
 
 
+def test_a3_snippet_only_for_topic_like_text_never_a_request():
+    from backend.app.services import a3_session_open as a3
+
+    assert a3._safe_continuity_snippet("walking") == "walking"
+    assert a3._safe_continuity_snippet("I want to start walking 30 minutes every evening.")
+    assert a3._safe_continuity_snippet("در مورد ALS بیشتر توضیح بده") is None
+    assert a3._safe_continuity_snippet("What should I eat?") is None
+    assert a3._safe_continuity_snippet("") is None
+
+
 def test_a3_opener_never_quotes_raw_user_sentence():
     from backend.app.services import a3_session_open as a3
 
     text = a3._continuity_opener("fa", "برنامه فعالیتت", " جواد")
-    assert "خوش آمدید" not in text and "مایلید" not in text and "برنامه فعالیتت" in text
+    assert "خوش آمدید" not in text and "مایلید" not in text and "«برنامه فعالیتت»" in text
     for options in a3._OPENERS.values():
         assert all("{name_part}" in o for o in options)
     assert "مایلید" not in a3._INTRO["fa"] and "شما" not in a3._INTRO["fa"]
