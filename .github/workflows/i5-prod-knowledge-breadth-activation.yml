@@ -125,28 +125,16 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
-              from backend.app.services.intelligence.safety_risk import requires_terminal_safety_response
+              from sqlalchemy import func
+              att = db.query(models.WeeklyKnowledgeRunAttempt).order_by(models.WeeklyKnowledgeRunAttempt.id.desc()).limit(3).all()
+              for a in att:
+                  print("BREADTH|attempt|id=%s run=%s status=%s new=%s updated=%s superseded=%s rejected=%s" % (a.id, a.weekly_run_id, a.status, getattr(a, "new_knowledge_count", None), getattr(a, "updated_knowledge_count", None), getattr(a, "superseded_knowledge_count", None), getattr(a, "rejected_knowledge_count", None)))
               from backend.app.services.i5.care_navigation_directory import resolve_care_navigation
-              orch = IntelligenceOrchestrator(db=db)
-              for text, lang in (("از ساعت دو شب درد شدید قفسه سینه دارم و نفسم بند اومده", "fa"), ("I have crushing chest pain and cannot breathe", "en"), ("ألم شديد في الصدر وضيق في التنفس", "ar"), ("چقدر باید ورزش کنم؟", "fa")):
-                  a = orch.precheck_safety_risk(message=text, language=lang)
-                  print("BREADTH|safety|lang=%s terminal=%s q=%s" % (lang, requires_terminal_safety_response(a), text[:30]))
-              r = resolve_care_navigation(db, "یه دندانپزشک در تهران معرفی کن", language="fa")
-              print("BREADTH|directory|status=%s msg=%s" % (getattr(r, "status", None), (getattr(r, "user_message", "") or "").replace(chr(10), " / ")[:240]))
-              cases = (("ar", "ما هو مرض التصلب الجانبي الضموري وكيف أعتني به؟"), ("ar", "كيف أتعامل مع القلق والتوتر وقلة النوم؟"),
-                       ("en", "How much exercise do adults need each week?"), ("en", "I feel anxious and cannot sleep, what can help?"),
-                       ("fa", "دست‌هام گاهی می‌لرزه و ضعف دارم؛ ممکنه ام اس یا ای ال اس باشه؟ چه کار کنم؟"),
-                       ("fa", "برای پیشگیری از دیابت و فشار خون چه برنامه‌ی غذایی و ورزشی پیشنهاد می‌کنی؟"))
-              for lang, text in cases:
-                  msgs = [{"role": "system", "content": build_system_prompt_with_context(lang, "جواد", None)}]
-                  _maybe_append_gate3_care_context(msgs, db, uids[1], text, lang)
-                  ctx = sum(len(m["content"]) for m in msgs[1:])
-                  msgs.append({"role": "user", "content": text})
-                  rsp = create_primary_chat_response(msgs)
-                  print("BREADTH|chat|lang=%s ctx=%d q=%s reply=%s" % (lang, ctx, text[:32], (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:780]))
+              from backend.app.services.i5 import directory_web_lookup as wl
+              print("BREADTH|webflag|enabled=%s" % wl.web_lookup_enabled())
+              for q in ("یه متخصص قلب در شیراز معرفی کن", "یه کلینیک پوست در مشهد پیشنهاد بده", "یه آزمایشگاه خوب در اصفهان معرفی کن", "یه دندانپزشک در تهران معرفی کن"):
+                  r = resolve_care_navigation(db, q, language="fa")
+                  print("BREADTH|web|%s | status=%s notes=%s msg=%s" % (q, getattr(r, "status", None), list(getattr(r, "identity_notes", ())), (getattr(r, "user_message", "") or "").replace(chr(10), " / ")[:900]))
               db.rollback()
           finally:
               db.close()
