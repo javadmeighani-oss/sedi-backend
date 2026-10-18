@@ -108,6 +108,8 @@ jobs:
             s running_image "$(docker inspect sedi-backend --format '{{.Config.Image}}' | sed 's/.*://')"
             s container_started "$(docker inspect sedi-backend --format '{{.State.StartedAt}}')"
             s now_utc "$(date -u +%FT%TZ)"
+            s log_errors_since_start "$(docker logs sedi-backend 2>&1 | grep -cE 'Traceback|orchestration_error|context_assembly_failed' || true)"
+            s log_http_5xx "$(docker logs sedi-backend 2>&1 | grep -cE '" 5[0-9][0-9] ' || true)"
             s scheduler_line "$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler registered' | tail -n1 | cut -c1-260)"
             docker exec -i sedi-backend python - <<'PY'
           import collections
@@ -125,38 +127,9 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              import uuid
-              from backend.app.core.conversation.brain import _maybe_append_structured_governed_knowledge, _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              from backend.app.services.intelligence.assembler import AuthorizedContextAssembler
-              from backend.app.services.intelligence.orchestrator import allow_governed_knowledge_decision
-              from backend.app.services.intelligence.psychological_interaction import classify_interaction_need
-              from backend.app.services.intelligence.intent_registry import resolve_intent
-              uid = uids[1]
-              asm = AuthorizedContextAssembler()
-              snap = asm.assemble(db, authenticated_user_id=uid, request_id=str(uuid.uuid4()))
-              proj = asm.build_compatibility_projection(snap)
-              print("BREADTH|proj|chars=%d truncated=%s name=%s items=%d" % (len(proj.text), proj.truncated, bool(proj.preferred_name), len(snap.items)))
-              cases = (("fa", "خیلی استرس دارم و نمی‌تونم بخوابم، چیکار کنم؟"), ("fa", "امروز خیلی غمگینم و فقط می‌خوام کسی گوش بده"),
-                       ("fa", "خیلی استرس دارم و فقط گوش کن"), ("ar", "أشعر بتوتر شديد وقلة نوم، كيف أتعامل معه؟"), ("en", "I have so much stress and anxiety, what can I do?"))
-              for lang, text in cases:
-                  intent = resolve_intent(message=text, language=lang)
-                  need = classify_interaction_need(message=text, intent=intent, language=lang)
-                  allow = allow_governed_knowledge_decision(terminal_safety=False, message=text, language=lang, intent=intent, interaction_need=need)
-                  def build(structured):
-                      msgs = [{"role": "system", "content": build_system_prompt_with_context(lang, proj.preferred_name or "جواد", None)}]
-                      if structured:
-                          msgs.append({"role": "system", "content": proj.text})
-                          if allow:
-                              _maybe_append_structured_governed_knowledge(msgs, db, uid, text, lang)
-                      else:
-                          _maybe_append_gate3_care_context(msgs, db, uid, text, lang)
-                      return msgs
-                  ms, mc = build(True), build(False)
-                  ctx_s = sum(len(m["content"]) for m in ms[1:]); ctx_c = sum(len(m["content"]) for m in mc[1:])
-                  ms.append({"role": "user", "content": text})
-                  r = create_primary_chat_response(ms)
-                  print("BREADTH|struct|lang=%s need=%s allow_knowledge=%s ctx_structured=%d ctx_compat=%d reply=%s" % (lang, need.value, allow, ctx_s, ctx_c, (getattr(r, "output_text", "") or "").replace(chr(10), " / ")[:420]))
+              from backend.app.services.intelligence.feature_flags import intelligence_orchestrator_v1_enabled
+              from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+              print("BREADTH|mode|structured_flag=%s rollout=%s" % (intelligence_orchestrator_v1_enabled(), IntelligenceOrchestrator(db=db)._rollout_mode()))
               db.rollback()
           finally:
               db.close()
