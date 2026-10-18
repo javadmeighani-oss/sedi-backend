@@ -125,27 +125,15 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              import collections
               from sqlalchemy import func
-              from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
-              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              att = db.query(models.WeeklyKnowledgeRunAttempt).order_by(models.WeeklyKnowledgeRunAttempt.id.desc()).first()
-              print("BREADTH|attempt|id=%s status=%s total=%s fetched=%s blocked=%s failed=%s new=%s" % (att.id, att.status, att.total_sources, att.fetched_sources, att.blocked_sources, att.failed_sources, att.new_knowledge_count))
-              for r in db.query(models.WeeklyRunSourceResult).filter_by(attempt_id=att.id).all():
-                  if r.failure_code:
-                      sp = db.query(models.GovernedSourceProfile).filter_by(id=r.source_profile_id).one_or_none()
-                      print("BREADTH|fail|%s code=%s" % (sp.canonical_key if sp else r.source_profile_id, r.failure_code))
-              for q in ("کم‌خونی فقر آهن علائم و درمان", "پروستات بزرگ چیست و چه درمانی دارد؟", "اختلال نعوظ علل و درمان", "یائسگی و بارداری سلامت زنان"):
-                  r = retrieve_knowledge_context(db, q, user_id=None, language="fa", limit=5, enqueue_gap_on_empty=False).to_dict()
-                  sn = r.get("knowledge_snippets") or []
-                  print("BREADTH|cov|%s | %s n=%d doms=%s first=%s" % (q, r.get("status"), len(sn), sorted({x.get("domain", "") for x in sn}), (sn[0].get("content", "")[:55].replace(chr(10), " ") if sn else "-")))
-              text = "كيف أتعامل مع القلق وقلة النوم؟"
-              msgs = [{"role": "system", "content": build_system_prompt_with_context("ar", "جواد", None)}]
-              _maybe_append_gate3_care_context(msgs, db, uids[1], text, "ar")
-              msgs.append({"role": "user", "content": text})
-              rsp = create_primary_chat_response(msgs)
-              print("BREADTH|ar|%s" % (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:600])
+              from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
+              from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
+              rows = db.query(models.I5ClinicalConceptLabel.language, models.I5ClinicalConceptLabel.verified, func.count()).group_by(models.I5ClinicalConceptLabel.language, models.I5ClinicalConceptLabel.verified).all()
+              print("BREADTH|labels|%s" % rows)
+              for lang, q in (("fa", "ای ال اس چیست و چطور مراقبت کنم؟"), ("fa", "علائم مولتیپل اسکلروزیس"), ("ar", "ما هو مرض الصرع؟"), ("ar", "كيف أعتني بمرض الزهايمر"), ("fa", "پارکینسون و دیابت"), ("fa", "چطور آرام شوم؟")):
+                  au = resolve_verified_concept_authority(db, q, lang)
+                  items, meta = retrieve_scis_governed_runtime_items(db, q, language=lang, limit=5, allow_network=True)
+                  print("BREADTH|auth|%s | concept=%s authorized_kus=%s items=%d via_translation=%s" % (q, getattr(au, "concept_key", None), meta.get("authorized_ku_count"), len(items), meta.get("cross_language_via_translation")))
               db.rollback()
           finally:
               db.close()
