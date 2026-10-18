@@ -196,6 +196,14 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
     return out[:MAX_RESULTS]
 
 
+def _query_variants(query: str, entity: str, country: str) -> list[str]:
+    ir = country.upper() == "IR"
+    out = [query, query + (" آدرس و تلفن" if ir else " address phone")]
+    if ir and entity == "LABORATORY":
+        out.append(query.replace("آزمایشگاه", "آزمایشگاه تشخیص طبی", 1) + " آدرس")
+    return out
+
+
 def search_web_providers(*, entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
                          country: str = "IR", client: Any = None) -> list[dict[str, Any]]:
     """One guarded web search (cached 24h per structured query). Never raises, never writes to the DB."""
@@ -213,9 +221,13 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
         return []
     results: list[dict[str, Any]] = []
     try:
-        raw = _call_web_search(query, country, client)
-        if not raw and _take_quota():  # web search is non-deterministic: one retry with address/phone wording
-            raw = _call_web_search(query + (" آدرس و تلفن" if country.upper() == "IR" else " address phone"), country, client)
+        raw: list[dict[str, Any]] = []
+        for i, variant in enumerate(_query_variants(query, entity, country)):
+            if i and not _take_quota():  # web search is non-deterministic: retry with other wording
+                break
+            raw = _call_web_search(variant, country, client)
+            if raw:
+                break
         results = validate_results(raw, city=city, country=country)
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
