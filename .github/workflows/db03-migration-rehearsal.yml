@@ -81,6 +81,7 @@ jobs:
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
@@ -101,13 +102,14 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "080_i9_device_reported_vital_status"
+              assert head == ScriptDirectory.from_config(cfg).get_current_head()
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -123,6 +125,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "056_i5_w2_p02_conflict_safety")
@@ -133,7 +136,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "080_i9_device_reported_vital_status"
+              assert head == ScriptDirectory.from_config(cfg).get_current_head()
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -202,6 +205,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")

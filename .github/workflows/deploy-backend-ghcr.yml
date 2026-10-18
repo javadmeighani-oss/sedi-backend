@@ -662,10 +662,23 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "mv $(printf '%q' "${DEPLOY_PATH}/compose.production.yml.tmp") $(printf '%q' "${DEPLOY_PATH}/compose.production.yml")"
           echo "=== SCP IMAGE ARCHIVE ==="
-          scp -i ~/.ssh/sedi_deploy_key \
-            -P "${{ secrets.SEDI_PORT }}" \
-            "${ARCHIVE_PATH}" \
-            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_ARCHIVE}"
+          # DEBT-020: a stalled scp used to hang for hours. Bound each attempt (20 min, keepalive-detected
+          # dead link) and retry up to 3 times; the archive sha256 is still verified on the server by the
+          # load step, so a retry cannot weaken the integrity check.
+          transferred=0
+          for attempt in 1 2 3; do
+            if timeout 20m scp -i ~/.ssh/sedi_deploy_key \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+              -P "${{ secrets.SEDI_PORT }}" \
+              "${ARCHIVE_PATH}" \
+              "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_ARCHIVE}"; then
+              transferred=1
+              break
+            fi
+            echo "scp attempt ${attempt}/3 failed or timed out"
+            sleep 20
+          done
+          [ "${transferred}" = "1" ] || { echo "archive transfer failed after 3 attempts"; exit 1; }
           echo "transfer_complete archive_sha256=${ARCHIVE_SHA256}"
 
       - name: Load archive on server and deploy with --pull never
