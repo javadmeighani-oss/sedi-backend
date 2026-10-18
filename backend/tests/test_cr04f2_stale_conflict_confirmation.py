@@ -726,7 +726,11 @@ def test_cr04f2_cr04f1_missing_tier_a_unchanged():
     )
     assert d is not None
     assert d.target_key == "preferences.interests"
-    assert "Optional" in d.localized_question or "اختیاری" in d.localized_question
+    # The invitation must stay visibly optional; a natural cue replaces the stiff "Optional:" label.
+    assert any(
+        cue in d.localized_question
+        for cue in ("Optional", "اختیاری", "If you feel like", "دوست داری", "اگه")
+    )
 
 
 # ---- CR-04F.2.1 confirmation evidence under saturation ----

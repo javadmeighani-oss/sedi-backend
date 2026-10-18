@@ -81,6 +81,15 @@ _GOVERNED_KNOWLEDGE_INTENT_IDS = frozenset(
 )
 
 
+def _topic_carried(db: Any, user_id: Any, message: str, language: str) -> bool:
+    try:
+        from backend.app.services.intelligence.topic_carryover import find_carried_topic
+
+        return bool(find_carried_topic(db, int(user_id), message or "", language))
+    except Exception:
+        return False
+
+
 def allow_governed_knowledge_decision(
     *,
     terminal_safety: bool,
@@ -88,6 +97,7 @@ def allow_governed_knowledge_decision(
     language: str,
     intent: Optional[IntentResult],
     interaction_need: Optional[Any],
+    topic_carried: bool = False,
 ) -> bool:
     """I1 decision using existing I3/I4/Gate3 signals only — no new taxonomy.
 
@@ -135,8 +145,9 @@ def allow_governed_knowledge_decision(
 
         return bool(wellbeing and asks_for_help_not_just_listening(message or "", language or "en"))
 
-    # Non-BE_HEARD: existing medical/wellbeing classifiers or knowledge intents.
-    if factual_intent or medical or wellbeing:
+    # Non-BE_HEARD: existing medical/wellbeing classifiers or knowledge intents. A topic-less follow-up
+    # ("برنامه بده", "این بیماری") continues the earlier verified subject (topic_carryover, I1).
+    if factual_intent or medical or wellbeing or topic_carried:
         return True
     return False
 
@@ -1405,6 +1416,7 @@ class IntelligenceOrchestrator:
                 language=lang,
                 intent=intent_meta,
                 interaction_need=interaction_need_obj,
+                topic_carried=_topic_carried(self._db, authenticated_user_id, message, lang),
             )
 
         # prepare
@@ -1614,8 +1626,14 @@ class IntelligenceOrchestrator:
 
             # CR-02 / Q4.2B: append at most two invited questions (normal stays one).
             nbq_was_appended = False
+            # A generic profile question (preferences.*, work.occupation) is not appended to a governed knowledge
+            # answer: the user is mid-task. Topical/contextual questions (sleep, food, activity, work schedule) stay.
             if (
                 visible_nbq_eligible
+                and not (
+                    allow_governed_knowledge
+                    and str(discovery_target_key or "").startswith(("preferences.", "work.occupation"))
+                )
                 and discovery_localized_question
                 and discovery_target_key
             ):
@@ -1630,7 +1648,9 @@ class IntelligenceOrchestrator:
                 nbq_was_appended = True
 
             validated = self._safety_validator(text=gen_message, language=lang)
-            out_message = validated.message
+            from backend.app.services.intelligence.plain_text import to_plain_chat_text
+
+            out_message = to_plain_chat_text(validated.message)
             post_val_status = validated.status
             # Defense-in-depth only: primary gate already skipped generator for care-nav.
             # If we somehow reached generation on a care-nav message, replace with fail-safe.

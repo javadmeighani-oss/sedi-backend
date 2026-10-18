@@ -13,7 +13,7 @@ from backend.app.services.section10 import feature_flags
 VOICE_MESSAGE_TEMPLATES = {
     "caregiver_no_response_check": {
         "fa": (
-            "سلام، این پیام از طرف سدی است. "
+            "سلام، این پیام از طرف صدی است. "
             "کاربر پاسخی به تماس‌های مکرر ما نداده است. "
             "لطفاً وضعیت ایشان را بررسی کنید. "
             "این پیام به معنای تأیید اورژانس پزشکی نیست."
