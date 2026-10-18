@@ -133,6 +133,7 @@ jobs:
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
@@ -160,12 +161,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
               for t in (
                   "i5_source_registry_extensions",
                   "i5_source_registry_roles",
@@ -197,6 +199,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "061_scis01_pgvector_kce_foundation")
@@ -229,12 +232,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
           print("RESTORE_FRESH_065_BEFORE_PYTEST=PASS")
           PY
 

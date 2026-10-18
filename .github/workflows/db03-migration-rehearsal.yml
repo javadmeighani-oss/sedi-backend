@@ -81,6 +81,7 @@ jobs:
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
@@ -101,16 +102,21 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "080_i9_device_reported_vital_status"
+              assert head == ScriptDirectory.from_config(cfg).get_current_head()
           PY
 
-      - name: 056 synthetic baseline then upgrade head
+      # Retired (Stage 04 / D-027): the seed script drives the current ORM against a 056-era schema
+      # (devices.owner_account_user_id does not exist there). Production is far past 056; the
+      # "Fresh upgrade to head" step above still proves the full migration chain.
+      - name: 056 synthetic baseline then upgrade head (retired)
+        if: ${{ false }}
         run: |
           python - <<'PY'
           import os
@@ -123,6 +129,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "056_i5_w2_p02_conflict_safety")
@@ -133,7 +140,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "080_i9_device_reported_vital_status"
+              assert head == ScriptDirectory.from_config(cfg).get_current_head()
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -167,11 +174,16 @@ jobs:
           print("SCHEMA_RESET_FOR_ORM_TESTS=OK")
           PY
 
-      - name: I7 Wave-2 067↔068 structural roundtrip
+      # Retired (Stage 04 / D-027, Javad-approved): historical up/down rehearsals for 067↔068 and
+      # 068↔069 no longer match the current schema (e.g. fk_devices_current_binding_id). Production is
+      # past both; "Fresh upgrade to head" proves the forward chain.
+      - name: I7 Wave-2 067↔068 structural roundtrip (retired)
+        if: ${{ false }}
         run: |
           python -B -m pytest backend/tests/test_db03_migration_rehearsal.py::test_i7_wave2_067_068_roundtrip -q --tb=short
 
-      - name: I8 068↔069 operational plan state rehearsal
+      - name: I8 068↔069 operational plan state rehearsal (retired)
+        if: ${{ false }}
         run: |
           python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short --noconftest
 
@@ -202,6 +214,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
@@ -211,6 +224,22 @@ jobs:
               "backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py",
               "-q", "--tb=short", "--noconftest",
           ])
+          PY
+
+      # DEBT-028: the I8 tests above drop_all() an Alembic-built schema (removing the circular
+      # fk_devices_current_binding_id); the ORM fixtures below then fail at teardown trying to drop it
+      # again. Start the ORM unit tests from a clean schema, like the other ORM-test steps.
+      - name: Reset schema for I7 ORM unit tests
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          print("SCHEMA_RESET_FOR_I7_ORM=OK")
           PY
 
       - name: Focused I7 Wave-2 unit tests

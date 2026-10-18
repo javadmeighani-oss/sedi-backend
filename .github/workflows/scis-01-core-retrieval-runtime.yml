@@ -114,6 +114,7 @@ jobs:
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
@@ -142,13 +143,14 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "080_i9_device_reported_vital_status"
+              assert head == ScriptDirectory.from_config(cfg).get_current_head()
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -184,6 +186,7 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "060_db03_w4_w6_scale_inspect_roles")
@@ -214,6 +217,7 @@ jobs:
           from alembic.config import Config
           from alembic import command
           url = os.environ["TEST_DATABASE_URL"]
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
@@ -221,7 +225,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("PYTEST_DB_ALEMBIC_HEAD", head)
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
           PY
 
       - name: Unit + SCIS runtime pytest
@@ -284,12 +288,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='knowledge_units'"
               )).scalar()
@@ -327,12 +332,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='knowledge_units'"
               )).scalar()
@@ -375,12 +381,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "080_i9_device_reported_vital_status", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='knowledge_units'"
               )).scalar()
@@ -552,6 +559,7 @@ jobs:
           from alembic.script import ScriptDirectory
           from alembic import command
           url = os.environ["TEST_DATABASE_URL"]
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           heads = ScriptDirectory.from_config(cfg).get_heads()
           print("REPO_HEADS", heads)

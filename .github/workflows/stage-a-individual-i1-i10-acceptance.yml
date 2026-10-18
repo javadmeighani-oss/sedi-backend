@@ -98,6 +98,7 @@ jobs:
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
@@ -117,12 +118,13 @@ jobs:
               c.execute(text("DROP SCHEMA public CASCADE"))
               c.execute(text("CREATE SCHEMA public"))
               c.commit()
+          from alembic.script import ScriptDirectory
           cfg = Config("backend/alembic.ini")
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "086_i9_vital_observation_context_authority", head
+              assert head == ScriptDirectory.from_config(cfg).get_current_head(), head
               print("FRESH_MIGRATE_OK", head)
           PY
       - name: Stage A contract + I1-I4 section15
