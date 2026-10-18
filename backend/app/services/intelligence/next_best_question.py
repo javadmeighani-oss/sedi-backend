@@ -378,41 +378,40 @@ _CONTEXTUAL_CANDIDATES: tuple[_ContextualCandidate, ...] = (
 _TEMPLATES: dict[str, dict[str, str]] = {
     "nbq.sleep.bedtime.v1": {
         "en": "If you're open to it, what time do you usually go to bed?",
-        "fa": "اگر مایلید بگویید، معمولاً چه ساعتی می‌خوابید؟",
+        "fa": "اگه دوست داری بگی، معمولاً چه ساعتی می‌خوابی؟",
         "ar": "إن رغبت، في أي وقت تنام عادة؟",
     },
     "nbq.sleep.wake_time.v1": {
-        "en": "Optional: what time do you usually wake up?",
-        "fa": "اختیاری: معمولاً چه ساعتی بیدار می‌شوید؟",
-        "ar": "اختياري: في أي وقت تستيقظ عادة؟",
+        "en": "What time do you usually wake up?",
+        "fa": "معمولاً چه ساعتی از خواب بیدار می‌شی؟",
+        "ar": "في أي وقت تستيقظ عادةً؟",
     },
     "nbq.sleep.sleep_quality.v1": {
         "en": "How would you describe your sleep lately, if you'd like to share?",
-        "fa": "اگر مایلید، کیفیت خواب اخیرتان را چطور توصیف می‌کنید؟",
+        "fa": "این روزها خوابت چطوره؟ اگه دوست داری برام بگو.",
         "ar": "إن أحببت، كيف تصف جودة نومك مؤخراً؟",
     },
     "nbq.nutrition.food_habits.v1": {
         "en": "If helpful, what do your usual eating habits look like?",
-        "fa": "اگر مفید است، عادت‌های غذایی معمولتان چگونه است؟",
+        "fa": "عادت‌های غذایی‌ات معمولاً چطوره؟",
         "ar": "إن كان مفيداً، كيف تبدو عاداتك الغذائية المعتادة؟",
     },
     "nbq.activity.activity_level.v1": {
-        "en": "Optional: how active are you on a typical day?",
-        "fa": "اختیاری: در یک روز معمولی چقدر فعال هستید؟",
-        "ar": "اختياري: ما مدى نشاطك في يوم عادي؟",
+        "en": "How active are you on a typical day?",
+        "fa": "تو یه روز معمولی چقدر فعالی؟",
+        "ar": "ما مدى نشاطك في يوم عادي؟",
     },
     "nbq.activity.exercise_schedule.v1": {
         "en": "If you'd like, when do you usually exercise?",
-        "fa": "اگر مایلید، معمولاً چه زمانی ورزش می‌کنید؟",
+        "fa": "معمولاً چه موقع ورزش می‌کنی؟",
         "ar": "إن رغبت، متى تمارس الرياضة عادة؟",
     },
     "nbq.general.interests.v1": {
         "en": (
-            "Optional: what would you most like Sedi to help you with "
-            "going forward?"
+            "What would you like Sedi to help you with most from here on?"
         ),
-        "fa": "اختیاری: دوست دارید سِدی بیشتر در چه زمینه‌ای کمکتان کند؟",
-        "ar": "اختياري: بماذا تود أن يساعدك سِدي أكثر من الآن فصاعداً؟",
+        "fa": "دوست داری صدی بیشتر تو چه زمینه‌ای کمکت کنه؟",
+        "ar": "بماذا تود أن يساعدك صدی أكثر من الآن؟",
     },
     "nbq.general.communication_style.v1": {
         "en": (
@@ -420,8 +419,8 @@ _TEMPLATES: dict[str, dict[str, str]] = {
             "conversational style, or something in between?"
         ),
         "fa": (
-            "اگر مایلید بگویید، سبک مستقیم را ترجیح می‌دهید، گفت‌وگوی "
-            "حمایت‌گرانه، یا چیزی بین این دو؟"
+            "ترجیح می‌دی رک و مستقیم باشم، یا بیشتر همدلانه و گفت‌وگومحور، "
+            "یا چیزی بین این دو؟"
         ),
         "ar": (
             "إن رغبت، هل تفضل أسلوباً مباشراً، أم أسلوباً حوارياً داعماً، "
@@ -434,8 +433,8 @@ _TEMPLATES: dict[str, dict[str, str]] = {
             "listen first before suggesting solutions?"
         ),
         "fa": (
-            "وقتی چیزی ناراحتتان می‌کند، معمولاً ترجیح می‌دهید اول گوش کنم "
-            "و بعد پیشنهاد بدهم؟"
+            "وقتی چیزی ناراحتت می‌کنه، معمولاً ترجیح می‌دی اول گوش کنم "
+            "و بعد پیشنهاد بدم؟"
         ),
         "ar": (
             "عندما يزعجك أمر ما، هل تفضل عادة أن أستمع أولاً قبل اقتراح الحلول؟"
@@ -443,23 +442,23 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "nbq.general.response_length.v1": {
         "en": "Would you prefer brief answers, or a bit more detail?",
-        "fa": "ترجیح می‌دهید پاسخ‌ها کوتاه باشد یا کمی مفصل‌تر؟",
+        "fa": "ترجیح می‌دی جواب‌ها کوتاه باشه یا کمی مفصل‌تر؟",
         "ar": "هل تفضل إجابات مختصرة أم أكثر تفصيلاً قليلاً؟",
     },
     "nbq.general.occupation.v1": {
-        "en": "Optional: what kind of work do you do?",
-        "fa": "اختیاری: شغلتان چیست؟",
-        "ar": "اختياري: ما نوع عملك؟",
+        "en": "What kind of work do you do?",
+        "fa": "شغلت چیه؟",
+        "ar": "ما نوع عملك؟",
     },
     "nbq.contextual.work_schedule.v1": {
         "en": "If you're open to it, what does your work schedule usually look like?",
-        "fa": "اگر مایلید بگویید، برنامه کاری‌تان معمولاً چگونه است؟",
+        "fa": "برنامه کاری‌ت معمولاً چطوره؟",
         "ar": "إن رغبت، كيف يبدو جدول عملك عادة؟",
     },
     "nbq.contextual.time_constraints.v1": {
-        "en": "Optional: how much time do you usually have for this?",
-        "fa": "اختیاری: معمولاً برای این کار چقدر وقت دارید؟",
-        "ar": "اختياري: كم من الوقت يتوفر لديك عادة لهذا؟",
+        "en": "How much time do you usually have for this?",
+        "fa": "معمولاً برای این کار چقدر وقت داری؟",
+        "ar": "كم من الوقت يتوفر لديك عادة لهذا؟",
     },
     # CR-04F.2 confirmation templates ({field} substituted at render time).
     "nbq.confirm.stale.v1": {

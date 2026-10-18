@@ -20,7 +20,7 @@ def test_escalation_policy_defaults_none():
 def test_voice_templates_multilingual():
     for lang in ("fa", "en", "ar"):
         msg = get_voice_message_template("caregiver_no_response_check", lang)
-        assert "Sedi" in msg or "سدی" in msg or "صدي" in msg
+        assert "Sedi" in msg or "صدی" in msg or "صدي" in msg
         assert "emergency" not in msg.lower() or "not" in msg.lower() or "نیست" in msg
 
 

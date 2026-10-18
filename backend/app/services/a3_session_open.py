@@ -22,10 +22,10 @@ _INTRO: Dict[str, str] = {
         "What feels most important or helpful to focus on right now?"
     ),
     "fa": (
-        "سلام{name_part}. من صدی هستم، همراه سلامت شما. "
-        "با رعایت حریم خصوصی‌تان می‌شنوم و آنچه مهم است را به خاطر می‌سپارم، "
-        "و اینجا هستم تا کمکتان کنم. "
-        "الان چه چیزی برایتان مهم‌تر یا مفیدتر است که روی آن تمرکز کنیم؟"
+        "سلام{name_part}، من صدی‌ام؛ همراه سلامتت. "
+        "با رعایت حریم خصوصی‌ات گوش می‌دم، چیزهای مهم رو یادم می‌مونه "
+        "و کنارتم تا کمکت کنم. "
+        "الان چی برات مهم‌تره که روش تمرکز کنیم؟"
     ),
     "ar": (
         "مرحبًا{name_part}. أنا صدی، مرافقتك الصحية. "
@@ -41,8 +41,8 @@ _OPENERS: Dict[str, list[str]] = {
         "Good to see you again{name_part}. How can I support you today?",
     ],
     "fa": [
-        "خوش آمدید{name_part}. امروز چیزی در ذهن دارید؟",
-        "از دیدنتان خوشحالم{name_part}. امروز چطور می‌توانم کمکتان کنم؟",
+        "سلام{name_part}، خوش برگشتی! امروز چی تو ذهنته؟",
+        "سلام{name_part}، خوشحالم دوباره می‌بینمت. امروز چطوری؟",
     ],
     "ar": [
         "مرحبًا بعودتك{name_part}. هل هناك شيء في بالك اليوم؟",
@@ -90,34 +90,6 @@ def _last_user_message_at(db: Session, user_id: int) -> Optional[datetime]:
     return row[0] if row else None
 
 
-def _safe_continuity_snippet(text: Optional[str], *, max_len: int = 80) -> Optional[str]:
-    cleaned = " ".join((text or "").split()).strip()
-    if not cleaned:
-        return None
-    if len(cleaned) > max_len:
-        cleaned = cleaned[: max_len - 1].rstrip() + "…"
-    return cleaned
-
-
-def authorized_last_eligible_turn(db: Session, user_id: int) -> Optional[models.Memory]:
-    """I6/I7 read boundary: user-owned, retention-eligible raw only when memory.read is active."""
-    try:
-        from backend.app.services.i6.consent_service import PERM_READ, has_permission
-        from backend.app.services.i7.retention import query_eligible_raw
-
-        if not has_permission(db, user_id, PERM_READ):
-            return None
-        rows = query_eligible_raw(db, user_id, limit=1)
-        if not rows:
-            return None
-        row = rows[0]
-        if int(getattr(row, "user_id", 0) or 0) != int(user_id):
-            return None
-        return row
-    except Exception:
-        return None
-
-
 def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
     templates = {
         "en": (
@@ -125,8 +97,8 @@ def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
             "Would you like to continue that?"
         ),
         "fa": (
-            "خوش آمدید{name_part}. دفعهٔ قبل دربارهٔ {snippet} صحبت کردیم. "
-            "مایلید همان را ادامه دهیم؟"
+            "سلام{name_part}، خوش برگشتی! دفعه‌ی قبل درباره‌ی {snippet} حرف می‌زدیم؛ "
+            "می‌خوای از همون‌جا ادامه بدیم؟"
         ),
         "ar": (
             "مرحبًا بعودتك{name_part}. تحدثنا آخر مرة عن {snippet}. "
@@ -149,19 +121,20 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
             return None
     lang = _lang(user)
     name_part = _name_part(user, lang)
-    turn = authorized_last_eligible_turn(db, user.id)
-    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
-    if not snippet:
-        try:
-            from backend.app.services.i7.derived_continuity import (
-                get_bounded_continuity_topic,
-                should_project_derived_continuity,
-            )
+    # The user's own last sentence ("در مورد ALS بیشتر توضیح بده") is not a topic and must not be quoted
+    # back; only the privacy-safe coarse topic label may be named, otherwise a plain warm welcome.
+    snippet = None
+    try:
+        from backend.app.services.i7.privacy_safe_recent_topic import (
+            display_phrase_for_topic_label,
+            get_privacy_safe_recent_topic_label,
+        )
 
-            if should_project_derived_continuity(db, user.id):
-                snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
-        except Exception:
-            snippet = None
+        label = get_privacy_safe_recent_topic_label(db, user.id)
+        if label and label != "general":
+            snippet = display_phrase_for_topic_label(label, lang)
+    except Exception:
+        snippet = None
     if snippet:
         return _continuity_opener(lang, snippet, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])

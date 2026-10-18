@@ -204,7 +204,9 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
         from backend.app.services.gate3.care_intelligence import build_care_context
         if not is_medical_care_intent(user_message, language):
             return
-        ctx = build_care_context(db, user_id, language, query_hint=user_message)
+        ctx = build_care_context(
+            db, user_id, language, query_hint=_carry_topic_into_query(db, user_id, user_message, language)
+        )
         # Compact block — no raw chat, no caregiver phone
         lines = ["[CARE_CONTEXT] Canonical user care data (educational use only):"]
         if ctx.get("goals"):
@@ -256,6 +258,19 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
         print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
 
 
+def _carry_topic_into_query(db, user_id: int, user_message: str, language: str) -> str:
+    """Follow-ups like "برنامه غذایی مناسب این بیماری" keep the disease named earlier (I1 helper, read-only)."""
+    try:
+        from backend.app.services.intelligence.topic_carryover import (
+            augment_query,
+            find_carried_topic,
+        )
+
+        return augment_query(user_message, find_carried_topic(db, user_id, user_message, language))
+    except Exception:
+        return user_message
+
+
 def _maybe_append_structured_governed_knowledge(
     messages: list,
     db,
@@ -277,6 +292,7 @@ def _maybe_append_structured_governed_knowledge(
             render_grounded_answer,
         )
 
+        user_message = _carry_topic_into_query(db, user_id, user_message, language)
         retrieval = retrieve_knowledge_context(
             db,
             user_message,
