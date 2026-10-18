@@ -125,15 +125,20 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from sqlalchemy import func
               from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
               from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
-              rows = db.query(models.I5ClinicalConceptLabel.language, models.I5ClinicalConceptLabel.verified, func.count()).group_by(models.I5ClinicalConceptLabel.language, models.I5ClinicalConceptLabel.verified).all()
-              print("BREADTH|labels|%s" % rows)
-              for lang, q in (("fa", "ای ال اس چیست و چطور مراقبت کنم؟"), ("fa", "علائم مولتیپل اسکلروزیس"), ("ar", "ما هو مرض الصرع؟"), ("ar", "كيف أعتني بمرض الزهايمر"), ("fa", "پارکینسون و دیابت"), ("fa", "چطور آرام شوم؟")):
+              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
+              from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
+              for lang, q in (("fa", "ای ال اس چیست و چطور مراقبت کنم؟"), ("fa", "علائم مولتیپل اسکلروزیس"), ("ar", "ما هو مرض الصرع؟"), ("fa", "درمان پارکینسون")):
                   au = resolve_verified_concept_authority(db, q, lang)
                   items, meta = retrieve_scis_governed_runtime_items(db, q, language=lang, limit=5, allow_network=True)
-                  print("BREADTH|auth|%s | concept=%s authorized_kus=%s items=%d via_translation=%s" % (q, getattr(au, "concept_key", None), meta.get("authorized_ku_count"), len(items), meta.get("cross_language_via_translation")))
+                  print("BREADTH|auth|%s | concept=%s items=%d supplemented=%s" % (q, getattr(au, "concept_key", None), len(items), meta.get("authority_supplemented_by_translation")))
+              text = "ای ال اس چیست و چطور مراقبت کنم؟"
+              msgs = [{"role": "system", "content": build_system_prompt_with_context("fa", "جواد", None)}]
+              _maybe_append_gate3_care_context(msgs, db, uids[1], text, "fa")
+              msgs.append({"role": "user", "content": text})
+              rsp = create_primary_chat_response(msgs)
+              print("BREADTH|reply|%s" % (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:900])
               db.rollback()
           finally:
               db.close()
