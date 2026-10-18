@@ -7252,6 +7252,19 @@
             ],
             "description": "Optional; verified notification origin for A3 continuity opener",
             "title": "Source Notification Id"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional device IANA timezone; stored only when the profile has none (Stage 05-D1)",
+            "title": "Timezone"
           }
         },
         "title": "SessionOpenRequest",

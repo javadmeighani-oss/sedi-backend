@@ -50,7 +50,7 @@ _USER_MESSAGES = {
         "UNSAFE_REQUEST_BLOCKED": "Sedi will not diagnose, replace a physician, or modify medication.",
         "THERAPEUTIC_FAIL_CLOSED": "Sedi will not diagnose, replace a physician, or modify medication.",
         "CONSENT_REQUIRED": "Memory consent is required before personalized activity help.",
-        "TIMEZONE_REQUIRED": "A valid timezone on your profile is required before scheduling activity actions.",
+        "TIMEZONE_REQUIRED": "To set your workout times and reminders correctly, tell me your timezone, for example \"Tehran time\".",
         "default": "I cannot create a verified activity action from the available context.",
     },
     "fa": {
@@ -62,7 +62,7 @@ _USER_MESSAGES = {
         "UNSAFE_REQUEST_BLOCKED": "صدی تشخیص نمی‌دهد، جایگزین پزشک نمی‌شود و دارو را تغییر نمی‌دهد.",
         "THERAPEUTIC_FAIL_CLOSED": "صدی تشخیص نمی‌دهد، جایگزین پزشک نمی‌شود و دارو را تغییر نمی‌دهد.",
         "CONSENT_REQUIRED": "برای کمک فعالیت شخصی، اجازه حافظه لازم است.",
-        "TIMEZONE_REQUIRED": "برای زمان‌بندی اقدام فعالیت، منطقه زمانی معتبر در پروفایل لازم است.",
+        "TIMEZONE_REQUIRED": "برای اینکه ساعت تمرین‌ها و یادآورها رو درست بذارم، بگو تو چه منطقه‌ی زمانی‌ای هستی؛ مثلاً بنویس «وقت تهران».",
         "default": "با زمینه موجود نمی‌توانم یک اقدام فعالیت تأییدشده بسازم.",
     },
 }

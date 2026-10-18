@@ -303,6 +303,7 @@ def open_a3_session(
     user: models.User,
     *,
     source_notification_id: Optional[int] = None,
+    device_timezone: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Return first-intro or proactive opener; mark intro durable when first.
 
@@ -314,6 +315,12 @@ def open_a3_session(
     from backend.app.services.user_context import UserContextService
 
     ensure_default_memory_enabled(db, int(user.id), commit=True)
+    try:
+        from backend.app.services.chat_commands import adopt_device_timezone
+
+        adopt_device_timezone(db, int(user.id), device_timezone)
+    except Exception:
+        db.rollback()
 
     verified_notification: Optional[models.Notification] = None
     if source_notification_id is not None:

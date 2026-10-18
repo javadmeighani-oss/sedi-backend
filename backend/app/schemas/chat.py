@@ -28,4 +28,9 @@ class SessionOpenRequest(BaseModel):
         None,
         description="Optional; verified notification origin for A3 continuity opener",
     )
+    timezone: Optional[str] = Field(
+        None,
+        max_length=64,
+        description="Optional device IANA timezone; stored only when the profile has none (Stage 05-D1)",
+    )
 
