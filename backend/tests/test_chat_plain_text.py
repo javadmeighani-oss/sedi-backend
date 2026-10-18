@@ -11,3 +11,10 @@ def test_strips_markdown_emphasis_headings_and_star_bullets():
 def test_plain_text_and_empty_unchanged():
     assert to_plain_chat_text("سلام، حالت چطوره؟") == "سلام، حالت چطوره؟"
     assert to_plain_chat_text("") == ""
+
+
+def test_arabic_persona_does_not_assume_a_female_user():
+    from backend.app.core.conversation.prompts import build_system_prompt_with_context
+
+    prompt = build_system_prompt_with_context("ar", "جواد", None)
+    assert "لا تعرفين جنس المستخدم" in prompt and "محايدة" in prompt

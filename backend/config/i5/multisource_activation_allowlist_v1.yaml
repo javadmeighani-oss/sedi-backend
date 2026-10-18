@@ -431,10 +431,10 @@ sources:
     publisher_family: womenshealth.gov
     authority_class: OFFICIAL_NATIONAL
     adapter: PUBLIC_WEB_FETCH
-    exact_url: https://www.womenshealth.gov/
+    exact_url: https://womenshealth.gov/
     additional_urls:
-      - https://www.womenshealth.gov/a-z-topics
-      - https://www.womenshealth.gov/pregnancy
+      - https://womenshealth.gov/a-z-topics
+      - https://womenshealth.gov/pregnancy
     allowed_domain: womenshealth.gov
     allowed_url_patterns:
       - "^https://(www\\.)?womenshealth\\.gov(/.*)?$"
@@ -594,6 +594,13 @@ sources:
       - https://www.nhs.uk/conditions/asthma/
       - https://www.nhs.uk/conditions/menopause-and-perimenopause/
       - https://www.nhs.uk/pregnancy/keeping-well/have-a-healthy-diet/
+      # Anaemia (D26) and men's health (D27)
+      - https://www.nhs.uk/conditions/iron-deficiency-anaemia/
+      - https://www.nhs.uk/conditions/vitamin-b12-or-folate-deficiency-anaemia/
+      - https://www.nhs.uk/conditions/enlarged-prostate/
+      - https://www.nhs.uk/conditions/erection-problems-erectile-dysfunction/
+      - https://www.nhs.uk/conditions/testicular-cancer/
+      - https://www.nhs.uk/conditions/male-menopause/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/conditions/.*"
@@ -601,12 +608,12 @@ sources:
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_32_urls"
-    entity_coverage: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25]
+    rate_limit: "weekly_controlled_max_38_urls"
+    entity_coverage: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25, D26, D27]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic]
     activation: YES
     governed_low_risk_eligibility: NO
-    specialized_serving_eligibility: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25]
+    specialized_serving_eligibility: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25, D26, D27]
     license_notes: "OGL v3.0 — attribution required (Information from the NHS website); consumer education not diagnosis; UK triage boxes (111/999/GP) are dropped at extraction"
 
   - source_key: nhs_uk_mental_health
