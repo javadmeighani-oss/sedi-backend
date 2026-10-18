@@ -163,3 +163,16 @@ def test_concatenated_phone_numbers_are_cut_or_rejected():
 
     assert clean_landline("0513616609386069075") is None  # 19 digits, not a multiple of 11
     assert clean_landline("0513616609305136166093") == "05136166093"
+
+
+def test_laboratory_gets_a_third_wording_before_giving_up(monkeypatch):
+    monkeypatch.setenv(wl.FLAG, "true")
+    calls = []
+
+    def fake(query, country, client=None):
+        calls.append(query)
+        return [] if len(calls) < 3 else [_r(name="آزمایشگاه نور", source_url="https://noorlab.ir/")]
+
+    monkeypatch.setattr(wl, "_call_web_search", fake)
+    out = wl.search_web_providers(entity="LABORATORY", specialty=None, city="شیراز", province=None)
+    assert len(out) == 1 and "تشخیص طبی" in calls[2] and len(calls) == 3
