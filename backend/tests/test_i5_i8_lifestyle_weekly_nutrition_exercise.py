@@ -217,9 +217,10 @@ def test_8_missing_timezone(db, monkeypatch):
     _seed_consent(db, u.id)
     _patch_knowledge(monkeypatch)
     r = _gen(db, u, request="meal", domain="nutrition")
-    assert r.status == "TIMEZONE_REQUIRED"
+    # Stage 05-D1b: missing timezone falls back to the default and the plan is created.
+    assert r.status not in ("TIMEZONE_REQUIRED", "TIMEZONE_INVALID")
     proj = build_lifestyle_weekly_plan_projection(db, u.id)
-    assert proj["state"] == "unavailable"
+    assert proj["state"] != "unavailable"
 
 
 def test_9_invalid_timezone(db, monkeypatch):
@@ -227,9 +228,9 @@ def test_9_invalid_timezone(db, monkeypatch):
     _seed_consent(db, u.id)
     _patch_knowledge(monkeypatch)
     r = _gen(db, u, request="meal", domain="nutrition")
-    assert r.status == "TIMEZONE_INVALID"
+    assert r.status not in ("TIMEZONE_REQUIRED", "TIMEZONE_INVALID")
     proj = build_lifestyle_weekly_plan_projection(db, u.id)
-    assert proj["state"] == "unavailable"
+    assert proj["state"] != "unavailable"
 
 
 def test_10_nutrition_exercise_same_plan(db, monkeypatch):
