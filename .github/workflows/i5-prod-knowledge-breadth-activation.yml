@@ -137,8 +137,8 @@ jobs:
               snap = asm.assemble(db, authenticated_user_id=uid, request_id=str(uuid.uuid4()))
               proj = asm.build_compatibility_projection(snap)
               print("BREADTH|proj|chars=%d truncated=%s name=%s items=%d" % (len(proj.text), proj.truncated, bool(proj.preferred_name), len(snap.items)))
-              cases = (("fa", "در مورد ALS کامل توضیح بده"), ("fa", "خیلی استرس دارم و نمی‌تونم بخوابم"), ("fa", "امروز خیلی غمگینم و فقط می‌خوام کسی گوش بده"),
-                       ("ar", "كيف أتعامل مع القلق وقلة النوم؟"), ("en", "How much exercise do adults need each week?"))
+              cases = (("fa", "خیلی استرس دارم و نمی‌تونم بخوابم، چیکار کنم؟"), ("fa", "امروز خیلی غمگینم و فقط می‌خوام کسی گوش بده"),
+                       ("fa", "خیلی استرس دارم و فقط گوش کن"), ("ar", "أشعر بتوتر شديد وقلة نوم، كيف أتعامل معه؟"), ("en", "I have so much stress and anxiety, what can I do?"))
               for lang, text in cases:
                   intent = resolve_intent(message=text, language=lang)
                   need = classify_interaction_need(message=text, intent=intent, language=lang)
