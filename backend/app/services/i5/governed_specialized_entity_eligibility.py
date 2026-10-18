@@ -683,6 +683,37 @@ D25 = SpecializedEntitySpec(
 )
 
 
+D26 = SpecializedEntitySpec(
+    entity_id="D26",
+    alias="HEMATOLOGY_ANAEMIA",
+    track_id="D26-TRACK",
+    domain="hematology",
+    topic="anaemia",
+    url_needles=(
+        "nhs.uk/conditions/iron-deficiency-anaemia",
+        "nhs.uk/conditions/vitamin-b12-or-folate-deficiency-anaemia",
+    ),
+    clinical_tokens=("anaemia", "anemia", "iron", "haemoglobin", "hemoglobin", "b12", "folate", "red blood cell"),
+    disease_label="anaemia",
+)
+
+D27 = SpecializedEntitySpec(
+    entity_id="D27",
+    alias="MENS_HEALTH",
+    track_id="D27-TRACK",
+    domain="mens_health",
+    topic="mens_health",
+    url_needles=(
+        "nhs.uk/conditions/enlarged-prostate",
+        "nhs.uk/conditions/erection-problems-erectile-dysfunction",
+        "nhs.uk/conditions/testicular-cancer",
+        "nhs.uk/conditions/male-menopause",
+    ),
+    clinical_tokens=("prostate", "erection", "erectile", "testicle", "testicular", "testosterone", "urinary", "urine"),
+    disease_label="men's health",
+)
+
+
 # First match wins: specific needles (D21/D22/D24/D25) must precede broad ones
 # such as D02's "nhlbi.nih.gov/health".
 SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
@@ -697,6 +728,8 @@ SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
     D22,
     D24,
     D25,
+    D26,
+    D27,
     D02,
     D07,
     D09,
@@ -1202,6 +1235,8 @@ __all__ = [
     "D21",
     "D22",
     "D23",
+    "D26",
+    "D27",
     "NIMH_SOURCE_KEY",
     "SPECIALIZED_SPECS",
     "SpecializedEntitySpec",

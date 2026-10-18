@@ -16,6 +16,12 @@ CASES = {
     "https://www.nhs.uk/conditions/asthma/": "D02",
     "https://www.nhs.uk/conditions/menopause-and-perimenopause/": "D10",
     "https://www.nhs.uk/pregnancy/keeping-well/have-a-healthy-diet/": "D10",
+    "https://www.nhs.uk/conditions/iron-deficiency-anaemia/": "D26",
+    "https://www.nhs.uk/conditions/vitamin-b12-or-folate-deficiency-anaemia/": "D26",
+    "https://www.nhs.uk/conditions/enlarged-prostate/": "D27",
+    "https://www.nhs.uk/conditions/erection-problems-erectile-dysfunction/": "D27",
+    "https://www.nhs.uk/conditions/testicular-cancer/": "D27",
+    "https://womenshealth.gov/pregnancy": "D10",
 }
 
 
