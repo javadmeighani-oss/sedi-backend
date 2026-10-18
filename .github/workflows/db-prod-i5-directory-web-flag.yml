@@ -18,7 +18,7 @@ on:
         description: "Exact sha256:<64 hex> running image digest"
         required: true
       flag_name:
-        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED"
+        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED | SEDI_INTELLIGENCE_ORCHESTRATOR_V1"
         required: false
         default: SEDI_DIRECTORY_WEB_LOOKUP_ENABLED
 
@@ -55,6 +55,7 @@ jobs:
           ! grep -Eiq 'alembic[[:space:]]+upgrade|docker[[:space:]]+pull' "$F"
           grep -Fq 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' "$F"
           grep -Fq 'SEDI_SCIS_SEMANTIC_INDEX_ENABLED' "$F"
+          grep -Fq 'SEDI_INTELLIGENCE_ORCHESTRATOR_V1' "$F"
       - name: SSH run
         env:
           TAG: ${{ github.event.inputs.image_tag }}

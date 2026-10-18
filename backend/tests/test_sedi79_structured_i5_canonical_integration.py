@@ -158,6 +158,23 @@ def test_decision_pure_be_heard_no_retrieval():
     )
 
 
+def test_decision_be_heard_asking_for_help_allows_psychology_knowledge_but_listen_only_does_not():
+    cases = [
+        ("خیلی استرس دارم و نمی‌تونم بخوابم، چیکار کنم؟", "fa", True),
+        ("I have so much stress and anxiety, what can I do?", "en", True),
+        ("أشعر بقلق شديد وتوتر، كيف أتعامل معه؟", "ar", True),
+        ("خیلی استرس دارم و فقط گوش کن", "fa", False),
+        ("I feel stress and anxiety, I just need to talk, no advice", "en", False),
+        ("I feel overwhelmed and just need to talk", "en", False),
+    ]
+    for message, lang, expected in cases:
+        got = allow_governed_knowledge_decision(
+            terminal_safety=False, message=message, language=lang,
+            intent=_intent(IntentId.GENERAL), interaction_need=InteractionNeed.BE_HEARD,
+        )
+        assert got is expected, (message, got)
+
+
 def test_decision_be_heard_plus_factual_intent_allows():
     assert (
         allow_governed_knowledge_decision(
