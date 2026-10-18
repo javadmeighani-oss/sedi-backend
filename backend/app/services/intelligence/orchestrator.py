@@ -124,7 +124,16 @@ def allow_governed_knowledge_decision(
     need = interaction_need
     if need is InteractionNeed.BE_HEARD:
         # Pure emotional listen: suppress. Explicit factual/evidence via I3 intent: allow.
-        return bool(factual_intent and informational)
+        # D-022: an emotional message that ALSO asks what to do ("خیلی استرس دارم، چیکار کنم؟") may be
+        # accompanied by governed psychology knowledge (listen-first style is added by the I5 renderer);
+        # "just listen / no advice" cues keep it suppressed.
+        if factual_intent and informational:
+            return True
+        from backend.app.services.intelligence.psychological_interaction import (
+            asks_for_help_not_just_listening,
+        )
+
+        return bool(wellbeing and asks_for_help_not_just_listening(message or "", language or "en"))
 
     # Non-BE_HEARD: existing medical/wellbeing classifiers or knowledge intents.
     if factual_intent or medical or wellbeing:

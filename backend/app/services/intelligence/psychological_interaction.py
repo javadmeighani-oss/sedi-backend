@@ -219,6 +219,29 @@ def _has_cue(text: str, cues: tuple[str, ...]) -> bool:
     return any(c in text for c in cues)
 
 
+# Help-seeking vs listen-only surface cues for emotionally loaded messages (BE_HEARD). Used only to decide
+# whether governed psychology knowledge may accompany a listen-first reply.
+_HELP_REQUEST_CUES: dict[str, tuple[str, ...]] = {
+    "en": ("what can i do", "what should i do", "how do i", "how can i", "any tips", "tips", "what helps", "help me", "advice"),
+    "fa": ("چیکار کنم", "چکار کنم", "چه کنم", "چی کار کنم", "چه کاری", "راهکار", "راه حل", "راهی دارم", "کمکم کن", "پیشنهاد"),
+    "ar": ("ماذا أفعل", "ماذا افعل", "كيف أتعامل", "كيف اتعامل", "كيف أتخلص", "ساعدني", "نصائح", "ما الحل", "ماذا يساعد"),
+}
+_LISTEN_ONLY_CUES: dict[str, tuple[str, ...]] = {
+    "en": ("just listen", "just need to talk", "just want to talk", "don't give advice", "dont give advice", "no advice", "just vent"),
+    "fa": ("فقط گوش", "فقط می‌خوام حرف", "فقط میخوام حرف", "نصیحت نکن", "راهکار نمی‌خوام", "راهکار نمیخوام"),
+    "ar": ("فقط استمع", "لا أريد نصيحة", "لا اريد نصيحة", "فضفضة", "أريد أن أتحدث فقط"),
+}
+
+
+def asks_for_help_not_just_listening(message: str, language: str) -> bool:
+    """True when an emotional message also asks what to do and does not ask to be only listened to."""
+    lang = language if language in ("en", "fa", "ar") else "en"
+    text = _norm(message)
+    if _has_cue(text, _LISTEN_ONLY_CUES[lang]):
+        return False
+    return _has_cue(text, _HELP_REQUEST_CUES[lang])
+
+
 def classify_interaction_need(
     *,
     message: str,
