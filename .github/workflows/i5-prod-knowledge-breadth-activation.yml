@@ -131,6 +131,7 @@ jobs:
               from backend.app.services.intelligence.assembler import AuthorizedContextAssembler
               from backend.app.services.intelligence.orchestrator import allow_governed_knowledge_decision
               from backend.app.services.intelligence.psychological_interaction import classify_interaction_need
+              from backend.app.services.intelligence.intent_registry import resolve_intent
               uid = uids[1]
               asm = AuthorizedContextAssembler()
               snap = asm.assemble(db, authenticated_user_id=uid, request_id=str(uuid.uuid4()))
@@ -139,8 +140,9 @@ jobs:
               cases = (("fa", "در مورد ALS کامل توضیح بده"), ("fa", "خیلی استرس دارم و نمی‌تونم بخوابم"), ("fa", "امروز خیلی غمگینم و فقط می‌خوام کسی گوش بده"),
                        ("ar", "كيف أتعامل مع القلق وقلة النوم؟"), ("en", "How much exercise do adults need each week?"))
               for lang, text in cases:
-                  need = classify_interaction_need(text, lang)
-                  allow = allow_governed_knowledge_decision(terminal_safety=False, message=text, language=lang, intent=None, interaction_need=need)
+                  intent = resolve_intent(message=text, language=lang)
+                  need = classify_interaction_need(message=text, intent=intent, language=lang)
+                  allow = allow_governed_knowledge_decision(terminal_safety=False, message=text, language=lang, intent=intent, interaction_need=need)
                   def build(structured):
                       msgs = [{"role": "system", "content": build_system_prompt_with_context(lang, proj.preferred_name or "جواد", None)}]
                       if structured:
