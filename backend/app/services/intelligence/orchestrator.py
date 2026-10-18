@@ -1626,13 +1626,13 @@ class IntelligenceOrchestrator:
 
             # CR-02 / Q4.2B: append at most two invited questions (normal stays one).
             nbq_was_appended = False
-            # A profile-level question (preferences.*, work.*) is not appended to a governed knowledge answer:
-            # the user is mid-task. Topical lifestyle questions (sleep, food, activity) stay allowed.
+            # A generic profile question (preferences.*, work.occupation) is not appended to a governed knowledge
+            # answer: the user is mid-task. Topical/contextual questions (sleep, food, activity, work schedule) stay.
             if (
                 visible_nbq_eligible
                 and not (
                     allow_governed_knowledge
-                    and str(discovery_target_key or "").startswith(("preferences.", "work."))
+                    and str(discovery_target_key or "").startswith(("preferences.", "work.occupation"))
                 )
                 and discovery_localized_question
                 and discovery_target_key

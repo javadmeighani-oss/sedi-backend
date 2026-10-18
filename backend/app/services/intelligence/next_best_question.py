@@ -408,7 +408,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "nbq.general.interests.v1": {
         "en": (
-            "What would you like Sedi to help you with most from here on?"
+            "If you feel like sharing: what would you like Sedi to help you with most from here on?"
         ),
         "fa": "دوست داری صدی بیشتر تو چه زمینه‌ای کمکت کنه؟",
         "ar": "بماذا تود أن يساعدك صدی أكثر من الآن؟",
