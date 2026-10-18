@@ -125,17 +125,12 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
+              from backend.app.services.i5.care_navigation_directory import resolve_care_navigation
               from backend.app.services.i5 import directory_web_lookup as wl
-              for ent, spec, city, prov in (("LABORATORY", None, "اصفهان", None), ("LABORATORY", None, "تهران", "تهران"), ("SPECIALIST", "قلب", "شیراز", "فارس")):
-                  q = wl.build_query(ent, spec, city, prov)
-                  try:
-                      raw = wl._call_web_search(q, "IR")
-                  except Exception as e:
-                      print("BREADTH|rawlab|%s error=%s:%s" % (q, type(e).__name__, str(e)[:120])); continue
-                  ok = wl.validate_results(raw, city=city)
-                  print("BREADTH|rawlab|%s raw=%d valid=%d" % (q, len(raw), len(ok)))
-                  for r in raw[:6]:
-                      print("BREADTH|rawitem|city=%r addr_has_city=%s phone=%r host=%s" % (r.get("city"), city in (r.get("address") or ""), (r.get("phone") or "")[:22], wl._host(r.get("source_url", ""))))
+              wl._cache.clear()
+              for q in ("یه آزمایشگاه خوب در اصفهان معرفی کن", "یه متخصص قلب در شیراز معرفی کن", "یه کلینیک پوست در مشهد پیشنهاد بده", "یه بیمارستان در تبریز معرفی کن", "یه متخصص مغز و اعصاب در کرج معرفی کن"):
+                  r = resolve_care_navigation(db, q, language="fa")
+                  print("BREADTH|web|%s | status=%s notes=%s msg=%s" % (q, getattr(r, "status", None), list(getattr(r, "identity_notes", ())), (getattr(r, "user_message", "") or "").replace(chr(10), " / ")[:700]))
               db.rollback()
           finally:
               db.close()
