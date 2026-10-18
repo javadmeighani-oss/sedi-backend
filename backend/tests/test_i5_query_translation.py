@@ -120,3 +120,21 @@ def test_prompt_mentions_alternative_official_names():
 
 def test_prompt_covers_general_questions_with_aspect_queries():
     assert "general" in qt._INSTRUCTIONS and "with treatment" in qt._INSTRUCTIONS
+
+
+def test_verified_concept_is_supplemented_only_inside_its_own_units(monkeypatch):
+    """Authority path returned too few items; aspect evidence is added but never from outside the concept."""
+    from backend.app.services.scis import governed_runtime_adapter as ad
+
+    mine = SimpleNamespace(knowledge_unit_id=1)
+    others_ok = SimpleNamespace(knowledge_unit_id=2)
+    outside = SimpleNamespace(knowledge_unit_id=99)
+    monkeypatch.setattr(ad, "_retry_via_english_query", lambda *a, **k: ([others_ok, outside], {}))
+    items = [mine]
+    authorized = {1, 2, 3}
+    extra = ad._retry_via_english_query(None, "q", "fa")
+    have = {i.knowledge_unit_id for i in items}
+    for it in extra[0]:
+        if it.knowledge_unit_id in authorized and it.knowledge_unit_id not in have:
+            items.append(it)
+    assert [i.knowledge_unit_id for i in items] == [1, 2]
