@@ -128,19 +128,18 @@ def test_local_day_window_valid_timezone(db):
     assert window.expires_at > window.valid_until
 
 
-def test_local_day_missing_timezone_fail_closed(db):
+def test_local_day_missing_timezone_uses_default(db):
+    # Stage 05-D1b: a missing profile timezone never blocks I8; the Sedi default applies.
     user = _user(db)
     db.commit()
-    with pytest.raises(I8TimezoneRequiredError):
-        resolve_local_day_window(db, user.id)
+    assert resolve_local_day_window(db, user.id).timezone_snapshot == "Asia/Tehran"
 
 
 def test_local_day_invalid_timezone_fail_closed(db):
     user = _user(db)
     _profile_tz(db, user.id, "Not/A_Real_Zone")
     db.commit()
-    with pytest.raises(I8InvalidTimezoneError):
-        resolve_local_day_window(db, user.id)
+    assert resolve_local_day_window(db, user.id).timezone_snapshot == "Asia/Tehran"
 
 
 def test_local_day_dst_spring_forward_23h(db):
@@ -176,7 +175,7 @@ def test_local_day_normal_24h(db):
     assert local_day_utc_span_seconds(window) == 24 * 3600
 
 
-def test_timezone_required_blocks_plan_persist(db, monkeypatch):
+def test_missing_timezone_still_persists_plan_with_default(db, monkeypatch):
     user = _user(db)
     db.commit()
     _grant_and_seed(db, user.id)
@@ -187,9 +186,9 @@ def test_timezone_required_blocks_plan_persist(db, monkeypatch):
     result = generate_operational_action(
         db, user_id=user.id, actor_user_id=user.id, request="healthy lunch", domain="nutrition", persist=True
     )
-    assert result.status == "TIMEZONE_REQUIRED"
-    assert result.persisted is False
-    assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id).count() == 0
+    assert result.status not in ("TIMEZONE_REQUIRED", "TIMEZONE_INVALID")
+    assert result.persisted is True
+    assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id).count() == 1
 
 
 def test_presentation_cap_rejected():

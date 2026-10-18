@@ -48,17 +48,16 @@ class WeeklyCycleBounds:
     is_new_cycle: bool = False
 
 
-def resolve_i8_strict_timezone(db: Session, user_id: int) -> str:
-    """I8-only timezone authority: UserProfileCore.timezone, no fallbacks."""
-    profile = db.query(UserProfileCore).filter(UserProfileCore.user_id == user_id).first()
-    if profile is None or not profile.timezone or not str(profile.timezone).strip():
-        raise I8TimezoneRequiredError("UserProfileCore.timezone is required for I8 operational plans.")
-    tz_name = str(profile.timezone).strip()
-    try:
-        pytz.timezone(tz_name)
-    except pytz.exceptions.UnknownTimeZoneError as exc:
-        raise I8InvalidTimezoneError(f"Invalid IANA timezone: {tz_name}") from exc
-    return tz_name
+def resolve_i8_timezone(db: Session, user_id: int) -> str:
+    """I8 timezone: profile -> I6 timezone memory -> default (Asia/Tehran). Never blocks a plan.
+
+    The app sends the device timezone at session open and it is stored on the profile when none exists,
+    so the default only applies until then. An invalid stored value falls back to the default instead of
+    refusing the user (Stage 05-D1b; same policy as scheduler/quiet hours).
+    """
+    from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+
+    return resolve_validated_user_timezone(db, user_id)
 
 
 def _local_now_from_utc(now_utc: datetime, tz_name: str) -> datetime:
@@ -100,7 +99,7 @@ def resolve_local_day_window(
     *,
     now_utc: datetime | None = None,
 ) -> LocalDayWindow:
-    tz_name = resolve_i8_strict_timezone(db, user_id)
+    tz_name = resolve_i8_timezone(db, user_id)
     now = now_utc or datetime.now(timezone.utc)
     local_date = _local_now_from_utc(now, tz_name).date()
     return _window_for_local_date(tz_name, local_date)
@@ -112,8 +111,8 @@ def local_today_for_user(
     *,
     now_utc: datetime | None = None,
 ) -> tuple[str, date]:
-    """Return (timezone_name, today_local) with strict TZ authority."""
-    tz_name = resolve_i8_strict_timezone(db, user_id)
+    """Return (timezone_name, today_local) with the I8 timezone resolution."""
+    tz_name = resolve_i8_timezone(db, user_id)
     now = now_utc or datetime.now(timezone.utc)
     return tz_name, _local_now_from_utc(now, tz_name).date()
 
@@ -174,7 +173,7 @@ def resolve_local_day_window_for_date(
     now_utc: datetime | None = None,
 ) -> LocalDayWindow:
     """DST-safe window for an explicit local date (timezone fail-closed)."""
-    tz_name = resolve_i8_strict_timezone(db, user_id)
+    tz_name = resolve_i8_timezone(db, user_id)
     # Touch now_utc for API symmetry / future clock injection.
     _ = now_utc or datetime.now(timezone.utc)
     return _window_for_local_date(tz_name, target_local_date)
