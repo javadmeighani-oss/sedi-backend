@@ -174,11 +174,16 @@ jobs:
           print("SCHEMA_RESET_FOR_ORM_TESTS=OK")
           PY
 
-      - name: I7 Wave-2 067↔068 structural roundtrip
+      # Retired (Stage 04 / D-027, Javad-approved): historical up/down rehearsals for 067↔068 and
+      # 068↔069 no longer match the current schema (e.g. fk_devices_current_binding_id). Production is
+      # past both; "Fresh upgrade to head" proves the forward chain.
+      - name: I7 Wave-2 067↔068 structural roundtrip (retired)
+        if: ${{ false }}
         run: |
           python -B -m pytest backend/tests/test_db03_migration_rehearsal.py::test_i7_wave2_067_068_roundtrip -q --tb=short
 
-      - name: I8 068↔069 operational plan state rehearsal
+      - name: I8 068↔069 operational plan state rehearsal (retired)
+        if: ${{ false }}
         run: |
           python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short --noconftest
 
