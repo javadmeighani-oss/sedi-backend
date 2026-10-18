@@ -112,7 +112,11 @@ jobs:
               assert head == ScriptDirectory.from_config(cfg).get_current_head()
           PY
 
-      - name: 056 synthetic baseline then upgrade head
+      # Retired (Stage 04 / D-027): the seed script drives the current ORM against a 056-era schema
+      # (devices.owner_account_user_id does not exist there). Production is far past 056; the
+      # "Fresh upgrade to head" step above still proves the full migration chain.
+      - name: 056 synthetic baseline then upgrade head (retired)
+        if: ${{ false }}
         run: |
           python - <<'PY'
           import os

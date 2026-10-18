@@ -603,14 +603,8 @@ def test_srca_18_pg16_alembic081_runtime_and_no_hidden_schema_change():
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
     assert heads == [ALEMBIC_HEAD], heads
-    # Gate must not add migrations
-    versions = root / "alembic" / "versions"
-    newer = [
-        p.name
-        for p in versions.glob("*.py")
-        if re.match(r"08[2-9]_", p.name) or re.match(r"09\d_", p.name)
-    ]
-    assert newer == [], newer
+    # Stage 04 / D-027: the SRCA-18 gate itself added no migrations; later gates legitimately did
+    # (082..), so the former "no 08x/09x files" freeze is retired. Single-head is still enforced above.
     print("SRCA-18_STATIC=PASS")
 
 

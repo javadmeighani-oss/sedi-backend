@@ -74,7 +74,12 @@ def test_catalog12_sources_not_in_weekly_allowlist():
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     weekly_keys = {str(row["source_key"]) for row in data.get("sources") or []}
     catalog12_keys = {c.source_key for c in CATALOG12_CELLS}
-    assert catalog12_keys.isdisjoint(weekly_keys)
+    # Stage 04 / D-027 (DEBT-016): the knowledge-breadth manifest deliberately promotes catalog12
+    # authorities into the weekly allowlist, so the old "disjoint" contract is replaced by: every
+    # overlapping source must carry an explicit exact_url in the weekly manifest.
+    rows = {str(r["source_key"]): r for r in data.get("sources") or []}
+    overlap = catalog12_keys & weekly_keys
+    assert all(rows[k].get("exact_url") for k in overlap), sorted(overlap)
     assert "nhs_uk_live_well" in weekly_keys
 
 
