@@ -125,12 +125,14 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.services.i5.care_navigation_directory import resolve_care_navigation
               from backend.app.services.i5 import directory_web_lookup as wl
-              wl._cache.clear()
-              for q in ("یه آزمایشگاه خوب در اصفهان معرفی کن", "یه متخصص قلب در شیراز معرفی کن", "یه کلینیک پوست در مشهد پیشنهاد بده", "یه بیمارستان در تبریز معرفی کن", "یه متخصص مغز و اعصاب در کرج معرفی کن"):
-                  r = resolve_care_navigation(db, q, language="fa")
-                  print("BREADTH|web|%s | status=%s notes=%s msg=%s" % (q, getattr(r, "status", None), list(getattr(r, "identity_notes", ())), (getattr(r, "user_message", "") or "").replace(chr(10), " / ")[:700]))
+              for city, prov in (("اصفهان", None), ("تهران", "تهران"), ("شیراز", "فارس")):
+                  q = wl.build_query("LABORATORY", None, city, prov)
+                  raw = wl._call_web_search(q, "IR")
+                  ok = wl.validate_results(raw, city=city)
+                  print("BREADTH|lab|%s raw=%d valid=%d" % (q, len(raw), len(ok)))
+                  for r in raw[:6]:
+                      print("BREADTH|labitem|city=%r city_ok=%s addr=%s phone=%r host=%s" % (r.get("city"), city in ((r.get("city") or "") + " " + (r.get("address") or "")), bool(r.get("address")), (r.get("phone") or "")[:20], wl._host(r.get("source_url", ""))))
               db.rollback()
           finally:
               db.close()
