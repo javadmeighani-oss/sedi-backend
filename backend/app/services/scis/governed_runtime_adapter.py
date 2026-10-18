@@ -477,6 +477,25 @@ def retrieve_scis_governed_runtime_items(
         mode_tag=mode_tag,
         authorized_ku_ids=authorized_ku_ids,
     )
+    if authorized_ku_ids and not _via_translation and not lang.startswith("en") and len(items) < top_k:
+        # Verified concept: add aspect-oriented evidence (symptoms/treatment/causes) from English keyword
+        # queries, but only from the concept's own linked units — the authority boundary is unchanged.
+        extra = _retry_via_english_query(
+            db, query, lang, domain=domain, limit=limit, allow_network=allow_network, provider=provider,
+            force_mode=force_mode, alias_hints=alias_hints, user_authorization_context=user_authorization_context,
+            intent=intent, safety_classification=safety_classification, request_trace_id=request_trace_id,
+            allowed_knowledge_classes=allowed_knowledge_classes,
+        )
+        if extra is not None:
+            have = {getattr(i, "knowledge_unit_id", None) for i in items}
+            for item in extra[0]:
+                kid = getattr(item, "knowledge_unit_id", None)
+                if kid in authorized_ku_ids and kid not in have:
+                    items.append(item)
+                    have.add(kid)
+                if len(items) >= top_k:
+                    break
+            meta["authority_supplemented_by_translation"] = True
     meta["cross_language_authorized"] = any(
         not _lang_matches(item.language, language) for item in items
     )
