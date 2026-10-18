@@ -125,20 +125,36 @@ jobs:
                   print("BREADTH|intent|lang=%s medical=%s" % (lang, is_medical_care_intent(msg, lang)))
               uids = [u.id for u in db.query(models.User).order_by(models.User.id).all()]
               print("BREADTH|users|%s" % uids)
-              from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
-              from backend.app.services.scis.governed_runtime_adapter import retrieve_scis_governed_runtime_items
-              from backend.app.core.conversation.brain import _maybe_append_gate3_care_context
+              import uuid
+              from backend.app.core.conversation.brain import _maybe_append_structured_governed_knowledge, _maybe_append_gate3_care_context
               from backend.app.core.conversation.prompts import build_system_prompt_with_context, create_primary_chat_response
-              for lang, q in (("fa", "ای ال اس چیست و چطور مراقبت کنم؟"), ("fa", "علائم مولتیپل اسکلروزیس"), ("ar", "ما هو مرض الصرع؟"), ("fa", "درمان پارکینسون")):
-                  au = resolve_verified_concept_authority(db, q, lang)
-                  items, meta = retrieve_scis_governed_runtime_items(db, q, language=lang, limit=5, allow_network=True)
-                  print("BREADTH|auth|%s | concept=%s items=%d supplemented=%s" % (q, getattr(au, "concept_key", None), len(items), meta.get("authority_supplemented_by_translation")))
-              text = "ای ال اس چیست و چطور مراقبت کنم؟"
-              msgs = [{"role": "system", "content": build_system_prompt_with_context("fa", "جواد", None)}]
-              _maybe_append_gate3_care_context(msgs, db, uids[1], text, "fa")
-              msgs.append({"role": "user", "content": text})
-              rsp = create_primary_chat_response(msgs)
-              print("BREADTH|reply|%s" % (getattr(rsp, "output_text", "") or "").replace(chr(10), " / ")[:900])
+              from backend.app.services.intelligence.assembler import AuthorizedContextAssembler
+              from backend.app.services.intelligence.orchestrator import allow_governed_knowledge_decision
+              from backend.app.services.intelligence.psychological_interaction import classify_interaction_need
+              uid = uids[1]
+              asm = AuthorizedContextAssembler()
+              snap = asm.assemble(db, authenticated_user_id=uid, request_id=str(uuid.uuid4()))
+              proj = asm.build_compatibility_projection(snap)
+              print("BREADTH|proj|chars=%d truncated=%s name=%s items=%d" % (len(proj.text), proj.truncated, bool(proj.preferred_name), len(snap.items)))
+              cases = (("fa", "در مورد ALS کامل توضیح بده"), ("fa", "خیلی استرس دارم و نمی‌تونم بخوابم"), ("fa", "امروز خیلی غمگینم و فقط می‌خوام کسی گوش بده"),
+                       ("ar", "كيف أتعامل مع القلق وقلة النوم؟"), ("en", "How much exercise do adults need each week?"))
+              for lang, text in cases:
+                  need = classify_interaction_need(text, lang)
+                  allow = allow_governed_knowledge_decision(terminal_safety=False, message=text, language=lang, intent=None, interaction_need=need)
+                  def build(structured):
+                      msgs = [{"role": "system", "content": build_system_prompt_with_context(lang, proj.preferred_name or "جواد", None)}]
+                      if structured:
+                          msgs.append({"role": "system", "content": proj.text})
+                          if allow:
+                              _maybe_append_structured_governed_knowledge(msgs, db, uid, text, lang)
+                      else:
+                          _maybe_append_gate3_care_context(msgs, db, uid, text, lang)
+                      return msgs
+                  ms, mc = build(True), build(False)
+                  ctx_s = sum(len(m["content"]) for m in ms[1:]); ctx_c = sum(len(m["content"]) for m in mc[1:])
+                  ms.append({"role": "user", "content": text})
+                  r = create_primary_chat_response(ms)
+                  print("BREADTH|struct|lang=%s need=%s allow_knowledge=%s ctx_structured=%d ctx_compat=%d reply=%s" % (lang, need.value, allow, ctx_s, ctx_c, (getattr(r, "output_text", "") or "").replace(chr(10), " / ")[:420]))
               db.rollback()
           finally:
               db.close()
