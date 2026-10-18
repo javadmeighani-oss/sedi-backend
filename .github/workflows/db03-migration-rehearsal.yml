@@ -226,6 +226,22 @@ jobs:
           ])
           PY
 
+      # DEBT-028: the I8 tests above drop_all() an Alembic-built schema (removing the circular
+      # fk_devices_current_binding_id); the ORM fixtures below then fail at teardown trying to drop it
+      # again. Start the ORM unit tests from a clean schema, like the other ORM-test steps.
+      - name: Reset schema for I7 ORM unit tests
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          print("SCHEMA_RESET_FOR_I7_ORM=OK")
+          PY
+
       - name: Focused I7 Wave-2 unit tests
         run: |
           python -B -m pytest backend/tests/test_i7_wave2_governed_memory_lifecycle.py -q --tb=short
