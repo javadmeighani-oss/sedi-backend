@@ -35,6 +35,8 @@ def _reset(monkeypatch):
 
 
 def test_query_is_structured_only_and_needs_city():
+    assert wl.build_query("LABORATORY", None, "اصفهان", None) == "آزمایشگاه اصفهان"  # Persian entity word for Iran
+    assert wl.build_query("SPECIALIST", "heart", "London", None, country="GB") == "heart doctor in London"
     assert wl.build_query("SPECIALIST", "قلب", None, None) is None
     assert wl.build_query("SPECIALIST", "قلب", "شیراز", "فارس") == "قلب پزشک شیراز, فارس"
 
@@ -141,3 +143,23 @@ def test_nothing_is_written_to_the_directory(monkeypatch):
 
     src = inspect.getsource(wl)
     assert "apply_plan" not in src and "db.add" not in src and "session" not in src.lower()
+
+
+def test_empty_first_search_is_retried_once_with_address_wording(monkeypatch):
+    monkeypatch.setenv(wl.FLAG, "true")
+    calls = []
+
+    def fake(query, country, client=None):
+        calls.append(query)
+        return [] if len(calls) == 1 else [_r(source_url="https://clinic.example.ir/")]
+
+    monkeypatch.setattr(wl, "_call_web_search", fake)
+    out = wl.search_web_providers(entity="SPECIALIST", specialty="قلب", city="شیراز", province=None)
+    assert len(out) == 1 and calls[0] == "قلب پزشک شیراز" and calls[1].endswith("آدرس و تلفن")
+
+
+def test_concatenated_phone_numbers_are_cut_or_rejected():
+    from backend.app.services.i5.iran_directory_p24 import clean_landline
+
+    assert clean_landline("0513616609386069075") is None  # 19 digits, not a multiple of 11
+    assert clean_landline("0513616609305136166093") == "05136166093"

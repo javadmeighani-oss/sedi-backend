@@ -58,6 +58,11 @@ def clean_landline(*values: Any) -> Optional[str]:
             digits = re.sub(r"\D", "", part.translate(_DIGITS_FA))
             if len(digits) < 8 or digits.startswith(("09", "989", "00989")) or "0000000" in digits:
                 continue  # too short, mobile, or a placeholder such as 05100000000
+            if len(digits) > 11:
+                if digits.startswith("0") and len(digits) % 11 == 0:
+                    digits = digits[:11]  # two numbers concatenated by the source
+                else:
+                    continue
             return digits if digits.startswith("0") else "0" + digits if len(digits) == 10 else digits
     return None
 
