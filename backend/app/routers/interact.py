@@ -117,6 +117,7 @@ def open_session(
             db,
             user,
             source_notification_id=payload.source_notification_id,
+            device_timezone=payload.timezone,
         )
     except LookupError:
         raise HTTPException(status_code=404, detail="Notification not found")

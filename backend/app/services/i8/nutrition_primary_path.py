@@ -49,7 +49,7 @@ _USER_MESSAGES = {
         "UNSAFE_REQUEST_BLOCKED": "Sedi will not diagnose, replace a physician, or modify medication.",
         "THERAPEUTIC_FAIL_CLOSED": "Sedi will not diagnose, replace a physician, or modify medication.",
         "CONSENT_REQUIRED": "Memory consent is required before personalized nutrition help.",
-        "TIMEZONE_REQUIRED": "A valid timezone on your profile is required before scheduling nutrition actions.",
+        "TIMEZONE_REQUIRED": "To set your meal times and reminders correctly, tell me your timezone, for example \"Tehran time\".",
         "default": "I cannot create a verified nutrition action from the available context.",
     },
     "fa": {
@@ -61,7 +61,7 @@ _USER_MESSAGES = {
         "UNSAFE_REQUEST_BLOCKED": "صدی تشخیص نمی‌دهد، جایگزین پزشک نمی‌شود و دارو را تغییر نمی‌دهد.",
         "THERAPEUTIC_FAIL_CLOSED": "صدی تشخیص نمی‌دهد، جایگزین پزشک نمی‌شود و دارو را تغییر نمی‌دهد.",
         "CONSENT_REQUIRED": "برای کمک تغذیه‌ای شخصی، اجازه حافظه لازم است.",
-        "TIMEZONE_REQUIRED": "برای زمان‌بندی اقدام تغذیه‌ای، منطقه زمانی معتبر در پروفایل لازم است.",
+        "TIMEZONE_REQUIRED": "برای اینکه ساعت وعده‌ها و یادآورها رو درست بذارم، بگو تو چه منطقه‌ی زمانی‌ای هستی؛ مثلاً بنویس «وقت تهران».",
         "default": "با زمینه موجود نمی‌توانم یک اقدام تغذیه‌ای تأییدشده بسازم.",
     },
 }

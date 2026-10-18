@@ -166,6 +166,52 @@ def _detect_command_lang(text: str) -> str:
     return "en"
 
 
+# ---- Spoken timezone aliases ("وقت تهران", "Tehran time") ----
+_TZ_CITY_ALIASES = {
+    "تهران": "Asia/Tehran", "ایران": "Asia/Tehran", "tehran": "Asia/Tehran",
+    "دبی": "Asia/Dubai", "امارات": "Asia/Dubai", "dubai": "Asia/Dubai",
+    "بغداد": "Asia/Baghdad", "عراق": "Asia/Baghdad", "baghdad": "Asia/Baghdad",
+    "ریاض": "Asia/Riyadh", "عربستان": "Asia/Riyadh", "riyadh": "Asia/Riyadh",
+    "استانبول": "Europe/Istanbul", "ترکیه": "Europe/Istanbul", "istanbul": "Europe/Istanbul",
+    "لندن": "Europe/London", "london": "Europe/London",
+}
+_TZ_ALIAS_PATTERNS = (
+    r"(?:به\s*)?(?:وقت|ساعت|منطقه\s*زمانی)\s*(?:ی\s*)?("
+    + "|".join(k for k in _TZ_CITY_ALIASES if not k.isascii())
+    + r")(?!\S)",
+    r"(?<!\S)("
+    + "|".join(k for k in _TZ_CITY_ALIASES if k.isascii())
+    + r")\s+(?:time|timezone)(?!\S)",
+)
+_TZ_ALIAS_MAX_CHARS = 40
+
+
+def _alias_timezone(text: str) -> Optional[str]:
+    """IANA timezone for a short spoken phrase like "وقت تهران"; None otherwise."""
+    t = (text or "").strip()
+    if not t or len(t) > _TZ_ALIAS_MAX_CHARS:
+        return None
+    for pat in _TZ_ALIAS_PATTERNS:
+        m = re.search(pat, t, re.IGNORECASE)
+        if m:
+            return _TZ_CITY_ALIASES.get(m.group(1).lower()) or _TZ_CITY_ALIASES.get(m.group(1))
+    return None
+
+
+def adopt_device_timezone(db: Session, user_id: int, tz_str: Optional[str]) -> bool:
+    """Store the device IANA timezone only when the profile has none (never overwrites the user's choice)."""
+    tz = (tz_str or "").strip()
+    if not _validate_iana_timezone(tz):
+        return False
+    row = ensure_profile_core(db, user_id)
+    if (row.timezone or "").strip():
+        return False
+    row.timezone = tz
+    db.add(row)
+    db.commit()
+    return True
+
+
 def detect_and_handle_user_settings_command(
     user_id: int,
     text: str,
@@ -206,6 +252,20 @@ def detect_and_handle_user_settings_command(
                 return ChatResponseOverride(
                     assistant_message=_TZ_INVALID.get(lang, _TZ_INVALID["en"]).format(tz=tz_str)
                 )
+
+    # 1b) Spoken timezone ("وقت تهران", "Tehran time")
+    alias_tz = _alias_timezone(t)
+    if alias_tz:
+        try:
+            _persist_profile_timezone(db, user_id, alias_tz)
+            return ChatResponseOverride(
+                assistant_message=_TZ_OK.get(lang, _TZ_OK["en"]).format(tz=alias_tz),
+                updated_facts=[("timezone", {"tz": alias_tz})],
+            )
+        except Exception:
+            return ChatResponseOverride(
+                assistant_message=_TZ_INVALID.get(lang, _TZ_INVALID["en"]).format(tz=alias_tz)
+            )
 
     # 2) Try quiet hours disable
     for pat, _ in _QH_OFF_PATTERNS:
