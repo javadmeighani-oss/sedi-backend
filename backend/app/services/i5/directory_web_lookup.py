@@ -105,9 +105,11 @@ def build_query(entity: str, specialty: Optional[str], city: Optional[str], prov
     if not city:
         return None
     en, fa = _ENTITY_WORDS.get(entity, _ENTITY_WORDS["SPECIALIST"])
-    what = f"{specialty} {fa}" if specialty and country.upper() == "IR" else (f"{specialty} {en}" if specialty else en)
+    ir = country.upper() == "IR"
+    word = fa if ir else en
+    what = f"{specialty} {word}" if specialty else word
     where = ", ".join(x for x in (city, province) if x)
-    return f"{what} {where}" if country.upper() == "IR" else f"{what} in {where}"
+    return f"{what} {where}" if ir else f"{what} in {where}"
 
 
 _SCHEMA = {
@@ -209,8 +211,12 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
             return [dict(r) for r in hit[1]]
     if not _take_quota():
         return []
+    results: list[dict[str, Any]] = []
     try:
-        results = validate_results(_call_web_search(query, country, client), city=city, country=country)
+        raw = _call_web_search(query, country, client)
+        if not raw and _take_quota():  # web search is non-deterministic: one retry with address/phone wording
+            raw = _call_web_search(query + (" آدرس و تلفن" if country.upper() == "IR" else " address phone"), country, client)
+        results = validate_results(raw, city=city, country=country)
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
     with _lock:
