@@ -64,3 +64,16 @@ def test_arabic_chest_pain_and_breathing_difficulty_are_terminal_emergencies():
         assert requires_terminal_safety_response(assess_safety_risk(message=msg, language="ar")), msg
     for msg in ("كيف أتعامل مع القلق وقلة النوم؟", "ما هو مرض التصلب الجانبي الضموري"):
         assert not requires_terminal_safety_response(assess_safety_risk(message=msg, language="ar")), msg
+
+
+def test_disease_labels_are_founder_approved_and_broad_topics_stay_drafts():
+    from backend.app.services.i5.know02.concept_catalog import load_concept_catalog
+
+    for concept in load_concept_catalog()["concepts"]:
+        for label in concept["labels"]:
+            if label["language"] == "en":
+                continue
+            if concept["concept_key"].startswith("disease:"):
+                assert label["status"] == "FOUNDER_APPROVED" and label.get("approved_on") == "2026-10-18", (concept["concept_key"], label)
+            else:
+                assert label["status"] == "MODEL_ASSISTED_DRAFT", (concept["concept_key"], label)
