@@ -106,6 +106,42 @@ def execute_primary_nutrition_action(
     display_meta: Optional[dict] = None,
 ) -> NutritionPrimaryResult:
     """Canonical V1 nutrition action — I8 owns semantics; I5 grounds knowledge."""
+    if (
+        persist
+        and generation_mode == "reactive"
+        and plan_idempotency_key is None
+        and action_idempotency_key is None
+        and target_local_date is None
+    ):
+        # Stage 06 / B1.5-b: chat-origin personalized 7-day plan from the I8 catalog (proactive/keyed callers
+        # keep the grounded single-action path); falls back to it whenever the composer declines.
+        from backend.app.services.i8.plan_composer import try_compose_for_chat
+        from backend.app.services.i8.plan_notes import build_plan_trailer
+
+        composed = try_compose_for_chat(
+            db,
+            user_id=user_id,
+            actor_user_id=actor_user_id,
+            request=request,
+            domain="nutrition",
+            language=language,
+            health_subject_id=health_subject_id,
+        )
+        if composed is not None:
+            return NutritionPrimaryResult(
+                status="ACTION_PERSISTED",
+                domain="nutrition",
+                action_id=composed.action_id,
+                plan_id=composed.plan_id,
+                grounded=True,
+                fail_safe=False,
+                user_message=f"{composed.user_message}\n\n{build_plan_trailer(db, user_id, language, 'nutrition')}",
+                summary=composed.user_message,
+                knowledge_refs=list(composed.knowledge_refs),
+                persistence="I8_OPERATIONAL",
+                clinical=False,
+                core=None,
+            )
     core = generate_operational_action(
         db,
         user_id=user_id,

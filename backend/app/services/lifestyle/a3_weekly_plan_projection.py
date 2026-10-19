@@ -56,6 +56,7 @@ def _compact_action(action) -> dict[str, Any]:
         "activity_type",
         "activity_title",
         "duration_minutes",
+        "detail",
         "title",
         CYCLE_START_META_KEY,
     ):
