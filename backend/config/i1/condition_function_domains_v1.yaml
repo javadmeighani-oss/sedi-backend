@@ -1,0 +1,41 @@
+# Stage 06 / B1 — body-function domains per condition (additive; I1-owned data, read-only at runtime).
+# A registered condition maps to the function domains worth asking about before a personalized
+# nutrition/activity plan. Matching is by bounded phrase over fa/en/ar condition text.
+# Conditions without a match fall back to `fallback_domains` (never blocks, never invents facts).
+version: i1-condition-function-domains-v1
+fallback_domains: [general]
+domains: [swallowing, mobility, breathing, balance, cognition, senses, pain_fatigue, digestion, glucose, appetite, general]
+conditions:
+  - id: motor_neuron_neuro
+    phrases: [als, amyotrophic, motor neuron, motor neurone, ms, multiple sclerosis, parkinson, stroke, neuropathy, اس ال اس, ام اس, پارکینسون, سکته, نورون حرکتی, التصلب, باركنسون, سكتة]
+    domains: [swallowing, mobility, breathing, balance]
+  - id: dementia_cognitive
+    phrases: [dementia, alzheimer, cognitive, آلزایمر, دمانس, زوال عقل, الزهايمر]
+    domains: [cognition, appetite, swallowing]
+  - id: heart
+    phrases: [heart, cardiac, hypertension, high blood pressure, قلب, فشار خون, ضعف قلبی, قلبي, ضغط]
+    domains: [breathing, pain_fatigue]
+  - id: diabetes_endocrine
+    phrases: [diabetes, diabetic, thyroid, دیابت, قند, تیروئید, سكري, السكر]
+    domains: [glucose, appetite, senses]
+  - id: kidney
+    phrases: [kidney, renal, dialysis, کلیه, دیالیز, كلى, الكلى]
+    domains: [appetite, pain_fatigue, digestion]
+  - id: lung
+    phrases: [asthma, copd, lung, pulmonary, آسم, ریه, انسداد مزمن, الربو, الرئة]
+    domains: [breathing, pain_fatigue]
+  - id: cancer
+    phrases: [cancer, chemotherapy, oncology, tumor, سرطان, شیمی درمانی, تومور, السرطان]
+    domains: [appetite, swallowing, pain_fatigue, digestion]
+  - id: digestive
+    phrases: [crohn, colitis, ibs, celiac, reflux, gastritis, کرون, کولیت, سلیاک, ریفلاکس, گوارش, القولون]
+    domains: [digestion, appetite]
+  - id: musculoskeletal_pain
+    phrases: [arthritis, osteoporosis, back pain, fibromyalgia, آرتروز, پوکی استخوان, کمر درد, فیبرومیالژیا, التهاب المفاصل]
+    domains: [mobility, pain_fatigue, balance]
+  - id: mental_health
+    phrases: [depression, anxiety, bipolar, افسردگی, اضطراب, دوقطبی, اكتئاب, قلق]
+    domains: [appetite, pain_fatigue]
+  - id: vision_hearing
+    phrases: [blind, low vision, glaucoma, hearing loss, کم بینایی, ناشنوا, گلوکوم, ضعف بینایی, ضعف السمع]
+    domains: [senses, mobility]

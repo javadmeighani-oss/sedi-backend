@@ -15,6 +15,21 @@ from backend.app.services.intelligence.context_types import (
 )
 
 
+FUNCTION_TARGETS: tuple[str, ...] = (
+    "function.swallowing",
+    "function.mobility",
+    "function.breathing",
+    "function.balance",
+    "function.cognition",
+    "function.senses",
+    "function.pain_fatigue",
+    "function.digestion",
+    "function.glucose",
+    "function.appetite",
+    "function.general",
+)
+
+
 class CoverageState(str, Enum):
     KNOWN = "KNOWN"
     MISSING = "MISSING"
@@ -58,6 +73,7 @@ TIER_C_NEVER_MISSING_DRIVEN: frozenset[str] = frozenset(
 REGISTERED_TARGETS: frozenset[str] = frozenset(
     {
         *TIER_A_TARGETS,
+        *FUNCTION_TARGETS,
         "routines.bedtime",
         "routines.wake_time",
         "lifestyle.sleep_quality",
