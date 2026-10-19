@@ -619,9 +619,13 @@ def test_n56_i06_dislike_reason_bounded(db, gate4_patch, client):
     reason = next(iter(BOUNDED_DISLIKE_REASONS))
     resp = _feedback(client, user, notif.id, {"reaction": "dislike", "reason": reason})
     assert resp.status_code == 200
+    # The dislike also marks the notification read (a later READ event); assert on the dislike event itself.
     evt = (
         db.query(models.InteractionEvent)
-        .filter(models.InteractionEvent.source_notification_id == notif.id)
+        .filter(
+            models.InteractionEvent.source_notification_id == notif.id,
+            models.InteractionEvent.event_type.like("notification_dislike%"),
+        )
         .order_by(models.InteractionEvent.id.desc())
         .first()
     )

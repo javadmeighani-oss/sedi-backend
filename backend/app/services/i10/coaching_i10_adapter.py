@@ -66,6 +66,11 @@ def render_coaching_copy(
     name = _safe_user_name(db, action.user_id)
     prefix = f"{name}, " if name else ""
     summary = (action.summary_text or "your plan item").strip()[:200]
+    from backend.app.services.i10.plan_reminder_copy import composer_copy
+
+    composed = composer_copy(db, action, domain, name, summary)
+    if composed is not None:
+        return composed
 
     if domain is CoachingPlanDomain.NUTRITION:
         title = "Nutrition plan follow-up"

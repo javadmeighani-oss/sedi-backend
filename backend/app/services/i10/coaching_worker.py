@@ -77,6 +77,31 @@ def _load_i7_daily_flag(db: Session, user_id: int) -> bool:
     return row is not None
 
 
+def _composer_item_due(action: models.I8OperationalPlanAction, now_utc: datetime) -> bool:
+    """Stage 06 / B2-D4: a catalog-composed item is reminded at its own time (3 h window); rest days never."""
+    import json
+    from datetime import timedelta
+
+    try:
+        pres = json.loads(action.presentation_json or "{}")
+    except (TypeError, ValueError):
+        return True
+    if not isinstance(pres, dict) or pres.get("source") != "sedi_plan_catalog_v1":
+        return True
+    lt = str(pres.get("local_time") or "")
+    vf = action.valid_from
+    if not lt or vf is None or ":" not in lt:
+        return False
+    if vf.tzinfo is None:
+        vf = vf.replace(tzinfo=timezone.utc)
+    try:
+        hh, mm = (int(x) for x in lt.split(":")[:2])
+    except ValueError:
+        return False
+    due = vf + timedelta(hours=hh, minutes=mm)
+    return due <= now_utc <= due + timedelta(hours=3)
+
+
 def is_action_eligible(
     action: models.I8OperationalPlanAction,
     plan: models.I8OperationalPlan,
@@ -105,7 +130,7 @@ def is_action_eligible(
         return False
     if ex is not None and now_utc > ex:
         return False
-    return True
+    return _composer_item_due(action, now_utc)
 
 
 def list_eligible_coaching_actions(
