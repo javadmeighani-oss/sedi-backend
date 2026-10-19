@@ -129,3 +129,75 @@ def test_compose_persists_a_timed_week_and_both_domains_share_the_daily_plans(db
 def test_compose_without_consent_returns_consent_required(db):
     u = _user(db, "+17770009102", tz="Asia/Tehran")
     assert pc.compose_week_plan(db, user_id=u.id, domain="nutrition", language="fa").status == "CONSENT_REQUIRED"
+
+
+# ---------- B1.5-c: end-of-day / end-of-week review ----------
+from backend.app import models
+from backend.app.services.i8 import action_review as ar
+from backend.tests.test_i5_i8_lifestyle_weekly_nutrition_exercise import _auth
+
+
+def _week(db, phone):
+    u = _user(db, phone, tz="Asia/Tehran")
+    _seed_consent(db, u.id)
+    pc.compose_week_plan(db, user_id=u.id, domain="nutrition", language="fa", constraints=pc.Constraints())
+    pc.compose_week_plan(db, user_id=u.id, domain="exercise", language="fa", constraints=pc.Constraints())
+    return u, build_lifestyle_weekly_plan_projection(db, u.id)
+
+
+def test_review_done_and_skipped_feed_the_projection_and_adherence(db):
+    u, proj = _week(db, "+17770009201")
+    acts = proj["days"][0]["nutrition"]
+    assert all("id" in a for a in acts)
+    assert ar.record_review(db, actor_user_id=u.id, action_id=acts[0]["id"], outcome="done")["outcome"] == "done"
+    assert ar.record_review(db, actor_user_id=u.id, action_id=acts[1]["id"], outcome="skipped", reason="no_time")["reason"] == "no_time"
+    again = ar.record_review(db, actor_user_id=u.id, action_id=acts[0]["id"], outcome="done")
+    assert again["outcome"] == "done"  # idempotent
+    after = build_lifestyle_weekly_plan_projection(db, u.id)
+    d0 = after["days"][0]["nutrition"]
+    assert d0[0]["status"] == "COMPLETED" and d0[1]["review"] == {"outcome": "skipped", "reason": "no_time"}
+    a = after["adherence"]
+    assert a["done"] == 1 and a["skipped"] == 1 and a["skip_reasons"] == {"no_time": 1} and a["total"] >= 2
+
+
+def test_review_is_owner_only_and_validated(db):
+    u, proj = _week(db, "+17770009202")
+    other = _user(db, "+17770009203", tz="Asia/Tehran")
+    aid = proj["days"][0]["nutrition"][0]["id"]
+    with pytest.raises(ar.ActionReviewError) as e1:
+        ar.record_review(db, actor_user_id=other.id, action_id=aid, outcome="done")
+    assert e1.value.code == "ACTION_OWNER_MISMATCH"
+    with pytest.raises(ar.ActionReviewError):
+        ar.record_review(db, actor_user_id=u.id, action_id=aid, outcome="maybe")
+    with pytest.raises(ar.ActionReviewError):
+        ar.record_review(db, actor_user_id=u.id, action_id=aid, outcome="skipped", reason="bored")
+    with pytest.raises(ar.ActionReviewError) as e2:
+        ar.record_review(db, actor_user_id=u.id, action_id=10**9, outcome="done")
+    assert e2.value.code == "ACTION_NOT_FOUND"
+
+
+def test_review_endpoint_roundtrip(client, db):
+    u, proj = _week(db, "+17770009204")
+    aid = proj["days"][0]["exercise"][0]["id"]
+    r = client.post(f"/lifestyle/actions/{aid}/review", json={"outcome": "skipped", "reason": "too_hard"}, headers=_auth(u.id))
+    assert r.status_code == 200 and r.json()["data"]["reason"] == "too_hard"
+    bad = client.post(f"/lifestyle/actions/{aid}/review", json={"outcome": "skipped", "reason": "x"}, headers=_auth(u.id))
+    assert bad.status_code == 422
+    other = _user(db, "+17770009205", tz="Asia/Tehran")
+    forbidden = client.post(f"/lifestyle/actions/{aid}/review", json={"outcome": "done"}, headers=_auth(other.id))
+    assert forbidden.status_code == 403
+
+
+def test_low_adherence_makes_the_next_exercise_cycle_lighter():
+    acts = []
+
+    class _A:
+        def __init__(self, review):
+            self.status = "ACTIVE"
+            self.presentation_json = '{"review": %s}' % review
+
+    for _ in range(4):
+        acts.append(_A('{"outcome": "skipped", "reason": "too_hard"}'))
+    acts.append(_A("null"))
+    s = ar.adherence(acts)
+    assert s["percent"] == 0 and s["skipped"] == 4 and s["pending"] == 1 and ar.LOW_ADHERENCE_PERCENT == 40

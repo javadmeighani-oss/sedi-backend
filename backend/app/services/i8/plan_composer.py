@@ -338,6 +338,12 @@ def compose_week_plan(
         constraints = constraints_from_answers(answers, has_condition=has_condition)
     bounds = resolve_persist_cycle_bounds(db, user_id)
     cycle_start = bounds.cycle_start
+    if bounds.is_new_cycle:
+        from backend.app.services.i8.action_review import LOW_ADHERENCE_PERCENT, last_cycle_adherence_percent
+
+        last = last_cycle_adherence_percent(db, user_id, domain)
+        if last is not None and last < LOW_ADHERENCE_PERCENT:
+            constraints.light_only = True  # the previous week was too hard to keep up: go lighter
     seed = f"{user_id}:{domain}:{cycle_start.isoformat()}"
     week = select_nutrition_week(constraints, seed) if domain == "nutrition" else select_exercise_week(constraints, seed)
     today_local = bounds.today_local

@@ -43,7 +43,10 @@ def _safe_presentation(raw: str | None) -> dict[str, Any]:
 
 def _compact_action(action) -> dict[str, Any]:
     pres = _safe_presentation(action.presentation_json)
+    from backend.app.services.i8.action_review import review_of
+
     item: dict[str, Any] = {
+        "id": int(action.id),
         "title": (action.summary_text or action.action_type or "Action")[:256],
         "status": (action.status or "ACTIVE")[:32],
         "action_type": (action.action_type or "")[:64],
@@ -62,6 +65,9 @@ def _compact_action(action) -> dict[str, Any]:
     ):
         if key in pres and pres[key] is not None and pres[key] != "":
             item[key] = pres[key]
+    rev = review_of(action)
+    if rev:
+        item["review"] = {"outcome": rev.get("outcome"), "reason": rev.get("reason")}
     if not item.get("title") and pres.get("activity_title"):
         item["title"] = str(pres["activity_title"])[:256]
     return item
@@ -164,11 +170,15 @@ def build_lifestyle_weekly_plan_projection(
             }
         )
 
+    from backend.app.services.i8.action_review import adherence
+
+    cycle_actions = [a for lst in actions_by_plan.values() for a in lst]
     return {
         "cycle_start": cycle_start.isoformat(),
         "cycle_end": cycle_end.isoformat(),
         "timezone": tz_name,
         "state": state,
         "review_due": review_due,
+        "adherence": adherence(cycle_actions, up_to=today_local),
         "days": days,
     }

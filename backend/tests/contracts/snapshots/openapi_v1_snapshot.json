@@ -33,6 +33,33 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "ActionReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "outcome": {
+            "description": "done | skipped",
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "no_time|too_hard|not_feeling_well|dont_like|forgot|other",
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "title": "ActionReviewRequest",
+        "type": "object"
+      },
       "ApiError": {
         "description": "V1 error payload inside ApiResponse.error.",
         "properties": {
@@ -14085,6 +14112,64 @@
         "summary": "Get Next Question Endpoint",
         "tags": [
           "Knowledge"
+        ]
+      }
+    },
+    "/lifestyle/actions/{action_id}/review": {
+      "post": {
+        "description": "End-of-day/week review of one I8 plan action (owner only): done or skipped (+ bounded reason).",
+        "operationId": "lifestyle_action_review_lifestyle_actions__action_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Review",
+        "tags": [
+          "Lifestyle Data"
         ]
       }
     },
