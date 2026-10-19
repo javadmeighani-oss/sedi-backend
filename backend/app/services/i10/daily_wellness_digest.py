@@ -76,6 +76,9 @@ class DailyWellnessDigestFacts:
     baseline_comparison: Optional[str] = None
     content_family: DailySmartContentFamily = DailySmartContentFamily.GENERAL_CHECKIN
     local_period_date: Optional[date] = None
+    # Stage 06 / B2-D4: progress of today's composed plan items + morning/evening review mode.
+    plan_progress: Optional[dict] = None
+    review_mode: str = "morning"
 
 
 _DIGEST_TITLES = {
@@ -543,6 +546,19 @@ def assemble_daily_wellness_digest_facts(
         now=now,
     )
 
+    # Stage 06 / B2-D4: a composed plan makes the digest about the user's own plan (morning list / evening review).
+    from backend.app.services.i10.plan_progress import day_progress
+
+    progress = day_progress(db, user_id, local_day)
+    if progress and family in (DailySmartContentFamily.I6_I7_CONTEXT, DailySmartContentFamily.GENERAL_CHECKIN):
+        family = DailySmartContentFamily.I8_ACTION
+    if family is not DailySmartContentFamily.I8_ACTION:
+        progress = None
+    try:
+        review_mode = "evening" if now.astimezone(_user_tz(db, user_id)).hour >= 17 else "morning"
+    except Exception:
+        review_mode = "morning"
+
     return DailyWellnessDigestFacts(
         user_id=user_id,
         health_subject_id=projection.health_subject_id,
@@ -558,7 +574,33 @@ def assemble_daily_wellness_digest_facts(
         baseline_comparison=baseline_cmp,
         content_family=family,
         local_period_date=local_day,
+        plan_progress=progress,
+        review_mode=review_mode,
     )
+
+
+_PLAN_TITLES = {
+    "morning": {"fa": "برنامه‌ی امروزت", "en": "Your plan for today", "ar": "خطتك لليوم"},
+    "evening": {"fa": "مرور برنامه‌ی امروز", "en": "Today's plan review", "ar": "مراجعة خطة اليوم"},
+}
+
+
+def _plan_progress_body(p: dict, mode: str, lang: str) -> str:
+    """Deterministic, factual copy from the user's own plan counts (no health claims)."""
+    done, total, skipped = p["done"], p["total"], p.get("skipped", 0)
+    nxt = "؛ ".join(p.get("next", [])) if lang != "en" else "; ".join(p.get("next", []))
+    if mode == "evening":
+        return {
+            "fa": f"امروز {done} از {total} مورد برنامه‌ات انجام شد. بقیه چطور پیش رفت؟ اگه انجام ندادی بگو چرا تا برنامه‌ی فردا رو متناسب‌تر کنم.",
+            "en": f"Today {done} of {total} plan items were done. How did the rest go? If you skipped any, tell me why so I can fit tomorrow better.",
+            "ar": f"اليوم أُنجز {done} من {total} من خطتك. كيف سار الباقي؟ إن تركت شيئاً فأخبرني لماذا لأناسب الغد.",
+        }[lang]
+    tail = {"fa": f" اولین‌ها: {nxt}." if nxt else "", "en": f" Up next: {nxt}." if nxt else "", "ar": f" التالي: {nxt}." if nxt else ""}[lang]
+    return {
+        "fa": f"امروز {total} مورد توی برنامه‌ات داری.{tail} بعد از هر کدوم بگو «انجام شد».",
+        "en": f"You have {total} plan items today.{tail} Tell me \"done\" after each one.",
+        "ar": f"لديك {total} عناصر في خطتك اليوم.{tail} قل لي «تم» بعد كل واحد.",
+    }[lang]
 
 
 def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") -> str:
@@ -584,6 +626,8 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
     if facts.content_family == DailySmartContentFamily.SAFETY:
         return _body(_SAFETY_BODIES)
     if facts.content_family == DailySmartContentFamily.I8_ACTION:
+        if facts.plan_progress:
+            return _plan_progress_body(facts.plan_progress, facts.review_mode, lang)
         return _body(_I8_BODIES)
     if facts.content_family == DailySmartContentFamily.I6_I7_CONTEXT:
         return _body(_I6_I7_BODIES)
@@ -612,6 +656,8 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
 
 def render_digest_title(facts: DailyWellnessDigestFacts, language: str = "en") -> str:
     lang = _norm_lang(language)
+    if facts.content_family == DailySmartContentFamily.I8_ACTION and facts.plan_progress:
+        return _PLAN_TITLES[facts.review_mode if facts.review_mode in _PLAN_TITLES else "morning"][lang]
     if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
         return _GENERAL_CHECKIN_TITLES.get(lang) or _GENERAL_CHECKIN_TITLES["en"]
     local_day = facts.local_period_date or facts.observation_period_start.date()
@@ -676,6 +722,15 @@ def enqueue_daily_wellness_digest(
     occurrence_key: str,
     language: str = "en",
 ) -> Optional[models.Notification]:
+    # Stage 06 / B2-D4: recent dislikes shape the digest (too_frequent/wrong_timing -> skip today; irrelevant ->
+    # no generic check-in; many dislikes -> pause) instead of being ignored.
+    from backend.app.services.i10.plan_progress import feedback_state
+
+    fb = feedback_state(db, facts.user_id)
+    if fb["skip"] or (fb["avoid_generic"] and facts.content_family is DailySmartContentFamily.GENERAL_CHECKIN):
+        logger.info("[I10-B11] feedback-throttled user=%s digest=%s fb=%s", facts.user_id, occurrence_key, fb)
+        return None
+
     if facts.health_subject_id is None:
         health_subject_id = resolve_or_ensure_self_health_subject_id(db, facts.user_id)
     else:

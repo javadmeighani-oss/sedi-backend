@@ -65,6 +65,32 @@ def lifestyle_weekly_plan(
     )
 
 
+class ActionReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    outcome: str = Field(..., description="done | skipped")
+    reason: Optional[str] = Field(None, description="no_time|too_hard|not_feeling_well|dont_like|forgot|other")
+
+
+@router.post("/actions/{action_id}/review", response_model=APIResponse)
+def lifestyle_action_review(
+    action_id: int,
+    payload: ActionReviewRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """End-of-day/week review of one I8 plan action (owner only): done or skipped (+ bounded reason)."""
+    from backend.app.services.i8.action_review import ActionReviewError, record_review
+
+    try:
+        data = record_review(
+            db, actor_user_id=auth_user.id, action_id=action_id, outcome=payload.outcome, reason=payload.reason
+        )
+    except ActionReviewError as exc:
+        status = 404 if exc.code == "ACTION_NOT_FOUND" else (403 if exc.code == "ACTION_OWNER_MISMATCH" else 422)
+        raise HTTPException(status_code=status, detail=exc.code)
+    return APIResponse(ok=True, data=data)
+
+
 def _require_admin(request: Request) -> None:
     """Fail-closed admin guard: ADMIN_TOKEN must be set; X-Admin-Token must match."""
     expected = os.environ.get("ADMIN_TOKEN", "").strip()

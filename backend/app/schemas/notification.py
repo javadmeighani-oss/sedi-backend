@@ -141,7 +141,7 @@ class NotificationFeedbackRequest(BaseModel):
 # -------------------- V1: Feedback (contract + legacy, normalized event_type) --------------------
 
 FeedbackReactionContract = Literal["seen", "interact", "dismiss", "like", "dislike"]
-FeedbackReasonV1 = Literal["too_frequent", "irrelevant", "unclear"]
+FeedbackReasonV1 = Literal["too_frequent", "irrelevant", "unclear", "not_helpful", "wrong_timing"]
 
 
 class FeedbackRequestV1(BaseModel):
@@ -156,7 +156,7 @@ class FeedbackRequestV1(BaseModel):
     action_id: Optional[str] = Field(None, description="Contract: required when reaction is 'interact'")
     feedback_text: Optional[str] = Field(None, description="Contract: optional text")
     # V1 optional reason enum
-    reason: Optional[FeedbackReasonV1] = Field(None, description="V1: too_frequent | irrelevant | unclear")
+    reason: Optional[FeedbackReasonV1] = Field(None, description="V1: too_frequent | irrelevant | unclear | not_helpful | wrong_timing")
     # Legacy B2 / Stage 16.6 (map into normalized event_type in router)
     feedback: Optional[Literal["positive", "negative", "neutral"]] = Field(None, description="Legacy B2")
     action: Optional[str] = Field(None, description="Legacy: like | dislike | open_chat | dismissed or too_early | too_late | irrelevant")

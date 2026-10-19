@@ -1,0 +1,99 @@
+# Stage 06 / B1.5-b — I8 plan catalog v1 (draft for founder/clinician review before pilot).
+# General healthy-eating / gentle-activity building blocks. NOT a therapeutic diet: no calories, no doses,
+# no condition-specific prescriptions. The composer only filters and arranges these items using the user's own
+# answers (allergies, preferences, budget, cooking time, meal times, body-function status).
+version: i8-plan-catalog-v1
+
+allergen_aliases:
+  nuts: [nut, peanut, almond, walnut, hazelnut, pistachio, مكسرات, فول سوداني, آجیل, بادام, گردو, فندق, پسته, بادام زمینی]
+  dairy: [dairy, milk, cheese, yogurt, حليب, لبن, جبن, لبنیات, شیر, ماست, پنیر]
+  gluten: [gluten, wheat, قمح, جلوتين, گلوتن, گندم, نان]
+  egg: [egg, بيض, تخم مرغ, تخم‌مرغ, تخمه مرغ]
+  fish: [fish, seafood, shrimp, سمك, ماهی, میگو, غذای دریایی]
+  soy: [soy, صويا, سویا]
+  sesame: [sesame, سمسم, کنجد]
+
+meals:
+  - {id: b_oats, slots: [breakfast], allergens: [dairy, gluten], texture: soft, budget: 2, prep: 5, keywords: [oats, جو دوسر, شوفان]}
+  - {id: b_omelette, slots: [breakfast], allergens: [egg], texture: soft, budget: 1, prep: 10, keywords: [omelette, املت, تخم مرغ]}
+  - {id: b_bread_cheese, slots: [breakfast], allergens: [gluten, dairy, nuts], texture: normal, budget: 2, prep: 5, keywords: [cheese, پنیر, گردو]}
+  - {id: b_smoothie, slots: [breakfast], allergens: [dairy], texture: soft, budget: 2, prep: 5, keywords: [smoothie, اسموتی, موز]}
+  - {id: b_firni, slots: [breakfast], allergens: [dairy], texture: soft, budget: 1, prep: 15, keywords: [فرنی, porridge]}
+  - {id: b_fruit_plate, slots: [breakfast, snack], allergens: [], texture: soft, budget: 1, prep: 5, veg: true, keywords: [dates, خرما, fruit, میوه]}
+  - {id: l_lentil_soup, slots: [lunch, dinner], allergens: [], texture: soft, budget: 1, prep: 25, veg: true, keywords: [lentil, عدس, سوپ]}
+  - {id: l_chicken_rice, slots: [lunch], allergens: [], texture: normal, budget: 2, prep: 30, keywords: [chicken, مرغ, برنج, rice]}
+  - {id: l_barley_soup, slots: [lunch, dinner], allergens: [gluten], texture: soft, budget: 1, prep: 30, keywords: [barley, جو, سوپ جو]}
+  - {id: l_fish, slots: [lunch, dinner], allergens: [fish], texture: normal, budget: 3, prep: 25, keywords: [fish, ماهی]}
+  - {id: l_chickpea, slots: [lunch, dinner], allergens: [], texture: soft, budget: 1, prep: 30, veg: true, keywords: [chickpea, نخود]}
+  - {id: l_kuku, slots: [lunch, dinner], allergens: [egg], texture: soft, budget: 1, prep: 25, veg: true, keywords: [kuku, کوکو, سبزی]}
+  - {id: d_veg_soup, slots: [dinner], allergens: [gluten], texture: soft, budget: 1, prep: 25, veg: true, keywords: [vegetable soup, سوپ سبزیجات]}
+  - {id: d_baked_chicken, slots: [dinner], allergens: [], texture: normal, budget: 2, prep: 35, keywords: [chicken, مرغ تنوری]}
+  - {id: d_beans, slots: [dinner], allergens: [gluten], texture: soft, budget: 1, prep: 30, veg: true, keywords: [beans, لوبیا]}
+  - {id: d_potato_egg, slots: [dinner], allergens: [egg], texture: soft, budget: 1, prep: 20, keywords: [potato, سیب زمینی, پوره]}
+  - {id: d_adas_polo, slots: [dinner], allergens: [dairy], texture: soft, budget: 1, prep: 30, veg: true, keywords: [عدس پلو, rice]}
+  - {id: s_banana, slots: [snack], allergens: [], texture: soft, budget: 1, prep: 1, veg: true, keywords: [banana, موز]}
+  - {id: s_yogurt, slots: [snack], allergens: [dairy], texture: soft, budget: 1, prep: 1, veg: true, keywords: [yogurt, ماست]}
+  - {id: s_nuts_fruit, slots: [snack], allergens: [nuts], texture: normal, budget: 3, prep: 1, veg: true, keywords: [nuts, مغز, آجیل, میوه خشک]}
+  - {id: s_baked_apple, slots: [snack], allergens: [], texture: soft, budget: 1, prep: 10, veg: true, keywords: [apple, سیب]}
+
+exercises:
+  - {id: x_walk_gentle, type: walking, intensity: light, minutes: 15, needs_stand: true, equipment: none}
+  - {id: x_walk_brisk, type: walking, intensity: moderate, minutes: 25, needs_stand: true, equipment: none}
+  - {id: x_stretch_seated, type: stretching, intensity: light, minutes: 10, needs_stand: false, equipment: none}
+  - {id: x_arm_raises, type: chair, intensity: light, minutes: 10, needs_stand: false, equipment: chair}
+  - {id: x_leg_lifts, type: chair, intensity: light, minutes: 10, needs_stand: false, equipment: chair}
+  - {id: x_breathing, type: breathing, intensity: light, minutes: 5, needs_stand: false, equipment: none}
+  - {id: x_balance_support, type: balance, intensity: light, minutes: 8, needs_stand: true, equipment: support}
+  - {id: x_band_light, type: strength, intensity: moderate, minutes: 12, needs_stand: false, equipment: band}
+  - {id: x_sit_to_stand, type: strength, intensity: light, minutes: 8, needs_stand: true, equipment: support}
+  - {id: x_neck_shoulder, type: stretching, intensity: light, minutes: 8, needs_stand: false, equipment: none}
+  - {id: x_hands, type: chair, intensity: light, minutes: 6, needs_stand: false, equipment: none}
+
+# Localized texts (title / how-to). Short, friendly, no medical claims.
+texts:
+  b_oats: {fa: ["جو دوسر با ماست و میوه", "جو دوسر را با ماست و یک میوه‌ی خرد‌شده مخلوط کن."], en: ["Oats with yogurt and fruit", "Mix oats with yogurt and chopped fruit."], ar: ["شوفان مع الزبادي والفاكهة", "اخلط الشوفان مع الزبادي والفاكهة المقطعة."]}
+  b_omelette: {fa: ["املت سبزیجات", "تخم‌مرغ را با سبزی و گوجه نرم و کم‌روغن بپز."], en: ["Vegetable omelette", "Cook eggs softly with herbs and tomato in little oil."], ar: ["أومليت بالخضار", "اطبخ البيض بنعومة مع الأعشاب والطماطم بقليل من الزيت."]}
+  b_bread_cheese: {fa: ["نان کامل، پنیر و گردو و سبزی", "یک تکه نان کامل با پنیر، گردو و سبزی تازه."], en: ["Wholegrain bread, cheese, walnut and herbs", "A slice of wholegrain bread with cheese, walnuts and fresh herbs."], ar: ["خبز كامل مع الجبن والجوز والأعشاب", "شريحة خبز كامل مع الجبن والجوز والأعشاب الطازجة."]}
+  b_smoothie: {fa: ["اسموتی موز و شیر", "یک موز رسیده را با یک لیوان شیر مخلوط کن."], en: ["Banana-milk smoothie", "Blend one ripe banana with a glass of milk."], ar: ["سموذي الموز والحليب", "اخلط موزة ناضجة مع كوب حليب."]}
+  b_fruit_plate: {fa: ["بشقاب میوه و خرما", "میوه‌ی نرم فصل با چند عدد خرما."], en: ["Fruit and date plate", "Soft seasonal fruit with a few dates."], ar: ["طبق فواكه وتمر", "فاكهة طرية موسمية مع بضع تمرات."]}
+  b_firni: {fa: ["فرنی کم‌شیرین", "فرنی نرم با شیر و کمی شیرینی، گرم میل شود."], en: ["Light milk pudding (firni)", "Soft milk pudding with little sugar, served warm."], ar: ["مهلبية خفيفة (فرني)", "مهلبية ناعمة بالحليب وقليل من السكر تُقدَّم دافئة."]}
+  l_lentil_soup: {fa: ["سوپ عدس با سبزیجات", "عدس را با هویج و پیاز بپز و نرم کن."], en: ["Lentil and vegetable soup", "Cook lentils with carrot and onion until soft."], ar: ["شوربة العدس بالخضار", "اطبخ العدس مع الجزر والبصل حتى ينضج."]}
+  l_chicken_rice: {fa: ["مرغ پخته، برنج و سالاد", "مرغ آب‌پز یا کبابی، یک مشت برنج و سالاد تازه."], en: ["Cooked chicken, rice and salad", "Boiled or grilled chicken, a portion of rice and fresh salad."], ar: ["دجاج مطبوخ مع الأرز والسلطة", "دجاج مسلوق أو مشوي مع الأرز وسلطة طازجة."]}
+  l_barley_soup: {fa: ["سوپ جو", "سوپ جو با سبزیجات و کمی مرغ یا بدون آن."], en: ["Barley soup", "Barley soup with vegetables, with or without a little chicken."], ar: ["شوربة الشعير", "شوربة شعير بالخضار مع قليل من الدجاج أو بدونه."]}
+  l_fish: {fa: ["ماهی پخته با سیب‌زمینی و سالاد", "ماهی را بخارپز یا فر کن و با سیب‌زمینی و سالاد بخور."], en: ["Baked fish with potato and salad", "Steam or bake fish and serve with potato and salad."], ar: ["سمك مخبوز مع البطاطس والسلطة", "اطبخ السمك على البخار أو في الفرن وقدمه مع البطاطس والسلطة."]}
+  l_chickpea: {fa: ["خوراک نخود و سبزیجات", "نخود پخته را با سبزیجات و کمی ادویه ملایم بپز."], en: ["Chickpea and vegetable stew", "Cook chickpeas with vegetables and mild spices."], ar: ["يخنة الحمص بالخضار", "اطبخ الحمص مع الخضار وتوابل خفيفة."]}
+  l_kuku: {fa: ["کوکو سبزی (کم‌روغن)", "کوکو سبزی نرم با ماست یا سالاد."], en: ["Herb kuku (low oil)", "Soft herb kuku with yogurt or salad."], ar: ["كوكو الأعشاب (قليل الزيت)", "كوكو أعشاب طري مع الزبادي أو السلطة."]}
+  d_veg_soup: {fa: ["سوپ سبزیجات با نان", "سوپ سبزیجات گرم همراه یک تکه نان."], en: ["Vegetable soup with bread", "Warm vegetable soup with a slice of bread."], ar: ["شوربة خضار مع الخبز", "شوربة خضار دافئة مع شريحة خبز."]}
+  d_baked_chicken: {fa: ["مرغ و سبزیجات تنوری", "مرغ را با سبزیجات در فر بپز."], en: ["Oven-baked chicken and vegetables", "Bake chicken together with vegetables."], ar: ["دجاج وخضار في الفرن", "اخبز الدجاج مع الخضار في الفرن."]}
+  d_beans: {fa: ["لوبیا پخته با نان", "لوبیای پخته‌ی نرم با نان و سبزی."], en: ["Cooked beans with bread", "Soft cooked beans with bread and herbs."], ar: ["فاصولياء مطبوخة مع الخبز", "فاصولياء مطبوخة طرية مع الخبز والأعشاب."]}
+  d_potato_egg: {fa: ["پوره سیب‌زمینی با تخم‌مرغ آب‌پز", "سیب‌زمینی را پوره کن و با تخم‌مرغ آب‌پز بخور."], en: ["Mashed potato with boiled egg", "Mash potatoes and serve with a boiled egg."], ar: ["هريس البطاطس مع بيضة مسلوقة", "اهرس البطاطس وقدمها مع بيضة مسلوقة."]}
+  d_adas_polo: {fa: ["عدس‌پلو سبک با ماست", "عدس‌پلوی کم‌روغن با ماست."], en: ["Light lentil rice with yogurt", "Low-oil lentil rice with yogurt."], ar: ["أرز بالعدس خفيف مع الزبادي", "أرز بالعدس بقليل من الزيت مع الزبادي."]}
+  s_banana: {fa: ["موز", "یک موز رسیده."], en: ["Banana", "One ripe banana."], ar: ["موزة", "موزة ناضجة."]}
+  s_yogurt: {fa: ["ماست ساده", "یک کاسه ماست ساده."], en: ["Plain yogurt", "A bowl of plain yogurt."], ar: ["زبادي سادة", "وعاء زبادي سادة."]}
+  s_nuts_fruit: {fa: ["مغزها و میوه‌ی خشک", "یک مشت کوچک مغز و میوه‌ی خشک."], en: ["Nuts and dried fruit", "A small handful of nuts and dried fruit."], ar: ["مكسرات وفواكه مجففة", "حفنة صغيرة من المكسرات والفواكه المجففة."]}
+  s_baked_apple: {fa: ["سیب پخته با دارچین", "سیب را با کمی دارچین نرم بپز."], en: ["Baked apple with cinnamon", "Bake an apple with a little cinnamon until soft."], ar: ["تفاحة مخبوزة بالقرفة", "اخبز تفاحة مع قليل من القرفة حتى تلين."]}
+  x_walk_gentle: {fa: ["پیاده‌روی آرام", "با سرعت راحت راه برو؛ اگه خسته شدی کوتاهش کن."], en: ["Gentle walk", "Walk at a comfortable pace; shorten it if you tire."], ar: ["مشي هادئ", "امشِ بوتيرة مريحة وقصّرها إذا تعبت."]}
+  x_walk_brisk: {fa: ["پیاده‌روی تندتر", "کمی تندتر از معمول راه برو، طوری که بتونی حرف بزنی."], en: ["Brisk walk", "Walk a little faster than usual, still able to talk."], ar: ["مشي أسرع", "امشِ أسرع قليلاً من المعتاد مع القدرة على الكلام."]}
+  x_stretch_seated: {fa: ["کشش نشسته", "روی صندلی بشین و بازو، پشت و پاها را آرام بکش."], en: ["Seated stretching", "Sit on a chair and gently stretch arms, back and legs."], ar: ["تمدد جالساً", "اجلس على كرسي ومدّد الذراعين والظهر والساقين بلطف."]}
+  x_arm_raises: {fa: ["بالا بردن دست‌ها روی صندلی", "نشسته دست‌ها را آرام تا سطح شانه بالا ببر و پایین بیار."], en: ["Seated arm raises", "While seated, lift your arms gently to shoulder height and lower."], ar: ["رفع الذراعين جالساً", "وأنت جالس ارفع ذراعيك بلطف حتى الكتف ثم أنزلهما."]}
+  x_leg_lifts: {fa: ["بالا بردن پا روی صندلی", "نشسته یک پا را آرام صاف کن و پایین بیار، بعد پای دیگر."], en: ["Seated leg lifts", "While seated, straighten one leg gently, lower, then the other."], ar: ["رفع الساق جالساً", "وأنت جالس مدّ ساقاً بلطف ثم أنزلها ثم الأخرى."]}
+  x_breathing: {fa: ["تنفس عمیق و آرام", "نفس آرام از بینی، بازدم آرام از دهان؛ چند بار تکرار کن."], en: ["Slow deep breathing", "Breathe in gently through the nose, out slowly through the mouth; repeat."], ar: ["تنفس عميق وهادئ", "شهيق هادئ من الأنف وزفير بطيء من الفم؛ كرر."]}
+  x_balance_support: {fa: ["تعادل با تکیه‌گاه", "کنار میز یا دیوار بایست و با دست تکیه بده؛ وزن را آرام جابه‌جا کن."], en: ["Supported balance", "Stand by a table or wall, hold on, and shift your weight slowly."], ar: ["توازن بدعامة", "قف بجانب طاولة أو جدار وأمسك به وانقل وزنك ببطء."]}
+  x_band_light: {fa: ["کش ورزشی سبک", "با کش ورزشی سبک، کشیدن آرام دست‌ها را انجام بده."], en: ["Light resistance band", "Do slow, gentle arm pulls with a light band."], ar: ["حبل مطاطي خفيف", "اسحب الذراعين ببطء ولطف بحبل مطاطي خفيف."]}
+  x_sit_to_stand: {fa: ["نشستن و برخاستن با تکیه‌گاه", "با تکیه به دسته‌ی صندلی یا میز، آرام بلند شو و بشین."], en: ["Supported sit-to-stand", "Holding a chair arm or table, stand up and sit down slowly."], ar: ["الجلوس والوقوف بدعامة", "مسكاً بذراع الكرسي أو الطاولة قم واجلس ببطء."]}
+  x_neck_shoulder: {fa: ["حرکات آرام گردن و شانه", "گردن و شانه را آرام بچرخان؛ بدون زور."], en: ["Gentle neck and shoulder moves", "Roll neck and shoulders slowly, without forcing."], ar: ["حركات لطيفة للرقبة والكتف", "حرّك الرقبة والكتفين ببطء ودون إجبار."]}
+  x_hands: {fa: ["تمرین دست و انگشت", "انگشتان را باز و بسته کن و با دست توپ نرم را فشار بده."], en: ["Hand and finger exercises", "Open and close your fingers and squeeze a soft ball."], ar: ["تمارين اليد والأصابع", "افتح وأغلق أصابعك واضغط كرة ناعمة."]}
+  rest: {fa: ["استراحت فعال", "امروز استراحت کن؛ اگه دوست داشتی یک راه رفتن کوتاه یا کشش خیلی ملایم."], en: ["Active rest", "Rest today; if you like, a short walk or very light stretching."], ar: ["راحة نشطة", "ارتح اليوم؛ ويمكنك مشياً قصيراً أو تمدداً خفيفاً جداً."]}
+
+why:
+  soft: {fa: "بافت نرم و راحت‌تر برای جویدن و قورت دادن", en: "soft texture, easier to chew and swallow", ar: "قوام طري أسهل في المضغ والبلع"}
+  low_budget: {fa: "ارزان و در دسترس", en: "affordable and easy to find", ar: "اقتصادي ومتوفر"}
+  quick: {fa: "سریع آماده می‌شه", en: "quick to prepare", ar: "سريع التحضير"}
+  seated: {fa: "بدون نیاز به ایستادن", en: "no standing needed", ar: "لا يتطلب الوقوف"}
+  light: {fa: "سبک و کم‌فشار", en: "light and low-strain", ar: "خفيف وقليل الجهد"}
+  preference: {fa: "با علاقه‌ات جور است", en: "matches what you like", ar: "يناسب ما تحبه"}
+  variety: {fa: "برای تنوع هفته", en: "for variety across the week", ar: "لتنوع الأسبوع"}
+safety_line:
+  fa: "اگه درد قفسه‌ی سینه، تنگی نفس شدید، سرگیجه یا ضعف ناگهانی داشتی، همون لحظه متوقف شو و با تیم درمان یا اورژانس تماس بگیر."
+  en: "If you get chest pain, severe breathlessness, dizziness or sudden weakness, stop right away and contact your care team or emergency services."
+  ar: "إذا شعرت بألم في الصدر أو ضيق شديد في التنفس أو دوار أو ضعف مفاجئ فتوقف فوراً واتصل بفريقك العلاجي أو الطوارئ."

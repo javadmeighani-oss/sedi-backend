@@ -131,6 +131,14 @@ def build_daily_from_raw(
         "turn_ids": [t.id for t in turns],
         "not_transcript": True,
     }
+    try:
+        from backend.app.services.i7.derived_signals import collect_daily_signals
+
+        _signals = collect_daily_signals(db, user_id, local_day, turns)
+        if _signals:
+            payload["signals"] = _signals
+    except Exception:
+        pass
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, "DAILY", start)
     try:
@@ -224,6 +232,14 @@ def build_higher_from_lower(
         "parent_count": len(parents),
         "parent_ids": [p.id for p in parents],
     }
+    try:
+        from backend.app.services.i7.derived_signals import merge_signals, signals_of
+
+        _merged = merge_signals([signals_of(p) for p in parents])
+        if _merged:
+            payload["signals"] = _merged
+    except Exception:
+        pass
     structured = _canonical_json(payload)
     integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
