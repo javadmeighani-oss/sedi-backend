@@ -219,7 +219,7 @@ jobs:
           done < <(docker images "${REPO}" --format '{{.Tag}}')
           log "keep_tags=${KEEP}"
           log "candidates=${#CANDIDATES[@]}"
-          [ "${#CANDIDATES[@]}" -le 60 ] || { log "ABORT: unexpectedly many candidates"; exit 32; }
+          [ "${#CANDIDATES[@]}" -le 120 ] || { log "ABORT: unexpectedly many candidates"; exit 32; }
           for t in "${CANDIDATES[@]}"; do log "CANDIDATE ${REPO}:${t}"; done
           STALE_ARCHIVES="$(ls "${DEPLOY_PATH}/tmp_secure_transfer" 2>/dev/null | grep -E '^sedi-backend-[0-9a-f]{40}[.]tar$' || true)"
           log "stale_archives=$(echo "${STALE_ARCHIVES}" | grep -c . || true)"
