@@ -130,3 +130,41 @@ jobs:
           fi
           log "GHCR_CONNECTIVITY=PASS"
           REMOTE
+
+      # Stage 05 / DEBT-020 diagnosis: READ-ONLY disk inventory (no delete, no docker prune/pull/rm).
+      - name: Read-only disk inventory on production host
+        run: |
+          set -Eeuo pipefail
+          DP="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DP} bash -s" <<'REMOTE'
+          set -uo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          log "=== DF (blocks / inodes) ==="
+          df -h / "${DEPLOY_PATH}" 2>/dev/null || df -h /
+          df -i / 2>/dev/null | tail -n 2
+          log "=== DOCKER SYSTEM DF ==="
+          docker system df 2>&1 | head -n 12
+          log "=== DOCKER IMAGES (repo:tag size created) ==="
+          docker images --format '{{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}' 2>&1 | head -n 40
+          log "=== DOCKER CONTAINERS (name image status) ==="
+          docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' 2>&1 | head -n 30
+          log "=== DANGLING IMAGES / STOPPED CONTAINERS (count) ==="
+          echo "dangling_images=$(docker images -f dangling=true -q 2>/dev/null | wc -l)"
+          echo "stopped_containers=$(docker ps -a -f status=exited -q 2>/dev/null | wc -l)"
+          log "=== DEPLOY PATH SUBDIR SIZES ==="
+          (cd "${DEPLOY_PATH}" && du -sh ./* 2>/dev/null | sort -h | tail -n 15) || true
+          log "=== TRANSFER ARCHIVES (tmp_secure_transfer) ==="
+          ls -laS "${DEPLOY_PATH}/tmp_secure_transfer" 2>/dev/null | head -n 15 || echo "none"
+          log "=== POSTGRES BACKUPS (newest 15 by size) ==="
+          ls -laS "${DEPLOY_PATH}/backups/postgres" 2>/dev/null | head -n 15 || echo "none"
+          echo "backup_count=$(ls "${DEPLOY_PATH}/backups/postgres" 2>/dev/null | wc -l)"
+          log "=== TOP-LEVEL SIZES (bounded) ==="
+          timeout 90 du -xhd1 /var /opt /home /tmp /root 2>/dev/null | sort -h | tail -n 12 || true
+          log "=== DOCKER LOG / JOURNAL USAGE ==="
+          journalctl --disk-usage 2>/dev/null || true
+          timeout 30 du -sh /var/lib/docker/containers 2>/dev/null || true
+          log "DISK_INVENTORY=DONE (read-only; nothing deleted)"
+          REMOTE
