@@ -585,6 +585,34 @@ class LifestyleContextAdapter:
                 )
                 domain_added += 1
 
+        # Stage 06 / B1: user-stated body-function facts (<= 11) get their own block; high sensitivity,
+        # never sent to the LLM — they only tailor deterministic plans and coverage.
+        function_rows = 0
+        for row in list_facts_readonly_or_empty(db, authenticated_user_id, domain="function"):
+            if function_rows >= 11:
+                break
+            key = str(getattr(row, "key", "") or "").strip()
+            raw = str(getattr(row, "value_json", "") or "").strip()
+            if not key or not raw or not MemoryContract.is_i6_context_projectable("function", key):
+                continue
+            out.append(
+                _item(
+                    canonical_key=f"function.{key}",
+                    section="lifestyle",  # type: ignore[arg-type]
+                    source=ContextSource.LIFESTYLE,
+                    value=raw[:200],
+                    display_text=f"{key}={raw[:120]}",
+                    owner_user_id=authenticated_user_id,
+                    query_label="I6.list_facts_readonly_or_empty",
+                    observed_at=getattr(row, "updated_at", None),
+                    sensitivity=_effective_i6_sensitivity("high", row),  # type: ignore[arg-type]
+                    may_send_to_llm=False,
+                    consent="legacy_scope",
+                    epistemic_class=_row_epistemic_class(row),
+                )
+            )
+            function_rows += 1
+
         # CR-04F.2.1: confirmation evidence does not consume ordinary slots.
         confirmation: list[ContextItem] = []
         confirmation_keys: set[str] = set()

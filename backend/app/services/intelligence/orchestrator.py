@@ -1184,7 +1184,18 @@ class IntelligenceOrchestrator:
                 is_nutrition_operational_intent,
             )
 
-            if is_nutrition_operational_intent(intent_meta.intent_id):
+            from backend.app.services.intelligence.plan_subject import (
+                mentions_other_person,
+                plan_subject_question,
+            )
+
+            if is_nutrition_operational_intent(intent_meta.intent_id) and mentions_other_person(message, lang):
+                # Stage 06 / B1: never save a plan on the wrong person; ask who it is for.
+                nutrition_message = plan_subject_question(lang)
+                extra_reason_codes.append("PLAN_SUBJECT_CLARIFICATION")
+                skip_generator = True
+                clarification_message = None
+            elif is_nutrition_operational_intent(intent_meta.intent_id):
                 try:
                     if self._db is None:
                         raise RuntimeError("nutrition_path_requires_db")
@@ -1236,7 +1247,17 @@ class IntelligenceOrchestrator:
                 is_activity_operational_intent,
             )
 
-            if is_activity_operational_intent(intent_meta.intent_id):
+            from backend.app.services.intelligence.plan_subject import (
+                mentions_other_person as _mentions_other_person_ex,
+                plan_subject_question as _plan_subject_question_ex,
+            )
+
+            if is_activity_operational_intent(intent_meta.intent_id) and _mentions_other_person_ex(message, lang):
+                exercise_message = _plan_subject_question_ex(lang)
+                extra_reason_codes.append("PLAN_SUBJECT_CLARIFICATION")
+                skip_generator = True
+                clarification_message = None
+            elif is_activity_operational_intent(intent_meta.intent_id):
                 try:
                     if self._db is None:
                         raise RuntimeError("exercise_path_requires_db")
@@ -1500,6 +1521,22 @@ class IntelligenceOrchestrator:
                 or clarification_message
                 or ""
             )
+            # Stage 06 / B1: after a grounded I8 plan reply, ask the one pending body-function question.
+            if (
+                (nutrition_message or exercise_message)
+                and not directory_message
+                and visible_nbq_eligible
+                and discovery_localized_question
+                and str(discovery_target_key or "").startswith("function.")
+                and ("I8_NUTRITION_ACTION" in extra_reason_codes or "I8_EXERCISE_ACTION" in extra_reason_codes)
+            ):
+                out_message = f"{out_message}\n\n{discovery_localized_question}"
+                _mark_relationship_discovery_asked(
+                    self._db,
+                    user_id=authenticated_user_id,
+                    target_key=str(discovery_target_key),
+                )
+                extra_reason_codes.append("FUNCTION_QUESTION_APPENDED")
             t0 = time.perf_counter()
             if not out_message.strip():
                 ctx.append_stage(

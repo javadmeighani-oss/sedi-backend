@@ -376,6 +376,62 @@ _CONTEXTUAL_CANDIDATES: tuple[_ContextualCandidate, ...] = (
 )
 
 _TEMPLATES: dict[str, dict[str, str]] = {
+    # Stage 06 / B1: body-function questions (open, conversational; asked only for plan intents).
+    "nbq.function.swallowing.v1": {
+        "en": 'How are eating, chewing and swallowing going these days? Tell me if anything is hard.',
+        "fa": 'خوردن، جویدن و قورت دادن غذا این روزها برات چطوره؟ اگه چیزی سخته بگو.',
+        "ar": 'كيف حال الأكل والمضغ والبلع هذه الأيام؟ قل لي إن كان شيء صعباً.',
+    },
+    "nbq.function.mobility.v1": {
+        "en": 'How is moving around, walking and getting about at home these days?',
+        "fa": 'راه رفتن و حرکت کردن توی خونه این روزها چطوره؟',
+        "ar": 'كيف حال المشي والحركة داخل البيت هذه الأيام؟',
+    },
+    "nbq.function.breathing.v1": {
+        "en": 'How is your breathing when you are active or eating? Do you tire quickly?',
+        "fa": 'نفس کشیدنت موقع فعالیت یا غذا خوردن چطوره؟ زود خسته می\u200cشی؟',
+        "ar": 'كيف تنفسك أثناء النشاط أو الأكل؟ هل تتعب بسرعة؟',
+    },
+    "nbq.function.balance.v1": {
+        "en": 'How is your balance? Any falls or dizziness lately?',
+        "fa": 'تعادلت چطوره؟ این اواخر زمین خوردی یا سرگیجه داشتی؟',
+        "ar": 'كيف حال توازنك؟ هل سقطت أو شعرت بدوار مؤخراً؟',
+    },
+    "nbq.function.cognition.v1": {
+        "en": 'How are your focus and memory lately? Would reminders help you follow a plan?',
+        "fa": 'تمرکز و حافظه\u200cت این روزها چطوره؟ یادآور برای دنبال کردن برنامه کمکت می\u200cکنه؟',
+        "ar": 'كيف تركيزك وذاكرتك مؤخراً؟ هل تساعدك التذكيرات في اتباع الخطة؟',
+    },
+    "nbq.function.senses.v1": {
+        "en": 'How are your vision and hearing? Anything that makes reading a plan or hearing reminders hard?',
+        "fa": 'دید و شنوایی\u200cت چطوره؟ چیزی هست که خوندن برنامه یا شنیدن یادآور رو سخت کنه؟',
+        "ar": 'كيف بصرك وسمعك؟ هل هناك ما يصعّب قراءة الخطة أو سماع التذكيرات؟',
+    },
+    "nbq.function.pain_fatigue.v1": {
+        "en": 'How much do pain or tiredness affect your day?',
+        "fa": 'درد یا خستگی چقدر روی روزت اثر می\u200cذاره؟',
+        "ar": 'إلى أي مدى يؤثر الألم أو التعب على يومك؟',
+    },
+    "nbq.function.digestion.v1": {
+        "en": 'How is your digestion? Are there foods that bother you?',
+        "fa": 'هضم و گوارشت چطوره؟ غذایی هست که اذیتت کنه؟',
+        "ar": 'كيف حال هضمك؟ هل هناك أطعمة تزعجك؟',
+    },
+    "nbq.function.glucose.v1": {
+        "en": 'How do you keep your blood sugar or pressure in check? Has your care team given you a food plan?',
+        "fa": 'قند یا فشارت رو چطور کنترل می\u200cکنی؟ تیم درمان برنامه\u200cی غذایی مشخصی بهت داده؟',
+        "ar": 'كيف تضبط سكر الدم أو الضغط؟ هل أعطاك فريقك العلاجي خطة غذائية؟',
+    },
+    "nbq.function.appetite.v1": {
+        "en": 'How is your appetite lately? Any change in weight or in how much you eat?',
+        "fa": 'اشتهات این روزها چطوره؟ تو وزن یا مقدار غذا خوردنت تغییری بوده؟',
+        "ar": 'كيف شهيتك مؤخراً؟ هل تغير وزنك أو كمية أكلك؟',
+    },
+    "nbq.function.general.v1": {
+        "en": 'Has your condition affected eating, moving or breathing? If so, tell me briefly.',
+        "fa": 'این بیماری روی غذا خوردن، حرکت یا نفس کشیدنت اثری گذاشته؟ اگه آره کوتاه بگو.',
+        "ar": 'هل أثّر مرضك على الأكل أو الحركة أو التنفس؟ إن كان نعم فأخبرني باختصار.',
+    },
     "nbq.sleep.bedtime.v1": {
         "en": "If you're open to it, what time do you usually go to bed?",
         "fa": "اگه دوست داری بگی، معمولاً چه ساعتی می‌خوابی؟",
@@ -691,6 +747,40 @@ def _select_contextual_directive(
     )
 
 
+def _select_function_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+) -> Optional[DiscoveryDirective]:
+    """Stage 06 / B1: before a personalized nutrition/activity plan, ask the first unanswered body-function
+    domain of the user's registered conditions (any condition is covered: unmapped -> generic domain)."""
+    if intent.intent_id not in (IntentId.NUTRITION, IntentId.ACTIVITY):
+        return None
+    from backend.app.services.intelligence.condition_function_domains import (
+        domains_for_conditions,
+        target_key,
+    )
+
+    conditions = [
+        str(i.structured_value or i.display_text or "")
+        for i in snapshot.items
+        if i.canonical_key.startswith("health.condition.") and i.active
+    ]
+    for domain in domains_for_conditions(conditions):
+        key = target_key(domain)
+        if _coverage_blocks_discovery(snapshot, key):
+            continue
+        return DiscoveryDirective(
+            question_id=f"nbq.q.{intent.intent_id.value}.{key}.v1",
+            target_key=key,
+            localized_question=_localized(f"nbq.function.{domain}.v1", language),
+            sensitivity="high",  # type: ignore[arg-type]
+            priority=5,
+        )
+    return None
+
+
 def _select_tier_a_directive(
     *,
     snapshot: ContextSnapshot,
@@ -855,6 +945,11 @@ def select_next_best_question(
     )
     if contextual is not None:
         return contextual
+
+    # D2) Stage 06 / B1 body-function question for plan intents (conditions on file, domain unanswered).
+    function_q = _select_function_directive(snapshot=snapshot, intent=intent, language=language)
+    if function_q is not None:
+        return function_q
 
     # E) Q2/Q4 explicit invitation phrase — primary (+ optional safe pair).
     if detect_discovery_invitation(message, language):

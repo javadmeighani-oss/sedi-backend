@@ -136,6 +136,10 @@ def execute_primary_nutrition_action(
     user_message = _message_for(mapped, language)
     if grounded and summary and summary not in user_message:
         user_message = f"{user_message}\n{summary}".strip()
+    if grounded:
+        from backend.app.services.i8.plan_notes import build_plan_trailer
+
+        user_message = f"{user_message}\n\n{build_plan_trailer(db, user_id, language, 'nutrition')}"
 
     return NutritionPrimaryResult(
         status=mapped,

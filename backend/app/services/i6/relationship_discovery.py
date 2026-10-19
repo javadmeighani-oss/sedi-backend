@@ -32,9 +32,26 @@ INVITED_MARKER_PREFIX = "relationship_discovery_invited:"
 # Q4.2B — invited pair delimiter inside last_question_type (max two keys).
 PAIR_DELIMITER = "|"
 
+# Stage 06 / B1: body-function targets (open text, user-stated, additive).
+FUNCTION_DOMAINS: tuple[str, ...] = (
+    "swallowing",
+    "mobility",
+    "breathing",
+    "balance",
+    "cognition",
+    "senses",
+    "pain_fatigue",
+    "digestion",
+    "glucose",
+    "appetite",
+    "general",
+)
+FUNCTION_TARGETS: frozenset[str] = frozenset(f"function.{d}" for d in FUNCTION_DOMAINS)
+
 # Direct-write targets (CR-03 / CR-04B / CR-04F.1). No social/values expansion.
 SUPPORTED_TARGETS: frozenset[str] = frozenset(
     {
+        *FUNCTION_TARGETS,
         "routines.bedtime",
         "routines.wake_time",
         "lifestyle.sleep_quality",
@@ -53,6 +70,7 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
 
 _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
     {
+        *FUNCTION_TARGETS,
         "lifestyle.sleep_quality",
         "lifestyle.food_habits",
         "lifestyle.activity_level",
@@ -1017,6 +1035,9 @@ _NONPERSONAL_ACTIVITY_CUES: tuple[str, ...] = (
 
 def _target_fit(target_key: str, message: str) -> bool:
     text = _norm_msg(message)
+    if target_key in FUNCTION_TARGETS:
+        # A direct answer to a body-function question: any substantive reply that is not another request.
+        return not _looks_unrelated_request(text)
     if target_key == "lifestyle.sleep_quality":
         return _contains_any(text, _SLEEP_QUALITY_CUES)
     if target_key == "lifestyle.food_habits":
