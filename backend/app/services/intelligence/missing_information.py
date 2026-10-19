@@ -313,9 +313,9 @@ _READINESS_FOR_FACT = {
 # Fixed localized templates — never interpolate fact values.
 _TEMPLATES: dict[str, dict[str, str]] = {
     "tpl.goal.v1": {
-        "en": "What is your main nutrition goal right now?",
-        "fa": "هدف اصلیت از تغذیه الان چیست؟",
-        "ar": "ما هدفك الأساسي من التغذية الآن؟",
+        "en": "What is your goal for this plan: is there a condition or problem, or do you simply want to take better care of your health?",
+        "fa": "هدفت از این برنامه چیه؛ مشکل یا بیماری خاصی داری یا فقط می‌خوای بیشتر به سلامتت برسی؟",
+        "ar": "ما هدفك من هذه الخطة: هل لديك مرض أو مشكلة معينة، أم تريد فقط العناية بصحتك أكثر؟",
     },
     "tpl.birth_year.v1": {
         "en": "What year were you born?",

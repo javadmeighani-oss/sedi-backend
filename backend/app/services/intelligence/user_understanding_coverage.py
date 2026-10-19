@@ -30,6 +30,19 @@ FUNCTION_TARGETS: tuple[str, ...] = (
 )
 
 
+INTAKE_TARGETS: tuple[str, ...] = (
+    "intake.goal",
+    "intake.allergies",
+    "intake.food_preferences",
+    "intake.budget",
+    "intake.cooking_time",
+    "intake.meal_times",
+    "intake.exercise_preferences",
+    "intake.exercise_time",
+    "intake.equipment",
+)
+
+
 class CoverageState(str, Enum):
     KNOWN = "KNOWN"
     MISSING = "MISSING"
@@ -74,6 +87,7 @@ REGISTERED_TARGETS: frozenset[str] = frozenset(
     {
         *TIER_A_TARGETS,
         *FUNCTION_TARGETS,
+        *INTAKE_TARGETS,
         "routines.bedtime",
         "routines.wake_time",
         "lifestyle.sleep_quality",

@@ -89,12 +89,18 @@ def _snap(items: list[ContextItem]) -> ContextSnapshot:
     )
 
 
-def _ask(conditions, intent_id=IntentId.NUTRITION, language="fa", answered=()):
+def _ask(conditions, intent_id=IntentId.NUTRITION, language="fa", answered=(), goal_known=True, plan_domain=None):
     items = [_item(f"health.condition.c{i}", c) for i, c in enumerate(conditions)]
     items += [_item(k, "answered") for k in answered]
+    if goal_known:
+        items.append(_item("intake.goal", "answered"))
     intent = _intent(intent_id)
     return select_next_best_question(
-        snapshot=_snap(items), intent=intent, readiness=_ready(intent), language=language
+        snapshot=_snap(items),
+        intent=intent,
+        readiness=_ready(intent),
+        language=language,
+        plan_domain=plan_domain,
     )
 
 
@@ -114,7 +120,7 @@ def test_any_condition_gets_a_function_question(condition, intent_id):
     for lang in ("fa", "en", "ar"):
         d = _ask([condition], intent_id=intent_id, language=lang)
         assert d is not None, (condition, lang)
-        assert d.target_key.startswith("function.")
+        assert d.target_key.startswith(("function.", "intake."))
         assert d.target_key in SUPPORTED_TARGETS and d.target_key in REGISTERED_TARGETS
         assert d.localized_question.strip()
         assert not any(bad in d.localized_question for bad in ("سدی", "سِدی"))
@@ -130,9 +136,12 @@ def test_multiple_conditions_union_in_order():
 
 
 def test_no_conditions_or_non_plan_intent_asks_no_function_question():
-    assert (_ask([]) is None) or not _ask([]).target_key.startswith("function.")
+    d0 = _ask([])
+    # no condition: the established soft question (food habits) comes first, then the friendly intake
+    assert d0 is not None and d0.target_key == "lifestyle.food_habits"
+    assert _ask([], answered=["lifestyle.food_habits"]).target_key == "intake.allergies"
     d = _ask(["ALS"], intent_id=IntentId.GENERAL)
-    assert d is None or not d.target_key.startswith("function.")
+    assert d is None or not d.target_key.startswith(("function.", "intake."))
 
 
 def test_answered_domain_is_skipped_in_order():
@@ -140,8 +149,9 @@ def test_answered_domain_is_skipped_in_order():
     assert first.target_key == "function.swallowing"
     second = _ask(["ALS"], answered=["function.swallowing"])
     assert second.target_key == "function.mobility"
-    done = _ask(["ALS"], answered=[f"function.{d}" for d in cfd.domains_for_conditions(["ALS"])])
-    assert done is None or not done.target_key.startswith("function.")
+    done_keys = [f"function.{d}" for d in cfd.domains_for_conditions(["ALS"])]
+    after_function = _ask(["ALS"], answered=done_keys + ["lifestyle.food_habits"])
+    assert after_function.target_key == "intake.allergies"
 
 
 def test_contract_data_and_templates_stay_in_sync():
@@ -209,3 +219,69 @@ def test_trailer_has_pointer_always_and_boundary_only_with_a_condition(monkeypat
     fa = plan_notes.build_plan_trailer(None, 1, "fa", "nutrition")
     assert "تیم درمان" in fa and "نه رژیم یا نسخه‌ی درمانی" in fa
     assert "سدی" not in fa
+
+
+# ---- B1.5-a: friendly plan intake (goal first, then function, then domain questions) ----
+from backend.app.services.i6.relationship_discovery import INTAKE_KEYS, INTAKE_TARGETS
+from backend.app.services.intelligence.missing_information import FactRequirement, _items_for_requirement
+
+
+def test_intake_goal_comes_first_then_function_then_domain_questions():
+    # the goal itself is asked by the I3 readiness clarification (friendly single question, bound to intake.goal)
+    from backend.app.services.intelligence.missing_information import _TEMPLATES as _READY_TPL
+
+    goal_q = _READY_TPL["tpl.goal.v1"]["fa"]
+    assert goal_q.count("؟") == 1 and "هدفت" in goal_q
+    order = []
+    answered = ["lifestyle.food_habits"]
+    while True:
+        d = _ask(["ALS"], answered=answered)
+        if d is None:
+            break
+        order.append(d.target_key)
+        answered.append(d.target_key)
+    assert order[:4] == ["function.swallowing", "function.mobility", "function.breathing", "function.balance"]
+    # the established soft nutrition question (lifestyle.food_habits) may follow the plan intake
+    assert [k for k in order[4:] if k.startswith("intake.")] == [
+        "intake.allergies", "intake.food_preferences", "intake.budget", "intake.cooking_time", "intake.meal_times",
+    ]
+
+
+def test_activity_intake_asks_exercise_questions_and_continues_via_plan_domain():
+    order, answered = [], []
+    while True:
+        d = _ask([], intent_id=IntentId.ACTIVITY, answered=answered)
+        if d is None:
+            break
+        order.append(d.target_key)
+        answered.append(d.target_key)
+    assert [k for k in order if k.startswith("intake.")] == [
+        "intake.exercise_preferences", "intake.exercise_time", "intake.equipment",
+    ]
+    # a reply turn (discovery-reply intent) keeps going when the orchestrator passes the plan domain
+    cont = _ask([], intent_id=IntentId.GENERAL, plan_domain="nutrition")
+    assert cont is not None and cont.target_key == "intake.allergies"
+
+
+def test_intake_contract_templates_and_brand():
+    assert tuple(INTAKE_KEYS) == tuple(ALLOWED_KEYS["intake"]) and INTAKE_TARGETS <= SUPPORTED_TARGETS
+    assert INTAKE_TARGETS <= _OPEN_TEXT_TARGETS and INTAKE_TARGETS <= REGISTERED_TARGETS
+    for k in INTAKE_KEYS:
+        tid = "nbq.intake.goal_nutrition.v1" if k == "goal" else f"nbq.intake.{k}.v1"
+        tpl = _TEMPLATES[tid]
+        assert set(tpl) == {"en", "fa", "ar"} and all(v.strip() for v in tpl.values())
+        assert not any(bad in tpl["fa"] for bad in ("سدی", "سِدی", "مایلید"))
+    assert "nbq.intake.goal_exercise.v1" in _TEMPLATES
+    assert MemoryContract.is_i6_context_projectable("intake", "goal")
+
+
+def test_stated_goal_item_satisfies_the_readiness_goal_requirement():
+    req = FactRequirement("nut.goal", "lifestyle.goal.*", 10, "prefix")
+    assert _items_for_requirement([_item("lifestyle.goal.stated", "x")], req)
+    assert not _items_for_requirement([_item("intake.goal", "x")], req)
+
+
+def test_intake_answer_binds_like_any_open_text_reply():
+    assert _target_fit("intake.allergies", "به بادام زمینی آلرژی دارم")
+    assert _target_fit("intake.budget", "متوسط")
+    assert not _target_fit("intake.allergies", "یادآوری کن دارو بخورم")
