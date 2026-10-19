@@ -238,3 +238,26 @@ jobs:
           docker system df | head -n 3
           log "CLEANUP=DONE"
           REMOTE
+
+      # Stage 05 / DEBT-020: READ-ONLY /var/log inventory (sizes and names only; never prints file contents).
+      - name: Read-only /var/log inventory (LOGS mode)
+        if: ${{ github.event.inputs.cleanup_mode == 'LOGS' }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "bash -s" <<'REMOTE'
+          set -uo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          log "=== /var/log TOP-LEVEL SIZES ==="
+          timeout 60 du -xh --max-depth=1 /var/log 2>/dev/null | sort -h | tail -n 15
+          log "=== LARGEST FILES under /var/log (name, size, mtime) ==="
+          timeout 60 find /var/log -xdev -type f -size +50M -printf '%s\t%TY-%Tm-%Td\t%p\n' 2>/dev/null | sort -rn | head -n 15 | awk -F'\t' '{printf "%.0fMB\t%s\t%s\n", $1/1048576, $2, $3}'
+          log "=== LOGROTATE / JOURNAL ==="
+          ls /etc/logrotate.d 2>/dev/null | head -n 30 | tr '\n' ' '; echo
+          journalctl --disk-usage 2>/dev/null || true
+          log "=== DF ==="
+          df -h / | tail -n 1
+          log "LOGS_INVENTORY=DONE (read-only; nothing deleted; no file contents printed)"
+          REMOTE
