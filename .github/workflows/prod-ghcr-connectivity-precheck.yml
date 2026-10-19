@@ -12,6 +12,14 @@ on:
       target_digest:
         description: "Expected digest sha256:<64 hex> for manifest probe"
         required: true
+      cleanup_mode:
+        description: "NONE (default) | DRY (list only) | APPLY (remove old sedi-backend images + stale transfer archive)"
+        required: false
+        default: "NONE"
+      keep_tags:
+        description: "Comma-separated 40-hex image tags to keep (running + rollback). Required for DRY/APPLY."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -167,4 +175,66 @@ jobs:
           journalctl --disk-usage 2>/dev/null || true
           timeout 30 du -sh /var/lib/docker/containers 2>/dev/null || true
           log "DISK_INVENTORY=DONE (read-only; nothing deleted)"
+          REMOTE
+
+      # Stage 05 / DEBT-020: guarded cleanup of old backend images. DRY lists only; APPLY removes.
+      # Never uses -f / system prune; never touches containers, volumes, DB, backups, compose or secrets.
+      - name: Guarded cleanup of old sedi-backend images (DRY/APPLY only)
+        if: ${{ github.event.inputs.cleanup_mode == 'DRY' || github.event.inputs.cleanup_mode == 'APPLY' }}
+        env:
+          MODE: ${{ github.event.inputs.cleanup_mode }}
+          KEEP: ${{ github.event.inputs.keep_tags }}
+        run: |
+          set -Eeuo pipefail
+          echo "${KEEP}" | grep -Eq '^[0-9a-f]{40}(,[0-9a-f]{40})+$'
+          DP="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DP} MODE=$(printf '%q' "${MODE}") KEEP=$(printf '%q' "${KEEP}") bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          REPO="ghcr.io/javadmeighani-oss/sedi-backend"
+          in_keep() { case ",${KEEP}," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
+          healthy() {
+            curl -fsS http://127.0.0.1:8000/healthz >/dev/null \
+              && [ "$(docker inspect -f '{{.State.Health.Status}}' sedi-postgres)" = "healthy" ] \
+              && [ "$(docker inspect -f '{{.State.Health.Status}}' sedi-redis)" = "healthy" ] \
+              && [ "$(docker inspect -f '{{.State.Running}}' sedi-backend)" = "true" ]
+          }
+          log "=== PRE: health + disk ==="
+          healthy || { log "ABORT: platform not healthy before cleanup"; exit 30; }
+          df -h / | tail -n 1
+          # Images referenced by ANY container (running or stopped) are never candidates.
+          IN_USE="$(for c in $(docker ps -aq); do docker inspect -f '{{.Config.Image}}' "$c"; done | sort -u)"
+          RUNNING_TAG="$(docker inspect -f '{{.Config.Image}}' sedi-backend | sed 's/.*://')"
+          in_keep "${RUNNING_TAG}" || { log "ABORT: running tag ${RUNNING_TAG} is not in keep_tags"; exit 31; }
+          CANDIDATES=()
+          while read -r tag; do
+            [ -z "${tag}" ] && continue
+            echo "${tag}" | grep -Eq '^[0-9a-f]{40}$' || continue
+            in_keep "${tag}" && continue
+            echo "${IN_USE}" | grep -Fxq "${REPO}:${tag}" && continue
+            CANDIDATES+=("${tag}")
+          done < <(docker images "${REPO}" --format '{{.Tag}}')
+          log "keep_tags=${KEEP}"
+          log "candidates=${#CANDIDATES[@]}"
+          [ "${#CANDIDATES[@]}" -le 60 ] || { log "ABORT: unexpectedly many candidates"; exit 32; }
+          for t in "${CANDIDATES[@]}"; do log "CANDIDATE ${REPO}:${t}"; done
+          STALE_ARCHIVES="$(ls "${DEPLOY_PATH}/tmp_secure_transfer" 2>/dev/null | grep -E '^sedi-backend-[0-9a-f]{40}[.]tar$' || true)"
+          log "stale_archives=$(echo "${STALE_ARCHIVES}" | grep -c . || true)"
+          if [ "${MODE}" = "DRY" ]; then log "DRY_RUN_DONE (nothing removed)"; exit 0; fi
+          log "=== APPLY ==="
+          if pgrep -f "docker load|scp " >/dev/null 2>&1; then log "ABORT: a transfer/load is running"; exit 33; fi
+          for t in "${CANDIDATES[@]}"; do
+            if docker image rm "${REPO}:${t}" >/dev/null 2>&1; then log "REMOVED ${REPO}:${t}"; else log "SKIP (in use or error) ${REPO}:${t}"; fi
+            healthy || { log "ABORT: health check failed during cleanup"; exit 34; }
+          done
+          docker image prune -f >/dev/null 2>&1 && log "PRUNED dangling images (in-use images are never removed)"
+          for f in ${STALE_ARCHIVES}; do rm -- "${DEPLOY_PATH}/tmp_secure_transfer/${f}" && log "REMOVED archive ${f}"; done
+          log "=== POST: health + disk ==="
+          if healthy; then log "PLATFORM_HEALTHY=YES"; else log "PLATFORM_HEALTHY=NO"; exit 35; fi
+          df -h / | tail -n 1
+          docker system df | head -n 3
+          log "CLEANUP=DONE"
           REMOTE
