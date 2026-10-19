@@ -120,6 +120,19 @@ def find_carried_topic(
             labels = verified_label_texts(db, concept_id=authority.concept_id, language="en")
             return labels[0] if labels else authority.concept_key
 
-        return find_topic_in_messages(previous, _resolve, current_message=message)
+        found = find_topic_in_messages(previous, _resolve, current_message=message)
+        if found:
+            return found
+        # Medium/long-term memory (I7 derived signals): the topic of earlier days, after raw turns expired.
+        from backend.app.services.i7.derived_signals import recent_topic_concept_keys
+
+        for key in recent_topic_concept_keys(db, user_id, limit=1):
+            from backend.app import models as _m
+
+            concept = db.query(_m.I5ClinicalConcept).filter(_m.I5ClinicalConcept.concept_key == key).first()
+            if concept is not None:
+                labels = verified_label_texts(db, concept_id=int(concept.id), language="en")
+                return labels[0] if labels else key
+        return None
     except Exception:
         return None
