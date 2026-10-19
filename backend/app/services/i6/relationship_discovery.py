@@ -47,11 +47,25 @@ FUNCTION_DOMAINS: tuple[str, ...] = (
     "general",
 )
 FUNCTION_TARGETS: frozenset[str] = frozenset(f"function.{d}" for d in FUNCTION_DOMAINS)
+# Stage 06 / B1.5-a: friendly plan-intake targets (open text, user-stated, additive).
+INTAKE_KEYS: tuple[str, ...] = (
+    "goal",
+    "allergies",
+    "food_preferences",
+    "budget",
+    "cooking_time",
+    "meal_times",
+    "exercise_preferences",
+    "exercise_time",
+    "equipment",
+)
+INTAKE_TARGETS: frozenset[str] = frozenset(f"intake.{k}" for k in INTAKE_KEYS)
 
 # Direct-write targets (CR-03 / CR-04B / CR-04F.1). No social/values expansion.
 SUPPORTED_TARGETS: frozenset[str] = frozenset(
     {
         *FUNCTION_TARGETS,
+        *INTAKE_TARGETS,
         "routines.bedtime",
         "routines.wake_time",
         "lifestyle.sleep_quality",
@@ -71,6 +85,7 @@ SUPPORTED_TARGETS: frozenset[str] = frozenset(
 _OPEN_TEXT_TARGETS: frozenset[str] = frozenset(
     {
         *FUNCTION_TARGETS,
+        *INTAKE_TARGETS,
         "lifestyle.sleep_quality",
         "lifestyle.food_habits",
         "lifestyle.activity_level",
@@ -1035,7 +1050,7 @@ _NONPERSONAL_ACTIVITY_CUES: tuple[str, ...] = (
 
 def _target_fit(target_key: str, message: str) -> bool:
     text = _norm_msg(message)
-    if target_key in FUNCTION_TARGETS:
+    if target_key in FUNCTION_TARGETS or target_key in INTAKE_TARGETS:
         # A direct answer to a body-function question: any substantive reply that is not another request.
         return not _looks_unrelated_request(text)
     if target_key == "lifestyle.sleep_quality":

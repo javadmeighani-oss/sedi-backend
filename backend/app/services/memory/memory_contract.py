@@ -17,6 +17,8 @@ ALLOWED_DOMAINS = {
     "vitals": "Vital signs data from devices (heart_rate_bpm, etc.)",
     # Stage 06 / B1: user-stated body-function status that tailors plans (non-diagnostic, I6-canonical).
     "function": "User-stated body-function status (swallowing, mobility, breathing, ...)",
+    # Stage 06 / B1.5-a: friendly plan-intake answers (goal, allergies, preferences, budget, time).
+    "intake": "User-stated plan-intake answers (goal, allergies, food/exercise preferences, budget, time)",
     # CR-01 longitudinal user-understanding domains (non-medical; I6-canonical).
     "work": "Work context (occupation, schedule, stressors)",
     "education": "Education background (level, field of study)",
@@ -58,6 +60,17 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "follow_up_preference",
         "listen_before_advice",
         "proactive_checkin_preference",
+    ],
+    "intake": [
+        "goal",
+        "allergies",
+        "food_preferences",
+        "budget",
+        "cooking_time",
+        "meal_times",
+        "exercise_preferences",
+        "exercise_time",
+        "equipment",
     ],
     "function": [
         "swallowing",

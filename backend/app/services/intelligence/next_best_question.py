@@ -376,6 +376,57 @@ _CONTEXTUAL_CANDIDATES: tuple[_ContextualCandidate, ...] = (
 )
 
 _TEMPLATES: dict[str, dict[str, str]] = {
+    # Stage 06 / B1.5-a: friendly plan-intake questions.
+    "nbq.intake.goal_nutrition.v1": {
+        "en": 'Before I build your plan, let me get to know you a little. Why do you want a meal plan? Is there a condition or problem, or do you simply want to take better care of your health?',
+        "fa": 'قبل از اینکه برنامه بچینم، بذار یه کم بیشتر بشناسمت. چرا برنامه\u200cی غذایی می\u200cخوای؟ مشکل یا بیماری خاصی هست، یا فقط می\u200cخوای بیشتر به سلامتت برسی؟',
+        "ar": 'قبل أن أضع خطتك دعني أتعرف عليك قليلاً. لماذا تريد خطة غذائية؟ هل هناك مرض أو مشكلة معينة، أم تريد فقط العناية بصحتك أكثر؟',
+    },
+    "nbq.intake.goal_exercise.v1": {
+        "en": 'To make your exercise plan really fit you, let me get to know you first. Why do you want an exercise plan? Is there a condition or problem, or do you just want to be more active?',
+        "fa": 'برای اینکه برنامه\u200cی ورزشی\u200cات واقعاً به درد خودت بخوره، بذار اول بیشتر بشناسمت. چرا ورزش می\u200cخوای؟ مشکل یا بیماری خاصی هست، یا فقط می\u200cخوای فعال\u200cتر بشی؟',
+        "ar": 'كي تناسبك خطة التمارين حقاً، دعني أتعرف عليك أولاً. لماذا تريد خطة تمارين؟ هل هناك مرض أو مشكلة، أم تريد فقط أن تكون أكثر نشاطاً؟',
+    },
+    "nbq.intake.allergies.v1": {
+        "en": 'Do you have any food allergy or intolerance? If not, just say none.',
+        "fa": 'به غذای خاصی آلرژی یا عدم تحمل داری؟ اگه نه، بگو «ندارم».',
+        "ar": 'هل لديك حساسية أو عدم تحمل لأي طعام؟ إن لم يكن، قل «لا يوجد».',
+    },
+    "nbq.intake.food_preferences.v1": {
+        "en": 'Which foods do you like, and which ones do you dislike or avoid?',
+        "fa": 'چه غذاهایی دوست داری و از چی خوشت نمیاد یا نمی\u200cخوری؟',
+        "ar": 'ما الأطعمة التي تحبها وما التي لا تحبها أو تتجنبها؟',
+    },
+    "nbq.intake.budget.v1": {
+        "en": 'How comfortable is your budget for groceries? Keep it simple: tight, medium or comfortable.',
+        "fa": 'برای خرید مواد غذایی چقدر امکانات مالی داری؟ ساده بگو: کم، متوسط یا راحت.',
+        "ar": 'ما مدى راحة ميزانيتك لشراء الطعام؟ ببساطة: محدودة أو متوسطة أو مريحة.',
+    },
+    "nbq.intake.cooking_time.v1": {
+        "en": 'How much time and energy do you have for cooking? Quick and simple meals, or can you spend more time?',
+        "fa": 'برای آشپزی چقدر وقت و حال داری؟ غذای ساده و سریع یا می\u200cتونی وقت بیشتری بذاری؟',
+        "ar": 'كم من الوقت والطاقة لديك للطبخ؟ وجبات سريعة وبسيطة أم يمكنك قضاء وقت أطول؟',
+    },
+    "nbq.intake.meal_times.v1": {
+        "en": 'What times do you usually eat? Breakfast, lunch, dinner and snacks.',
+        "fa": 'معمولاً چه ساعت\u200cهایی غذا می\u200cخوری؟ صبحانه، ناهار، شام و میان\u200cوعده.',
+        "ar": 'في أي أوقات تأكل عادة؟ الفطور والغداء والعشاء والوجبات الخفيفة.',
+    },
+    "nbq.intake.exercise_preferences.v1": {
+        "en": 'What kind of movement do you enjoy or can you do? For example walking, stretching or chair exercises.',
+        "fa": 'چه نوع حرکتی دوست داری یا می\u200cتونی انجام بدی؟ مثلاً پیاده\u200cروی، کشش یا تمرین روی صندلی.',
+        "ar": 'ما نوع الحركة التي تحبها أو تستطيع القيام بها؟ مثل المشي أو التمدد أو تمارين الكرسي.',
+    },
+    "nbq.intake.exercise_time.v1": {
+        "en": 'How much time per day and at what hour could you move?',
+        "fa": 'روزی چقدر وقت و چه ساعتی برای حرکت داری؟',
+        "ar": 'كم من الوقت يومياً وفي أي ساعة يمكنك أن تتحرك؟',
+    },
+    "nbq.intake.equipment.v1": {
+        "en": 'Where will you exercise, and do you have any equipment or assistive aid? Home, park, gym, chair, band.',
+        "fa": 'کجا تمرین می\u200cکنی و وسیله\u200cی خاصی داری؟ خونه، پارک، باشگاه، صندلی، کش ورزشی یا وسیله\u200cی کمکی.',
+        "ar": 'أين ستتمرن وهل لديك معدات أو وسيلة مساعدة؟ المنزل أو الحديقة أو النادي أو كرسي أو حبل مطاطي.',
+    },
     # Stage 06 / B1: body-function questions (open, conversational; asked only for plan intents).
     "nbq.function.swallowing.v1": {
         "en": 'How are eating, chewing and swallowing going these days? Tell me if anything is hard.',
@@ -747,16 +798,9 @@ def _select_contextual_directive(
     )
 
 
-def _select_function_directive(
-    *,
-    snapshot: ContextSnapshot,
-    intent: IntentResult,
-    language: LanguageCode,
-) -> Optional[DiscoveryDirective]:
-    """Stage 06 / B1: before a personalized nutrition/activity plan, ask the first unanswered body-function
-    domain of the user's registered conditions (any condition is covered: unmapped -> generic domain)."""
-    if intent.intent_id not in (IntentId.NUTRITION, IntentId.ACTIVITY):
-        return None
+def _plan_intake_steps(plan_domain: str, snapshot: ContextSnapshot) -> list[str]:
+    """Ordered plan-intake target keys: goal, body-function domains of the user's conditions, then the
+    domain-specific friendly questions (any condition is covered by the generic fallback domain)."""
     from backend.app.services.intelligence.condition_function_domains import (
         domains_for_conditions,
         target_key,
@@ -767,14 +811,54 @@ def _select_function_directive(
         for i in snapshot.items
         if i.canonical_key.startswith("health.condition.") and i.active
     ]
-    for domain in domains_for_conditions(conditions):
-        key = target_key(domain)
+    function_keys = [target_key(d) for d in domains_for_conditions(conditions)]
+    if plan_domain == "activity":
+        rest = ["intake.exercise_preferences", "intake.exercise_time", "intake.equipment"]
+    else:
+        rest = [
+            "intake.allergies",
+            "intake.food_preferences",
+            "intake.budget",
+            "intake.cooking_time",
+            "intake.meal_times",
+        ]
+    return ["intake.goal", *function_keys, *rest]
+
+
+def _select_function_directive(
+    *,
+    snapshot: ContextSnapshot,
+    intent: IntentResult,
+    language: LanguageCode,
+    plan_domain: Optional[str] = None,
+    conditions_only: bool = False,
+) -> Optional[DiscoveryDirective]:
+    """Stage 06 / B1 + B1.5-a: friendly plan intake before/while building a personalized plan.
+
+    Asks the first unanswered step. `plan_domain` ("nutrition" | "activity") is set by the orchestrator for
+    plan intents and while a plan-intake reply is being continued."""
+    if plan_domain is None:
+        if intent.intent_id is IntentId.NUTRITION:
+            plan_domain = "nutrition"
+        elif intent.intent_id is IntentId.ACTIVITY:
+            plan_domain = "activity"
+        else:
+            return None
+    for key in _plan_intake_steps(plan_domain, snapshot):
+        if conditions_only and not key.startswith("function."):
+            continue  # the established soft question (food habits / activity level) keeps its place
         if _coverage_blocks_discovery(snapshot, key):
             continue
+        if key.startswith("function."):
+            template_id = f"nbq.function.{key.split('.', 1)[1]}.v1"
+        elif key == "intake.goal":
+            template_id = f"nbq.intake.goal_{'exercise' if plan_domain == 'activity' else 'nutrition'}.v1"
+        else:
+            template_id = f"nbq.intake.{key.split('.', 1)[1]}.v1"
         return DiscoveryDirective(
-            question_id=f"nbq.q.{intent.intent_id.value}.{key}.v1",
+            question_id=f"nbq.q.plan_intake.{key}.v1",
             target_key=key,
-            localized_question=_localized(f"nbq.function.{domain}.v1", language),
+            localized_question=_localized(template_id, language),
             sensitivity="high",  # type: ignore[arg-type]
             priority=5,
         )
@@ -887,6 +971,7 @@ def select_next_best_question(
     message: str = "",
     force_invitation: bool = False,
     exclude_keys: frozenset[str] | None = None,
+    plan_domain: Optional[str] = None,
 ) -> Optional[DiscoveryDirective]:
     """
     Select soft-discovery / confirmation directive(s).
@@ -928,6 +1013,14 @@ def select_next_best_question(
     if stale is not None:
         return stale
 
+    # B2) Stage 06 / B1.5-a: keep a plan intake going after an intake reply (explicit plan_domain).
+    if plan_domain is not None:
+        plan_q = _select_function_directive(
+            snapshot=snapshot, intent=intent, language=language, plan_domain=plan_domain
+        )
+        if plan_q is not None:
+            return plan_q
+
     # C) Q4 progressive continuation after invited ANSWER (before contextual).
     if force_invitation:
         continued = _select_invitation_directive(
@@ -946,10 +1039,12 @@ def select_next_best_question(
     if contextual is not None:
         return contextual
 
-    # D2) Stage 06 / B1 body-function question for plan intents (conditions on file, domain unanswered).
-    function_q = _select_function_directive(snapshot=snapshot, intent=intent, language=language)
-    if function_q is not None:
-        return function_q
+    # D2) Stage 06 / B1 + B1.5-a: friendly plan intake for plan intents (after contextual relevance).
+    plan_q2 = _select_function_directive(
+        snapshot=snapshot, intent=intent, language=language, conditions_only=True
+    )
+    if plan_q2 is not None:
+        return plan_q2
 
     # E) Q2/Q4 explicit invitation phrase — primary (+ optional safe pair).
     if detect_discovery_invitation(message, language):
@@ -966,6 +1061,10 @@ def select_next_best_question(
     if tier_a is not None:
         return tier_a
 
-    return _select_intent_soft_directive(
+    soft = _select_intent_soft_directive(
         snapshot=snapshot, intent=intent, language=language
     )
+    if soft is not None:
+        return soft
+    # Stage 06 / B1.5-a: once the established soft question is answered, continue the friendly intake.
+    return _select_function_directive(snapshot=snapshot, intent=intent, language=language)

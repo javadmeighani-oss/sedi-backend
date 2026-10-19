@@ -973,6 +973,18 @@ class IntelligenceOrchestrator:
                             or not clarification_message.strip()
                         ):
                             raise MissingInformationError("empty_clarification")
+                        if (
+                            getattr(readiness_meta.clarification, "template_id", "") == "tpl.goal.v1"
+                            and intent_meta is not None
+                            and intent_meta.intent_id in (IntentId.NUTRITION, IntentId.ACTIVITY)
+                        ):
+                            # Stage 06 / B1.5-a: the goal reply is bound to I6 (intake.goal) like any discovery answer.
+                            _mark_relationship_discovery_asked(
+                                self._db,
+                                user_id=authenticated_user_id,
+                                target_key="intake.goal",
+                                invited=True,
+                            )
                         skip_generator = True
                         ctx.append_stage(
                             StageName.BUILD_CLARIFICATION_RESPONSE,
@@ -1014,6 +1026,7 @@ class IntelligenceOrchestrator:
         # CR-03.3: observe final I3 discovery-reply rule; never fabricate IntentResult.
         # Marker bind/consume happens here after readiness, using pre-resolve classification.
         discovery_reply_active = False
+        plan_domain_ctx: Optional[str] = None
         continue_invited_discovery = False
         invited_exclude_keys: frozenset = frozenset()
         caution_active = assessment.action is SafetyAction.CONTINUE_WITH_CONSTRAINTS
@@ -1062,6 +1075,14 @@ class IntelligenceOrchestrator:
                             classification=discovery_classification,
                         )
                         extra_reason_codes.append("I3_RELATIONSHIP_DISCOVERY_REPLY")
+                        # Stage 06 / B1.5-a: keep the friendly plan intake going after each answer.
+                        _pk = tuple(pending_keys or ())
+                        if any(k.startswith(("function.", "intake.")) for k in _pk):
+                            plan_domain_ctx = (
+                                "activity"
+                                if any(k.startswith("intake.exercise_") or k == "intake.equipment" for k in _pk)
+                                else "nutrition"
+                            )
                     else:
                         bind_result = _apply_discovery_fatigue_response(
                             self._db,
@@ -1381,7 +1402,11 @@ class IntelligenceOrchestrator:
             interaction_need_value = need.value
 
             phrase_invitation = detect_discovery_invitation(message, lang)
-            invited_rd_mode = bool(continue_invited_discovery or phrase_invitation)
+            _plan_intake_ctx = plan_domain_ctx is not None or intent_meta.intent_id in (
+                IntentId.NUTRITION,
+                IntentId.ACTIVITY,
+            )
+            invited_rd_mode = bool(continue_invited_discovery or phrase_invitation or _plan_intake_ctx)
 
             directive = select_next_best_question(
                 snapshot=snapshot,
@@ -1391,6 +1416,7 @@ class IntelligenceOrchestrator:
                 message=message,
                 force_invitation=continue_invited_discovery,
                 exclude_keys=invited_exclude_keys,
+                plan_domain=plan_domain_ctx,
             )
             if directive is not None:
                 discovery_question_id = directive.question_id
@@ -1527,7 +1553,7 @@ class IntelligenceOrchestrator:
                 and not directory_message
                 and visible_nbq_eligible
                 and discovery_localized_question
-                and str(discovery_target_key or "").startswith("function.")
+                and str(discovery_target_key or "").startswith(("function.", "intake."))
                 and ("I8_NUTRITION_ACTION" in extra_reason_codes or "I8_EXERCISE_ACTION" in extra_reason_codes)
             ):
                 out_message = f"{out_message}\n\n{discovery_localized_question}"
