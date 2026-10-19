@@ -201,3 +201,14 @@ def test_low_adherence_makes_the_next_exercise_cycle_lighter():
     acts.append(_A("null"))
     s = ar.adherence(acts)
     assert s["percent"] == 0 and s["skipped"] == 4 and s["pending"] == 1 and ar.LOW_ADHERENCE_PERCENT == 40
+
+
+def test_projection_exposes_today_local_and_feedback_accepts_the_five_bounded_reasons(db):
+    from typing import get_args
+
+    from backend.app.schemas.notification import FeedbackReasonV1
+    from backend.app.services.i10.interaction_vocabulary import BOUNDED_DISLIKE_REASONS
+
+    u, proj = _week(db, "+17770009206")
+    assert proj["today_local"] == proj["days"][0]["local_date"]
+    assert set(get_args(FeedbackReasonV1)) == set(BOUNDED_DISLIKE_REASONS)

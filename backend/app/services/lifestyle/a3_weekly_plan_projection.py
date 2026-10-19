@@ -180,5 +180,6 @@ def build_lifestyle_weekly_plan_projection(
         "state": state,
         "review_due": review_due,
         "adherence": adherence(cycle_actions, up_to=today_local),
+        "today_local": today_local.isoformat(),
         "days": days,
     }
