@@ -145,7 +145,7 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "SINCE_MIN=$(printf '%q' "${SINCE}") bash -s" <<'REMOTE'
+            "SINCE_MIN=$(printf '%q' "${SINCE}") DEPLOY_PATH=$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}") bash -s" <<'REMOTE'
           set -uo pipefail
           log() { echo "[$(date -Is | cut -c1-19)] $*"; }
           LOG="$(docker logs sedi-backend --since "${SINCE_MIN}m" 2>&1 || true)"
@@ -170,5 +170,19 @@ jobs:
           printf '%s\n' "$LOG" | grep -E '^[[:space:]]+File "[^"]*backend/app' | sed -E 's#^[[:space:]]+File "[^"]*(backend/app/[^"]*)", line ([0-9]+), in (.*)#\1:\2 \3#' | tail -n 30
           log "=== exception class names at traceback ends (class only) ==="
           printf '%s\n' "$LOG" | grep -E '^[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Warning)(:|$)' | sed -E 's/:.*//' | sort | uniq -c | sort -rn | head -10
+          log "=== EGRESS DIAGNOSIS (read-only; no key sent; no IP printed) ==="
+          echo "host_egress_country=$(curl -sS -m 10 https://ipinfo.io/country 2>/dev/null | tr -d '[:space:]' | cut -c1-4)"
+          echo "host_egress_org=$(curl -sS -m 10 https://ipinfo.io/org 2>/dev/null | sed -E 's/^AS[0-9]+ //' | cut -c1-60)"
+          EDGE="$(curl -sS -m 15 -w '\nHTTP=%{http_code}' https://api.openai.com/v1/models 2>&1 | tr -d '\n' | cut -c1-400 || true)"
+          echo "host_openai_edge_http=$(printf '%s' "$EDGE" | grep -oE 'HTTP=[0-9]+' | tail -1)"
+          echo "host_openai_edge_code=$(printf '%s' "$EDGE" | grep -oE "'?\"?code\"?'?: *\"?[a-z_]+" | head -1 | sed -E 's/.*: *"?//')"
+          CEDGE="$(docker exec sedi-backend python -c 'exec("import urllib.request as u\ntry:\n u.urlopen(\"https://api.openai.com/v1/models\",timeout=15)\n print(\"container_openai_edge_http=200\")\nexcept Exception as e:\n print(\"container_openai_edge_http=%s\" % getattr(e,\"code\",type(e).__name__))\n print(\"container_openai_edge_body=%s\" % (getattr(e,\"read\",lambda:b\"\")() or b\"\")[:160].decode(\"utf8\",\"replace\").replace(chr(10),\" \"))")' 2>&1 | cut -c1-260 || true)"
+          printf '%s\n' "$CEDGE"
+          echo "container_proxy_env_names=$(docker exec sedi-backend sh -c 'env | grep -iE "^(http|https|all|no)_proxy=" | sed "s/=.*/=<set>/"' 2>/dev/null | tr '\n' ' ')"
+          echo "container_openai_env_names=$(docker exec sedi-backend sh -c 'env | grep -E "^OPENAI_" | sed "s/=.*/=<set>/"' 2>/dev/null | tr '\n' ' ')"
+          echo "host_network_links=$(ip -br link 2>/dev/null | awk '{print $1":"$2}' | tr '\n' ' ')"
+          echo "container_started_at=$(docker inspect sedi-backend --format '{{.State.StartedAt}}' 2>/dev/null | cut -c1-19)"
+          log "=== server compose keys of interest (names only, values masked) ==="
+          grep -nEi "proxy|dns:|extra_hosts|network_mode|OPENAI|HTTPS?_" "${DEPLOY_PATH}/compose.production.yml" 2>/dev/null | sed -E 's/(:|=) *.*/\1 <masked>/' | head -12
           log "EXTRACT=DONE (read-only; class names, counts and file:line only)"
           REMOTE
