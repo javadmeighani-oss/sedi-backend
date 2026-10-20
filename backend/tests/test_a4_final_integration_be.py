@@ -39,22 +39,24 @@ def _user(db, name: str, lang: str = "fa") -> models.User:
     return u
 
 
-def test_exact_approved_fa_daily_general_copy(db):
+def test_fa_daily_general_copy_is_warm_human_voice(db):
+    """R-011 (2026-10-20): the A4 tone contract changed — Sedi's daily check-in is warm, human, friend-like."""
+    from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_PAIRS
+
     user = _user(db, "fa-copy", lang="fa")
     facts = assemble_daily_wellness_digest_facts(
         db, user_id=user.id, when=datetime(2026, 9, 9, 9, 0, 0)
     )
     assert facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN
-    assert render_digest_title(facts, "fa") == "پیگیری روزانه صدی"
-    assert (
-        render_digest_body(facts, "fa")
-        == "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده."
-    )
+    title, body = render_digest_title(facts, "fa"), render_digest_body(facts, "fa")
+    assert (title, body) in _GENERAL_CHECKIN_PAIRS["fa"]
     payload = build_daily_wellness_digest_payload(
         facts, occurrence_key="k-fa", language="fa"
     )
-    assert payload.title == "پیگیری روزانه صدی"
-    assert payload.body == _GENERAL_CHECKIN_BODIES["fa"]
+    assert payload.title == title and payload.body == body
+    for old_cold_phrase in ("لمس آرام", "با صدی ادامه بده", "سبک زندگی"):
+        for t, b in _GENERAL_CHECKIN_PAIRS["fa"]:
+            assert old_cold_phrase not in t + b
 
 
 def test_deterministic_en_ar_general_equivalents(db):
@@ -62,36 +64,28 @@ def test_deterministic_en_ar_general_equivalents(db):
     facts = assemble_daily_wellness_digest_facts(
         db, user_id=user.id, when=datetime(2026, 9, 9, 9, 0, 0)
     )
-    assert render_digest_title(facts, "en") == _GENERAL_CHECKIN_TITLES["en"]
-    assert render_digest_body(facts, "en") == _GENERAL_CHECKIN_BODIES["en"]
-    assert render_digest_title(facts, "ar") == _GENERAL_CHECKIN_TITLES["ar"]
-    assert render_digest_body(facts, "ar") == _GENERAL_CHECKIN_BODIES["ar"]
-    # Stable across re-render
+    from backend.app.services.i10.daily_wellness_digest import _GENERAL_CHECKIN_PAIRS
+
+    for lang in ("en", "ar"):
+        assert (render_digest_title(facts, lang), render_digest_body(facts, lang)) in _GENERAL_CHECKIN_PAIRS[lang]
+    # Stable across re-render (same facts -> same copy)
     assert render_digest_body(facts, "en") == render_digest_body(facts, "en")
 
 
-def test_no_old_pet_name_closeness_emoji_in_active_v1_paths():
+def test_active_v1_copy_has_no_decorative_emoji_and_no_cold_legacy_phrases():
+    """R-011: endearments and closeness are now welcome; decorative emoji and the old cold phrases are not."""
     from backend.app.services.notification_runtime import renderer as rend
-    from backend.app.services.notification_runtime import fallback_generator as fb
     from backend.app.services.i10 import daily_wellness_digest as dig
 
-    forbidden = ("عزیزم", "dear", "عزيزي", "🌅", "🌿", "💚", "دلم برات تنگ", "thinking of you")
-    blobs = [
-        inspect.getsource(rend._engagement_short),
-        inspect.getsource(rend._engagement_with_topic),
-        inspect.getsource(rend._morning_greeting),
-        inspect.getsource(fb._generate_connection_ping),
-        dig._GENERAL_CHECKIN_TITLES["fa"] + dig._GENERAL_CHECKIN_BODIES["fa"],
-        dig._GENERAL_CHECKIN_TITLES["en"] + dig._GENERAL_CHECKIN_BODIES["en"],
-    ]
+    blobs = [str(rend._ENGAGEMENT_PAIRS), str(rend._ENGAGEMENT_TOPIC_BODY), str(dig._GENERAL_CHECKIN_PAIRS)]
     for blob in blobs:
-        for bad in forbidden:
+        for bad in ("🌅", "🌿", "💚", "همه چیز خوب است؟ هر وقت آماده بودی", "Continue with Sedi when ready"):
             assert bad not in blob, bad
 
-    rendered = render("engagement", "fa", {"name": None}, "low")
-    for bad in ("عزیزم", "🌿", "🌅"):
-        assert bad not in rendered["title"]
-        assert bad not in rendered["body"]
+    for lang in ("fa", "en", "ar"):
+        rendered = render("engagement", lang, {"name": None}, "low")
+        assert rendered["title"].strip() and rendered["body"].strip()
+        assert "🌿" not in rendered["body"] and "🌅" not in rendered["body"]
 
 
 def test_freeform_ai_disabled_for_canonical_v1_even_if_env_true(monkeypatch):

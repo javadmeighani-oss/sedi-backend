@@ -8,11 +8,22 @@ Rules (last N days):
 - like >= 2 -> companion_cap_override = 2/day (no reduction)
 - open does not trigger pause or cap.
 
-Precedence: pause (dismiss >= 3) > cap (dislike >= 2) > like boost (like >= 2).
+Reasons (R-009 / R-011, mirrors the plan-reminder family in i10/plan_progress.py):
+- dislike reason too_frequent / wrong_timing in the last 3 days -> pause (do not send)
+- dislike >= 3 in the window -> pause 48h
+- reason irrelevant / not_helpful -> content_hints.avoid_topic (do not reference a past topic)
+- reason unclear -> content_hints.simple_copy (plainest wording)
+
+Precedence: pause (dismiss >= 3, dislike >= 3, recent too_frequent/wrong_timing) > cap (dislike >= 2) > like boost (like >= 2).
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+SKIP_REASONS = frozenset({"too_frequent", "wrong_timing"})
+TOPIC_AVOID_REASONS = frozenset({"irrelevant", "not_helpful"})
+SIMPLE_REASONS = frozenset({"unclear"})
+SKIP_REASON_WINDOW_DAYS = 3
 
 from sqlalchemy.orm import Session
 
@@ -46,6 +57,10 @@ def compute_adaptive_state(
     )
     counts = {"like": 0, "dislike": 0, "open": 0, "dismiss": 0}
     reasons_count: Dict[str, int] = {}
+    skip_until: Optional[datetime] = None
+    avoid_topic = False
+    simple_copy = False
+    skip_window_start = now - timedelta(days=SKIP_REASON_WINDOW_DAYS)
     for r in rows:
         if r.action in counts:
             counts[r.action] = counts[r.action] + 1
@@ -56,6 +71,13 @@ def compute_adaptive_state(
                 reason = meta.get("reason")
                 if reason:
                     reasons_count[reason] = reasons_count.get(reason, 0) + 1
+                    if reason in SKIP_REASONS and r.created_at and r.created_at >= skip_window_start:
+                        until = r.created_at + timedelta(days=SKIP_REASON_WINDOW_DAYS)
+                        skip_until = until if skip_until is None else max(skip_until, until)
+                    if reason in TOPIC_AVOID_REASONS:
+                        avoid_topic = True
+                    if reason in SIMPLE_REASONS:
+                        simple_copy = True
             except (TypeError, ValueError):
                 pass
     # Precedence: pause > cap > like boost
@@ -64,15 +86,21 @@ def compute_adaptive_state(
     if counts.get("dismiss", 0) >= 3:
         paused_until = (now + timedelta(hours=48)).isoformat()
         companion_cap_override = 2  # when paused we block entirely; cap irrelevant
+    elif counts.get("dislike", 0) >= 3:
+        paused_until = (now + timedelta(hours=48)).isoformat()
     elif counts.get("dislike", 0) >= 2:
         companion_cap_override = 1
     elif counts.get("like", 0) >= 2:
         companion_cap_override = 2
+    if skip_until is not None and skip_until > now:
+        if paused_until is None or skip_until.isoformat() > paused_until:
+            paused_until = skip_until.isoformat()
     return {
         "paused_until": paused_until,
         "companion_cap_override": companion_cap_override,
         "counts": counts,
         "reasons_count": reasons_count,
+        "content_hints": {"avoid_topic": avoid_topic, "simple_copy": simple_copy},
         "computed_at": now.isoformat(),
         "days": days,
     }

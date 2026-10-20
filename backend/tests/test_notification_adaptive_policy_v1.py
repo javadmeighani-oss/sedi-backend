@@ -140,3 +140,52 @@ def test_count_companion_notifications_today_includes_both_dedupe_formats(db, us
     db.commit()
     count = _count_companion_notifications_today(db, user.id, now)
     assert count == 2
+
+
+# ---- R-009 / R-011: reasons shape the presence re-engagement family ----
+def _add_reason_feedback(db: Session, user_id: int, notification_id: int, reason: str, action: str = "dislike"):
+    import json
+
+    db.add(
+        NotificationFeedback(
+            notification_id=notification_id,
+            user_id=user_id,
+            action=action,
+            meta_json=json.dumps({"reason": reason}),
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+
+
+def test_too_frequent_or_wrong_timing_reason_pauses_sending(db, user, notif):
+    for reason in ("too_frequent", "wrong_timing"):
+        _add_reason_feedback(db, user.id, notif.id, reason)
+        allowed, why = is_companion_send_allowed(db, user.id, datetime.utcnow())
+        assert allowed is False and why == "paused"
+        db.query(NotificationFeedback).delete()
+        db.commit()
+
+
+def test_irrelevant_and_unclear_reasons_change_content_not_frequency(db, user, notif):
+    _add_reason_feedback(db, user.id, notif.id, "irrelevant")
+    st = compute_adaptive_state(db, user.id, datetime.utcnow())
+    assert st["content_hints"] == {"avoid_topic": True, "simple_copy": False}
+    assert st["paused_until"] is None
+    _add_reason_feedback(db, user.id, notif.id, "unclear")
+    st = compute_adaptive_state(db, user.id, datetime.utcnow())
+    assert st["content_hints"]["simple_copy"] is True and st["paused_until"] is None
+
+
+def test_three_dislikes_in_window_pause_48h(db, user, notif):
+    for _ in range(3):
+        _add_feedback(db, user.id, "dislike", notif.id)
+    st = compute_adaptive_state(db, user.id, datetime.utcnow())
+    assert st["paused_until"] is not None
+
+
+def test_simple_copy_hint_uses_plainest_engagement_wording():
+    from backend.app.services.notification_runtime.renderer import _ENGAGEMENT_PAIRS, render
+
+    out = render("engagement", "fa", {"simple_copy": True}, "low")
+    assert (out["title"], out["body"].strip()) == (_ENGAGEMENT_PAIRS["fa"][0][0], _ENGAGEMENT_PAIRS["fa"][0][1].format(p="").strip())

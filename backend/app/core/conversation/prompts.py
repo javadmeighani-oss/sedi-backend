@@ -41,7 +41,7 @@ if not api_key:
         print("[PROMPTS CRITICAL] This will cause GPT calls to fail.")
         raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
 else:
-    print(f"[PROMPTS] OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
+    print("[PROMPTS] OPENAI_API_KEY found")  # never log any part of the key (no prefix, no length)
 # VERIFY: Same client used in onboarding and chat
 client = OpenAI(api_key=api_key)
 print("[PROMPTS] OpenAI client initialized")

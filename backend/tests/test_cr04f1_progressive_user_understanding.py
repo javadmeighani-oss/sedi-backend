@@ -175,39 +175,14 @@ def test_cr04f1_general_selects_tier_a_progressively():
     assert d1.target_key == "preferences.interests"
 
     known = _snap([_item("preferences.interests")])
+    # R-008: after interests, Sedi never asks the style / listen-first / length questionnaire.
     d2 = select_next_best_question(
         snapshot=known, intent=intent, readiness=ready, language="en"
     )
-    assert d2 is not None
-    assert d2.target_key == "preferences.communication_style"
+    assert d2 is None
 
-    more = _snap(
-        [
-            _item("preferences.interests"),
-            _item("preferences.communication_style"),
-        ]
-    )
-    d3 = select_next_best_question(
-        snapshot=more, intent=intent, readiness=ready, language="en"
-    )
-    assert d3 is not None
-    assert d3.target_key == "preferences.listen_before_advice"
-
-    all_but_len = _snap(
-        [
-            _item("preferences.interests"),
-            _item("preferences.communication_style"),
-            _item("preferences.listen_before_advice"),
-        ]
-    )
-    d4 = select_next_best_question(
-        snapshot=all_but_len, intent=intent, readiness=ready, language="en"
-    )
-    assert d4 is not None
-    assert d4.target_key == "preferences.response_length"
-
-    assert TIER_A_GENERAL_PRIORITY[0] == "preferences.interests"
-    assert first_missing_tier_a(known) == "preferences.communication_style"
+    assert TIER_A_GENERAL_PRIORITY == ("preferences.interests",)
+    assert first_missing_tier_a(known) is None
 
 
 def test_cr04f1_known_denied_conflicted_stale_skipped():
@@ -221,8 +196,7 @@ def test_cr04f1_known_denied_conflicted_stale_skipped():
         d = select_next_best_question(
             snapshot=_snap([item]), intent=intent, readiness=ready, language="en"
         )
-        assert d is not None
-        assert d.target_key != "preferences.interests"
+        assert d is None or d.target_key != "preferences.interests"
 
     # CR-04F.2: conflicted/stale ask confirmation for the same key.
     for item, needle in (

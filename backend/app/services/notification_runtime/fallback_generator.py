@@ -158,28 +158,29 @@ def _generate_connection_ping(
     name = (greeting_name or "").strip()
 
     if language == "fa":
-        prefix = f"سلام {name}، " if name else "سلام، "
+        prefix = f"{name} جان، " if name else ""
         if memory_context and memory_context.has_activity_data():
-            check_in = "چطوره؟ کمی حرکت هم می‌تواند کمک کند"
+            check_in = "حالت چطوره؟ یه کم حرکت هم حالت رو بهتر می‌کنه؛ اگه خواستی با هم برنامه‌اش رو بچینیم"
         else:
-            check_in = "همه چیز خوب است؟ هر وقت آماده بودی با صدی ادامه بده"
+            check_in = "امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم"
         return f"{prefix}{check_in}."
 
     elif language == "ar":
-        prefix = f"مرحباً {name}، " if name else "مرحباً، "
+        prefix = f"يا {name}، " if name else ""
         if memory_context and memory_context.has_activity_data():
-            check_in = "كيف حالك؟ القليل من الحركة قد يساعد"
+            check_in = "كيف حالك؟ القليل من الحركة يحسّن مزاجك؛ إن شئت نخطط لذلك معاً"
         else:
-            check_in = "هل كل شيء على ما يرام؟ تابع مع صدی عندما تكون مستعدًا"
+            check_in = "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً"
         return f"{prefix}{check_in}."
 
     else:  # en
-        prefix = f"Hello {name}, " if name else "Hello, "
+        prefix = f"{name}, " if name else ""
         if memory_context and memory_context.has_activity_data():
-            check_in = "how are you? a little movement can help"
+            check_in = "how are you? A little movement can lift your mood; want to plan it together"
         else:
-            check_in = "how are you? Continue with Sedi when ready"
-        return f"{prefix}{check_in}."
+            check_in = "how is your day? I wanted to check in on you. Whenever you feel like it, let's talk"
+        body = f"{prefix}{check_in}."
+        return body[:1].upper() + body[1:]
 
 
 def _generate_health_alert(

@@ -277,7 +277,9 @@ def test_n56_e06_dislike_does_not_reset_chat_idle(db, gate4_patch, client):
     now = datetime(2026, 9, 9, 16, 0, 0)
     _seed_chat(db, user.id, when=now - timedelta(hours=6))
     seed = _companion_notif(db, user, subject)
-    resp = _feedback(client, user, seed.id, {"reaction": "dislike", "reason": "too_frequent"})
+    # R-009/R-011: a too_frequent / wrong_timing dislike now (correctly) pauses the next ping, so this idle-clock
+    # probe uses a content-only reason; the pause itself is covered in test_notification_adaptive_policy_v1.
+    resp = _feedback(client, user, seed.id, {"reaction": "dislike", "reason": "irrelevant"})
     assert resp.status_code == 200
     _backdate_presence_events(db, user.id, now)
     assert get_last_notification_presence_at(db, user.id) is not None

@@ -7,6 +7,8 @@ Returns {title, body, actions_json}. Conservative phrasing for health alerts.
 Supports optional multi-language template.texts via i18n_resolver.
 """
 
+import hashlib
+from datetime import date
 from typing import Dict, Any, Optional, Literal
 
 from backend.app.services.notification_runtime.i18n_resolver import resolve_text_by_user_language
@@ -141,17 +143,10 @@ def _one_goals_lifestyle_hint(lang: str, user_ctx: Dict[str, Any]) -> str:
     if goals:
         first = str(goals[0])[:30]
         if lang == "fa":
-            return f"برای هدفت ({first}) همین قدم‌های کوچک موثره."
+            return f"یادم نرفته دنبال «{first}» هستی؛ قدم‌های کوچیک هم حساب می‌شه."
         if lang == "ar":
-            return "خطوة صغيرة تساعدك."
-        return f"Small steps help your {first} goal."
-    if lifestyle:
-        snippet = lifestyle[:40].rstrip()
-        if lang == "fa":
-            return "بر اساس سبک زندگیت، همین کارهای کوچک مفیده."
-        if lang == "ar":
-            return "وفق نمط حياتك، خطوة صغيرة مفيدة."
-        return "Small steps help."
+            return f"لم أنسَ أنك تسعى إلى «{first}»؛ الخطوات الصغيرة تُحسب أيضاً."
+        return f"I haven't forgotten you're working on {first}; small steps count too."
     return ""
 
 
@@ -201,41 +196,97 @@ def _morning_cta(lang: str) -> str:
     }.get(lang, " Have a good day.")
 
 
+# R-011 (2026-10-20): the A4 tone contract changed to a warm, human, friend-like voice. Copy is still
+# deterministic and code-owned (no free-form AI rewrite), but rotates so the same words never repeat two days
+# in a row. Pairs are (title, body); "{p}" is the optional "<name> جان، " / "<name>, " prefix.
+_ENGAGEMENT_PAIRS: Dict[str, tuple] = {
+    "fa": (
+        ("سلام از صدی", "{p}امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم."),
+        ("یه سر زدم", "{p}فقط اومدم بگم کنارتم. اگه دلت می‌خواد، برام تعریف کن امروز چه خبر."),
+        ("حالت چطوره؟", "{p}حس کردم یه مدتیه ازت خبر ندارم. همه‌چیز خوبه؟ من همین‌جام."),
+        ("صدی کنارته", "{p}هر وقت دلت خواست درد و دل کنی یا فقط یکی گوش بده، من اینجام."),
+    ),
+    "ar": (
+        ("تحية من صدی", "{p}كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً."),
+        ("مررتُ لأطمئن", "{p}أردت فقط أن أقول إني بجانبك. إن شئت، احكِ لي كيف كان يومك."),
+        ("كيف حالك؟", "{p}شعرتُ أنني لم أسمع منك منذ فترة. هل كل شيء بخير؟ أنا هنا."),
+        ("صدی بجانبك", "{p}متى أردت أن تفضفض أو تجد من يُصغي، أنا هنا."),
+    ),
+    "en": (
+        ("Hello from Sedi", "{p}how is your day going? I wanted to check in on you. Whenever you feel like it, let's talk."),
+        ("Just dropping by", "{p}I only wanted to say I'm right here with you. Tell me about your day if you like."),
+        ("How are you?", "{p}it's been a little while since I heard from you. Is everything okay? I'm here."),
+        ("Sedi is with you", "{p}whenever you want to talk it out, or just have someone listen, I'm here."),
+    ),
+}
+
+# Used instead of the rotating pairs when the user's recent days looked low (I7 derived, consent-gated).
+_ENGAGEMENT_LOW_PAIRS: Dict[str, tuple] = {
+    "fa": (("فکرم پیشته", "{p}این روزها شاید کمی سخت می‌گذره. اگه دوست داری درباره‌اش حرف بزنیم، من گوش می‌دم و کنارتم."),),
+    "ar": (("أفكر بك", "{p}ربما تمرّ عليك أيام ثقيلة. إن أحببت أن نتحدث عنها، أنا أُصغي وبجانبك."),),
+    "en": (("Thinking of you", "{p}these days may be a bit heavy. If you'd like to talk about it, I'm listening and I'm with you."),),
+}
+
+_ENGAGEMENT_TOPIC_BODY: Dict[str, str] = {
+    "fa": "{p}آخرین بار درباره‌ی {t} حرف می‌زدیم و فکرم پیشت بود. حالت چطوره؟ دوست داری ادامه بدیم؟",
+    "ar": "{p}آخر مرة تحدثنا عن {t} وكنتُ أفكر بك. كيف حالك؟ هل تحب أن نكمل؟",
+    "en": "{p}last time we talked about {t} and you stayed on my mind. How are you? Want to pick it up again?",
+}
+
+
+def _engagement_prefix(lang: str, name: Optional[str]) -> str:
+    n = (name or "").strip()
+    if not n:
+        return ""
+    if lang == "fa":
+        return f"{n} جان، "
+    if lang == "ar":
+        return f"يا {n}، "
+    return f"{n}, "
+
+
+def _rotation_index(n_variants: int, name: Optional[str], salt: str) -> int:
+    """Deterministic per user-name/day: a different variant than yesterday whenever there is more than one."""
+    if n_variants <= 1:
+        return 0
+    offset = int(hashlib.sha256(f"{(name or '').strip()}:{salt}".encode("utf-8")).hexdigest()[:8], 16) % n_variants
+    return (offset + date.today().toordinal()) % n_variants
+
+
 def _render_engagement(lang: str, name: Optional[str], inputs: Dict[str, Any]) -> tuple:
+    prefix = _engagement_prefix(lang, name)
+    pairs = _ENGAGEMENT_PAIRS.get(lang, _ENGAGEMENT_PAIRS["en"])
+    if inputs.get("wellbeing_trend") == "low" and not inputs.get("simple_copy"):
+        pairs = _ENGAGEMENT_LOW_PAIRS.get(lang, _ENGAGEMENT_LOW_PAIRS["en"])
+    # "unclear" feedback -> the plainest wording (first pair) instead of the rotating variants.
+    idx = 0 if inputs.get("simple_copy") else _rotation_index(len(pairs), name, "engagement")
+    title, short_body = pairs[idx]
     topic = (inputs.get("last_topic_hint") or "").strip()
-    if topic and len(topic) < 60:
+    if topic and len(topic) < 60 and inputs.get("wellbeing_trend") != "low":
         body = _engagement_with_topic(lang, name, topic)
     else:
-        body = _engagement_short(lang, name)
-    title = {"fa": "سلام از صدی", "ar": "تحية من صدی", "en": "Hello from Sedi"}.get(lang, "Hello from Sedi")
+        body = short_body.format(p=prefix)
+        if lang == "en" and not prefix:
+            body = body[:1].upper() + body[1:]
     return title, body
 
 
 def _engagement_short(lang: str, name: Optional[str]) -> str:
-    """Presence reengagement body — calm, no pet-name default, no emoji."""
-    n = (name or "").strip()
-    if lang == "fa":
-        prefix = f"{n}، " if n else ""
-        return f"{prefix}همه چیز خوب است؟ هر وقت آماده بودی با صدی ادامه بده."
-    if lang == "ar":
-        prefix = f"{n}، " if n else ""
-        return f"{prefix}هل كل شيء على ما يرام؟ تابع مع صدی عندما تكون مستعدًا."
-    prefix = f"{n}, " if n else ""
-    return f"{prefix}How are you? Continue with Sedi when ready."
+    """Presence re-engagement body (warm, human; rotates daily)."""
+    pairs = _ENGAGEMENT_PAIRS.get(lang, _ENGAGEMENT_PAIRS["en"])
+    body = pairs[_rotation_index(len(pairs), name, "engagement")][1].format(p=_engagement_prefix(lang, name))
+    if lang == "en" and not _engagement_prefix(lang, name):
+        body = body[:1].upper() + body[1:]
+    return body
 
 
 def _engagement_with_topic(lang: str, name: Optional[str], topic: str) -> str:
     """Natural continuation with a privacy-safe coarse topic only (never raw chat)."""
-    n = (name or "").strip()
-    t = topic[:40]
-    if lang == "fa":
-        prefix = f"{n}، " if n else ""
-        return f"{prefix}آخرین بار درباره {t} صحبت می‌کردیم. می‌خواهی ادامه بدهیم؟"
-    if lang == "ar":
-        prefix = f"{n}، " if n else ""
-        return f"{prefix}آخر مرة تحدثنا عن {t}. هل تريد أن نكمل؟"
-    prefix = f"{n}, " if n else ""
-    return f"{prefix}last time we were talking about {t}. Want to continue?"
+    tpl = _ENGAGEMENT_TOPIC_BODY.get(lang, _ENGAGEMENT_TOPIC_BODY["en"])
+    body = tpl.format(p=_engagement_prefix(lang, name), t=topic[:40])
+    if lang == "en" and not _engagement_prefix(lang, name):
+        body = body[:1].upper() + body[1:]
+    return body
 
 
 def _render_health_alert(lang: str, name: Optional[str], inputs: Dict[str, Any], priority: str) -> tuple:

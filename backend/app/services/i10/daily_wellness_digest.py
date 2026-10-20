@@ -87,18 +87,38 @@ _DIGEST_TITLES = {
     "ar": ("متابعة الصحة اليومية", "تفقدك اليومي مع صدی", "اليوم مع صدی"),
 }
 
-# A4 final: GENERAL_CHECKIN is a single deterministic check-in (no rotation).
-_GENERAL_CHECKIN_TITLES = {
-    "en": "Daily Sedi check-in",
-    "fa": "پیگیری روزانه صدی",
-    "ar": "المتابعة اليومية مع صدی",
+# R-011 (2026-10-20): GENERAL_CHECKIN speaks in Sedi's warm, human, friend-like voice. Still deterministic and
+# code-owned (no free-form AI rewrite), but rotates over (title, body) pairs so adjacent days never repeat.
+_GENERAL_CHECKIN_PAIRS = {
+    "fa": (
+        ("صبح بخیر از صدی", "امروز چطوری عزیزم؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم."),
+        ("یه سر زدم", "فقط اومدم بگم کنارتم. امروز چه خبر؟ اگه دلت خواست، برام تعریف کن."),
+        ("حال و روزت چطوره؟", "یادم افتاد ازت بپرسم امروز حالت چطوره. هر چی تو دلته بگو، من گوش می‌دم."),
+        ("یه قدم کوچیک برای امروز", "امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه قدم قدم‌زدن. اگه خواستی با هم برنامه‌اش رو بچینیم."),
+        ("صدی اینجاست", "هر وقت دلت خواست حرف بزنی یا فقط یکی گوش بده، من اینجام. امروز چطور گذشت؟"),
+        ("مراقب خودت باش", "امیدوارم امروز بهت خوش بگذره. اگه چیزی ناراحتت کرده یا خسته‌ای، بگو تا با هم ببینیم چی کمکت می‌کنه."),
+    ),
+    "en": (
+        ("Good morning from Sedi", "How is your day going? I wanted to check in on you. Whenever you feel like it, let's talk."),
+        ("Just dropping by", "I only wanted to say I'm right here with you. Tell me about your day if you like."),
+        ("How are you really?", "I wondered how you're feeling today. Tell me whatever is on your heart, I'm listening."),
+        ("One small step today", "Do one small thing for yourself today: a glass of water, a few deep breaths or a short walk. Want to plan it together?"),
+        ("Sedi is here", "Whenever you want to talk, or just have someone listen, I'm here. How did today go?"),
+        ("Take care of you", "I hope today is kind to you. If something is bothering you or you're tired, tell me and let's see what helps."),
+    ),
+    "ar": (
+        ("صباح الخير من صدی", "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً."),
+        ("مررتُ لأطمئن", "أردت فقط أن أقول إني بجانبك. احكِ لي كيف كان يومك إن شئت."),
+        ("كيف حالك فعلاً؟", "تساءلتُ كيف تشعر اليوم. قل لي ما في قلبك، أنا أُصغي."),
+        ("خطوة صغيرة اليوم", "افعل شيئاً صغيراً لنفسك اليوم: كوب ماء أو بعض الأنفاس العميقة أو مشياً قصيراً. هل نخطط لذلك معاً؟"),
+        ("صدی هنا", "متى أردت أن تتحدث أو تجد من يُصغي، أنا هنا. كيف مرّ يومك؟"),
+        ("اعتنِ بنفسك", "أتمنى أن يكون يومك لطيفاً. إن كان شيء يضايقك أو كنت متعباً، أخبرني لنرى ما يساعدك."),
+    ),
 }
 
-_GENERAL_CHECKIN_BODIES = {
-    "en": "One calm touchpoint for today. Continue with Sedi when ready.",
-    "fa": "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده.",
-    "ar": "لمسة هادئة واحدة لليوم. تابع مع صدی عندما تكون مستعدًا.",
-}
+# Backwards-compatible single-string views (first pair) for importers that expect one canonical string.
+_GENERAL_CHECKIN_TITLES = {lang: pairs[0][0] for lang, pairs in _GENERAL_CHECKIN_PAIRS.items()}
+_GENERAL_CHECKIN_BODIES = {lang: pairs[0][1] for lang, pairs in _GENERAL_CHECKIN_PAIRS.items()}
 
 # Legacy multi-variant pools kept only for non-general families / compatibility imports.
 _GENERAL_BODIES = {
@@ -109,19 +129,19 @@ _GENERAL_BODIES = {
 
 _NO_DATA_BODIES = {
     "en": (
-        "No new health observations are available yet today. Open Sedi when you are ready to check in.",
-        "We do not have enough observed data for a full daily summary yet. Sedi is here when you want to talk.",
-        "Today's health picture is still incomplete. A gentle check-in is ready whenever you are.",
+        "No fresh readings from your device yet today. That's okay. Whenever you like, let's just talk.",
+        "I don't have enough data for a full picture of today yet, but I'm here whenever you want to talk.",
+        "Today's picture isn't complete yet. Whenever you feel like it, I'm here for a gentle check-in.",
     ),
     "fa": (
-        "هنوز دادهٔ مشاهده‌شدهٔ جدیدی برای امروز در دسترس نیست. هر وقت آماده بودی صدی را باز کن.",
-        "هنوز دادهٔ کافی برای خلاصهٔ کامل روزانه نداریم. صدی اینجاست اگر بخواهی حرف بزنی.",
-        "تصویر امروز هنوز کامل نیست. یک چک‌این آرام هر وقت بخواهی آماده است.",
+        "امروز هنوز خبر تازه‌ای از دستگاهت نرسیده. اشکالی نداره؛ هر وقت دوست داشتی بیا با هم حرف بزنیم.",
+        "هنوز داده‌ی کافی برای یه جمع‌بندی کامل از امروزت ندارم. ولی من اینجام، اگه خواستی حرف بزنیم.",
+        "تصویر امروز هنوز کامل نیست. هر وقت دلت خواست، یه چک‌این آرام کنارتم.",
     ),
     "ar": (
-        "لا تتوفر بعد ملاحظات صحية جديدة لليوم. افتح صدی عندما تكون مستعدًا.",
-        "ليس لدينا بيانات كافية لملخص يومي كامل بعد. صدی هنا إن أردت التحدث.",
-        "صورة اليوم لا تزال غير مكتملة. تفقد لطيف جاهز متى شئت.",
+        "لم تصلني قراءات جديدة من جهازك اليوم. لا بأس، متى أحببت لنتحدث.",
+        "لا أملك بيانات كافية لصورة كاملة عن يومك بعد، لكني هنا متى أردت أن نتحدث.",
+        "صورة اليوم لم تكتمل بعد. متى شئت أنا بجانبك لتفقد لطيف.",
     ),
 }
 
@@ -131,8 +151,8 @@ _SAFETY_BODIES = {
         "Sedi has a safety check-in for you today. Tap to continue in chat.",
     ),
     "fa": (
-        "یک به‌روزرسانی مرتبط با ایمنی منتظر توست. برای مرور آرام، صدی را باز کن.",
-        "صدی امروز یک چک‌این ایمنی برایت دارد. برای ادامه در گفتگو ضربه بزن.",
+        "یه موضوع مربوط به سلامتت هست که می‌خوام آروم باهات مرورش کنم. بیا با هم ببینیم.",
+        "امروز یه چک‌این ایمنی برات دارم؛ نگران نباش، فقط می‌خوام مطمئن بشم حالت خوبه. بیا حرف بزنیم.",
     ),
     "ar": (
         "هناك تحديث متعلق بالسلامة بانتظارك. افتح صدی لمراجعته بهدوء.",
@@ -191,8 +211,8 @@ _I8_BODIES = {
         "A current action from your plan is waiting. Continue in Sedi when ready.",
     ),
     "fa": (
-        "یک مورد فعال از برنامه‌ات برای امروز داری. برای ادامه صدی را باز کن.",
-        "یک اقدام فعلی از برنامه‌ات منتظر است. هر وقت آماده بودی در صدی ادامه بده.",
+        "یه کار از برنامه‌ات برای امروز مونده. هر وقت آماده بودی، بیا با هم ادامه‌اش بدیم.",
+        "یکی از قدم‌های برنامه‌ات منتظرته. من کنارتم؛ هر وقت خواستی شروع کنیم.",
     ),
     "ar": (
         "لديك عنصر خطة نشط لليوم. افتح صدی للمتابعة.",
@@ -206,8 +226,8 @@ _I6_I7_BODIES = {
         "Your permitted daily context suggests a light follow-up. Continue in Sedi.",
     ),
     "fa": (
-        "یک یادداشت کوتاه سبک زندگی یا هدف برای چک‌این روزانه آماده است. برای ادامه صدی را باز کن.",
-        "بافت مجاز روزانه پیشنهاد یک پیگیری سبک می‌دهد. در صدی ادامه بده.",
+        "یادم نرفته دنبال چی هستی. بیا امروز یه قدم کوچیک بهش نزدیک‌تر بشیم.",
+        "یه فکر کوچیک برای امروزت دارم. هر وقت خواستی، بیا با هم ببینیمش.",
     ),
     "ar": (
         "ملاحظة قصيرة عن نمط الحياة أو الهدف جاهزة لتفقد يومي لطيف. افتح صدی للمتابعة.",
@@ -603,6 +623,18 @@ def _plan_progress_body(p: dict, mode: str, lang: str) -> str:
     }[lang]
 
 
+def _general_checkin_pair(facts: DailyWellnessDigestFacts, lang: str) -> tuple[str, str]:
+    pairs = _GENERAL_CHECKIN_PAIRS.get(lang) or _GENERAL_CHECKIN_PAIRS["en"]
+    local_day = facts.local_period_date or facts.observation_period_start.date()
+    idx = _rotation_variant_index(
+        user_id=facts.user_id,
+        local_day=local_day,
+        content_family=f"{facts.content_family.value}:pair",
+        n=len(pairs),
+    )
+    return pairs[idx]
+
+
 def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") -> str:
     """
     Deterministic localized copy — no diagnosis, no invented health facts.
@@ -632,8 +664,7 @@ def render_digest_body(facts: DailyWellnessDigestFacts, language: str = "en") ->
     if facts.content_family == DailySmartContentFamily.I6_I7_CONTEXT:
         return _body(_I6_I7_BODIES)
     if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
-        lang = _norm_lang(language)
-        return _GENERAL_CHECKIN_BODIES.get(lang) or _GENERAL_CHECKIN_BODIES["en"]
+        return _general_checkin_pair(facts, lang)[1]
 
     # I9_OBSERVATION
     if facts.data_status == DailyWellnessDataStatus.NO_DATA:
@@ -659,7 +690,7 @@ def render_digest_title(facts: DailyWellnessDigestFacts, language: str = "en") -
     if facts.content_family == DailySmartContentFamily.I8_ACTION and facts.plan_progress:
         return _PLAN_TITLES[facts.review_mode if facts.review_mode in _PLAN_TITLES else "morning"][lang]
     if facts.content_family == DailySmartContentFamily.GENERAL_CHECKIN:
-        return _GENERAL_CHECKIN_TITLES.get(lang) or _GENERAL_CHECKIN_TITLES["en"]
+        return _general_checkin_pair(facts, lang)[0]
     local_day = facts.local_period_date or facts.observation_period_start.date()
     return _pick_variant(
         _DIGEST_TITLES,

@@ -26,7 +26,7 @@ def test_catalog_is_complete_trilingual_and_has_no_wrong_brand_spelling():
             assert title.strip() and how.strip() and "سدی" not in title + how
     for slot in ("breakfast", "lunch", "dinner", "snack"):
         assert any(slot in m["slots"] for m in CAT["meals"])
-    assert set(CAT["why"]) >= {"soft", "low_budget", "quick", "seated", "light", "preference", "variety"}
+    assert set(CAT["why"]) >= {"soft", "low_budget", "quick", "seated", "light", "preference"}
     for lang in ("fa", "en", "ar"):
         assert CAT["safety_line"][lang].strip()
 
@@ -212,3 +212,28 @@ def test_projection_exposes_today_local_and_feedback_accepts_the_five_bounded_re
     u, proj = _week(db, "+17770009206")
     assert proj["today_local"] == proj["days"][0]["local_date"]
     assert set(get_args(FeedbackReasonV1)) == set(BOUNDED_DISLIKE_REASONS)
+
+
+# ---------- R-008: honest reasons, no same-day repeats, allergies before a week of meals ----------
+def test_no_filler_reason_and_no_dish_repeated_within_a_day():
+    week = pc.select_nutrition_week(pc.Constraints(), "seed-r008")
+    for day in week:
+        ids = [e["item"]["id"] for e in day]
+        assert len(ids) == len(set(ids)), ids
+        for e in day:
+            assert "variety" not in e["why"]
+    for day in pc.select_exercise_week(pc.Constraints(), "seed-r008"):
+        for e in day:
+            assert "variety" not in e["why"]
+    # No reason known -> the rendered detail carries no "why" suffix at all (no invented explanation).
+    entry = {"item": MEALS[next(iter(MEALS))], "slot": "breakfast", "why": []}
+    title, detail = pc.render_item(entry, "fa")
+    assert "چرا" not in detail
+
+
+def test_chat_composer_declines_until_allergies_are_known(db, monkeypatch):
+    monkeypatch.setattr(pc, "read_answers", lambda _db, _uid: ({"goal": "سلامت بیشتر"}, False))
+    out = pc.try_compose_for_chat(
+        db, user_id=1, actor_user_id=1, request="برنامه غذایی", domain="nutrition", language="fa"
+    )
+    assert out is None

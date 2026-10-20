@@ -23,16 +23,16 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "priority": "normal",
         "texts": {
             "fa": {
-                "title": "سلام",
-                "message": "امروز حالت چطور است؟ هر وقت آماده بودی با صدی ادامه بده.",
+                "title": "سلام از صدی",
+                "message": "امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم.",
             },
             "en": {
-                "title": "Hello",
-                "message": "How are you today? Continue with Sedi when ready.",
+                "title": "Hello from Sedi",
+                "message": "How is your day going? I wanted to check in on you. Whenever you feel like it, let's talk.",
             },
             "ar": {
-                "title": "مرحباً",
-                "message": "كيف حالك اليوم؟ تابع مع صدی عندما تكون مستعدًا.",
+                "title": "تحية من صدی",
+                "message": "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً.",
             },
         },
         "actions_json": DEFAULT_ACTIONS_JSON,
@@ -47,7 +47,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "texts": {
             "fa": {
                 "title": "تحرک",
-                "message": "یک قدم کوچک بردار؛ بدنت ممنون می‌شود.",
+                "message": "یه قدم کوچیک بردار؛ بدنت ازت ممنون می‌شه. اگه خواستی من کنارتم.",
             },
             "en": {
                 "title": "Move a little",

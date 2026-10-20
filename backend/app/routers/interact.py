@@ -776,17 +776,17 @@ def setup_onboarding(
             from backend.app.services.i18n.request_lang import resolve_request_lang
             greeting_lang = resolve_request_lang(request, db=db, user_id=user_id)
             if greeting_lang == "fa":
-                initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+                initial_message = "سلام! من صدی‌ام و خیلی خوشحالم که اینجایی. کنارت هستم؛ امروز چطوره؟"
             elif greeting_lang == "ar":
-                initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+                initial_message = "أهلاً! أنا صدی وسعيدة جداً بوجودك. أنا بجانبك؛ كيف يومك؟"
             else:
-                initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+                initial_message = "Hi! I'm Sedi, and I'm really glad you're here. I'm by your side. How is your day going?"
             print(f"[ONBOARDING] ✅ Using fallback greeting")
     else:
         # Fallback if user_id is None (shouldn't happen, but just in case)
         print(f"[ONBOARDING] ⚠️ WARNING: user_id is None, using fallback greeting")
         # Use default English greeting
-        initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+        initial_message = "Hi! I'm Sedi, and I'm really glad you're here. I'm by your side. How is your day going?"
     
     # Step 5: Return success - ALWAYS with user_id
     if user_id is None:

@@ -58,10 +58,7 @@ _Q4_SAFE_EXISTING_TARGETS = (
     "routines.exercise_schedule",
     "routines.bedtime",
     "routines.wake_time",
-    "preferences.communication_style",
-    "preferences.listen_before_advice",
-    "preferences.response_length",
-)
+)  # R-008: the style / listen-first / length questionnaire is never asked proactively.
 
 
 def _intent() -> IntentResult:
