@@ -159,6 +159,11 @@ jobs:
           printf '%s\n' "$LOG" | grep -oE '\[BRAIN ERROR\] Exception type: [A-Za-z0-9_.]+' | sed -E 's/.*type: //' | sort | uniq -c | sort -rn | head -10
           log "=== GPT failure classes (class only) ==="
           printf '%s\n' "$LOG" | grep -oE 'BRAIN GPT_FAILURE\] where=[A-Za-z0-9_.]+ error_type=[A-Za-z0-9_]+' | sed -E 's/BRAIN GPT_FAILURE\] //' | sort | uniq -c | sort -rn | head -10
+          log "=== GPT failure provider message (OpenAI error text only; ids/keys masked; max 220 chars) ==="
+          printf '%s\n' "$LOG" | grep -E 'BRAIN GPT_FAILURE' | sed -E 's/^.*error_type=([A-Za-z0-9_]+) message=/\1: /' | sed -E 's/(proj|org|req|key|sk)[-_][A-Za-z0-9_*-]+/\1_***/g' | cut -c1-220 | sort | uniq -c | sort -rn | head -5
+          log "=== capacity gpt_call: successes vs errors in window (counts only) ==="
+          echo "gpt_call_ok=$(printf '%s\n' "$LOG" | grep -E 'capacity event=gpt_call' | grep -c 'status=ok' || true)"
+          echo "gpt_call_error=$(printf '%s\n' "$LOG" | grep -E 'capacity event=gpt_call' | grep -c 'status=error' || true)"
           log "=== capacity gpt_call outcomes (where/status/error_class only) ==="
           printf '%s\n' "$LOG" | grep -E 'capacity event=gpt_call' | sed -E 's/.*(where=[A-Za-z0-9_.]+).*(status=[a-z]+)(.*)/\1 \2\3/' | sed -E 's/duration_ms=[0-9]+//; s/model=[^ ]+//; s/  +/ /g' | cut -c1-120 | sort | uniq -c | sort -rn | head -12
           log "=== traceback project frames (file:line function; newest 30) ==="
