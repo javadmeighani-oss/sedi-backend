@@ -228,9 +228,9 @@ _ENGAGEMENT_LOW_PAIRS: Dict[str, tuple] = {
 }
 
 _ENGAGEMENT_TOPIC_BODY: Dict[str, str] = {
-    "fa": "{p}آخرین بار درباره‌ی {t} حرف می‌زدیم و فکرم پیشت بود. حالت چطوره؟ دوست داری ادامه بدیم؟",
-    "ar": "{p}آخر مرة تحدثنا عن {t} وكنتُ أفكر بك. كيف حالك؟ هل تحب أن نكمل؟",
-    "en": "{p}last time we talked about {t} and you stayed on my mind. How are you? Want to pick it up again?",
+    "fa": "{p}آخرین بار درباره‌ی {t} حرف می‌زدیم و فکرم پیشت بود. می‌خوای همون رو ادامه بدیم، یا یه موضوع دیگه تو ذهنته؟",
+    "ar": "{p}آخر مرة تحدثنا عن {t} وكنتُ أفكر بك. هل تحب أن نكمل، أم عندك موضوع آخر؟",
+    "en": "{p}last time we talked about {t} and you stayed on my mind. Want to pick it up again, or is something else on your mind?",
 }
 
 

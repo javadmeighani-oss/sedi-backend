@@ -495,6 +495,31 @@ def _is_gpt_related_error(exc: BaseException) -> bool:
     )
 
 
+_PROVIDER_ERROR_NAMES = frozenset(
+    {
+        "permissiondeniederror",
+        "ratelimiterror",
+        "badrequesterror",
+        "notfounderror",
+        "conflicterror",
+        "unprocessableentityerror",
+        "internalservererror",
+        "apiconnectionerror",
+        "apitimeouterror",
+        "apiresponsevalidationerror",
+    }
+)
+
+
+def _is_llm_provider_unavailable(exc: BaseException) -> bool:
+    """True for failures of the LLM provider call itself that `_is_gpt_related_error` does not recognise
+    (the OpenAI SDK exposes them under names without "openai"/"apierror")."""
+    if type(exc).__name__.lower() in _PROVIDER_ERROR_NAMES:
+        return True
+    module = (type(exc).__module__ or "").lower()
+    return module.startswith("openai") and type(exc).__name__.lower() != "authenticationerror"
+
+
 class ConversationBrain:
     """Central decision engine for all conversation interactions"""
     
@@ -832,6 +857,33 @@ class ConversationBrain:
             if _is_gpt_related_error(e):
                 _log_gpt_failure(e, where="process_message.outer_re_raise")
                 raise
+
+            # R-011: the LLM provider itself is unreachable/refusing (e.g. 403 unsupported_country_region_territory,
+            # 429, 5xx, network). Say so warmly and honestly instead of a generic "processing error"; the caller
+            # (orchestrator) must not append questions to this message.
+            if _is_llm_provider_unavailable(e):
+                unavailable = {
+                    "en": "I can't think properly right now because of a technical problem on my side — it's not you. "
+                    "Please try again in a little while; I'm not going anywhere.",
+                    "fa": "الان به‌خاطر یه مشکل فنی از سمت خودم نمی‌تونم درست جواب بدم؛ تقصیر تو نیست. "
+                    "چند دقیقه‌ی دیگه دوباره برام بنویس، من همین‌جام.",
+                    "ar": "لا أستطيع الرد بشكل سليم الآن بسبب مشكلة تقنية من جهتي، وليس بسببك. "
+                    "حاول مرة أخرى بعد قليل، أنا هنا.",
+                }
+                try:
+                    stage_value = get_stage(user_id, self.db).value
+                except Exception:
+                    stage_value = "FIRST_CONTACT"
+                return {
+                    "message": unavailable.get(self.language, unavailable["en"]),
+                    "language": self.language,
+                    "stage": stage_value,
+                    "metadata": {
+                        "error": True,
+                        "error_type": type(e).__name__,
+                        "llm_unavailable": True,
+                    },
+                }
 
             # Non-GPT failures: return a user-friendly error message (HTTP 200 legacy path)
             error_messages = {
