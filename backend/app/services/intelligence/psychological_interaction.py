@@ -51,6 +51,25 @@ _BE_HEARD_CUES: dict[str, tuple[str, ...]] = {
         "listening",
         "hard day",
         "tough day",
+        "grief",
+        "grieving",
+        "passed away",
+        "lost my",
+        "miss my",
+        "depress",
+        "hopeless",
+        "scared",
+        "afraid",
+        "crying",
+        "exhausted",
+        "burned out",
+        "burnt out",
+        "fight with",
+        "fought with",
+        "argument with",
+        "broke up",
+        "got fired",
+        "so tired of",
     ),
     "fa": (
         "احساس",
@@ -65,6 +84,34 @@ _BE_HEARD_CUES: dict[str, tuple[str, ...]] = {
         "حرف بزنم",
         "دلگیر",
         "آشفته",
+        "دلتنگ",
+        "دلم تنگ",
+        "دلم گرفته",
+        "غصه",
+        "گریه",
+        "تنهام",
+        "افسرده",
+        "می‌ترسم",
+        "میترسم",
+        "ترسیدم",
+        "کلافه",
+        "عصبانی",
+        "داغونم",
+        "از دست دادم",
+        "فوت کرد",
+        "فوت شد",
+        "دعوا",
+        "دعوام",
+        "اذیتم می",
+        "نگرانم",
+        "نگران شدم",
+        "طلاق",
+        "اخراج شدم",
+        "وضع مالیم",
+        "حالم خوب نیست",
+        "خسته‌ام",
+        "خسته ام",
+        "کم آوردم",
     ),
     "ar": (
         "أشعر",
@@ -76,6 +123,19 @@ _BE_HEARD_CUES: dict[str, tuple[str, ...]] = {
         "فقط استمع",
         "أريد أن أتحدث",
         "يوم صعب",
+        "خائف",
+        "أبكي",
+        "اشتقت",
+        "توفي",
+        "توفيت",
+        "فقدت",
+        "مكتئب",
+        "يائس",
+        "حزينة",
+        "تعبان",
+        "تعبت",
+        "خلاف مع",
+        "تشاجرت",
     ),
 }
 
@@ -219,6 +279,26 @@ def _has_cue(text: str, cues: tuple[str, ...]) -> bool:
     return any(c in text for c in cues)
 
 
+# A message made only of greeting / "how are you" words is social, not a request for a next step
+# (the "چطوری" in «سلام صدی، چطوری؟» must not read as the ACT cue «چطور»).
+_GREETING_WORDS: dict[str, frozenset[str]] = {
+    "en": frozenset({"hi", "hello", "hey", "sedi", "good", "morning", "evening", "afternoon", "night",
+                     "how", "are", "you", "doing", "whats", "what's", "up", "yo", "there", "again", "thanks", "thank"}),
+    "fa": frozenset({"سلام", "درود", "صدی", "چطوری", "چطوره", "خوبی", "خوبین", "حالت", "احوالت", "چطور", "صبح", "عصر",
+                     "شب", "بخیر", "روزت", "روزتون", "ممنون", "مرسی", "هستی", "دوباره", "من", "اومدم", "برگشتم", "عزیزم", "جان"}),
+    "ar": frozenset({"مرحبا", "أهلا", "اهلا", "السلام", "عليكم", "صدی", "صدي", "كيف", "حالك", "صباح", "مساء", "الخير", "شكرا"}),
+}
+
+
+def _is_social_greeting(text: str, lang: str) -> bool:
+    tokens = [t.strip("،,.!؟?؛;:…-—'\"()") for t in text.split()]
+    tokens = [t for t in tokens if t]
+    if not tokens or len(tokens) > 8:
+        return False
+    words = _GREETING_WORDS.get(lang, _GREETING_WORDS["en"])
+    return all(t in words for t in tokens)
+
+
 # Help-seeking vs listen-only surface cues for emotionally loaded messages (BE_HEARD). Used only to decide
 # whether governed psychology knowledge may accompany a listen-first reply.
 _HELP_REQUEST_CUES: dict[str, tuple[str, ...]] = {
@@ -254,6 +334,8 @@ def classify_interaction_need(
 
     if _has_cue(text, _BE_HEARD_CUES.get(lang, _BE_HEARD_CUES["en"])):
         return InteractionNeed.BE_HEARD
+    if _is_social_greeting(text, lang):
+        return InteractionNeed.GENERAL
     if _has_cue(text, _MOTIVATE_CUES.get(lang, _MOTIVATE_CUES["en"])):
         return InteractionNeed.MOTIVATE
     # ACT before DECIDE so "what should I do / next step" prefers action.

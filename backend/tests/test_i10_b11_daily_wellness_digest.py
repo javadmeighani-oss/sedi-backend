@@ -693,10 +693,10 @@ def test_a4_closure_occurrence_uses_user_local_date_tehran(db, gate4_patch, morn
 
 
 def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
-    """GENERAL_CHECKIN uses fixed canonical copy (stable across adjacent local days)."""
+    """R-011: GENERAL_CHECKIN rotates warm human copy, so adjacent local days never repeat the same text."""
     from backend.app.services.i10.daily_wellness_digest import (
         DailySmartContentFamily,
-        _GENERAL_CHECKIN_BODIES,
+        _GENERAL_CHECKIN_PAIRS,
         assemble_daily_wellness_digest_facts,
         render_digest_body,
         render_digest_title,
@@ -711,9 +711,11 @@ def test_a4_closure_adjacent_day_body_nonrepetition(db, gate4_patch):
     )
     assert f1.content_family == DailySmartContentFamily.GENERAL_CHECKIN
     assert f2.content_family == DailySmartContentFamily.GENERAL_CHECKIN
-    assert render_digest_body(f1, "en") == render_digest_body(f2, "en") == _GENERAL_CHECKIN_BODIES["en"]
-    assert render_digest_title(f1, "fa") == "پیگیری روزانه صدی"
-    assert render_digest_body(f1, "fa") == _GENERAL_CHECKIN_BODIES["fa"]
+    for lang in ("en", "fa", "ar"):
+        pairs = _GENERAL_CHECKIN_PAIRS[lang]
+        assert (render_digest_title(f1, lang), render_digest_body(f1, lang)) in pairs
+        assert (render_digest_title(f2, lang), render_digest_body(f2, lang)) in pairs
+        assert render_digest_body(f1, lang) != render_digest_body(f2, lang)
 
 
 def test_a4_closure_i6_i7_requires_read_consent(db, gate4_patch):

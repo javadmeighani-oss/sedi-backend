@@ -76,24 +76,8 @@ _SOFT_DISCOVERY_CANDIDATES: dict[IntentId, tuple[tuple[str, str, str, int], ...]
             "nbq.general.interests.v1",
             10,
         ),
-        (
-            "preferences.communication_style",
-            "medium",
-            "nbq.general.communication_style.v1",
-            20,
-        ),
-        (
-            "preferences.listen_before_advice",
-            "medium",
-            "nbq.general.listen_before_advice.v1",
-            30,
-        ),
-        (
-            "preferences.response_length",
-            "medium",
-            "nbq.general.response_length.v1",
-            40,
-        ),
+        # R-008: Sedi never asks the style / listen-first / length questionnaire; those
+        # preferences are only learned when the user states them (or from behaviour).
     ),
 }
 
@@ -124,9 +108,6 @@ _INVITATION_SOFT_PRIORITY: tuple[str, ...] = (
     "routines.exercise_schedule",
     "routines.bedtime",
     "routines.wake_time",
-    "preferences.communication_style",
-    "preferences.listen_before_advice",
-    "preferences.response_length",
 )
 
 _INVITATION_TEMPLATE_BY_KEY: dict[str, tuple[str, str, int]] = {
@@ -571,8 +552,8 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     "nbq.confirm.stale.v1": {
         "en": "I may have an older value for your {field}. What should I use now?",
         "fa": (
-            "ممکن است مقدار قدیمی‌تری برای {field} شما داشته باشم. "
-            "الان چه چیزی را استفاده کنم؟"
+            "ممکنه برای {field} یه مقدار قدیمی‌تر ازت داشته باشم. "
+            "الان چی رو درست بدونم؟"
         ),
         "ar": "قد يكون لدي قيمة أقدم لـ {field} لديك. ماذا يجب أن أستخدم الآن؟",
     },
@@ -582,8 +563,8 @@ _TEMPLATES: dict[str, dict[str, str]] = {
             "What should I use going forward?"
         ),
         "fa": (
-            "اطلاعات متناقضی دربارهٔ {field} شما دارم. "
-            "از این به بعد چه چیزی را استفاده کنم؟"
+            "دربارهٔ {field} دو جواب متفاوت ازت دارم. "
+            "از این به بعد کدوم رو درست بدونم؟"
         ),
         "ar": (
             "لدي معلومات متعارضة حول {field} لديك. "
@@ -773,10 +754,13 @@ def _select_contextual_directive(
     intent: IntentResult,
     language: LanguageCode,
     message: str,
+    exclude_keys: frozenset[str] = frozenset(),
 ) -> Optional[DiscoveryDirective]:
     """Return at most one contextual directive when message relevance is true."""
     hits: list[_ContextualCandidate] = []
     for cand in _CONTEXTUAL_CANDIDATES:
+        if cand.target_key in exclude_keys:
+            continue
         if intent.intent_id not in cand.compatible_intents:
             continue
         if not _message_relevant(message, cand.relevance_cues):
@@ -832,6 +816,7 @@ def _select_function_directive(
     language: LanguageCode,
     plan_domain: Optional[str] = None,
     conditions_only: bool = False,
+    exclude_keys: frozenset[str] = frozenset(),
 ) -> Optional[DiscoveryDirective]:
     """Stage 06 / B1 + B1.5-a: friendly plan intake before/while building a personalized plan.
 
@@ -845,6 +830,8 @@ def _select_function_directive(
         else:
             return None
     for key in _plan_intake_steps(plan_domain, snapshot):
+        if key in exclude_keys:
+            continue  # answered this turn; the snapshot predates the answer (R-008: never ask twice)
         if conditions_only and not key.startswith("function."):
             continue  # the established soft question (food habits / activity level) keeps its place
         if _coverage_blocks_discovery(snapshot, key):
@@ -870,11 +857,14 @@ def _select_tier_a_directive(
     snapshot: ContextSnapshot,
     intent: IntentResult,
     language: LanguageCode,
+    exclude_keys: frozenset[str] = frozenset(),
 ) -> Optional[DiscoveryDirective]:
     """CR-04F.1 — at most one safe missing Tier-A question (GENERAL only)."""
     if intent.intent_id is not IntentId.GENERAL:
         return None
     for target_key in TIER_A_GENERAL_PRIORITY:
+        if target_key in exclude_keys:
+            continue
         if not is_safe_missing_for_discovery(snapshot, target_key):
             continue
         meta = _TIER_A_TEMPLATE_BY_KEY.get(target_key)
@@ -940,6 +930,7 @@ def _select_intent_soft_directive(
     snapshot: ContextSnapshot,
     intent: IntentResult,
     language: LanguageCode,
+    exclude_keys: frozenset[str] = frozenset(),
 ) -> Optional[DiscoveryDirective]:
     """Intent-specific soft candidates (sleep/nutrition/activity). GENERAL uses Tier-A."""
     if intent.intent_id is IntentId.GENERAL:
@@ -949,6 +940,8 @@ def _select_intent_soft_directive(
     if not candidates:
         return None
     for target_key, sensitivity, template_id, priority in candidates:
+        if target_key in exclude_keys:
+            continue
         if _coverage_blocks_discovery(snapshot, target_key):
             continue
         question_id = f"nbq.q.{intent.intent_id.value}.{target_key}.v1"
@@ -1016,7 +1009,11 @@ def select_next_best_question(
     # B2) Stage 06 / B1.5-a: keep a plan intake going after an intake reply (explicit plan_domain).
     if plan_domain is not None:
         plan_q = _select_function_directive(
-            snapshot=snapshot, intent=intent, language=language, plan_domain=plan_domain
+            snapshot=snapshot,
+            intent=intent,
+            language=language,
+            plan_domain=plan_domain,
+            exclude_keys=excluded,
         )
         if plan_q is not None:
             return plan_q
@@ -1035,13 +1032,18 @@ def select_next_best_question(
         intent=intent,
         language=language,
         message=message,
+        exclude_keys=excluded,
     )
     if contextual is not None:
         return contextual
 
     # D2) Stage 06 / B1 + B1.5-a: friendly plan intake for plan intents (after contextual relevance).
     plan_q2 = _select_function_directive(
-        snapshot=snapshot, intent=intent, language=language, conditions_only=True
+        snapshot=snapshot,
+        intent=intent,
+        language=language,
+        conditions_only=True,
+        exclude_keys=excluded,
     )
     if plan_q2 is not None:
         return plan_q2
@@ -1056,15 +1058,17 @@ def select_next_best_question(
 
     # F) Tier-A progressive (GENERAL only) — always single.
     tier_a = _select_tier_a_directive(
-        snapshot=snapshot, intent=intent, language=language
+        snapshot=snapshot, intent=intent, language=language, exclude_keys=excluded
     )
     if tier_a is not None:
         return tier_a
 
     soft = _select_intent_soft_directive(
-        snapshot=snapshot, intent=intent, language=language
+        snapshot=snapshot, intent=intent, language=language, exclude_keys=excluded
     )
     if soft is not None:
         return soft
     # Stage 06 / B1.5-a: once the established soft question is answered, continue the friendly intake.
-    return _select_function_directive(snapshot=snapshot, intent=intent, language=language)
+    return _select_function_directive(
+        snapshot=snapshot, intent=intent, language=language, exclude_keys=excluded
+    )

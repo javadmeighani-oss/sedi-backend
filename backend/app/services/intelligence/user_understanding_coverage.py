@@ -61,12 +61,8 @@ TIER_A_TARGETS: tuple[str, ...] = (
 )
 
 # GENERAL soft-discovery order (lower index = higher priority).
-TIER_A_GENERAL_PRIORITY: tuple[str, ...] = (
-    "preferences.interests",
-    "preferences.communication_style",
-    "preferences.listen_before_advice",
-    "preferences.response_length",
-)
+# R-008: the style / listen-first / length questionnaire is never asked proactively.
+TIER_A_GENERAL_PRIORITY: tuple[str, ...] = ("preferences.interests",)
 
 # Never missing-driven (Tier C) — coverage may still report state if present.
 TIER_C_NEVER_MISSING_DRIVEN: frozenset[str] = frozenset(

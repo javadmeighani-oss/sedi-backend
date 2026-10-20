@@ -1116,13 +1116,16 @@ class IntelligenceOrchestrator:
                     and getattr(bind_result, "disposition", None)
                     is DiscoveryDisposition.ANSWER
                 )
-                if pending_invited and answered and discovery_allow_binding:
-                    continue_invited_discovery = True
-                    # Exclude all keys from this marker same-turn (answered + unanswered).
+                if answered and discovery_allow_binding:
+                    # The snapshot predates this answer: never re-ask the same keys this turn.
+                    # Exclude all keys from this marker same-turn (answered + unanswered), for
+                    # invited discovery AND the plan-intake interview (R-008).
                     marker_keys = tuple(
                         getattr(bind_result, "marker_keys", None) or pending_keys or ()
                     )
                     invited_exclude_keys = frozenset(marker_keys)
+                    if pending_invited:
+                        continue_invited_discovery = True
             except Exception:
                 pass
 
@@ -1244,7 +1247,7 @@ class IntelligenceOrchestrator:
                     nutrition_message = (
                         "I cannot create a verified nutrition action from the available context."
                         if lang == "en"
-                        else "با زمینه موجود نمی‌توانم یک اقدام تغذیه‌ای تأییدشده بسازم."
+                        else "الان نتونستم یه برنامه‌ی تغذیه‌ی مطمئن بسازم؛ یه کم بیشتر درباره‌ات بگو تا دوباره امتحان کنم."
                     )
                     extra_reason_codes.append("NUTRITION_PRIMARY_PATH_FAIL_CLOSED")
                 skip_generator = True
@@ -1306,7 +1309,7 @@ class IntelligenceOrchestrator:
                     exercise_message = (
                         "I cannot create a verified activity action from the available context."
                         if lang == "en"
-                        else "با زمینه موجود نمی‌توانم یک اقدام فعالیت تأییدشده بسازم."
+                        else "الان نتونستم یه برنامه‌ی ورزشی مطمئن بسازم؛ یه کم بیشتر درباره‌ات بگو تا دوباره امتحان کنم."
                     )
                     extra_reason_codes.append("EXERCISE_PRIMARY_PATH_FAIL_CLOSED")
                 skip_generator = True
@@ -1344,17 +1347,17 @@ class IntelligenceOrchestrator:
                 elif dispatched.get("created"):
                     extra_reason_codes.append("I3_REMINDER_USEREVENT_CREATED")
                 if lang == "fa":
-                    reminder_message = "رویداد در «برنامه من» ثبت شد."
+                    reminder_message = "حله، توی «برنامه‌ی من» ثبتش کردم و سر وقتش یادت می‌ندازم."
                 elif lang == "ar":
-                    reminder_message = "تم حفظ الموعد في «جدولي»."
+                    reminder_message = "تم، حفظتُه في «جدولي» وسأذكّرك في وقته."
                 else:
-                    reminder_message = "I’ve added this to My Schedule."
+                    reminder_message = "Done — I’ve added it to My Schedule and I’ll remind you when it’s time."
             except Exception:
                 extra_reason_codes.append("I3_REMINDER_USEREVENT_FAIL_CLOSED")
                 reminder_message = (
-                    "I couldn’t save that schedule item right now."
+                    "I couldn’t save that right now — please tell me once more in a moment and I’ll add it."
                     if lang == "en"
-                    else "الان نتوانستم این مورد را در برنامه ثبت کنم."
+                    else "الان نشد ثبتش کنم؛ یه کم دیگه دوباره بگو تا برات ثبتش کنم."
                 )
             skip_generator = True
             clarification_message = None
@@ -1450,6 +1453,18 @@ class IntelligenceOrchestrator:
                 response_length=adaptive.response_length,
                 listen_before_advice=adaptive.listen_before_advice,
             )
+            # R-011: I7 derived wellbeing (short/medium-term) lets Sedi be attentive; consent-gated, never a fact.
+            try:
+                from backend.app.services.i6.consent_service import PERM_READ, has_permission
+                from backend.app.services.i7.derived_signals import recent_wellbeing_trend
+
+                if self._db is not None and has_permission(self._db, authenticated_user_id, PERM_READ):
+                    _wb = recent_wellbeing_trend(self._db, authenticated_user_id)
+                    _hint = PersonaPolicyV1.wellbeing_hint(_wb.get("trend"), _wb.get("concerns"), lang)
+                    if _hint:
+                        relationship_guidance = f"{relationship_guidance}\n{_hint}"
+            except Exception:
+                pass
 
         # Structured I5 gate: decide after CR-02 need + I6 adaptive, before generation.
         if (

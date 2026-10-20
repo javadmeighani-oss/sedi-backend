@@ -939,9 +939,36 @@ class DecisionEngine:
             logger.info("[NOTIF] suppressed channel=engagement user_id=%s reason=quiet_hours", user_id)
             return None
 
+        # R-009: Like/Dislike/dismiss reactions and their reasons shape this family too.
+        content_hints: Dict[str, Any] = {}
+        try:
+            allowed, why = is_companion_send_allowed(self.db, user_id, scheduled_for or datetime.utcnow())
+            if not allowed:
+                logger.info("[NOTIF] suppressed channel=engagement user_id=%s reason=adaptive_%s", user_id, why)
+                return None
+            content_hints = compute_adaptive_state(
+                self.db, user_id, scheduled_for or datetime.utcnow()
+            ).get("content_hints", {}) or {}
+        except Exception:
+            content_hints = {}
+
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
+        if content_hints.get("simple_copy"):
+            inputs["simple_copy"] = True
+        try:
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.derived_signals import recent_wellbeing_trend
+
+            if has_permission(self.db, user_id, PERM_READ):
+                _wb = recent_wellbeing_trend(self.db, user_id)
+                if _wb.get("trend") == "low":
+                    inputs["wellbeing_trend"] = "low"
+        except Exception:
+            pass
         # Privacy-safe coarse topic only — never raw chat / health-sensitive text.
         try:
+            if content_hints.get("avoid_topic"):
+                raise LookupError("user said the last topic was not relevant")
             from backend.app.services.i7.privacy_safe_recent_topic import (
                 display_phrase_for_topic_label,
                 get_privacy_safe_recent_topic_label,

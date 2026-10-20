@@ -92,7 +92,6 @@ why:
   seated: {fa: "بدون نیاز به ایستادن", en: "no standing needed", ar: "لا يتطلب الوقوف"}
   light: {fa: "سبک و کم‌فشار", en: "light and low-strain", ar: "خفيف وقليل الجهد"}
   preference: {fa: "با علاقه‌ات جور است", en: "matches what you like", ar: "يناسب ما تحبه"}
-  variety: {fa: "برای تنوع هفته", en: "for variety across the week", ar: "لتنوع الأسبوع"}
 safety_line:
   fa: "اگه درد قفسه‌ی سینه، تنگی نفس شدید، سرگیجه یا ضعف ناگهانی داشتی، همون لحظه متوقف شو و با تیم درمان یا اورژانس تماس بگیر."
   en: "If you get chest pain, severe breathlessness, dizziness or sudden weakness, stop right away and contact your care team or emergency services."

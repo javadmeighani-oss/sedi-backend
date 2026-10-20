@@ -285,3 +285,37 @@ def test_intake_answer_binds_like_any_open_text_reply():
     assert _target_fit("intake.allergies", "به بادام زمینی آلرژی دارم")
     assert _target_fit("intake.budget", "متوسط")
     assert not _target_fit("intake.allergies", "یادآوری کن دارو بخورم")
+
+
+def test_answered_intake_key_is_never_asked_again_in_the_same_turn():
+    """R-008: the snapshot predates the user's answer, so the answered keys are excluded explicitly."""
+    intent = _intent(IntentId.NUTRITION)
+    ready = _ready(intent)
+    stale_snapshot = _snap([])  # nothing recorded yet — the reply was bound after assembly
+
+    first = select_next_best_question(
+        snapshot=stale_snapshot, intent=intent, readiness=ready, language="fa",
+        plan_domain="nutrition",
+    )
+    assert first is not None and first.target_key == "intake.goal"
+
+    after_goal = select_next_best_question(
+        snapshot=stale_snapshot, intent=intent, readiness=ready, language="fa",
+        plan_domain="nutrition", exclude_keys=frozenset({"intake.goal"}),
+    )
+    assert after_goal is not None and after_goal.target_key != "intake.goal"
+
+    # Walk the whole interview with growing exclusions: every key is asked exactly once, none twice.
+    asked: list[str] = []
+    excluded: set[str] = set()
+    for _ in range(12):
+        d = select_next_best_question(
+            snapshot=stale_snapshot, intent=intent, readiness=ready, language="fa",
+            plan_domain="nutrition", exclude_keys=frozenset(excluded),
+        )
+        if d is None:
+            break
+        asked.append(d.target_key)
+        excluded.add(d.target_key)
+    assert len(asked) == len(set(asked))
+    assert "intake.allergies" in asked

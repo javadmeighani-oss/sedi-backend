@@ -197,7 +197,13 @@ def select_nutrition_week(c: Constraints, seed: str) -> list[list[dict]]:
         rnd.shuffle(rest)
         order = liked + rest
         for i in range(7):
-            it = order[i % len(order)]
+            # Rotate through the pool, but never serve a dish already planned earlier the same day.
+            taken = {e["item"]["id"] for e in week[i]}
+            start = i % len(order)
+            it = next(
+                (order[(start + k) % len(order)] for k in range(len(order)) if order[(start + k) % len(order)]["id"] not in taken),
+                order[start],
+            )
             why = []
             if c.soft and it["texture"] == "soft":
                 why.append("soft")
@@ -207,7 +213,7 @@ def select_nutrition_week(c: Constraints, seed: str) -> list[list[dict]]:
                 why.append("quick")
             if it in liked:
                 why.append("preference")
-            week[i].append({"item": it, "slot": slot, "why": why or ["variety"]})
+            week[i].append({"item": it, "slot": slot, "why": why})  # no filler reason: only real ones (R-008)
     return week
 
 
@@ -236,7 +242,7 @@ def select_exercise_week(c: Constraints, seed: str) -> list[list[dict]]:
         day: list[dict] = []
         if (i + 1) in active and movers:
             main = movers[i % len(movers)]
-            why = ["seated"] if not main["needs_stand"] else (["light"] if main["intensity"] == "light" else ["variety"])
+            why = ["seated"] if not main["needs_stand"] else (["light"] if main["intensity"] == "light" else [])
             day.append({"item": main, "slot": "exercise", "why": why})
             if c.conservative and breathing and (i + 1) in (1, 5):
                 day.append({"item": breathing[0], "slot": "exercise", "why": ["light"]})
@@ -252,10 +258,12 @@ def _lang(language: Optional[str]) -> str:
     return lang if lang in ("fa", "en", "ar") else "en"
 
 
-def render_item(entry: dict, language: str) -> tuple[str, str]:
+def render_item(entry: dict, language: str, voiced: Optional[dict] = None) -> tuple[str, str]:
     lang = _lang(language)
     cat = catalog()
     title, how = cat["texts"][entry["item"]["id"]][lang]
+    if voiced and voiced.get(entry["item"]["id"]):
+        how = voiced[entry["item"]["id"]]  # Sedi's own voice (plan_voice); the rules still chose the item
     why = [cat["why"][k][lang] for k in entry["why"] if k in cat["why"]]
     sep = {"fa": "؛ چرا: ", "en": "; why: ", "ar": "؛ لماذا: "}[lang]
     detail = how + (sep + "، ".join(why[:2]) if why else "")
@@ -266,9 +274,9 @@ def render_item(entry: dict, language: str) -> tuple[str, str]:
 
 def _day_header(lang: str) -> str:
     return {
-        "fa": "برنامه‌ی ۷ روزه‌ات آماده شد و توی «سبک زندگی» همه‌ی روزها رو می‌بینی. امروز:",
-        "en": "Your 7-day plan is ready; you can see every day in Lifestyle. Today:",
-        "ar": "خطتك لسبعة أيام جاهزة وتجد كل الأيام في «نمط الحياة». اليوم:",
+        "fa": "برنامه‌ی ۷ روزه‌ات رو با دقت و به‌اندازه‌ی خودت چیدم، عزیزم؛ همه‌ی روزها رو توی «سبک زندگی» می‌بینی. امروز:",
+        "en": "I put your 7-day plan together carefully, just for you; you can see every day in Lifestyle. Today:",
+        "ar": "رتّبتُ لك خطة السبعة أيام بعناية وعلى مقياسك؛ تجد كل الأيام في «نمط الحياة». اليوم:",
     }[lang]
 
 
@@ -346,6 +354,14 @@ def compose_week_plan(
             constraints.light_only = True  # the previous week was too hard to keep up: go lighter
     seed = f"{user_id}:{domain}:{cycle_start.isoformat()}"
     week = select_nutrition_week(constraints, seed) if domain == "nutrition" else select_exercise_week(constraints, seed)
+    voiced: dict = {}
+    try:
+        from backend.app.services.i8 import plan_voice
+
+        if plan_voice.plan_voice_enabled():
+            voiced = plan_voice.voice_week(week, lang, constraints)
+    except Exception:
+        voiced = {}
     today_local = bounds.today_local
     lifecycle = I8OperationalLifecycle()
     result = ComposeResult(status="ACTION_PERSISTED")
@@ -358,7 +374,7 @@ def compose_week_plan(
         try:
             plan = None
             for n, entry in enumerate(day):
-                title, detail = render_item(entry, lang)
+                title, detail = render_item(entry, lang, voiced)
                 slot = entry["slot"]
                 minutes = int(entry["item"].get("minutes", 0) or 0)
                 if constraints.minutes_cap and minutes:
@@ -448,6 +464,11 @@ def try_compose_for_chat(
     if actor_user_id != user_id or health_subject_id is not None:
         return None
     try:
+        if domain == "nutrition":
+            # R-008: never build a week of meals before the user's allergies are known (hard safety input).
+            answers, _ = read_answers(db, user_id)
+            if not (answers.get("allergies") or answers.get("medical_allergies")):
+                return None
         # I5 stays the grounding authority: the same retrieval + safety gates as the legacy path must pass
         # (otherwise the legacy fail-safe answer is used), and the governed refs are stored on every action.
         from backend.app.services.i8 import unified_core as uc

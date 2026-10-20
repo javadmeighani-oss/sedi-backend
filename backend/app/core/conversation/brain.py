@@ -882,35 +882,25 @@ class ConversationBrain:
         display_name = user_name.strip() if user_name and user_name.strip() else "friend"
         print(f"[BRAIN] get_initial_message: user_id={user_id}, user_name='{user_name}', display_name='{display_name}', language={language}")
         
-        # CRITICAL: Initial greeting MUST be in English (for context)
-        # User's preferred language will be used for subsequent responses
-        # Get Sedi's complete context in English (core thinking language)
-        sedi_context = build_complete_sedi_context("en")
-        
-        # Build system prompt - ALWAYS in English for initial greeting
-        system_prompt = f"""{sedi_context}
+        # R-011: the very first words Sedi says use the human, warm persona in the user's own language.
+        from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
 
-You are Sedi, speaking with {display_name} for the first time after they completed onboarding.
+        lang_code = PersonaPolicyV1.resolve_language(language)
+        persona_prompt = PersonaPolicyV1.system_prompt(
+            lang_code, {"preferred_name": display_name} if display_name != "friend" else None
+        )
+        system_prompt = f"""{persona_prompt}
 
-Your role is to:
-1. Introduce yourself warmly
-2. Explain who you are (Sedi, AI-powered health care assistant)
-3. Explain your purpose: How you help improve their quality of life through:
-   - Personalized health care suggestions
-   - Lifestyle improvement recommendations
-   - Continuous monitoring of daily health data via smart devices
-4. Explain how you work: You learn about their lifestyle through natural conversation and use smart devices to track vital signs (heart rate, temperature, SpO2) continuously
-5. Be warm, friendly, and engaging
-6. Keep it concise (2-3 sentences, max 200 characters)
-7. {"Use their name naturally in the greeting" if display_name != "friend" else "Greet them warmly"}
-
-CRITICAL: This is the initial greeting message. It MUST be in English.
-The user's preferred language ({language}) will be used for all subsequent responses.
+This is your very first message to this person right after they joined Sedi.
+- Greet them warmly{" by name" if display_name != "friend" else ""}, like a caring friend who is happy to meet them.
+- Say briefly who you are (Sedi) and that you will be by their side for their health, lifestyle and mood: listening, helping them care for themselves, and cheering them on.
+- Invite them to talk to you about anything, in their own way.
+- End with ONE gentle opening question (for example how their day is going).
+- 3 to 4 short, natural sentences, plain text. Reply in the language of the persona prompt above.
 """
-        
-        # Build user prompt - ALWAYS in English for initial greeting
-        user_prompt = f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming." + (f" Use their name: {display_name}." if display_name != "friend" else "")
-        
+
+        user_prompt = f"Write your first message to {display_name}." if display_name != "friend" else "Write your first message to the new user."
+
         try:
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -931,14 +921,13 @@ The user's preferred language ({language}) will be used for all subsequent respo
             print(f"[GPT_ONBOARDING_START] User prompt length: {len(user_prompt)} characters")
             import os
             print(f"[GPT_ONBOARDING_START] API key available: {bool(os.getenv('OPENAI_API_KEY'))}")
-            print(f"[GPT_ONBOARDING_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
             print("=" * 80)
             
             # Chat Completions path preserved; GPT-6 compatible (no temperature with effort=low).
             response = gpt_client.chat.completions.create(
                 model=chat_model,
                 messages=messages,
-                max_tokens=200,
+                max_tokens=700,
                 reasoning_effort=DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
             )
             
@@ -966,12 +955,11 @@ The user's preferred language ({language}) will be used for all subsequent respo
             print(f"[BRAIN INITIAL MESSAGE ERROR] Traceback: {traceback.format_exc()}")
             # Fallback message - use display_name (already set to "friend" if None)
             fallback = {
-                "en": f"Hello {display_name}! I'm Sedi, your AI-powered health care assistant. I'm here to help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices.",
-                "fa": f"سلام {display_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
-                "ar": f"مرحباً {display_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
+                "en": f"Hi {display_name}! I'm Sedi. I'm really glad you're here. I'll be by your side for your health, your lifestyle and your mood, to listen and to help you take good care of yourself. How is your day going?",
+                "fa": f"سلام {display_name}! من صدی‌ام و خیلی خوشحالم که اینجایی. کنارت هستم تا برای سلامتی، سبک زندگی و حال و روحیه‌ات گوش بدم و کمکت کنم از خودت خوب مراقبت کنی. امروز چطوره؟",
+                "ar": f"أهلاً {display_name}! أنا صدی، وسعيدة جداً بوجودك هنا. سأكون بجانبك في صحتك ونمط حياتك ومزاجك، لأصغي إليك وأساعدك على العناية بنفسك. كيف يومك؟",
             }
-            # Fallback message - ALWAYS in English for initial greeting
-            return fallback["en"]
+            return fallback.get(lang_code, fallback["en"])
     
     def get_greeting(self, user_id: int, user_name: Optional[str] = None) -> Dict[str, any]:
         """
@@ -1045,25 +1033,25 @@ The user's preferred language ({language}) will be used for all subsequent respo
         elif time_since:
             # User returning after absence - be warm and check in
             greeting_prompt = {
-                "en": f"""Greet {user_name} warmly. You haven't talked in a while. Remind them briefly who you are (Sedi, their health care assistant) and that you're here to help improve their quality of life through health monitoring and lifestyle suggestions. Be warm but not overwhelming. Ask how they've been.""",
-                "fa": f"""با {user_name} گرم سلام کن. مدتی است که حرف نزده‌اید. مختصر یادآوری کن که تو کیستی (صدی، دستیار مراقبت سلامت‌شان) و اینجا هستی تا از طریق نظارت سلامت و پیشنهادهای سبک زندگی کیفیت زندگی‌شان را بهبود دهی. گرم باش اما نه بیش از حد. بپرس چطور بوده‌اند.""",
-                "ar": f"""حي {user_name} بحرارة. لم تتحدثا منذ فترة. ذكره باختصار من أنت (صدي، مساعد رعاية صحية) وأنك هنا لمساعدتهم على تحسين جودة حياتهم من خلال مراقبة الصحة واقتراحات نمط الحياة. كن دافئاً لكن ليس ساحقاً. اسأل كيف كانوا."""
+                "en": f"""Greet {user_name} warmly, like a caring friend who has missed them a little. You haven't talked in a while. Say you're glad they're back and ask gently how they have been. One question only, no lecture, no self-introduction.""",
+                "fa": f"""با {user_name} گرم و صمیمی سلام کن، مثل یک دوست دلسوز که کمی دلتنگش شده. مدتی است حرف نزده‌اید. بگو خوشحالی که برگشته و با ملایمت بپرس چطور بوده. فقط یک سؤال؛ بدون نصیحت و بدون معرفی خودت.""",
+                "ar": f"""حيِّ {user_name} بدفء كصديقة حنونة اشتاقت إليه قليلاً. لم تتحدثا منذ فترة. قولي إنك سعيدة بعودته واسأليه بلطف كيف كان. سؤال واحد فقط، بلا نصائح وبلا تعريف بنفسك."""
             }
         else:
-            # Regular greeting - proactive health check-in
+            # Regular greeting - warm, human check-in
             greeting_prompt = {
-                "en": f"""Greet {user_name} warmly. As their health care assistant, proactively check in on their wellness. You can mention their health data if available, or ask about their day. Be conversational and supportive. Keep it brief (1-2 sentences, max 150 characters).""",
-                "fa": f"""با {user_name} گرم سلام کن. به عنوان دستیار مراقبت سلامت‌شان، به صورت فعالانه چک‌آپ تندرستی کن. می‌توانی به داده‌های سلامت‌شان اشاره کنی اگر در دسترس است، یا درباره روزشان بپرسی. گفتگویی و حمایت‌کننده باش. مختصر نگه دار (1-2 جمله، حداکثر 150 کاراکتر).""",
-                "ar": f"""حي {user_name} بحرارة. كمساعد رعاية صحية، تحقق بشكل استباقي من صحتهم. يمكنك ذكر بيانات صحتهم إذا كانت متاحة، أو السؤال عن يومهم. كن محادثاً وداعماً. اجعلها مختصرة (1-2 جملة، بحد أقصى 150 حرف)."""
+                "en": f"""Greet {user_name} warmly, like a caring friend, and ask about their day or how they feel. If helpful, you may lightly mention something you know matters to them. One question only; keep it natural and not formulaic.""",
+                "fa": f"""با {user_name} گرم و صمیمی سلام کن، مثل یک دوست دلسوز، و از روز یا حالش بپرس. اگر مناسب بود می‌توانی ملایم به چیزی که می‌دانی برایش مهم است اشاره کنی. فقط یک سؤال؛ طبیعی و غیرکلیشه‌ای.""",
+                "ar": f"""حيِّ {user_name} بدفء كصديقة حنونة واسأليه عن يومه أو شعوره. إن كان مناسباً يمكنك الإشارة بلطف إلى ما تعرفين أنه مهم له. سؤال واحد فقط، وبشكل طبيعي غير نمطي."""
             }
-        
+
         # For non-FIRST_CONTACT stages, use GPT for greeting
         try:
-            system_prompt = self.prompts._build_system_prompt(
-                stage,
-                user_name,
-                context.get("conversation_count", 0),
-                engagement_level
+            from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
+
+            system_prompt = PersonaPolicyV1.system_prompt(
+                self.language,
+                {"preferred_name": user_name} if user_name and user_name != "friend" else None,
             )
             
             prompt_text = greeting_prompt.get(self.language, greeting_prompt["en"])
@@ -1082,7 +1070,7 @@ The user's preferred language ({language}) will be used for all subsequent respo
             response = gpt_client.chat.completions.create(
                 model=resolve_openai_chat_model(),
                 messages=messages,
-                max_tokens=300,
+                max_tokens=700,
                 reasoning_effort=DEFAULT_OPENAI_CHAT_REASONING_EFFORT,
             )
             

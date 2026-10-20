@@ -193,6 +193,18 @@ _IMMEDIATE_NEGATION_SUFFIX: dict[str, re.Pattern[str]] = {
         r")$",
         re.IGNORECASE,
     ),
+    "want to hurt myself": re.compile(
+        r"(?:i do not|do not|i dont|dont|never|no longer)$", re.IGNORECASE
+    ),
+    "want to harm myself": re.compile(
+        r"(?:i do not|do not|i dont|dont|never|no longer)$", re.IGNORECASE
+    ),
+    "going to hurt myself": re.compile(
+        r"(?:i am not|im not|not|never)$", re.IGNORECASE
+    ),
+    "going to harm myself": re.compile(
+        r"(?:i am not|im not|not|never)$", re.IGNORECASE
+    ),
     "going to kill myself": re.compile(
         r"(?:i am not going to kill|im not going to kill|not going to kill)$",
         re.IGNORECASE,
@@ -358,6 +370,41 @@ _EMERGENCY_RULES: tuple[_SafetyRule, ...] = (
             "اريد ان اموت",
             "ساقتل نفسي",
             "انتحار",
+            # R-011 / G5: common colloquial active-intent phrasings.
+            "want to hurt myself",
+            "want to harm myself",
+            "going to hurt myself",
+            "going to harm myself",
+            "dont want to live anymore",
+            "dont want to live any more",
+            "no longer want to live",
+            "dont want to be alive",
+            "do not want to be alive",
+            "take my own life",
+            "end it all",
+            "wish i was dead",
+            "wish i were dead",
+            "better off dead",
+            "میخوام به خودم اسیب بزنم",
+            "میخواهم به خودم اسیب بزنم",
+            "میخوام خودمو بکشم",
+            "میخوام خودم رو بکشم",
+            "میخواهم خودم را بکشم",
+            "خودمو میکشم",
+            "خودم را میکشم",
+            "تصمیم گرفتم بمیرم",
+            "دیگه نمیخوام زنده باشم",
+            "نمیخوام زنده باشم",
+            "نمیخواهم زنده باشم",
+            "میخوام به زندگیم پایان بدم",
+            "زندگیمو تموم کنم",
+            "اريد ان انهي حياتي",
+            "انهي حياتي",
+            "اريد الموت",
+            "اتمنى الموت",
+            "لا اريد ان اعيش",
+            "اريد ان اوذي نفسي",
+            "اريد ايذاء نفسي",
         ),
     ),
     _SafetyRule(
@@ -440,6 +487,44 @@ _HIGH_RULES: tuple[_SafetyRule, ...] = (
             "cant feel",
             "cannot feel",
             "تنگی نفس",
+            # R-011 / G5: common colloquial Persian phrasings of the same symptoms.
+            "نفس تنگی",
+            "نفسم بالا نمیاد",
+            "سینه ام درد میکنه",
+            "سینم درد میکنه",
+            "درد سینه",
+        ),
+    ),
+    _SafetyRule(
+        "i4.rule.high.self_harm_ideation.v1",
+        RiskLevel.HIGH,
+        SafetyAction.RETURN_HIGH_RESPONSE,
+        RiskDomain.SELF_HARM_CRISIS,
+        57,
+        (
+            "wish i had never been born",
+            "life is not worth living",
+            "no reason to live",
+            "nothing to live for",
+            "dont see the point of living",
+            "better off without me",
+            "دلم میخواد بمیرم",
+            "دلم میخواهد بمیرم",
+            "کاش بمیرم",
+            "کاش مرده بودم",
+            "کاش اصلا نبودم",
+            "کاش نبودم",
+            "کاش به دنیا نمیومدم",
+            "بهتره نباشم",
+            "بهتره من نباشم",
+            "زندگی برام معنایی نداره",
+            "زندگی معنایی نداره",
+            "از زندگی خسته شدم",
+            "از زندگی خسته ام",
+            "ليتني لم اولد",
+            "لا فايدة من الحياة",
+            "لا فائدة من الحياة",
+            "تعبت من الحياة",
         ),
     ),
     _SafetyRule(
@@ -504,16 +589,39 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "i4.tpl.emergency.self_harm.v1": {
         "en": (
-            "Please contact local emergency services or a trusted person now. "
-            "Do not wait for this chat. You are not alone; I cannot replace professional crisis care."
+            "I'm really worried about you, and I'm glad you told me. You are not alone. "
+            "Please contact your local emergency services or someone you trust right now, and please don't stay by yourself. "
+            "I'm right here with you, but I can't replace professional crisis care."
         ),
         "fa": (
-            "لطفاً همین حالا با خدمات اورژانس محلی یا یک فرد مورد اعتماد تماس بگیرید. "
-            "منتظر این گفتگو نمانید. شما تنها نیستید؛ من جایگزین مراقبت تخصصی بحران نیستم."
+            "خیلی نگرانت شدم و خوشحالم که این رو به من گفتی. تو تنها نیستی. "
+            "لطفاً همین الان با خدمات اورژانس محلی یا یک نفر مورد اعتماد که نزدیکته تماس بگیر و تنها نمون. "
+            "من همین‌جا کنارتم، ولی نمی‌تونم جای کمک تخصصی بحران رو بگیرم."
         ),
         "ar": (
-            "يرجى الاتصال الآن بخدمات الطوارئ المحلية أو بشخص موثوق. "
-            "لا تنتظر هذه المحادثة. لست وحدك؛ لا أحل محل الرعاية المهنية للأزمات."
+            "قلقتُ عليك كثيراً وسعيدة أنك أخبرتني. لست وحدك. "
+            "من فضلك اتصل الآن بخدمات الطوارئ المحلية أو بشخص تثق به، ولا تبقَ وحدك. "
+            "أنا هنا بجانبك، لكنني لا أستطيع أن أحل محل الرعاية المهنية للأزمات."
+        ),
+    },
+    "i4.tpl.high.self_harm.v1": {
+        "en": (
+            "It sounds like things feel really heavy right now, and I want to be here with you. "
+            "Would you tell me more about what's going on? If thoughts of hurting yourself or not wanting to live are close, "
+            "please reach out to someone you trust or your local emergency or crisis service, and don't stay alone with it. "
+            "I'm listening."
+        ),
+        "fa": (
+            "حس می‌کنم الان همه‌چیز خیلی سنگینه و دلم می‌خواد کنارت باشم. "
+            "می‌خوای بیشتر برام بگی چی شده؟ اگه فکر آسیب زدن به خودت یا نخواستن زندگی نزدیکته، "
+            "لطفاً با یه نفر مورد اعتماد یا خدمات اورژانس و مشاوره‌ی بحران تماس بگیر و تنهایی باهاش نمون. "
+            "من گوش می‌دم."
+        ),
+        "ar": (
+            "أشعر أن كل شيء ثقيل عليك الآن، وأريد أن أكون بجانبك. "
+            "هل تحكي لي أكثر عمّا يحدث؟ وإذا كانت أفكار إيذاء نفسك أو عدم الرغبة في الحياة قريبة، "
+            "من فضلك تواصل مع شخص تثق به أو مع خدمات الطوارئ أو دعم الأزمات المحلية ولا تبقَ وحدك معها. "
+            "أنا أُصغي إليك."
         ),
     },
     "i4.tpl.high.v1": {
@@ -601,6 +709,11 @@ def build_safety_response(assessment: RiskAssessment) -> SafetyResponse:
         tid = "i4.tpl.emergency.self_harm.v1"
     elif assessment.level is RiskLevel.EMERGENCY:
         tid = "i4.tpl.emergency.v1"
+    elif (
+        assessment.level is RiskLevel.HIGH
+        and assessment.domain is RiskDomain.SELF_HARM_CRISIS
+    ):
+        tid = "i4.tpl.high.self_harm.v1"
     elif assessment.level is RiskLevel.HIGH:
         tid = "i4.tpl.high.v1"
     else:
