@@ -12,6 +12,10 @@ on:
       target_digest:
         description: "Expected digest sha256:<64 hex> for manifest probe"
         required: true
+      chatlog_minutes:
+        description: "0 (default, off) | 1-1440: print a SANITIZED backend chat-error extract (class names, counts, file:line only; read-only)"
+        required: false
+        default: "0"
 
 permissions:
   contents: read
@@ -129,4 +133,44 @@ jobs:
             exit 20
           fi
           log "GHCR_CONNECTIVITY=PASS"
+          REMOTE
+
+      - name: Sanitized chat-error extract (read-only, CHATLOG mode)
+        if: ${{ github.event.inputs.chatlog_minutes != '0' && github.event.inputs.chatlog_minutes != '' }}
+        env:
+          SINCE: ${{ github.event.inputs.chatlog_minutes }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SINCE}" | grep -Eq '^[0-9]{1,4}$'
+          ssh -i ~/.ssh/sedi_deploy_key             -p "${{ secrets.SEDI_PORT }}"             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}"             "SINCE_MIN=$(printf '%q' "${SINCE}") bash -s" <<'REMOTE'
+          set -uo pipefail
+          log() { echo "[$(date -Is | cut -c1-19)] $*"; }
+          LOG="$(docker logs sedi-backend --since "${SINCE_MIN}m" 2>&1 || true)"
+          log "window_minutes=${SINCE_MIN} log_lines=$(printf '%s
+' "$LOG" | wc -l)"
+          log "=== COUNTS ==="
+          echo "brain_error_blocks=$(printf '%s
+' "$LOG" | grep -c '\[BRAIN ERROR\] Exception in process_message' || true)"
+          echo "brain_gpt_failure=$(printf '%s
+' "$LOG" | grep -c 'BRAIN GPT_FAILURE' || true)"
+          echo "http_5xx=$(printf '%s
+' "$LOG" | grep -cE '" 5[0-9][0-9] ' || true)"
+          echo "tracebacks=$(printf '%s
+' "$LOG" | grep -c 'Traceback (most recent call last)' || true)"
+          log "=== BRAIN ERROR exception types (class only) ==="
+          printf '%s
+' "$LOG" | grep -oE '\[BRAIN ERROR\] Exception type: [A-Za-z0-9_.]+' | sed -E 's/.*type: //' | sort | uniq -c | sort -rn | head -10
+          log "=== GPT failure classes (class only) ==="
+          printf '%s
+' "$LOG" | grep -oE 'BRAIN GPT_FAILURE\] where=[A-Za-z0-9_.]+ error_type=[A-Za-z0-9_]+' | sed -E 's/BRAIN GPT_FAILURE\] //' | sort | uniq -c | sort -rn | head -10
+          log "=== capacity gpt_call outcomes (where/status/error_class only) ==="
+          printf '%s
+' "$LOG" | grep -E 'capacity event=gpt_call' | sed -E 's/.*(where=[A-Za-z0-9_.]+).*(status=[a-z]+)(.*)/ /' | sed -E 's/duration_ms=[0-9]+//; s/model=[^ ]+//; s/  +/ /g' | cut -c1-120 | sort | uniq -c | sort -rn | head -12
+          log "=== traceback project frames (file:line function; newest 30) ==="
+          printf '%s
+' "$LOG" | grep -E '^[[:space:]]+File "[^"]*backend/app' | sed -E 's#^[[:space:]]+File "[^"]*(backend/app/[^"]*)", line ([0-9]+), in (.*)#: #' | tail -n 30
+          log "=== exception class names at traceback ends (class only) ==="
+          printf '%s
+' "$LOG" | grep -E '^[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Warning)(:|$)' | sed -E 's/:.*//' | sort | uniq -c | sort -rn | head -10
+          log "EXTRACT=DONE (read-only; class names, counts and file:line only)"
           REMOTE
