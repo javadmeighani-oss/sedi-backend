@@ -85,3 +85,25 @@ def test_recap_names_the_aspect_of_a_disease_topic():
     assert cr._disease_phrase("رژیم مناسب دیابت می‌خوام", "دیابت", "fa") == "تغذیه‌ی مناسب برای دیابت"
     assert cr._disease_phrase("symptoms of diabetes", "diabetes", "en") == "the symptoms of diabetes"
     assert cr._disease_phrase("hello", "ALS", "en") == "ALS"
+
+
+def test_persona_has_professional_care_protocol_in_all_languages():
+    for lang, needles in (
+        ("en", ("Professional care protocol", "5-4-3-2-1", "Follow through", "never claim a licence")),
+        ("fa", ("پروتکل مراقبت حرفه‌ای", "۵-۴-۳-۲-۱", "پیگیری:", "ادعای مجوز")),
+        ("ar", ("بروتوكول الرعاية المهنية", "٥-٤-٣-٢-١", "المتابعة:", "ترخيصاً")),
+    ):
+        prompt = PersonaPolicyV1.system_prompt(lang)
+        for n in needles:
+            assert n in prompt, (lang, n)
+
+
+def test_time_context_is_fail_open_and_localised():
+    from datetime import datetime
+
+    from backend.app.services.intelligence.time_context import build_time_context, format_time_hint
+
+    sat_night = datetime(2026, 10, 24, 22, 30)  # a Saturday
+    assert "شنبه" in format_time_hint(sat_night, "fa") and "شب" in format_time_hint(sat_night, "fa")
+    assert "Saturday" in format_time_hint(sat_night, "en")
+    assert build_time_context(object(), 1, "fa") == ""
