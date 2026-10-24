@@ -26,9 +26,15 @@ require_identity() {
   img="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
   id="$(docker inspect sedi-backend --format '{{.Image}}')"
   echo "${img}" | grep -Fq "${IMAGE_SHA}" || { s "image_tag_guard" "FAIL"; return 10; }
-  docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fq "${IMAGE_DIGEST}" \
-    || { s "image_digest_guard" "FAIL"; return 11; }
-  s "image_digest_guard" "PASS"
+  if docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fq "${IMAGE_DIGEST}"; then
+    s "image_digest_guard" "PASS"
+  elif [ -n "${IMAGE_ID:-}" ] && echo "${IMAGE_ID}" | grep -Eq '^sha256:[0-9a-f]{64}$' && [ "${id}" = "${IMAGE_ID}" ]; then
+    # Secure-transfer deploys load the image from an archive: no RepoDigests, but the content-addressed image ID
+    # (recorded by the deploy run as RUNNER_IMAGE_ID, verified there together with the rootfs layers) must match.
+    s "image_digest_guard" "PASS_VIA_IMAGE_ID"
+  else
+    s "image_digest_guard" "FAIL"; return 11
+  fi
   local head; head="$(psql_prod "SELECT version_num FROM alembic_version;")"
   s "alembic_head" "${head}"
   [ "${head}" = "${EXPECTED_HEAD}" ] || return 12
