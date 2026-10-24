@@ -20,6 +20,10 @@ psql_prod() {
   docker exec sedi-postgres psql -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" \
     -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -tA -c "$1" | tr -d '\r'
 }
+rootfs_sha() {
+  local j; j="$(docker image inspect "$1" --format '{{json .RootFS.Layers}}')"
+  printf '%s' "${j}" | sha256sum | awk '{print $1}'
+}
 require_identity() {
   [ -f "${ENV_FILE}" ] || { s "env_file" "MISSING"; return 1; }
   local img id
@@ -28,10 +32,11 @@ require_identity() {
   echo "${img}" | grep -Fq "${IMAGE_SHA}" || { s "image_tag_guard" "FAIL"; return 10; }
   if docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep -Fq "${IMAGE_DIGEST}"; then
     s "image_digest_guard" "PASS"
-  elif [ -n "${IMAGE_ID:-}" ] && echo "${IMAGE_ID}" | grep -Eq '^sha256:[0-9a-f]{64}$' && [ "${id}" = "${IMAGE_ID}" ]; then
-    # Secure-transfer deploys load the image from an archive: no RepoDigests, but the content-addressed image ID
-    # (recorded by the deploy run as RUNNER_IMAGE_ID, verified there together with the rootfs layers) must match.
-    s "image_digest_guard" "PASS_VIA_IMAGE_ID"
+  elif [ -n "${ROOTFS_SHA256:-}" ] && echo "${ROOTFS_SHA256}" | grep -Eq '^[0-9a-f]{64}$' && [ "$(rootfs_sha "${id}")" = "${ROOTFS_SHA256}" ]; then
+    # Secure-transfer deploys load the image from an archive: no RepoDigests and a different local image ID, but the
+    # content-addressed rootfs layer list (RUNNER_ROOTFS_SHA256, verified by the deploy run against the registry
+    # image) must match exactly.
+    s "image_digest_guard" "PASS_VIA_ROOTFS_LAYERS"
   else
     s "image_digest_guard" "FAIL"; return 11
   fi
