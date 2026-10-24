@@ -31,21 +31,21 @@ TEMPLATES = {
     },
     "no_source": {
         "fa": (
-            "اطلاعات کافی از منابع معتبر ثبت‌شده ندارم. لطفاً با پزشک معتمد مشورت کنید."
+            "الان در منابع معتبرم اطلاعات کافی برای این سؤال ندارم؛ کمی بیشتر برام توضیح بده تا دقیق‌تر کمکت کنم."
         ),
         "en": (
-            "I do not have enough information from registered trusted sources. Please consult a qualified clinician."
+            "I do not have enough reliable information in my trusted sources for this question right now; tell me a little more so I can help you properly."
         ),
         "ar": (
-            "ليس لدي معلومات كافية من مصادر موثوقة مسجلة. يرجى استشارة طبيب مؤهل."
+            "ليست لدي معلومات موثوقة كافية لهذا السؤال الآن؛ أخبرني بالمزيد لأساعدك بشكل أدق."
         ),
     },
     "safe_fallback": {
         "fa": (
-            "برای ایمنی شما، نمی‌توانم این پاسخ را ارائه دهم. لطفاً با پزشک معتمد مشورت کنید."
+            "برای ایمنی تو، نمی‌خوام این جواب رو بدم؛ بگو دقیقاً چی می‌خوای بدونی تا یه جواب مطمئن‌تر بدم."
         ),
         "en": (
-            "For your safety, I cannot provide that response. Please consult a qualified clinician."
+            "For your safety I cannot give that answer; tell me exactly what you want to know and I will give a safer one."
         ),
         "ar": (
             "لسلامتك، لا يمكنني تقديم هذا الجواب. يرجى استشارة طبيب مؤهل."

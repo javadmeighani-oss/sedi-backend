@@ -37,18 +37,27 @@ _INTRO: Dict[str, str] = {
 
 _OPENERS: Dict[str, list[str]] = {
     "en": [
-        "Welcome back{name_part}. Anything on your mind today?",
-        "Good to see you again{name_part}. How can I support you today?",
+        "{hello} How is your day going? Whatever is on your mind, I'm listening.",
+        "{hello} I wanted to check in on you. What's new today?",
     ],
     "fa": [
-        "سلام{name_part}، خوش برگشتی! امروز چی تو ذهنته؟",
-        "سلام{name_part}، خوشحالم دوباره می‌بینمت. امروز چطوری؟",
+        "{hello} امروز حالت چطوره؟ هر چی تو ذهنته بگو، من گوش می‌دم.",
+        "{hello} دلم می‌خواست احوالت رو بپرسم؛ امروز چه خبر؟",
     ],
     "ar": [
-        "مرحبًا بعودتك{name_part}. هل هناك شيء في بالك اليوم؟",
-        "سعدت برؤيتك مجددًا{name_part}. كيف يمكنني دعمك اليوم؟",
+        "{hello} كيف حالك اليوم؟ مهما كان في بالك، أنا أُصغي إليك.",
+        "{hello} أحببت أن أطمئن عليك. ما الجديد اليوم؟",
     ],
 }
+
+
+def _hello(lang: str, name_part: str) -> str:
+    """Friendly greeting without the stiff «خوش برگشتی»; «جان» only when there is a name."""
+    if lang == "fa":
+        return f"سلام{name_part} جان!" if name_part else "سلام!"
+    if lang == "ar":
+        return f"أهلاً{name_part}!"
+    return f"Hi{name_part}!"
 
 
 def _lang(user: models.User) -> str:
@@ -128,23 +137,15 @@ def authorized_last_eligible_turn(db: Session, user_id: int) -> Optional[models.
         return None
 
 
-def _continuity_opener(lang: str, snippet: str, name_part: str) -> str:
+def _continuity_opener(lang: str, topic: str, name_part: str) -> str:
+    """One sentence recap of the last topic + an invitation to continue or to start something else (R-011)."""
     templates = {
-        "en": (
-            "Welcome back{name_part}. Last time we talked about {snippet}. "
-            "Would you like to continue that?"
-        ),
-        "fa": (
-            "سلام{name_part}، خوش برگشتی! دفعه‌ی قبل درباره‌ی «{snippet}» حرف می‌زدیم؛ "
-            "می‌خوای از همون‌جا ادامه بدیم؟"
-        ),
-        "ar": (
-            "مرحبًا بعودتك{name_part}. تحدثنا آخر مرة عن {snippet}. "
-            "هل تريد المتابعة؟"
-        ),
+        "en": "{hello} Last time we talked about {topic}. Want to pick that up again, or is something else on your mind today?",
+        "fa": "{hello} آخرین بار درباره‌ی {topic} حرف می‌زدیم. می‌خوای همون رو ادامه بدیم، یا امروز یه موضوع دیگه تو ذهنته؟",
+        "ar": "{hello} آخر مرة تحدثنا عن {topic}. هل تحب أن نكمل، أم عندك موضوع آخر اليوم؟",
     }
     template = templates.get(lang, templates["en"])
-    return template.format(name_part=name_part, snippet=snippet)
+    return template.format(hello=_hello(lang, name_part), topic=topic)
 
 
 def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
@@ -159,9 +160,15 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
             return None
     lang = _lang(user)
     name_part = _name_part(user, lang)
-    turn = authorized_last_eligible_turn(db, user.id)
-    snippet = _safe_continuity_snippet(getattr(turn, "user_message", None) if turn else None)
-    if not snippet:
+    topic = None
+    try:
+        from backend.app.services.i7.conversation_recap import recap_topic
+
+        topic = recap_topic(db, user.id, lang, privacy="in_app")
+    except Exception:
+        topic = None
+    if not topic:
+        # Raw turns expired/ineligible: the authorized I7 derived continuity may still name the topic.
         try:
             from backend.app.services.i7.derived_continuity import (
                 get_bounded_continuity_topic,
@@ -169,10 +176,10 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
             )
 
             if should_project_derived_continuity(db, user.id):
-                snippet = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+                topic = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
         except Exception:
-            snippet = None
-    if not snippet:
+            topic = None
+    if not topic:
         try:
             from backend.app.services.i7.privacy_safe_recent_topic import (
                 display_phrase_for_topic_label,
@@ -181,15 +188,15 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
 
             label = get_privacy_safe_recent_topic_label(db, user.id)
             if label and label != "general":
-                snippet = display_phrase_for_topic_label(label, lang)
+                topic = display_phrase_for_topic_label(label, lang)
         except Exception:
-            snippet = None
-    if snippet:
-        return _continuity_opener(lang, snippet, name_part)
+            topic = None
+    if topic:
+        return _continuity_opener(lang, topic, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])
     # Deterministic pick by user id (stable, not random spam).
     pick = options[user.id % len(options)]
-    return pick.format(name_part=name_part)
+    return pick.format(hello=_hello(lang, name_part), name_part=name_part)
 
 
 def _notification_name_prefix(name: Optional[str], lang: str) -> str:
@@ -211,27 +218,27 @@ def _presence_continuation_opener(
     if topic_phrase:
         templates = {
             "en": (
-                "{prefix}last time we were talking about {topic}. "
-                "Would you like to continue?"
+                "{prefix}last time we talked about {topic}. "
+                "Want to pick that up again, or is something else on your mind?"
             ),
             "fa": (
-                "{prefix}آخرین بار درباره {topic} صحبت می‌کردیم. "
-                "می‌خواهی ادامه بدهیم؟"
+                "{prefix}آخرین بار درباره‌ی {topic} حرف می‌زدیم. "
+                "می‌خوای همون رو ادامه بدیم، یا یه موضوع دیگه تو ذهنته؟"
             ),
             "ar": (
-                "{prefix}آخر مرة كنا نتحدث عن {topic}. "
-                "هل تريد المتابعة؟"
+                "{prefix}آخر مرة تحدثنا عن {topic}. "
+                "هل تحب أن نكمل، أم عندك موضوع آخر؟"
             ),
         }
-        return templates.get(lang, templates["en"]).format(
-            prefix=prefix, topic=topic_phrase
-        )
+        body = templates.get(lang, templates["en"]).format(prefix=prefix, topic=topic_phrase)
+        return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
     generics = {
-        "en": f"{prefix}Would you like to continue from where we left off?".strip(),
-        "fa": f"{prefix}می‌خواهی از جایی که بودیم ادامه بدهیم؟".strip(),
-        "ar": f"{prefix}هل تريد المتابعة من حيث توقفنا؟".strip(),
+        "en": f"{prefix}how are you? We can pick up where we left off, or talk about something new.".strip(),
+        "fa": f"{prefix}حالت چطوره؟ می‌تونیم از همون‌جا که موندیم ادامه بدیم یا درباره‌ی یه چیز تازه حرف بزنیم.".strip(),
+        "ar": f"{prefix}كيف حالك؟ يمكننا أن نتابع من حيث توقفنا أو نتحدث عن شيء جديد.".strip(),
     }
-    return generics.get(lang, generics["en"])
+    body = generics.get(lang, generics["en"])
+    return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
 
 
 def _daily_digest_opener(*, lang: str, name: Optional[str]) -> str:
@@ -290,6 +297,14 @@ def build_notification_origin_opener(
             topic_phrase = display_phrase_for_topic_label(label, lang)
         except Exception:
             topic_phrase = None
+        if not topic_phrase or label == "general":
+            try:
+                from backend.app.services.i7.conversation_recap import recap_topic
+
+                # Inside the app (the user already opened it): the recap may be specific.
+                topic_phrase = recap_topic(db, int(user.id), lang, privacy="in_app") or None
+            except Exception:
+                topic_phrase = None
         return _presence_continuation_opener(
             lang=lang, name=name, topic_phrase=topic_phrase
         )

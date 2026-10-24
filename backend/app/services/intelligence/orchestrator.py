@@ -1706,8 +1706,10 @@ class IntelligenceOrchestrator:
             nbq_was_appended = False
             # A generic profile question (preferences.*, work.occupation) is not appended to a governed knowledge
             # answer: the user is mid-task. Topical/contextual questions (sleep, food, activity, work schedule) stay.
+            llm_unavailable = bool((raw.get("metadata") or {}).get("llm_unavailable"))
             if (
                 visible_nbq_eligible
+                and not llm_unavailable  # never stack a question under "I can't answer right now"
                 and not (
                     allow_governed_knowledge
                     and str(discovery_target_key or "").startswith(("preferences.", "work.occupation"))

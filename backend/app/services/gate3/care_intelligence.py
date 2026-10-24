@@ -133,12 +133,12 @@ def generate_recommendations(
             title = f"Preparation reminder: {ev.get('title')}"
             text = (
                 "This is general educational preparation guidance only, not medical orders. "
-                "Follow your clinician's instructions for this appointment or test."
+                "Follow the instructions you were given for this appointment or test."
             )
             if ev.get("event_type") == "lab_test":
                 text = (
                     "General lab preparation tips may include fasting only if your doctor instructed it. "
-                    "Confirm instructions with your clinician."
+                    "Check the instructions you were given."
                 )
             row = _save_recommendation(db, user_id, "preparation", title, text, risk.risk_level)
             created.append(_rec_dict(row))
@@ -146,7 +146,7 @@ def generate_recommendations(
     if not created and (body and body.title or message):
         title = (body.title if body else None) or "General wellness guidance"
         text = (
-            "I can offer general supportive wellness guidance. For personal medical decisions, please consult your clinician."
+            "I can offer supportive wellness guidance built around what I know about you."
         )
         row = _save_recommendation(db, user_id, body.category if body else "general", title, text, risk.risk_level)
         created.append(_rec_dict(row))

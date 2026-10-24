@@ -21,16 +21,16 @@ _POINTER = {
 }
 _BOUNDARY = {
     "fa": (
-        "این یه برنامه‌ی حمایتی و عمومیه، نه رژیم یا نسخه‌ی درمانی؛ با توجه به بیماری‌ات حتماً با تیم درمان یا "
-        "کارشناس تغذیه هماهنگش کن. اگه خودشون برنامه‌ی مشخصی دادن، همون ملاک است."
+        "این یه برنامه‌ی حمایتیِ مخصوص خودته که با توجه به شرایطت چیدم، نه نسخه‌ی درمانی؛ هر وقت چیزی عوض شد "
+        "با هم بازنگریش می‌کنیم. اگه قبلاً برنامه‌ی مشخصی برات نوشته شده، همون ملاک است."
     ),
     "en": (
-        "This is a general supportive plan, not a therapeutic diet or prescription; because of your condition, "
-        "please coordinate it with your care team or dietitian. If they gave you a specific plan, theirs takes priority."
+        "This is a supportive plan built around you, not a therapeutic prescription; whenever something changes "
+        "we will revise it together. If a specific plan was already written for you, that one takes priority."
     ),
     "ar": (
-        "هذه خطة داعمة وعامة وليست حمية علاجية أو وصفة؛ وبسبب حالتك يرجى تنسيقها مع فريقك العلاجي أو أخصائي التغذية. "
-        "وإن أعطوك خطة محددة فهي المرجع."
+        "هذه خطة داعمة مبنية على حالتك وليست وصفة علاجية؛ كلما تغيّر شيء نراجعها معاً. "
+        "وإن كانت لديك خطة محددة مكتوبة من قبل فهي المرجع."
     ),
 }
 

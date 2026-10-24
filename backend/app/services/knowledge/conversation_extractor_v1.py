@@ -77,7 +77,7 @@ class ExtractedCandidate:
 
 
 def _get_max_extracted() -> int:
-    return int(os.environ.get("KC_MAX_EXTRACTED_PER_MESSAGE", "3"))
+    return int(os.environ.get("KC_MAX_EXTRACTED_PER_MESSAGE", "5"))
 
 
 def _dedupe_and_cap(candidates: List[ExtractedCandidate], cap: int) -> List[ExtractedCandidate]:
@@ -219,6 +219,21 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
         c for c in candidates
         if not (isinstance(c.fact_value, str) and _is_noise_or_stopword(c.fact_value))
     ]
+
+    # 4b) R-014 second memory: explicit first-person statements (conditions, family history, job, household, ...)
+    try:
+        from backend.app.services.knowledge.stated_facts_extractor_v1 import extract_stated_facts
+
+        for st in extract_stated_facts(text):
+            candidates.append(ExtractedCandidate(
+                fact_key=st.fact_key,
+                fact_value=st.fact_value,
+                confidence=st.confidence,
+                evidence=text[:200],
+                pattern_id=st.pattern_id,
+            ))
+    except Exception:  # extraction must never break chat
+        pass
 
     # 5) Gate 2: Persian time-bound events → user_events (via user_event candidate + promotion)
     candidates.extend(_extract_persian_event_candidates(text))

@@ -625,7 +625,8 @@ def test_brain_skips_covered_loaders_when_structured_projection_supplied(db, use
         mock_rag.assert_not_called()
         mock_local_rag.assert_not_called()
         mock_gate3.assert_not_called()
-        mock_mem.get_recent_messages.assert_not_called()
+        # R-014: structured mode loads a bounded recent-turn history (but never uses it for name detection).
+        assert mock_mem.get_recent_messages.call_args.kwargs == {"limit": 8}
         mock_extract.assert_not_called()
         mock_persona.assert_called_once()
         # Persona receives assembled preferred_name; never conversation-inferred.
@@ -656,7 +657,8 @@ def test_structured_without_preferred_name_does_not_invent_or_reload(db, user_a)
         )
         assert result["message"] == "ok"
         assert result.get("detected_name") is None
-        mock_mem.get_recent_messages.assert_not_called()
+        # R-014: structured mode loads a bounded recent-turn history (but never uses it for name detection).
+        assert mock_mem.get_recent_messages.call_args.kwargs == {"limit": 8}
         mock_extract.assert_not_called()
         assert mock_persona.call_args.args[1] is None
 

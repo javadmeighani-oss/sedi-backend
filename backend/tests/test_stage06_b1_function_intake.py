@@ -210,14 +210,14 @@ def test_plan_subject_question_all_languages_and_brand_safe():
 def test_trailer_has_pointer_always_and_boundary_only_with_a_condition(monkeypatch):
     monkeypatch.setattr(plan_notes, "has_registered_condition", lambda db, uid: False)
     plain = plan_notes.build_plan_trailer(None, 1, "fa", "nutrition")
-    assert "سبک زندگی" in plain and "تیم درمان" not in plain
+    assert "سبک زندگی" in plain and "نسخه‌ی درمانی" not in plain
     monkeypatch.setattr(plan_notes, "has_registered_condition", lambda db, uid: True)
     for lang in ("fa", "en", "ar"):
         for domain in ("nutrition", "exercise"):
             t = plan_notes.build_plan_trailer(None, 1, lang, domain)
             assert len(t.split("\n")) == 2
     fa = plan_notes.build_plan_trailer(None, 1, "fa", "nutrition")
-    assert "تیم درمان" in fa and "نه رژیم یا نسخه‌ی درمانی" in fa
+    assert "برنامه‌ی قبلی" not in fa and "نه نسخه‌ی درمانی" in fa and "بازنگریش" in fa
     assert "سدی" not in fa
 
 

@@ -976,6 +976,11 @@ class DecisionEngine:
 
             label = get_privacy_safe_recent_topic_label(self.db, user_id)
             phrase = display_phrase_for_topic_label(label, effective_language)
+            if not phrase or label == "general":
+                # R-011: summarise what Sedi and the user last talked about (lock-screen-safe level only).
+                from backend.app.services.i7.conversation_recap import recap_topic
+
+                phrase = recap_topic(self.db, user_id, effective_language, privacy="lock_screen") or None
             if phrase:
                 inputs["last_topic_hint"] = phrase
         except Exception:

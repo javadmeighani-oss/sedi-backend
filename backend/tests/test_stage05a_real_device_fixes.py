@@ -85,8 +85,10 @@ def test_a3_snippet_only_for_topic_like_text_never_a_request():
 def test_a3_opener_never_quotes_raw_user_sentence():
     from backend.app.services import a3_session_open as a3
 
+    # R-011: a coarse recap phrase (never the user's own words), no stiff «خوش برگشتی», invites another topic.
     text = a3._continuity_opener("fa", "برنامه فعالیتت", " جواد")
-    assert "خوش آمدید" not in text and "مایلید" not in text and "«برنامه فعالیتت»" in text
+    assert "خوش آمدید" not in text and "مایلید" not in text and "خوش برگشتی" not in text
+    assert "برنامه فعالیتت" in text and "یه موضوع دیگه" in text
     for options in a3._OPENERS.values():
-        assert all("{name_part}" in o for o in options)
+        assert all("{hello}" in o for o in options)
     assert "مایلید" not in a3._INTRO["fa"] and "شما" not in a3._INTRO["fa"]
