@@ -21,11 +21,12 @@ MAX_TITLE = 140
 
 KINDS = (
     "loss", "job_loss", "separation", "surgery", "accident", "diagnosis", "medication_change", "procedure",
-    "move", "milestone", "other",
+    "medical_document", "move", "milestone", "other",
 )
 _DOMAIN_BY_KIND = {
     "loss": "family", "job_loss": "work", "separation": "family", "surgery": "medical", "accident": "medical",
-    "diagnosis": "medical", "medication_change": "medical", "procedure": "medical", "move": "personal",
+    "diagnosis": "medical", "medication_change": "medical", "procedure": "medical", "medical_document": "medical",
+    "move": "personal",
     "milestone": "personal", "other": "personal",
 }
 SUBJECTS = ("self", "mother", "father", "spouse", "child", "sibling", "relative", "friend", "other")
@@ -42,6 +43,7 @@ KIND_LABELS: dict[str, dict[str, str]] = {
     "diagnosis": {"fa": "تشخیص یک بیماری", "en": "a diagnosis", "ar": "تشخيص مرض"},
     "medication_change": {"fa": "تغییر در دارو", "en": "a change in medication", "ar": "تغيير في الدواء"},
     "procedure": {"fa": "یک اقدام درمانی", "en": "a medical procedure", "ar": "إجراء طبي"},
+    "medical_document": {"fa": "یک مدرک پزشکی", "en": "a medical document", "ar": "وثيقة طبية"},
     "move": {"fa": "نقل‌مکان", "en": "moving", "ar": "انتقال"},
     "milestone": {"fa": "یک اتفاق مهم زندگی", "en": "a life milestone", "ar": "حدث مهم في الحياة"},
     "other": {"fa": "یک اتفاق مهم", "en": "something important", "ar": "حدث مهم"},
