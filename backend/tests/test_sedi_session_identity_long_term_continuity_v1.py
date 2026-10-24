@@ -286,7 +286,8 @@ def test_long_term_derived_continuity_after_raw_expiry_and_reauth(client, db, mo
     opened = client.post("/interact/session/open", headers=_auth(user.id))
     assert opened.status_code == 200, opened.text
     msg = (opened.json().get("message") or "").lower()
-    assert "walking" in msg
+    # R-020: the opener names the topic ("exercise…"), it never echoes the user's own words.
+    assert "walking" in msg or "exercise" in msg
     captured: dict = {}
     with _patch_gpt("We can continue the evening walking plan.", captured):
         cont = client.post(

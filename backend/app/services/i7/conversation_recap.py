@@ -58,12 +58,33 @@ def _disease_phrase(text: str, label: str, lang: str) -> str:
     return {"fa": f"بیماری {label}", "en": label, "ar": label}[lang]
 
 
+# Whole-token topics (substring cues such as «مو» would match «موضوع»). Checked BEFORE the broader categories.
+_TOKEN_TOPICS = (
+    ("hair", frozenset({"مو", "موها", "موهام", "موهای", "موهایم", "موهایت", "موی", "hair"})),
+    ("skin", frozenset({"پوست", "پوستم", "جوش", "جوشها", "آکنه", "skin", "acne"})),
+    ("weight", frozenset({"وزن", "وزنم", "لاغری", "چاقی", "چاق", "weight"})),
+)
+
+
+def _topic_by_token(text: str) -> Optional[str]:
+    import re
+
+    tokens = set(re.split(r"[^\w]+", _norm(text).replace("‌", " "))) - {""}
+    for key, words in _TOKEN_TOPICS:
+        if tokens & words:
+            return key
+    return None
+
+
 _PHRASE_IN_APP = {
     "nutrition": {"fa": "برنامه‌ی غذایی و تغذیه‌ات", "en": "your eating and meal plan", "ar": "تغذيتك وخطتك الغذائية"},
     "exercise": {"fa": "ورزش و تحرکت", "en": "exercise and staying active", "ar": "الرياضة والحركة"},
     "sleep": {"fa": "خوابت", "en": "your sleep", "ar": "نومك"},
     "work": {"fa": "کار و دغدغه‌هات", "en": "work and what's on your plate", "ar": "العمل وما يشغلك"},
     "family": {"fa": "خانواده‌ات", "en": "your family", "ar": "عائلتك"},
+    "hair": {"fa": "مراقبت از موهات", "en": "taking care of your hair", "ar": "العناية بشعرك"},
+    "skin": {"fa": "مراقبت از پوستت", "en": "taking care of your skin", "ar": "العناية ببشرتك"},
+    "weight": {"fa": "وزن و تناسب اندامت", "en": "your weight and fitness", "ar": "وزنك ولياقتك"},
     "feelings": {"fa": "حال و روحیه‌ات", "en": "how you've been feeling", "ar": "مزاجك وحالك"},
     "disease_generic": {"fa": "موضوع سلامتت", "en": "a health topic of yours", "ar": "موضوع صحي يهمك"},
 }
@@ -73,6 +94,8 @@ _PHRASE_LOCK = {
     "exercise": _PHRASE_IN_APP["exercise"],
     "sleep": _PHRASE_IN_APP["sleep"],
     "work": _PHRASE_IN_APP["work"],
+    "hair": _PHRASE_IN_APP["hair"],
+    "skin": _PHRASE_IN_APP["skin"],
     "disease": _PHRASE_IN_APP["disease_generic"],
 }
 
@@ -99,6 +122,9 @@ def classify_turn(text: str) -> Optional[str]:
     t = _norm(text)
     if is_trivial_turn(t):
         return None
+    by_token = _topic_by_token(t)
+    if by_token:
+        return by_token
     for key, cues in _CATEGORIES:
         if any(c in t for c in cues):
             return key
@@ -156,6 +182,31 @@ def _memory_topic(db: Session, user_id: int, lang: str, privacy: str) -> Optiona
     return None
 
 
+def _lexicon_condition(text: str) -> Optional[str]:
+    try:
+        from backend.app.services.knowledge.stated_facts_extractor_v1 import mentioned_condition
+
+        return mentioned_condition(text)
+    except Exception:
+        return None
+
+
+def topic_phrase_from_text(text: str, language: Optional[str] = "fa", *, privacy: str = "in_app") -> Optional[str]:
+    """A recap phrase for ONE piece of user text (e.g. the I7 derived continuity snippet), or None. Never echoes the
+    user's own words: it maps to a condition+aspect or a coarse topic (R-013)."""
+    lang = _lang(language)
+    if is_trivial_turn(text):
+        return None
+    label = _lexicon_condition(text)
+    if label:
+        return _PHRASE_LOCK["disease"][lang] if privacy == "lock_screen" else _disease_phrase(text, label, lang)
+    key = classify_turn(text)
+    if key is None:
+        return None
+    block = (_PHRASE_LOCK if privacy == "lock_screen" else _PHRASE_IN_APP).get(key)
+    return block[lang] if block else None
+
+
 def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, privacy: str = "in_app") -> Optional[str]:
     """A short noun phrase for the last meaningful topic, or None (callers then use warm generic copy)."""
     lang = _lang(language)
@@ -174,7 +225,7 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
         text = str(getattr(row, "user_message", "") or "")
         if is_trivial_turn(text):
             continue
-        label = _disease_label(db, text, lang)
+        label = _disease_label(db, text, lang) or _lexicon_condition(text)
         if label:
             if privacy == "lock_screen":
                 return _PHRASE_LOCK["disease"][lang]

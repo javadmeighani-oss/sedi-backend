@@ -107,3 +107,12 @@ def test_time_context_is_fail_open_and_localised():
     assert "شنبه" in format_time_hint(sat_night, "fa") and "شب" in format_time_hint(sat_night, "fa")
     assert "Saturday" in format_time_hint(sat_night, "en")
     assert build_time_context(object(), 1, "fa") == ""
+
+
+def test_limit_questions_keeps_statements_and_only_the_first_question():
+    from backend.app.services.intelligence.grounding_guard import limit_questions
+
+    reply = "ریزش مو خیلی اذیت می‌کنه. پروتئین و آهنت مهمه. از کی شروع شده؟ دارو مصرف می‌کنی؟ سابقه‌ی خانوادگی داره؟"
+    out = limit_questions(reply, 1)
+    assert "از کی شروع شده؟" in out and "دارو" not in out and "پروتئین" in out
+    assert limit_questions("فقط یک جمله.", 1) == "فقط یک جمله."

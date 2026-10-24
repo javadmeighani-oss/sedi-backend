@@ -84,6 +84,8 @@ _FA_NUTRITION_CONTEXT: tuple[str, ...] = ("برنامه غذایی", "برنام
 _FA_NEGATED_PLAN: tuple[str, ...] = (
     "نمیخواهم",
     "نمیخوام",
+    "نمی خواهم",
+    "نمی خوام",
     "نساز",
     "طراحی نکن",
     "تنظیم نکن",
@@ -97,7 +99,7 @@ _FA_STRONG_INFORMATIONAL: tuple[str, ...] = (
     "چطور",
     "چگونه",
 )
-_FA_WANT_PLAN: tuple[str, ...] = ("میخواهم", "میخوام")
+_FA_WANT_PLAN: tuple[str, ...] = ("میخواهم", "میخوام", "می خواهم", "می خوام")
 
 
 def _fa_nutrition_personalized(normalized: str) -> bool:
@@ -465,6 +467,11 @@ def resolve_intent(
         )
 
     normalized = normalize_match_text(message)
+    if language == "fa":
+        # R-020: «برنامه های غذایی / برنامه‌ی غذایی / برنامه ی تغذیه / رژیم های …» are the same ask as «برنامه غذایی».
+        # ZWNJ was already removed by normalize_match_text, so «برنامه‌های» arrives as «برنامههای».
+        normalized = re.sub(r"\bبرنامه\s*(?:های|ها|ی)\b", "برنامه", normalized)
+        normalized = re.sub(r"\bرژیم\s+(?:های|ها|ی)\b", "رژیم", normalized)
     matches: list[_Rule] = []
     for rule in _RULES:
         if rule.intent_id is IntentId.GENERAL and rule.priority >= 1000:

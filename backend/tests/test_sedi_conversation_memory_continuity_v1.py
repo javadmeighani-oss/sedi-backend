@@ -471,7 +471,9 @@ def test_opener_after_cooldown_expired_no_memory(client, db):
     resp = client.post("/interact/session/open", headers=_auth(user.id))
     assert resp.status_code == 200, resp.text
     # Raw is ineligible; authorized I7 derived DAILY continuity may still ground the opener.
-    assert "walking" in (resp.json().get("message") or "").lower()
+    # R-020: the opener names the topic ("exercise…"), it never echoes the user's own words.
+    msg2 = (resp.json().get("message") or "").lower()
+    assert "walking" in msg2 or "exercise" in msg2
 
 
 def test_opener_after_cooldown_cross_user_no_memory(client, db):
