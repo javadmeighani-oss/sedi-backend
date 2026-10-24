@@ -262,6 +262,19 @@ def _generic_notification_origin_opener(*, lang: str, name: Optional[str]) -> st
     return templates.get(lang, templates["en"])
 
 
+def _care_checkin_opener(*, lang: str, name: Optional[str]) -> str:
+    """R-019: the user tapped Sedi's caring check-in. Warm, no event named (chat context carries it privately)."""
+    cleaned = (name or "").strip()
+    if lang == "fa":
+        who = f"{cleaned} جان، " if cleaned else ""
+        return f"{who}خوشحالم که اومدی. دلم می‌خواست بدونم این روزها چطوری؛ هرچی تو دلته بگو، من گوش می‌دم."
+    if lang == "ar":
+        who = f"{cleaned}، " if cleaned else ""
+        return f"{who}سعيدة أنك جئت. أردت أن أعرف كيف حالك هذه الأيام؛ قل ما في قلبك، أنا أُصغي."
+    who = f"{cleaned}, " if cleaned else ""
+    return f"{who}I'm glad you came. I wanted to know how you've been these days; tell me whatever is on your heart, I'm listening."
+
+
 def build_notification_origin_opener(
     db: Session,
     user: models.User,
@@ -284,6 +297,9 @@ def build_notification_origin_opener(
 
     if family == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value:
         return _daily_digest_opener(lang=lang, name=name)
+
+    if (getattr(notification, "template_key", None) or "") == "care_checkin":
+        return _care_checkin_opener(lang=lang, name=name)
 
     if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:
         topic_phrase = None
