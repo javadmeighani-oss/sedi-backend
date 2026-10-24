@@ -301,7 +301,7 @@ def build_notification_origin_opener(
     if family == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value:
         return _daily_digest_opener(lang=lang, name=name)
 
-    if (getattr(notification, "template_key", None) or "") == "care_checkin":
+    if (getattr(notification, "template_key", None) or "") in ("care_checkin", "daily_initiative"):
         return _care_checkin_opener(lang=lang, name=name)
 
     if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:

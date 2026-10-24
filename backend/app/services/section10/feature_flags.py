@@ -73,6 +73,11 @@ def contextual_followup_enabled() -> bool:
     return _env_flag_enabled("SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED")
 
 
+def daily_initiative_enabled() -> bool:
+    """R-021 / M5: Sedi's daily initiative sweep (default OFF)."""
+    return _env_flag_enabled("SEDI_DAILY_INITIATIVE_ENABLED")
+
+
 def coaching_followup_enabled() -> bool:
     return _env_flag_enabled("SEDI_I10_COACHING_FOLLOWUP_ENABLED")
 

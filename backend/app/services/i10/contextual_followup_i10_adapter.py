@@ -74,6 +74,43 @@ def _care_checkin_copy(db: Session, task: models.CareFollowUpTask, name: Optiona
     return "Sedi", f"{who}I wanted to check in on you. Come talk for a bit whenever you have time; I'm here.", "care_checkin"
 
 
+_INITIATIVE_COPY = {
+    "mood": {
+        "fa": "{who}امروز حالت چطوره؟ هر چی تو دلته بگو، من گوش می‌دم.",
+        "en": "{who}how are you today? Tell me whatever is on your heart, I am listening.",
+        "ar": "{who}كيف حالك اليوم؟ قل ما في قلبك، أنا أُصغي.",
+    },
+    "suggestion": {
+        "fa": "{who}راستی، اون پیشنهادی که دادم چطور پیش رفت؟ دلم می‌خواد بدونم.",
+        "en": "{who}how did that suggestion of mine go? I would love to know.",
+        "ar": "{who}كيف سار اقتراحي الذي قدّمته؟ أحب أن أعرف.",
+    },
+    "health": {
+        "fa": "{who}یه سر زدم ببینم امروز بدن و حالت چطوره؛ اگه خواستی با هم یه کار کوچیک برای مراقبت از خودت انجام بدیم.",
+        "en": "{who}I stopped by to see how your body and mood are today; if you like, let us do one small thing to look after you.",
+        "ar": "{who}مررت لأطمئن على جسدك ومزاجك اليوم؛ إن أردت نقوم بشيء صغير للعناية بك.",
+    },
+}
+
+
+def _initiative_copy(db: Session, task: models.CareFollowUpTask, name: Optional[str]) -> tuple[str, str, str]:
+    """R-021 / M5: warm, lock-screen-safe daily initiative (never names a condition or a cause)."""
+    kind = str(task.title or "").split(":", 1)[-1].strip()
+    kind = kind if kind in _INITIATIVE_COPY else "mood"
+    lang = "fa"
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == task.user_id).first()
+        raw = ((row[0] if row else None) or "fa").strip().lower().split("-")[0]
+        lang = raw if raw in ("fa", "en", "ar") else "en"
+    except Exception:
+        pass
+    who = (f"{name} جان، " if lang == "fa" else f"{name}, ") if name else ""
+    body = _INITIATIVE_COPY[kind][lang].format(who=who)
+    if lang == "en" and not who:
+        body = body[:1].upper() + body[1:]
+    return ("Sedi" if lang == "en" else "صدی"), body, "daily_initiative"
+
+
 def render_followup_copy(
     db: Session,
     task: models.CareFollowUpTask,
@@ -85,6 +122,8 @@ def render_followup_copy(
 
     if meta.follow_up_kind == "care_checkin":
         return _care_checkin_copy(db, task, name)
+    if meta.follow_up_kind == "daily_initiative":
+        return _initiative_copy(db, task, name)
 
     if task.source == FollowUpTaskSource.POST_EVENT.value:
         title = "Follow-up on your appointment"
