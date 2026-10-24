@@ -55,6 +55,25 @@ def _safe_user_name(db: Session, user_id: int) -> Optional[str]:
     return str(row[0]).strip()[:64] or None
 
 
+def _care_checkin_copy(db: Session, task: models.CareFollowUpTask, name: Optional[str]) -> tuple[str, str, str]:
+    """R-018: lock-screen-safe, warm check-in. Never names the event (loss, job, surgery...) — only that Sedi is thinking of them."""
+    lang = "fa"
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == task.user_id).first()
+        raw = ((row[0] if row else None) or "fa").strip().lower().split("-")[0]
+        lang = raw if raw in ("fa", "en", "ar") else "en"
+    except Exception:
+        pass
+    if lang == "fa":
+        who = f"{name} جان، " if name else ""
+        return "صدی", f"{who}دلم خواست حالت رو بپرسم. هر وقت وقت داشتی بیا کمی با هم حرف بزنیم؛ من اینجام.", "care_checkin"
+    if lang == "ar":
+        who = f"{name}، " if name else ""
+        return "صدی", f"{who}أحببت أن أطمئن عليك. تعال نتحدث قليلاً عندما يناسبك؛ أنا هنا.", "care_checkin"
+    who = f"{name}, " if name else ""
+    return "Sedi", f"{who}I wanted to check in on you. Come talk for a bit whenever you have time; I'm here.", "care_checkin"
+
+
 def render_followup_copy(
     db: Session,
     task: models.CareFollowUpTask,
@@ -63,6 +82,9 @@ def render_followup_copy(
     _user_text, meta = parse_bounded_meta(task.description)
     name = _safe_user_name(db, task.user_id)
     prefix = f"{name}, " if name else ""
+
+    if meta.follow_up_kind == "care_checkin":
+        return _care_checkin_copy(db, task, name)
 
     if task.source == FollowUpTaskSource.POST_EVENT.value:
         title = "Follow-up on your appointment"

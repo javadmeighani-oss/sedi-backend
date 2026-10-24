@@ -199,6 +199,9 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
         item = create_care_plan_item(db, user_id, CarePlanItemCreateIn(title=title[:256], source=source))
         return {"target": "user_care_plan_items", "id": item.get("id")}
 
+    if fact_type == "care_checkin_event":
+        return _promote_care_checkin(db, user_id, str(value).strip().lower())
+
     if fact_type in ("medications", "medications_list", "medication"):
         # Do not duplicate into memory facts — leave for structured meds flow (Gate 2: pending/suggest only)
         return {"target": "user_medications", "action": "suggest_only", "value": str(value)[:120]}
@@ -249,3 +252,43 @@ def promote_after_accept(db: Session, candidate_id: int) -> Optional[Dict[str, A
     if cand is None or cand.status != "accepted":
         return None
     return promote_kc_candidate(db, cand)
+
+
+# R-018: a significant life event the user stated (loss, job loss, separation, surgery, accident) schedules ONE gentle
+# check-in through the existing I10-B12 CareFollowUpTask (no new scheduler). Only the event KIND is stored.
+_CARE_CHECKIN_DELAY_DAYS = {"loss": 2, "job_loss": 3, "separation": 3, "surgery": 2, "accident": 2}
+CARE_CHECKIN_TITLE_PREFIX = "care_checkin:"
+
+
+def _promote_care_checkin(db: Session, user_id: int, kind: str) -> Dict[str, Any]:
+    if kind not in _CARE_CHECKIN_DELAY_DAYS:
+        return {"target": "skipped", "reason": "UNKNOWN_CARE_EVENT"}
+    from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
+
+    if not has_permission(db, user_id, PERM_WRITE):
+        return {"target": "skipped", "reason": "CONSENT_DENIED"}
+    now = datetime.utcnow()
+    recent = (
+        db.query(models.CareFollowUpTask.id)
+        .filter(
+            models.CareFollowUpTask.user_id == user_id,
+            models.CareFollowUpTask.title.like(f"{CARE_CHECKIN_TITLE_PREFIX}%"),
+            models.CareFollowUpTask.created_at >= now - timedelta(days=7),
+        )
+        .first()
+    )
+    if recent:
+        return {"target": "skipped", "reason": "CARE_CHECKIN_RECENT"}
+    from backend.app.services.i10.contextual_followup_types import FollowUpTaskSource
+    from backend.app.services.i10.contextual_followup_worker import create_structured_follow_up_task
+
+    task = create_structured_follow_up_task(
+        db,
+        user_id=user_id,
+        title=f"{CARE_CHECKIN_TITLE_PREFIX}{kind}",
+        due_at=now + timedelta(days=_CARE_CHECKIN_DELAY_DAYS[kind]),
+        source=FollowUpTaskSource.GENERAL_CONTEXTUAL,
+        follow_up_kind="care_checkin",
+    )
+    db.commit()
+    return {"target": "care_follow_up_tasks", "id": task.id}

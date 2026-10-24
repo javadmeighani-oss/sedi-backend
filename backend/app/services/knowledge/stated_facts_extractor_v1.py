@@ -220,3 +220,40 @@ def extract_stated_facts(text: str) -> List[Stated]:
         out.extend(_interests(s))
         out.extend(_sleep_hours(s))
     return out
+
+
+# --- R-018: emotionally significant life events the user states (drive ONE gentle care check-in, nothing else) ---
+_REL_ALT = (
+    r"مادرم|پدرم|همسرم|خواهرم|برادرم|فرزندم|دوستم|عزیزم|پدربزرگم|مادربزرگم|مادر\s*من|پدر\s*من"
+)
+_CARE_EVENTS_FA = (
+    ("loss", rf"(?:{_REL_ALT})\s+(?:هم\s+)?(?:دیروز\s+|امروز\s+|اخیرا[ًّ]?\s+)?(?:فوت\s*کرد|فوت\s*شد|مرد|از\s*دنیا\s*رفت|رحلت\s*کرد)"),
+    ("loss", rf"(?:{_REL_ALT})\s*(?:رو|را)?\s*از\s*دست\s*دادم"),
+    ("job_loss", r"اخراج\s*شدم|کارم\s*(?:رو|را)?\s*از\s*دست\s*دادم|بیکار\s*شدم"),
+    ("separation", r"طلاق\s*گرفتم|طلاق\s*گرفتیم|از\s*(?:همسرم|نامزدم)\s*جدا\s*شدم|از\s*هم\s*جدا\s*شدیم"),
+    ("surgery", r"(?:عمل\s*جراحی|جراحی)\s*(?:شدم|کردم)|زیر\s*عمل\s*رفتم"),
+    ("accident", r"تصادف\s*(?:کردم|داشتم)"),
+)
+_CARE_EVENTS_EN = (
+    ("loss", r"\bmy\s+(?:mother|father|wife|husband|sister|brother|son|daughter|friend|mom|dad)\s+(?:has\s+)?(?:died|passed\s+away)"),
+    ("job_loss", r"\bi\s+(?:lost\s+my\s+job|got\s+fired|was\s+laid\s+off)"),
+    ("separation", r"\bi\s+(?:got|am\s+getting)\s+divorced|\bmy\s+divorce\b"),
+    ("surgery", r"\bi\s+(?:had|have\s+had)\s+(?:a\s+)?surgery|\bi\s+was\s+operated\s+on"),
+    ("accident", r"\bi\s+(?:was\s+in|had)\s+a\s+(?:car\s+)?accident"),
+)
+
+
+def extract_care_events(text: str) -> List[Stated]:
+    """Kinds of significant events the user stated about themselves/close people (no details are kept)."""
+    if not text or not isinstance(text, str):
+        return []
+    out: List[Stated] = []
+    for sentence in _SENTENCE_SPLIT.split(text.translate(_DIGITS)):
+        s = sentence.strip()
+        if len(s) < 4 or _QUESTION.search(s) or _CONDITIONAL.search(s):
+            continue
+        for kind, rx in _CARE_EVENTS_FA + _CARE_EVENTS_EN:
+            if re.search(rx, s, re.I):
+                out.append(Stated("care_checkin_event", kind, _conf(s), "stated_care_event"))
+                break
+    return out

@@ -1465,6 +1465,16 @@ class IntelligenceOrchestrator:
                         relationship_guidance = f"{relationship_guidance}\n{_hint}"
             except Exception:
                 pass
+            # R-018: continuity of care — a recent significant life event and Sedi's own earlier suggestions (read-only).
+            try:
+                from backend.app.services.intelligence.care_continuity import build_continuity_hint
+
+                if self._db is not None:
+                    _care = build_continuity_hint(self._db, authenticated_user_id, lang)
+                    if _care:
+                        relationship_guidance = f"{relationship_guidance}\n{_care}"
+            except Exception:
+                pass
 
         # Structured I5 gate: decide after CR-02 need + I6 adaptive, before generation.
         if (

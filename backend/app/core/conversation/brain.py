@@ -656,6 +656,15 @@ class ConversationBrain:
                 {"role": "system", "content": system_prompt_content}
             ]
 
+            try:
+                from backend.app.services.intelligence.time_context import build_time_context
+
+                _time_hint = build_time_context(self.db, user_id, lang)
+                if _time_hint:
+                    messages.append({"role": "system", "content": _time_hint})
+            except Exception:
+                pass
+
             if structured_mode:
                 # Connected I2 path: single prebuilt projection replaces covered packs.
                 messages.append(
@@ -666,7 +675,7 @@ class ConversationBrain:
                     messages.append(
                         {
                             "role": "system",
-                            "content": str(relationship_guidance).strip()[:1200],
+                            "content": str(relationship_guidance).strip()[:2000],
                         }
                     )
                 # I5 knowledge-only: orchestrator-decided; never reload I2/I6 care packs.
