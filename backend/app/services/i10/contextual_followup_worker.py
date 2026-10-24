@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ from backend.app.services.i10.contextual_followup_i10_adapter import (
 from backend.app.services.i10.contextual_followup_task_meta import (
     BoundedFollowUpMeta,
     pack_description,
+    parse_bounded_meta,
     with_notification_id,
 )
 from backend.app.services.i10.contextual_followup_types import (
@@ -106,6 +107,30 @@ def create_post_event_follow_up_task(
     )
 
 
+CARE_CHECKIN_EXPIRY = timedelta(days=7)
+
+
+def _is_care_checkin(task: models.CareFollowUpTask) -> bool:
+    return parse_bounded_meta(task.description)[1].follow_up_kind == "care_checkin"
+
+
+def _care_checkin_may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
+    """R-019: the care check-in is a Sedi notification like any other — it obeys the smart-notification send guard
+    (adaptive pause after dislikes/dismisses = the user's reactions, quiet hours, companion daily cap). When blocked the
+    task simply waits (the worker retries every cycle); a check-in that could not be sent within a week is dropped,
+    because a late "how are you" would no longer be caring."""
+    from backend.app.services.notifications.send_guard_v1 import can_send_v1
+
+    now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+    due = task.due_at.replace(tzinfo=None) if task.due_at is not None and task.due_at.tzinfo else task.due_at
+    if due is not None and now_naive - due > CARE_CHECKIN_EXPIRY:
+        task.status = FollowUpTaskStatus.CANCELLED.value
+        task.updated_at = datetime.utcnow()
+        return False
+    verdict = can_send_v1(db, task.user_id, "companion", "care_checkin", "normal", now_naive)
+    return bool(verdict.get("allowed"))
+
+
 def process_single_follow_up_task(
     db: Session,
     task: models.CareFollowUpTask,
@@ -113,6 +138,8 @@ def process_single_follow_up_task(
     now: datetime,
 ) -> bool:
     if not is_task_eligible(task, now):
+        return False
+    if _is_care_checkin(task) and not _care_checkin_may_send(db, task, now):
         return False
     occurrence_key = build_followup_occurrence_key(task_id=task.id)
     existing = (
