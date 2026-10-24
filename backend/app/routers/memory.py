@@ -18,6 +18,9 @@ from backend.app.schemas.memory import (
     HistoryGroupItem,
     HistoryTurnItem,
     MemorySaveRequest,
+    MemoryFactEditRequest,
+    LifeEventCreateRequest,
+    LifeEventUpdateRequest,
 )
 from backend.app.routers.auth_otp import get_current_user
 from backend.app.services.gate4.policy_prefs_bridge import (
@@ -357,3 +360,151 @@ def forget_memory_turn(
             db.commit()
         return APIResponse(ok=True, data={"forgotten": True, "reason": "USER_FORGET"})
     raise HTTPException(status_code=409, detail=result.reason)
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# R-021 / M1 — the user's memory, visible and correctable. I7 owns this API; facts stay owned by I6 (consent, provenance);
+# life events live on the I7 timeline. JWT identity only; every call is ownership-scoped and consent-gated.
+# ---------------------------------------------------------------------------------------------------------------------
+_LIST_FACT_KEYS = frozenset({("medical", "health_concerns"), ("medical", "family_history"), ("preferences", "interests")})
+
+
+def _fact_dict(row: models.UserMemoryFact) -> dict:
+    from backend.app.services.memory.memory_contract import MemoryContract, render_stated_value
+
+    permitted, _ = MemoryContract.i6_write_permitted(row.domain, row.key)
+    return {
+        "id": int(row.id),
+        "domain": row.domain,
+        "key": row.key,
+        "value": render_stated_value(row.value_json),
+        "source": row.source,
+        "provenance_class": row.provenance_class,
+        "editable": bool(permitted),
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+@router.get("/overview", response_model=APIResponse)
+def memory_overview(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """What Sedi remembers about me: the overall summary, the remembered facts and my life timeline."""
+    from backend.app.services.i6.consent_service import PERM_READ, has_permission
+    from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+    from backend.app.services.i7.life_events import list_life_events
+    from backend.app.services.profile.a3_profile_summary import build_a3_profile_summary
+
+    if not has_permission(db, auth_user.id, PERM_READ):
+        return APIResponse(ok=True, data={"consent": False, "summary": "", "facts": [], "timeline": []})
+    facts = [_fact_dict(r) for r in list_facts_readonly_or_empty(db, auth_user.id)]
+    return APIResponse(
+        ok=True,
+        data={
+            "consent": True,
+            "summary": build_a3_profile_summary(db, auth_user.id).get("summary", ""),
+            "facts": facts,
+            "timeline": list_life_events(db, auth_user.id, limit=100),
+        },
+    )
+
+
+@router.patch("/facts/{fact_id}", response_model=APIResponse)
+def memory_edit_fact(
+    fact_id: int,
+    body: MemoryFactEditRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """My correction wins: stored as USER_STATED / source user_edit (supersedes whatever was extracted)."""
+    from backend.app.services.i6.consent_service import ConsentDenied
+    from backend.app.services.i6.memory_writes import MemoryWriteError, assert_user_isolation, write_fact
+    from backend.app.services.memory.memory_contract import MemoryContract
+
+    try:
+        row = assert_user_isolation(db, auth_user.id, fact_id)
+    except ConsentDenied:
+        raise HTTPException(status_code=404, detail="FACT_NOT_FOUND")
+    permitted, _err = MemoryContract.i6_write_permitted(row.domain, row.key)
+    if not permitted or row.fact_status != "active":
+        raise HTTPException(status_code=409, detail="FACT_NOT_EDITABLE")
+    text = " ".join(body.value.split())
+    parts = [p.strip() for p in text.replace(",", chr(0x60C)).split(chr(0x60C)) if p.strip()]
+    value = parts if (row.domain, row.key) in _LIST_FACT_KEYS else text
+    try:
+        updated = write_fact(db, auth_user.id, row.domain, row.key, value, provenance_class="USER_STATED", source="user_edit", commit=True)
+    except ConsentDenied:
+        raise HTTPException(status_code=403, detail="MEMORY_WRITE_NOT_GRANTED")
+    except MemoryWriteError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return APIResponse(ok=True, data=_fact_dict(updated))
+
+
+@router.delete("/facts/{fact_id}", response_model=APIResponse)
+def memory_delete_fact(
+    fact_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i6.consent_service import ConsentDenied
+    from backend.app.services.i6.memory_writes import assert_user_isolation, delete_fact
+
+    try:
+        row = assert_user_isolation(db, auth_user.id, fact_id)
+    except ConsentDenied:
+        raise HTTPException(status_code=404, detail="FACT_NOT_FOUND")
+    try:
+        done = delete_fact(db, auth_user.id, row.domain, row.key, reason="user_deleted", commit=True)
+    except ConsentDenied:
+        raise HTTPException(status_code=403, detail="MEMORY_FORGET_NOT_GRANTED")
+    return APIResponse(ok=True, data={"deleted": bool(done)})
+
+
+@router.post("/events", response_model=APIResponse)
+def memory_add_event(
+    body: LifeEventCreateRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.life_events import record_life_event
+
+    ev = record_life_event(
+        db, auth_user.id, kind=body.kind, summary=body.summary, occurred_at=body.occurred_at,
+        precision=body.precision, subject=body.subject, source="manual",
+    )
+    if ev is None:
+        raise HTTPException(status_code=403, detail="MEMORY_WRITE_NOT_GRANTED")
+    return APIResponse(ok=True, data=ev)
+
+
+@router.patch("/events/{event_id}", response_model=APIResponse)
+def memory_edit_event(
+    event_id: int,
+    body: LifeEventUpdateRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.life_events import update_life_event
+
+    ev = update_life_event(
+        db, auth_user.id, event_id, summary=body.summary, occurred_at=body.occurred_at, kind=body.kind,
+        subject=body.subject, precision=body.precision,
+    )
+    if ev is None:
+        raise HTTPException(status_code=404, detail="EVENT_NOT_FOUND_OR_NOT_PERMITTED")
+    return APIResponse(ok=True, data=ev)
+
+
+@router.delete("/events/{event_id}", response_model=APIResponse)
+def memory_delete_event(
+    event_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.life_events import delete_life_event
+
+    if not delete_life_event(db, auth_user.id, event_id):
+        raise HTTPException(status_code=404, detail="EVENT_NOT_FOUND_OR_NOT_PERMITTED")
+    return APIResponse(ok=True, data={"deleted": True})

@@ -20,6 +20,7 @@ _T: dict[str, dict[str, Any]] = {
         "health": "وضعیت سلامتت: {v}",
         "family": "سابقه‌ی خانوادگی‌ای که گفتی: {v}",
         "topic": "این روزها بیشتر درباره‌ی {v} با هم حرف می‌زنیم",
+        "events": "اتفاق‌های مهمی که گفتی: {v}",
         "goal": "هدفت: {v}",
         "life": "زندگی روزمره‌ات: {v}",
         "sleep": "حدود {h} ساعت در شب می‌خوابی",
@@ -37,6 +38,7 @@ _T: dict[str, dict[str, Any]] = {
         "health": "your health: {v}",
         "family": "family history you told me: {v}",
         "topic": "lately we have mostly talked about {v}",
+        "events": "important things you told me about: {v}",
         "goal": "your goal: {v}",
         "life": "your daily life: {v}",
         "sleep": "you sleep about {h} hours a night",
@@ -54,6 +56,7 @@ _T: dict[str, dict[str, Any]] = {
         "health": "وضعك الصحي: {v}",
         "family": "التاريخ العائلي الذي ذكرته: {v}",
         "topic": "في الأيام الأخيرة تحدثنا أكثر عن {v}",
+        "events": "أمور مهمة ذكرتها لي: {v}",
         "goal": "هدفك: {v}",
         "life": "حياتك اليومية: {v}",
         "sleep": "تنام نحو {h} ساعات في الليلة",
@@ -116,6 +119,14 @@ def build_overview(db: Session, user_id: int, facts: dict[str, str], plan_active
             topic = None
         if topic:
             parts.append(t["topic"].format(v=topic))
+        try:
+            from backend.app.services.i7.life_events import list_life_events
+
+            titles = [e["title"] for e in list_life_events(db, user_id, limit=2) if e.get("title")]
+        except Exception:
+            titles = []
+        if titles:
+            parts.append(t["events"].format(v=t["comma"].join(titles)))
         goal = clean_value(facts.get("goal"), goal=True)
         if goal:
             parts.append(t["goal"].format(v=goal))

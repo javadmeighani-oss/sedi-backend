@@ -4756,6 +4756,122 @@
         "title": "KnowledgeSourceUpdateIn",
         "type": "object"
       },
+      "LifeEventCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "default": "other",
+            "maxLength": 32,
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "precision": {
+            "default": "approx",
+            "maxLength": 8,
+            "title": "Precision",
+            "type": "string"
+          },
+          "subject": {
+            "default": "self",
+            "maxLength": 16,
+            "title": "Subject",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 140,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "title": "LifeEventCreateRequest",
+        "type": "object"
+      },
+      "LifeEventUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 140,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "title": "LifeEventUpdateRequest",
+        "type": "object"
+      },
       "LifestyleEntry": {
         "description": "Single lifestyle fact entry",
         "properties": {
@@ -5093,6 +5209,23 @@
           }
         },
         "title": "MeUpdateIn",
+        "type": "object"
+      },
+      "MemoryFactEditRequest": {
+        "additionalProperties": false,
+        "description": "The user's own correction of one remembered fact. A string is split into a list for list-like facts.",
+        "properties": {
+          "value": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "MemoryFactEditRequest",
         "type": "object"
       },
       "MemorySaveRequest": {
@@ -14694,6 +14827,154 @@
         ]
       }
     },
+    "/memory/events": {
+      "post": {
+        "operationId": "memory_add_event_memory_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifeEventCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Add Event",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/events/{event_id}": {
+      "delete": {
+        "operationId": "memory_delete_event_memory_events__event_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Delete Event",
+        "tags": [
+          "Memory"
+        ]
+      },
+      "patch": {
+        "operationId": "memory_edit_event_memory_events__event_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifeEventUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Edit Event",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
     "/memory/export": {
       "post": {
         "operationId": "create_memory_export_memory_export_post",
@@ -14715,6 +14996,109 @@
           }
         ],
         "summary": "Create Memory Export",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/facts/{fact_id}": {
+      "delete": {
+        "operationId": "memory_delete_fact_memory_facts__fact_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fact_id",
+            "required": true,
+            "schema": {
+              "title": "Fact Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Delete Fact",
+        "tags": [
+          "Memory"
+        ]
+      },
+      "patch": {
+        "description": "My correction wins: stored as USER_STATED / source user_edit (supersedes whatever was extracted).",
+        "operationId": "memory_edit_fact_memory_facts__fact_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fact_id",
+            "required": true,
+            "schema": {
+              "title": "Fact Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryFactEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Edit Fact",
         "tags": [
           "Memory"
         ]
@@ -14900,6 +15284,33 @@
           }
         ],
         "summary": "Get Lifelong Recall",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/overview": {
+      "get": {
+        "description": "What Sedi remembers about me: the overall summary, the remembered facts and my life timeline.",
+        "operationId": "memory_overview_memory_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Overview",
         "tags": [
           "Memory"
         ]

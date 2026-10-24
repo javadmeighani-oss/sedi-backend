@@ -1,5 +1,5 @@
 # app/schemas/memory.py
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -59,3 +59,34 @@ class MemoryResponse(BaseModel):
     last_interaction: datetime
 
     model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode
+
+
+# --- R-021 / M1: user-visible, user-editable memory (I7-owned API over I6 facts + the life timeline) ---
+
+
+class MemoryFactEditRequest(BaseModel):
+    """The user's own correction of one remembered fact. A string is split into a list for list-like facts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    value: str = Field(..., min_length=1, max_length=400)
+
+
+class LifeEventCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str = Field("other", max_length=32)
+    summary: Optional[str] = Field(None, max_length=140)
+    occurred_at: Optional[datetime] = None
+    subject: str = Field("self", max_length=16)
+    precision: str = Field("approx", max_length=8)
+
+
+class LifeEventUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Optional[str] = Field(None, max_length=32)
+    summary: Optional[str] = Field(None, max_length=140)
+    occurred_at: Optional[datetime] = None
+    subject: Optional[str] = Field(None, max_length=16)
+    precision: Optional[str] = Field(None, max_length=8)

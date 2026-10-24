@@ -37,6 +37,11 @@ _AUTO_ACCEPT_KEYS = AUTO_PROMOTE_LOW_RISK | frozenset(
         "interests",
         "sleep_duration_hours",
         "care_checkin_event",
+        # R-021 / M2: validated LLM-extracted intake facts (the user's own statements).
+        "intake_allergies",
+        "intake_goal",
+        "intake_food_preferences",
+        "intake_exercise_preferences",
     }
 )
 
@@ -67,6 +72,7 @@ def process_message(
     text: str,
     language: str,
     source_message_id: Optional[str] = None,
+    extra_candidates: Optional[list] = None,
 ) -> Dict[str, Any]:
     """
     Extract candidates from text, create/accept per thresholds.
@@ -80,7 +86,9 @@ def process_message(
     auto_threshold = _get_auto_accept_threshold()
     confirm_threshold = _get_confirm_threshold()
 
-    extracted = extract_candidates(text=text, language=language)
+    extracted = list(extract_candidates(text=text, language=language))
+    if extra_candidates:  # R-021 / M2: already validated by llm_memory_extractor_v2 (same governed path from here on)
+        extracted.extend(extra_candidates)
     extracted_count = len(extracted)
     print(f"[KC-EXTRACT] extracted_items_count={extracted_count} (candidates before create/accept)")
 

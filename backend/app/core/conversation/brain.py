@@ -866,6 +866,12 @@ class ConversationBrain:
                     )
                 except Exception as extract_err:
                     print(f"[BRAIN] KC extract (non-critical): {extract_err}")
+                try:  # R-021 / M2: smart extraction runs in the background after the reply (flag-gated, fail-open)
+                    from backend.app.services.knowledge.llm_memory_extractor_v2 import schedule_llm_extraction
+
+                    schedule_llm_extraction(user_id, user_message, self.language or "fa")
+                except Exception as llm_extract_err:
+                    print(f"[BRAIN] LLM extract schedule (non-critical): {llm_extract_err}")
 
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)
