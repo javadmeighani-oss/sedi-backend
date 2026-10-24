@@ -675,7 +675,7 @@ class ConversationBrain:
                     messages.append(
                         {
                             "role": "system",
-                            "content": str(relationship_guidance).strip()[:1200],
+                            "content": str(relationship_guidance).strip()[:2000],
                         }
                     )
                 # I5 knowledge-only: orchestrator-decided; never reload I2/I6 care packs.

@@ -36,6 +36,7 @@ _AUTO_ACCEPT_KEYS = AUTO_PROMOTE_LOW_RISK | frozenset(
         "household_context",
         "interests",
         "sleep_duration_hours",
+        "care_checkin_event",
     }
 )
 
@@ -120,6 +121,10 @@ def process_message(
                 # Frozen KcUserFact is not I6. Auto-accept keys still promote to UserMemoryFact.
                 result = promote_kc_candidate(db, cand)
                 if result.get("target") in ("user_memory_facts", "user_profile_facts"):
+                    auto_accepted_count += 1
+                elif result.get("target") == "care_follow_up_tasks" or result.get("reason") == "CARE_CHECKIN_RECENT":
+                    cand.status = "accepted"  # handled (or intentionally deduped); never left pending for confirmation
+                    db.commit()
                     auto_accepted_count += 1
                 fact = None
             if fact:

@@ -222,9 +222,12 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
 
     # 4b) R-014 second memory: explicit first-person statements (conditions, family history, job, household, ...)
     try:
-        from backend.app.services.knowledge.stated_facts_extractor_v1 import extract_stated_facts
+        from backend.app.services.knowledge.stated_facts_extractor_v1 import (
+            extract_care_events,
+            extract_stated_facts,
+        )
 
-        for st in extract_stated_facts(text):
+        for st in list(extract_stated_facts(text)) + list(extract_care_events(text)):
             candidates.append(ExtractedCandidate(
                 fact_key=st.fact_key,
                 fact_value=st.fact_value,
