@@ -174,9 +174,51 @@ _INJECTION_PAT = re.compile(
 )
 
 
+# R-014 (2026-10-24): the directory answers only an explicit "find me a doctor / place" request. A message that merely
+# contains «متخصص/دکتر/پزشک» (e.g. «راهکارهای تو چیه؟ متخصص صدی باشه», «به دکتر نمی‌خوام برم») is a normal chat turn.
+_NOT_A_FIND_REQUEST = re.compile(
+    r"(?:"
+    r"(?:متخصص|مشاور|دکتر|پزشک|کارشناس)\s*(?:من|ما|خودم|خودمون)?\s*(?:،|,)?\s*(?:صدی|تو|خودت)\s*(?:باش|باشه|باشی|بشو|هستی|می[‌ ]?شی|میشی)"
+    r"|(?:صدی|خودت|تو)\s*(?:متخصص|مشاور|دکتر|پزشک)\s*(?:من\s*)?(?:باش|باشه|باشی|هستی|بشو)"
+    r"|(?:نمی[‌ ]?خوام|نمیخوام|نیازی\s*ندارم|لازم\s*نیست|نرم|نمی[‌ ]?رم)\s*(?:که\s*)?(?:به\s*|پیش\s*)?(?:دکتر|پزشک|متخصص)"
+    r"|(?:به\s*)?(?:دکتر|پزشک|متخصص)\s*(?:ارجاع|رجوع|مراجعه)\s*(?:نده|ندی|نکن|نکنی)"
+    r"|(?:ارجاع|رجوع|مراجعه)\s*(?:نده|ندی|نکن)"
+    r"|\b(?:be\s+my|you\s+be\s+my|you\s+are\s+my)\s+(?:doctor|specialist|advisor|physician)"
+    r"|\b(?:don'?t|do\s+not|stop)\b.{0,30}\b(?:refer|send|tell)\b.{0,30}\b(?:doctor|specialist|physician)"
+    r")",
+    re.I,
+)
+_STRONG_FIND_VERB = re.compile(
+    r"\b("
+    r"find|near|nearby|introduce|list|search|look\s*up|"
+    r"پیدا|معرفی|نزدیک|جستجو|لیست|"
+    r"ابحث|قرب|قريب"
+    r")\b",
+    re.I,
+)
+_WEAK_FIND_VERB = re.compile(r"\b(recommend|suggest|پیشنهاد|اقترح)\b", re.I)
+_ASK_FOR_A_DOCTOR = re.compile(r"(?:یه|یک|any|a|an)\s+(?:دکتر|پزشک|doctor|specialist|dentist)", re.I)
+_NOT_A_CITY = frozenset(
+    {
+        "مورد", "این", "آن", "اون", "همین", "همون", "حال", "واقع", "کل", "کنار", "مقابل", "برابر", "طول", "کجا",
+        "من", "ما", "تو", "شما", "صدی", "خانه", "خونه", "منزل", "دست", "پی", "جریان", "اختیار", "کار",
+        "the", "my", "this", "that", "a", "an", "your", "case", "general", "mind",
+    }
+)
+
+
+def _has_real_location(text: str) -> bool:
+    for m in _LOCATION_CITY.finditer(text):
+        if m.group(1).strip().lower() not in _NOT_A_CITY:
+            return True
+    return False
+
+
 def is_care_navigation_query(message: str) -> bool:
     text = (message or "").strip()
     if not text:
+        return False
+    if _NOT_A_FIND_REQUEST.search(text):
         return False
     entity_hit = bool(
         _SPECIALIST_PAT.search(text)
@@ -186,19 +228,19 @@ def is_care_navigation_query(message: str) -> bool:
     )
     if not entity_hit:
         return False
-    if _CARE_NAV_VERB.search(text) or _INJECTION_PAT.search(text):
+    if _INJECTION_PAT.search(text) or _STRONG_FIND_VERB.search(text):
         return True
-    if _LOCATION_CITY.search(text) or _SPECIALTY_HINT.search(text):
+    if _ASK_FOR_A_DOCTOR.search(text):
         return True
-    if re.search(r"\b(for|برای|برایِ|جهت)\b", text, re.I):
+    located = _has_real_location(text)
+    if located:
         return True
-    if _SPECIALIST_PAT.search(text) and (
-        _SPECIALTY_HINT.search(text) or _LOCATION_CITY.search(text)
-    ):
+    if _WEAK_FIND_VERB.search(text) or _CARE_NAV_VERB.search(text):
+        # "suggest/پیشنهاد" alone is ordinary chat; it is a directory request only with a named specialty.
+        return bool(_SPECIALTY_HINT.search(text))
+    if (_HOSPITAL_PAT.search(text) or _LAB_PAT.search(text) or _CENTER_PAT.search(text)) and len(text) < 60:
         return True
-    if _HOSPITAL_PAT.search(text) or _LAB_PAT.search(text) or _CENTER_PAT.search(text):
-        return True
-    return bool(_SPECIALIST_PAT.search(text) and len(text) < 80)
+    return bool(_SPECIALIST_PAT.search(text) and _SPECIALTY_HINT.search(text) and len(text) < 40)
 
 
 def detect_care_nav_entity(message: str) -> CareNavEntity:

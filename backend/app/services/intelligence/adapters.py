@@ -937,7 +937,67 @@ class HealthContextAdapter:
                     sensitivity="high",
                 )
             )
+        have = {i.canonical_key for i in items}
+        items.extend(i for i in self._user_stated_health(db, authenticated_user_id) if i.canonical_key not in have)
         return items
+
+    @staticmethod
+    def _user_stated_health(db: Session, authenticated_user_id: int) -> list[ContextItem]:
+        """R-014 second memory: what the USER said about their health / family history (I6, consent-gated read)."""
+        out: list[ContextItem] = []
+        try:
+            from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+            from backend.app.services.memory.memory_contract import (
+                I6_USER_STATED_HEALTH_KEYS,
+                render_stated_value,
+            )
+
+            rows = list_facts_readonly_or_empty(db, authenticated_user_id, domain="medical")
+        except Exception:
+            return out
+        allowed = {k for _d, k in I6_USER_STATED_HEALTH_KEYS}
+        for row in rows:
+            key = str(getattr(row, "key", "") or "").strip()
+            if key not in allowed:
+                continue
+            text = render_stated_value(getattr(row, "value_json", None))
+            if not text:
+                continue
+            if key == "health_concerns":
+                # One condition item each, under the SAME key family as table conditions, so plan intake and
+                # function-domain mapping treat a stated condition as known (no re-asking "do you have a condition?").
+                for name in [t.strip() for t in text.split("،") if t.strip()][:10]:
+                    out.append(
+                        _item(
+                            canonical_key=f"health.condition.{_slug(name)}",
+                            section="health",
+                            source=ContextSource.HEALTH,
+                            value=name,
+                            display_text=f"condition={name} (stated by the user)",
+                            owner_user_id=authenticated_user_id,
+                            query_label="I6.user_stated_health",
+                            observed_at=getattr(row, "updated_at", None),
+                            sensitivity="high",
+                            epistemic_class=_row_epistemic_class(row),
+                        )
+                    )
+                continue
+            label = "stated_family_history"
+            out.append(
+                _item(
+                    canonical_key=f"health.{label}",
+                    section="health",
+                    source=ContextSource.HEALTH,
+                    value=text[:200],
+                    display_text=f"{label}={text[:200]}",
+                    owner_user_id=authenticated_user_id,
+                    query_label="I6.user_stated_health",
+                    observed_at=getattr(row, "updated_at", None),
+                    sensitivity="high",
+                    epistemic_class=_row_epistemic_class(row),
+                )
+            )
+        return out
 
 
 class CurrentMemoryContextAdapter:

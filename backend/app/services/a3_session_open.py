@@ -167,6 +167,30 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
         topic = recap_topic(db, user.id, lang, privacy="in_app")
     except Exception:
         topic = None
+    if not topic:
+        # Raw turns expired/ineligible: the authorized I7 derived continuity may still name the topic.
+        try:
+            from backend.app.services.i7.derived_continuity import (
+                get_bounded_continuity_topic,
+                should_project_derived_continuity,
+            )
+
+            if should_project_derived_continuity(db, user.id):
+                topic = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+        except Exception:
+            topic = None
+    if not topic:
+        try:
+            from backend.app.services.i7.privacy_safe_recent_topic import (
+                display_phrase_for_topic_label,
+                get_privacy_safe_recent_topic_label,
+            )
+
+            label = get_privacy_safe_recent_topic_label(db, user.id)
+            if label and label != "general":
+                topic = display_phrase_for_topic_label(label, lang)
+        except Exception:
+            topic = None
     if topic:
         return _continuity_opener(lang, topic, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])

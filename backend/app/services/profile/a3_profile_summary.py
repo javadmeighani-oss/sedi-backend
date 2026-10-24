@@ -81,6 +81,45 @@ def _i8_rows(db: Session, user_id: int) -> list[dict[str, str]]:
     ]
 
 
+# R-014 "second memory": what Sedi remembers about the user, shown back so the user can see (and correct) it.
+# (domain, key) in display order. Reads are I6 memory.read-gated; values are the user's own words/labels.
+_MEMORY_FACT_KEYS: tuple[tuple[str, str], ...] = (
+    ("medical", "health_concerns"),
+    ("medical", "family_history"),
+    ("intake", "allergies"),
+    ("intake", "goal"),
+    ("work", "occupation"),
+    ("social", "household_context"),
+    ("preferences", "interests"),
+    ("intake", "food_preferences"),
+    ("intake", "exercise_preferences"),
+    ("lifestyle", "sleep_duration_hours"),
+    ("lifestyle", "sleep_quality"),
+    ("lifestyle", "stress_level"),
+    ("lifestyle", "mood"),
+)
+
+
+def _memory_facts(db: Session, user_id: int) -> list[dict[str, str]]:
+    from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+    from backend.app.services.memory.memory_contract import render_stated_value
+
+    try:
+        rows = list_facts_readonly_or_empty(db, user_id)
+    except Exception:
+        return []
+    by_key = {(str(r.domain), str(r.key)): r for r in rows}
+    out: list[dict[str, str]] = []
+    for domain, key in _MEMORY_FACT_KEYS:
+        row = by_key.get((domain, key))
+        if row is None:
+            continue
+        text = render_stated_value(getattr(row, "value_json", None))
+        if text:
+            out.append({"key": key, "value": text[:200]})
+    return out
+
+
 def build_a3_profile_summary(db: Session, user_id: int) -> dict[str, Any]:
     """Compact user-facing rows for Gate3 Profile summary table."""
     consent = get_memory_consent_status(db, int(user_id))
@@ -97,4 +136,4 @@ def build_a3_profile_summary(db: Session, user_id: int) -> dict[str, Any]:
         for r in rows
         if r.get("key") and r.get("status")
     ]
-    return {"rows": safe_rows}
+    return {"rows": safe_rows, "facts": _memory_facts(db, int(user_id))}

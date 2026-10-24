@@ -29,6 +29,13 @@ _AUTO_ACCEPT_KEYS = AUTO_PROMOTE_LOW_RISK | frozenset(
         "diet_notes",
         "wake_time",
         "bedtime",
+        # R-014: facts the user explicitly stated about themselves (stated_facts_extractor_v1).
+        "health_concerns",
+        "family_history",
+        "occupation_stated",
+        "household_context",
+        "interests",
+        "sleep_duration_hours",
     }
 )
 
@@ -112,7 +119,7 @@ def process_message(
             except LegacyFactStackFrozen:
                 # Frozen KcUserFact is not I6. Auto-accept keys still promote to UserMemoryFact.
                 result = promote_kc_candidate(db, cand)
-                if result.get("target") == "user_memory_facts":
+                if result.get("target") in ("user_memory_facts", "user_profile_facts"):
                     auto_accepted_count += 1
                 fact = None
             if fact:

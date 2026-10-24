@@ -35,6 +35,29 @@ _CATEGORIES = (
     ("family", ("مادرم", "پدرم", "همسرم", "فرزندم", "خانواده", "my mother", "my father", "my wife", "my husband", "my family", "أمي", "أبي", "زوجي", "عائلتي")),
 )
 
+# R-014: a disease topic is recapped with its aspect ("پیشگیری از دیابت"), so the opener proves Sedi followed the thread.
+_ASPECTS = (
+    ("prevention", ("پیشگیری", "prevent", "الوقاية", "وقاية"),
+     {"fa": "پیشگیری از {l}", "en": "preventing {l}", "ar": "الوقاية من {l}"}),
+    ("diet", ("رژیم", "غذا", "تغذیه", "diet", "food", "حمية", "غذاء", "تغذية"),
+     {"fa": "تغذیه‌ی مناسب برای {l}", "en": "eating well with {l}", "ar": "التغذية المناسبة مع {l}"}),
+    ("exercise", ("ورزش", "تمرین", "پیاده", "exercise", "workout", "رياضة", "تمرين"),
+     {"fa": "ورزش برای {l}", "en": "exercise with {l}", "ar": "الرياضة مع {l}"}),
+    ("medication", ("دارو", "قرص", "medicine", "medication", "دواء"),
+     {"fa": "داروهای {l}", "en": "medication for {l}", "ar": "أدوية {l}"}),
+    ("symptoms", ("علائم", "نشانه", "symptom", "أعراض"),
+     {"fa": "علائم {l}", "en": "the symptoms of {l}", "ar": "أعراض {l}"}),
+)
+
+
+def _disease_phrase(text: str, label: str, lang: str) -> str:
+    t = _norm(text)
+    for _key, cues, phrases in _ASPECTS:
+        if any(c in t for c in cues):
+            return phrases[lang].format(l=label)
+    return {"fa": f"بیماری {label}", "en": label, "ar": label}[lang]
+
+
 _PHRASE_IN_APP = {
     "nutrition": {"fa": "برنامه‌ی غذایی و تغذیه‌ات", "en": "your eating and meal plan", "ar": "تغذيتك وخطتك الغذائية"},
     "exercise": {"fa": "ورزش و تحرکت", "en": "exercise and staying active", "ar": "الرياضة والحركة"},
@@ -106,6 +129,33 @@ def _disease_label(db: Session, text: str, lang: str) -> Optional[str]:
         return None
 
 
+def _memory_topic(db: Session, user_id: int, lang: str, privacy: str) -> Optional[str]:
+    """R-014: with no usable recent turn, name something Sedi REMEMBERS about the user (second memory), so openers and
+    notifications stay personal. Lock screen: a disease stays generic, interests are never named."""
+    try:
+        from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+        from backend.app.services.memory.memory_contract import render_stated_value
+
+        by_key = {
+            (str(r.domain), str(r.key)): render_stated_value(getattr(r, "value_json", None))
+            for r in list_facts_readonly_or_empty(db, user_id)
+        }
+    except Exception:
+        return None
+    concern = by_key.get(("medical", "health_concerns"))
+    if concern:
+        if privacy == "lock_screen":
+            return _PHRASE_LOCK["disease"][lang]
+        first = concern.split("،")[0].strip()
+        return {"fa": f"بیماری {first}", "en": first, "ar": first}[lang]
+    if by_key.get(("work", "occupation")):
+        return _PHRASE_IN_APP["work"][lang]
+    interest = by_key.get(("preferences", "interests"))
+    if interest and privacy != "lock_screen":
+        return interest.split("،")[0].strip()
+    return None
+
+
 def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, privacy: str = "in_app") -> Optional[str]:
     """A short noun phrase for the last meaningful topic, or None (callers then use warm generic copy)."""
     lang = _lang(language)
@@ -128,7 +178,7 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
         if label:
             if privacy == "lock_screen":
                 return _PHRASE_LOCK["disease"][lang]
-            return {"fa": f"بیماری {label}", "en": label, "ar": label}[lang]
+            return _disease_phrase(text, label, lang)
         key = classify_turn(text)
         if key is None:
             continue
@@ -138,4 +188,4 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
                 return None  # feelings / family: say nothing specific on a lock screen
             return block[lang]
         return _PHRASE_IN_APP[key][lang]
-    return None
+    return _memory_topic(db, user_id, lang, privacy)

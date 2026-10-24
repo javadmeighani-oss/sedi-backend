@@ -144,9 +144,9 @@ def answer_health_question(db: Session, user_id: int, body: HealthQuestionIn, so
             prefix = "بر اساس منابع معتبر ثبت‌شده: " if lang.startswith("fa") else "Based on registered curated sources: "
             answer = prefix + " ".join(parts)[:1200]
             answer += "\n\n" + (
-                "این اطلاعات آموزشی است و جایگزین مشورت با پزشک نیست."
+                "این اطلاعات عمومی و آموزشی است؛ اگه خواستی بر اساس شرایط خودت دقیق‌ترش کنیم، بگو."
                 if lang.startswith("fa")
-                else "This is educational information and not a substitute for medical advice."
+                else "This is general educational information; tell me if you want it tailored to your situation."
             )
         else:
             answer = get_template("no_source", lang)

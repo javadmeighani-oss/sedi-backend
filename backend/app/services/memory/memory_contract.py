@@ -5,7 +5,7 @@ Memory Contract - Defines allowed domains and keys for UserMemoryFact storage.
 This contract ensures consistency and prevents invalid data from being stored.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 # Allowed domains for memory facts
 ALLOWED_DOMAINS = {
@@ -46,6 +46,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "medications",
         "allergies",
         "health_concerns",
+        # R-014: user-stated family health history (never inferred; only what the user said).
+        "family_history",
     ],
     "preferences": [
         "communication_style",
@@ -161,7 +163,16 @@ KEY_OWNERSHIP_OVERRIDES: Dict[tuple, str] = {
     ("medical", "medications"): CANONICAL_MEDICATION,  # UserMedication
     ("medical", "allergies"): LEGACY_COMPATIBILITY,  # UserProfileFact.allergy is structured owner; no dedicated table
     ("medical", "health_concerns"): CANONICAL_I6,
+    ("medical", "family_history"): CANONICAL_I6,
 }
+
+# R-014 "second memory": user-STATED health facts that Sedi may use when answering (consent-gated reads).
+# The generic I6 projection still excludes the medical domain (conditions/medications come from their own
+# owners); these two keys are projected through HealthContextAdapter only.
+I6_USER_STATED_HEALTH_KEYS = (
+    ("medical", "health_concerns"),
+    ("medical", "family_history"),
+)
 
 DOMAIN_OWNERSHIP_DEFAULT: Dict[str, str] = {
     "lifestyle": CANONICAL_I6,
@@ -184,6 +195,23 @@ I6_CONTEXT_EXCLUDED_KEYS = frozenset({
     ("preferences", "language_preference"),
 })
 I6_CONTEXT_EXCLUDED_DOMAINS = frozenset({"medical", "vitals", "goals"})
+
+
+def render_stated_value(raw: Any) -> str:
+    """JSON memory value -> short readable text («دیابت، فشار خون»)."""
+    import json as _json
+
+    if raw is None:
+        return ""
+    try:
+        data = _json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        data = raw
+    if isinstance(data, (list, tuple)):
+        return "، ".join(str(x).strip() for x in data if str(x).strip())
+    if isinstance(data, dict) and "value" in data:
+        return str(data["value"]).strip()
+    return str(data).strip()
 
 
 class MemoryContract:

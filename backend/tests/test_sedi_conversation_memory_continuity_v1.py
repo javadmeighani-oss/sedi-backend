@@ -296,7 +296,7 @@ def test_b6_returning_contextual_and_generic(client, db):
     yes = client.post("/interact/session/open", headers=_auth(contextual.id))
     assert yes.status_code == 200, yes.text
     yes_msg = yes.json()["message"] or ""
-    assert "walking 30 minutes" in yes_msg.lower() or "walking" in yes_msg.lower()
+    assert "walking" in yes_msg.lower() or "exercise" in yes_msg.lower()
     assert yes.json().get("first_intro") is False
 
     no = client.post("/interact/session/open", headers=_auth(generic.id))
@@ -428,8 +428,8 @@ def test_opener_after_cooldown_uses_authorized_memory(client, db):
     resp = client.post("/interact/session/open", headers=_auth(user.id))
     assert resp.status_code == 200, resp.text
     msg = (resp.json().get("message") or "").lower()
-    assert "walking" in msg
-    assert "continue" in msg
+    assert "walking" in msg or "exercise" in msg
+    assert "pick that up" in msg or "continue" in msg
 
 
 def test_opener_after_cooldown_revoked_no_memory(client, db):

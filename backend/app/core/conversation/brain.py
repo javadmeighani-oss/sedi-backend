@@ -37,7 +37,7 @@ def _format_notification_context_block(notification_context: Optional[Mapping[st
         "[NOTIFICATION_CONTEXT]",
         "The user opened chat from a prior notification. Continue naturally from this context.",
         "Do not provide medical diagnosis, prescribe treatments, or suggest medication dose changes.",
-        "If risk is high or critical, encourage contacting a qualified clinician when appropriate.",
+        "If risk is high or critical, stay with the user and urge emergency help; otherwise give your own concrete guidance.",
     ]
 
     for key in (
@@ -159,8 +159,8 @@ def _maybe_append_rag_context_v1(
         lang = rag_pack.language or language or "en"
         if not rag_allowed(user_message or "", lang):
             safety_note = (
-                "[RAG_CONTEXT]\nGeneral info only. If this is a medical emergency or serious concern, "
-                "please contact a clinician or emergency services."
+                "[RAG_CONTEXT]\nGeneral info only. If this is a medical emergency, urge emergency services; "
+                "otherwise answer from what you know about the user."
             )
             messages.append({"role": "system", "content": safety_note})
             return
@@ -269,6 +269,39 @@ def _carry_topic_into_query(db, user_id: int, user_message: str, language: str) 
         return augment_query(user_message, find_carried_topic(db, user_id, user_message, language))
     except Exception:
         return user_message
+
+
+_HISTORY_SKIP_MARKERS = (
+    "مشکل فنی از سمت خودم",
+    "خطایی رخ داد",
+    "technical problem on my side",
+    "error processing your message",
+    "حدث خطأ في معالجة",
+)
+_HISTORY_MAX_CHARS = 700
+
+
+def _append_recent_history(messages: list, memory: Any, user_id: int, *, limit: int) -> int:
+    """R-014: give the model the last turns so Sedi follows the conversation (structured mode used to send none).
+
+    Reuses ``Memory.get_recent_messages`` (I6 memory.read consent + I7 retention gate). Technical-error replies are
+    skipped so they never become "context". Bounded: ``limit`` turns, each side trimmed. Returns pairs appended.
+    """
+    try:
+        recent = list(memory.get_recent_messages(user_id, limit=limit) or [])
+    except Exception as history_error:
+        print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
+        return 0
+    added = 0
+    for msg in reversed(recent):  # oldest first
+        user_text = str(getattr(msg, "user_message", "") or "").strip()
+        reply = str(getattr(msg, "sedi_response", "") or "").strip()
+        if not user_text or not reply or any(m in reply for m in _HISTORY_SKIP_MARKERS):
+            continue
+        messages.append({"role": "user", "content": user_text[:_HISTORY_MAX_CHARS]})
+        messages.append({"role": "assistant", "content": reply[:_HISTORY_MAX_CHARS]})
+        added += 1
+    return added
 
 
 def _maybe_append_structured_governed_knowledge(
@@ -662,16 +695,10 @@ class ConversationBrain:
                 notification_block = _format_notification_context_block(notification_context)
                 if notification_block:
                     messages.append({"role": "system", "content": notification_block})
-                # Optionally append history if available (non-blocking)
-                try:
-                    recent_messages = self.memory.get_recent_messages(user_id, limit=10)
-                    for msg in reversed(recent_messages):  # Oldest first
-                        if msg.user_message and msg.sedi_response:
-                            messages.append({"role": "user", "content": msg.user_message})
-                            messages.append({"role": "assistant", "content": msg.sedi_response})
-                except Exception as history_error:
-                    # Memory failure is non-critical - continue without history
-                    print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
+                _append_recent_history(messages, self.memory, user_id, limit=10)
+            else:
+                # R-014: structured mode also sees the last turns (it sent none, so Sedi could not follow the thread).
+                _append_recent_history(messages, self.memory, user_id, limit=8)
 
             # A3 lifecycle + bounded I8/I9 — both structured and compat paths.
             _append_a3_lifecycle_and_bounded_context(
@@ -723,7 +750,7 @@ class ConversationBrain:
                     "[SAFETY_CONSTRAINTS]",
                     "No diagnosis or invented disease labels.",
                     "No medication start, stop, or dose-change instructions.",
-                    "Include an educational limitation disclaimer when giving health-related general information.",
+                    "Do not append generic disclaimers or 'see a doctor' lines; give your own concrete, grounded guidance.",
                 ]
                 messages.append({"role": "system", "content": "\n".join(caution_lines)})
                 caution_applied = True
@@ -772,6 +799,20 @@ class ConversationBrain:
                         )
                         raise
                     sedi_response = completion.output_text.strip()
+                    try:
+                        # R-014 grounding: no relative/condition claim that the user or their memory never supplied.
+                        from backend.app.services.intelligence.grounding_guard import (
+                            strip_unsupported_personal_claims,
+                        )
+
+                        _supported = "\n".join(
+                            str(m.get("content") or "")
+                            for m in messages[1:]
+                            if m.get("role") in ("user", "system")
+                        )
+                        sedi_response = strip_unsupported_personal_claims(sedi_response, _supported, lang)
+                    except Exception as _guard_err:
+                        print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
                     if not use_intelligence_safety:
                         sedi_response = _gate3_validate_assistant_response(
                             sedi_response, lang

@@ -46,7 +46,37 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "work_schedule": ("work", "work_schedule"),
     "time_constraints": ("barriers", "time_constraints"),
     "daily_walk_minutes": ("lifestyle", "exercise_minutes"),
+    # R-014 second memory: user-stated facts (I6-canonical; consent-gated by write_fact).
+    "health_concerns": ("medical", "health_concerns"),
+    "family_history": ("medical", "family_history"),
+    "occupation_stated": ("work", "occupation"),  # key differs: "occupation" is a frozen legacy profile-fact type
+    "household_context": ("social", "household_context"),
 }
+
+# Keys whose value is a growing list: a new statement is merged into the active fact, never replaces it.
+LIST_MERGE_KEYS = frozenset({
+    ("medical", "health_concerns"),
+    ("medical", "family_history"),
+    ("preferences", "interests"),
+})
+
+
+def _merge_list_value(db: Session, user_id: int, domain: str, key: str, value: Any) -> Any:
+    """Union of the already-remembered list and the new statement (order kept, duplicates dropped)."""
+    new_items = list(value) if isinstance(value, (list, tuple)) else [value]
+    try:
+        from backend.app.services.i6.memory_writes import _active_fact
+
+        existing = _active_fact(db, user_id, domain, key)
+        old = json.loads(existing.value_json) if existing is not None else []
+    except Exception:
+        old = []
+    merged: list = []
+    for item in (list(old) if isinstance(old, list) else [old]) + new_items:
+        text = str(item).strip()
+        if text and text not in [str(x).strip() for x in merged]:
+            merged.append(item)
+    return merged
 
 PROFILE_FACT_TYPES = frozenset(GATE1_PROFILE_FACT_TYPES)
 
@@ -94,6 +124,8 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
         if not valid:
             logger.debug("promote skip invalid memory fact %s/%s: %s", domain, key, err)
             return {"target": "skipped", "reason": err}
+        if (domain, key) in LIST_MERGE_KEYS:
+            value = _merge_list_value(db, user_id, domain, key, value)
         try:
             write_fact(
                 db,
