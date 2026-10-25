@@ -22,7 +22,7 @@ on:
         required: false
         default: ""
       flag_name:
-        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED | SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED"
+        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED | SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED | SEDI_ATTACHMENTS_ENABLED | SEDI_MEMORY_LLM_EXTRACTION_ENABLED | SEDI_DAILY_INITIATIVE_ENABLED"
         required: false
         default: SEDI_DIRECTORY_WEB_LOOKUP_ENABLED
 
@@ -60,6 +60,9 @@ jobs:
           grep -Fq 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' "$F"
           grep -Fq 'SEDI_SCIS_SEMANTIC_INDEX_ENABLED' "$F"
           grep -Fq 'SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED' "$F"
+          grep -Fq 'SEDI_ATTACHMENTS_ENABLED' "$F"
+          grep -Fq 'SEDI_MEMORY_LLM_EXTRACTION_ENABLED' "$F"
+          grep -Fq 'SEDI_DAILY_INITIATIVE_ENABLED' "$F"
       - name: SSH run
         env:
           TAG: ${{ github.event.inputs.image_tag }}
