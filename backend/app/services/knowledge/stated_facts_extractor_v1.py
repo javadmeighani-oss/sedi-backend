@@ -257,3 +257,15 @@ def extract_care_events(text: str) -> List[Stated]:
                 out.append(Stated("care_checkin_event", kind, _conf(s), "stated_care_event"))
                 break
     return out
+
+
+def mentioned_condition(text: str) -> Optional[str]:
+    """Label of a well-known condition NAMED in the text (no first-person statement needed) — used only to word a recap."""
+    if not text or not isinstance(text, str):
+        return None
+    t = text.translate(_DIGITS)
+    for lex in (_CONDITIONS_FA, _CONDITIONS_EN):
+        label = _find_condition(t, lex)
+        if label:
+            return label
+    return None

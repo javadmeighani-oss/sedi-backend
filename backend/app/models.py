@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, BigInteger, SmallInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
+from sqlalchemy import Column, Integer, BigInteger, SmallInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, timezone as dt_timezone
 from backend.app.database import Base
@@ -4745,3 +4745,31 @@ class I5SourceIngestionAudit(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 
+class UserAttachment(Base):
+    """R-021 / M4: a document/image/audio the user gave Sedi from the chat box (I7 memory source).
+
+    Bytes live here behind ``services/i7/attachments.AttachmentStore`` so they can move to object storage later without a
+    schema change for readers. Audio bytes are dropped after transcription. Owner-scoped; created only with memory.write.
+    """
+
+    __tablename__ = "user_attachments"
+    __table_args__ = (
+        UniqueConstraint("user_id", "sha256", name="uq_user_attachments_user_sha"),
+        Index("ix_user_attachments_user_created", "user_id", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    kind = Column(String(16), nullable=False)  # image | document | audio
+    mime = Column(String(64), nullable=False)
+    filename = Column(String(128), nullable=True)
+    size_bytes = Column(Integer, nullable=False)
+    sha256 = Column(String(64), nullable=False)
+    content = Column(LargeBinary, nullable=True)  # None after audio transcription / purge
+    status = Column(String(16), nullable=False, default="stored", server_default="stored")  # stored|processing|ready|failed|confirmed
+    summary = Column(Text, nullable=True)  # bounded, user-visible summary (or transcript for audio)
+    extracted_json = Column(Text, nullable=True)  # validated findings, bounded
+    confirmed_event_id = Column(Integer, nullable=True)  # life-timeline row created on user confirmation
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    processed_at = Column(DateTime, nullable=True)

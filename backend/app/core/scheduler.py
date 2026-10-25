@@ -854,6 +854,34 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] I10 contextual follow-up wiring failed: {e}")
 
+        try:
+            # R-021 / M5: daily initiative sweep (creates at most one CareFollowUpTask per user per day; the B12 worker
+            # delivers it through the smart-notification send guard). Default OFF.
+            from backend.app.services.section10 import feature_flags as s10_flags_m5
+
+            if s10_flags_m5.daily_initiative_enabled():
+                from backend.app.services.i10.daily_initiative import run_daily_initiative_sweep
+
+                def _daily_initiative_tick():
+                    with next(get_db()) as db:
+                        count = run_daily_initiative_sweep(db)
+                        if count:
+                            print(f"[Sedi Scheduler] Daily initiatives created: {count}")
+
+                scheduler.add_job(
+                    _daily_initiative_tick,
+                    "interval",
+                    hours=3,
+                    id="i10_daily_initiative_sweep",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=300,
+                )
+                print("[Sedi Scheduler] Daily initiative sweep wired (flag controls execution)")
+        except Exception as e:
+            print(f"[Sedi Scheduler] Daily initiative wiring failed: {e}")
+
         # PD-I8-04B: I8 proactive schedule scan (always registered; body no-ops unless flag ON).
         # Default OFF. Scheduler is trigger producer only — no I8 decision logic here.
         # Cadence is env-configurable (not a hard-coded product cadence).

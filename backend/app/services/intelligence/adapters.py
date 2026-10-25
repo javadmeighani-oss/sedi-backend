@@ -629,7 +629,10 @@ class LifestyleContextAdapter:
                     query_label="I6.list_facts_readonly_or_empty",
                     observed_at=getattr(row, "updated_at", None),
                     sensitivity=_effective_i6_sensitivity("high", row),  # type: ignore[arg-type]
-                    may_send_to_llm=False,
+                    # R-021 / M3: what the user told Sedi about their body/plan (function + intake facts) is the heart of
+                    # the second memory, so it reaches the model — memory.read consent already gated the read above.
+                    # (The goal is sent once, as lifestyle.goal.stated.)
+                    may_send_to_llm=not (fact_domain == "intake" and key == "goal"),
                     consent="legacy_scope",
                     epistemic_class=_row_epistemic_class(row),
                 )
@@ -997,6 +1000,27 @@ class HealthContextAdapter:
                     epistemic_class=_row_epistemic_class(row),
                 )
             )
+        try:
+            # R-021 / M1: the user's life-event timeline (I7) so Sedi knows the story, not only the facts.
+            from backend.app.services.i7.life_events import list_life_events
+
+            for ev in list_life_events(db, authenticated_user_id, limit=6):
+                when = str(ev.get("occurred_at") or "")[:10]
+                out.append(
+                    _item(
+                        canonical_key=f"health.life_event.{ev['id']}",
+                        section="health",
+                        source=ContextSource.HEALTH,
+                        value=ev["title"],
+                        display_text=f"life_event={ev['title']} ({ev['kind']}, {when})",
+                        owner_user_id=authenticated_user_id,
+                        query_label="I7.life_events",
+                        observed_at=None,
+                        sensitivity="high",
+                    )
+                )
+        except Exception:
+            pass
         return out
 
 

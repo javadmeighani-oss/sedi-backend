@@ -79,3 +79,24 @@ def strip_unsupported_personal_claims(reply: str, supported_text: str, language:
         lang = (language or "fa").split("-")[0].lower()
         return _FALLBACK.get(lang, _FALLBACK["en"])
     return " ".join(k.strip() for k in kept)
+
+
+def limit_questions(reply: str, max_questions: int = 1) -> str:
+    """R-020: Sedi talks like a friend, not an interviewer — keep at most ``max_questions`` question sentences
+    (the first ones); every statement is kept. Deterministic, never empties a reply."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    kept: list[str] = []
+    asked = 0
+    for p in parts:
+        is_q = p.rstrip().endswith(("؟", "?"))
+        if is_q:
+            asked += 1
+            if asked > max_questions:
+                continue
+        kept.append(p.strip())
+    if not kept or len(kept) == len(parts):
+        return text
+    return " ".join(kept)

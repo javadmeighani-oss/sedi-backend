@@ -51,6 +51,11 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "family_history": ("medical", "family_history"),
     "occupation_stated": ("work", "occupation"),  # key differs: "occupation" is a frozen legacy profile-fact type
     "household_context": ("social", "household_context"),
+    # R-021 / M2: intake facts the user stated in free chat (same I6 keys the friendly intake loop uses).
+    "intake_allergies": ("intake", "allergies"),
+    "intake_goal": ("intake", "goal"),
+    "intake_food_preferences": ("intake", "food_preferences"),
+    "intake_exercise_preferences": ("intake", "exercise_preferences"),
 }
 
 # Keys whose value is a growing list: a new statement is merged into the active fact, never replaces it.
@@ -58,6 +63,9 @@ LIST_MERGE_KEYS = frozenset({
     ("medical", "health_concerns"),
     ("medical", "family_history"),
     ("preferences", "interests"),
+    ("intake", "allergies"),
+    ("intake", "food_preferences"),
+    ("intake", "exercise_preferences"),
 })
 
 
@@ -268,6 +276,12 @@ def _promote_care_checkin(db: Session, user_id: int, kind: str) -> Dict[str, Any
     if not has_permission(db, user_id, PERM_WRITE):
         return {"target": "skipped", "reason": "CONSENT_DENIED"}
     now = datetime.utcnow()
+    try:  # R-021: the same fact also lands on the user's life timeline (I7); never blocks the check-in
+        from backend.app.services.i7.life_events import record_life_event
+
+        record_life_event(db, user_id, kind=kind, source="conversation")
+    except Exception:
+        logger.debug("life event record skipped", exc_info=True)
     recent = (
         db.query(models.CareFollowUpTask.id)
         .filter(

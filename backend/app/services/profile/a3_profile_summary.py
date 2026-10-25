@@ -136,4 +136,16 @@ def build_a3_profile_summary(db: Session, user_id: int) -> dict[str, Any]:
         for r in rows
         if r.get("key") and r.get("status")
     ]
-    return {"rows": safe_rows, "facts": _memory_facts(db, int(user_id))}
+    facts = _memory_facts(db, int(user_id))
+    plan_active = any(r["key"] == "daily_plan" and r["status"] == "active" for r in rows)
+    try:
+        from backend.app.services.profile.overview_summary import build_overview
+
+        summary = build_overview(db, int(user_id), {f["key"]: f["value"] for f in facts}, plan_active)
+    except Exception:
+        summary = ""
+    return {
+        "rows": safe_rows,
+        "facts": facts,  # structured data (for editing UIs) — NOT the card text
+        "summary": summary,  # R-020: the card shows this overall status summary
+    }

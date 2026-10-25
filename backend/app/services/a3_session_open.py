@@ -176,7 +176,10 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
             )
 
             if should_project_derived_continuity(db, user.id):
-                topic = _safe_continuity_snippet(get_bounded_continuity_topic(db, user.id))
+                # R-013/R-020: never echo the user's own words (it produced «دیابت پیشگیری»); map to a recap phrase.
+                from backend.app.services.i7.conversation_recap import topic_phrase_from_text
+
+                topic = topic_phrase_from_text(get_bounded_continuity_topic(db, user.id) or "", lang)
         except Exception:
             topic = None
     if not topic:
@@ -298,7 +301,7 @@ def build_notification_origin_opener(
     if family == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value:
         return _daily_digest_opener(lang=lang, name=name)
 
-    if (getattr(notification, "template_key", None) or "") == "care_checkin":
+    if (getattr(notification, "template_key", None) or "") in ("care_checkin", "daily_initiative"):
         return _care_checkin_opener(lang=lang, name=name)
 
     if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:

@@ -1090,6 +1090,29 @@ def _looks_topic_shift(target_key: str, message: str) -> bool:
     return _contains_any(text, cues)
 
 
+_LIST_LIKE_DISCOVERY_TARGETS = frozenset(
+    {
+        "preferences.interests",
+        "intake.food_preferences",
+        "intake.exercise_preferences",
+        "intake.equipment",
+    }
+)
+_STORY_REQUEST_MARKERS = (
+    "؟", "?", "میخواهم", "میخوام", "می خواهم", "می خوام", "توضیح", "بگو", "بیشتر", "چرا", "چطور", "چگونه",
+    "مادرم", "پدرم", "همسرم", "بیماری", "راهکار", "کمکم", "please", "i want", "tell me", "explain", "my mother", "my father",
+)
+
+
+def _is_story_or_request(message: str) -> bool:
+    """Long, narrative or request-shaped text is not a short list answer."""
+    text = " ".join((message or "").replace("‌", " ").split())
+    if len(text) > 90 or len(text.split()) > 14:
+        return True
+    low = text.lower()
+    return any(m in low for m in _STORY_REQUEST_MARKERS)
+
+
 def classify_discovery_reply(
     target_key: Optional[str],
     message: str,
@@ -1130,6 +1153,13 @@ def classify_discovery_reply(
             DiscoveryDisposition.ANSWER,
             target_key=target_key,
             normalized_value=value,
+        )
+
+    # R-020: a LIST-like target (interests / food or exercise preferences / equipment) must never swallow a story or a
+    # request («من مادرم این بیماری را داشت … میخواهم توضیح دهی» was stored as «علاقه‌مندی‌ها»).
+    if target_key in _LIST_LIKE_DISCOVERY_TARGETS and _is_story_or_request(message):
+        return DiscoveryClassification(
+            DiscoveryDisposition.UNRELATED, target_key=target_key
         )
 
     if not looks_substantive_discovery_answer(message) or is_ambiguous_open_text_answer(

@@ -32,7 +32,7 @@ from backend.app.routers import (
     i5_iran_directory,
     i8_actions,
 )
-from backend.app.routers import ops
+from backend.app.routers import memory_attachments, ops
 from backend.app.core.process_role import should_start_scheduler
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -86,6 +86,7 @@ app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(health_subjects.router, prefix="/health-subjects", tags=["Health Subjects"])
 app.include_router(decision.router)
 app.include_router(memory.router, prefix="/memory", tags=["Memory"])
+app.include_router(memory_attachments.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 app.include_router(user_medications.router, prefix="/user", tags=["User"])
 app.include_router(user_profile_facts.router, prefix="/user", tags=["User"])

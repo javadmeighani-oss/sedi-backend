@@ -111,7 +111,7 @@ CARE_CHECKIN_EXPIRY = timedelta(days=7)
 
 
 def _is_care_checkin(task: models.CareFollowUpTask) -> bool:
-    return parse_bounded_meta(task.description)[1].follow_up_kind == "care_checkin"
+    return parse_bounded_meta(task.description)[1].follow_up_kind in ("care_checkin", "daily_initiative")
 
 
 def _care_checkin_may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
