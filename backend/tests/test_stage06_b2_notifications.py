@@ -24,14 +24,40 @@ def _fb(action, reason=None, hours_ago=1):
 
 # ---------- feedback throttling ----------
 def test_feedback_state_rules():
-    assert pp.state_from_feedback([], NOW) == {"skip": False, "avoid_generic": False, "dislikes_7d": 0}
+    """R-023: reactions ADAPT the digest (time slot, text type); `skip` is never True."""
+    empty = pp.state_from_feedback([], NOW)
+    assert empty == {"skip": False, "shift_time": False, "avoid_generic": False, "simple": False, "dislikes_7d": 0}
     assert pp.state_from_feedback([_fb("like")], NOW)["skip"] is False
-    assert pp.state_from_feedback([_fb("dislike", "too_frequent")], NOW)["skip"] is True
-    assert pp.state_from_feedback([_fb("dislike", "wrong_timing", hours_ago=24 * 5)], NOW)["skip"] is False  # older than 3 days
+    freq = pp.state_from_feedback([_fb("dislike", "too_frequent")], NOW)
+    assert freq["skip"] is False and freq["shift_time"] is True
+    timing = pp.state_from_feedback([_fb("dislike", "wrong_timing", hours_ago=24 * 5)], NOW)
+    assert timing["skip"] is False and timing["shift_time"] is True
     irrelevant = pp.state_from_feedback([_fb("dislike", "irrelevant")], NOW)
-    assert irrelevant["avoid_generic"] is True and irrelevant["skip"] is False
-    pause = pp.state_from_feedback([_fb("dislike")] * 3, NOW)
-    assert pause["skip"] is True and pause["dislikes_7d"] == 3
+    assert irrelevant["avoid_generic"] is True and irrelevant["skip"] is False and irrelevant["shift_time"] is False
+    unclear = pp.state_from_feedback([_fb("dislike", "unclear")], NOW)
+    assert unclear["simple"] is True and unclear["skip"] is False
+    many = pp.state_from_feedback([_fb("dislike")] * 3, NOW)
+    assert many["skip"] is False and many["simple"] is True and many["avoid_generic"] is True and many["dislikes_7d"] == 3
+
+
+def test_digest_slot_moves_after_a_timing_dislike_and_never_disappears(db):
+    """R-023: a wrong_timing / too_frequent dislike moves the digest to the evening slot - it is never dropped."""
+    from backend.app.models import Notification, NotificationFeedback, User
+
+    u = User(name="Slot User", secret_key="slot-u", preferred_language="en", created_at=datetime.utcnow())
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    assert pp.preferred_digest_local_time(db, u.id) == pp.DEFAULT_DIGEST_LOCAL_TIME
+    n = Notification(user_id=u.id, type="DAILY_WELLNESS_DIGEST", title="T", body="B", priority="normal",
+                     is_read=False, is_sent=True, created_at=datetime.utcnow())
+    db.add(n)
+    db.commit()
+    db.refresh(n)
+    db.add(NotificationFeedback(notification_id=n.id, user_id=u.id, action="dislike",
+                                meta_json='{"reason": "wrong_timing"}', created_at=datetime.utcnow()))
+    db.commit()
+    assert pp.preferred_digest_local_time(db, u.id) == pp.SHIFTED_DIGEST_LOCAL_TIME
 
 
 # ---------- time-aware reminders ----------

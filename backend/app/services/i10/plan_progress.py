@@ -12,10 +12,15 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 
-# Bounded dislike reasons (I10 interaction vocabulary) and what each one asks the digest to do.
-SKIP_ON_REASONS = frozenset({"too_frequent", "wrong_timing"})
-AVOID_GENERIC_ON_REASONS = frozenset({"irrelevant", "not_helpful", "unclear"})
-PAUSE_DISLIKES_7D = 3
+# Bounded dislike reasons (I10 interaction vocabulary) and what each one asks the digest to do (R-023: ADAPT, never stop).
+SHIFT_TIME_REASONS = frozenset({"wrong_timing", "too_frequent"})  # send at another time of day
+SKIP_ON_REASONS = SHIFT_TIME_REASONS  # kept for importers
+AVOID_GENERIC_ON_REASONS = frozenset({"irrelevant", "not_helpful"})  # a more practical text instead of the hello
+SIMPLE_ON_REASONS = frozenset({"unclear"})  # the plainest, shortest text
+PAUSE_DISLIKES_7D = 3  # kept for importers; many dislikes now only make the text lighter, never stop it
+
+DEFAULT_DIGEST_LOCAL_TIME = "09:00"
+SHIFTED_DIGEST_LOCAL_TIME = "17:30"
 
 
 def _pres(raw: Optional[str]) -> dict:
@@ -68,27 +73,45 @@ def day_progress(db: Session, user_id: int, local_day: date) -> Optional[dict]:
 
 
 def state_from_feedback(rows: list, when: datetime) -> dict:
-    """Pure: what recent feedback rows ask of the daily digest.
+    """Pure: what recent feedback rows ask of the daily digest (R-023 - reactions adapt it, they never cut it off).
 
-    skip: do not send today (too_frequent / wrong_timing in the last 3 days, or >= 3 dislikes in 7 days).
-    avoid_generic: do not send the generic check-in (irrelevant / not_helpful / unclear dislikes in 7 days).
+    skip: always False (kept for callers; a dislike never silences the digest).
+    shift_time: send the digest at another time of day (wrong_timing / too_frequent dislike in the last 7 days).
+    avoid_generic: use a practical text, not the generic hello (irrelevant / not_helpful, or >= 2 dislikes).
+    simple: use the plainest, shortest text (unclear reason, or >= 3 dislikes).
     """
-    dislikes = recent_skip = generic_votes = 0
+    dislikes = shift = generic_votes = simple_votes = 0
     for r in rows:
         if r.action != "dislike":
             continue
         dislikes += 1
         reason = str(_pres(r.meta_json).get("reason") or "")
-        created = r.created_at
-        if reason in SKIP_ON_REASONS and created is not None and created >= when - timedelta(days=3):
-            recent_skip += 1
+        if reason in SHIFT_TIME_REASONS:
+            shift += 1
         if reason in AVOID_GENERIC_ON_REASONS:
             generic_votes += 1
+        if reason in SIMPLE_ON_REASONS:
+            simple_votes += 1
     return {
-        "skip": recent_skip >= 1 or dislikes >= PAUSE_DISLIKES_7D,
+        "skip": False,
+        "shift_time": shift >= 1,
         "avoid_generic": generic_votes >= 1 or dislikes >= 2,
+        "simple": simple_votes >= 1 or dislikes >= PAUSE_DISLIKES_7D,
         "dislikes_7d": dislikes,
     }
+
+
+def preferred_digest_local_time(db: Session, user_id: int) -> str:
+    """Local HH:MM for the user's daily digest: 09:00, or the evening slot after a timing/frequency dislike.
+
+    Fail-open: any problem returns the default slot.
+    """
+    try:
+        if feedback_state(db, user_id)["shift_time"]:
+            return SHIFTED_DIGEST_LOCAL_TIME
+    except Exception:
+        pass
+    return DEFAULT_DIGEST_LOCAL_TIME
 
 
 def feedback_state(db: Session, user_id: int, now: Optional[datetime] = None) -> dict:

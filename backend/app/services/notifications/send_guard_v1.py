@@ -2,8 +2,10 @@
 """
 Send Guard V1: single entry for all send-path checks.
 
-Order: A) Adaptive pause (companion) -> B) Quiet hours -> C) Dedup -> D) Cap (companion).
-Returns allowed, reasons list, and optional dedupe_key, cap, paused_until.
+Order: A) Adaptive timing (companion) -> B) Quiet hours -> C) Dedup -> D) Cap (companion).
+R-023: reactions (dislike / dismiss) never pause sending; they move the time of day ("timing" = avoid the hours the user
+disliked, the sender simply tries again at the next tick), soften the daily cap and change the text (content hints).
+Returns allowed, reasons list, and optional dedupe_key, cap, paused_until (always None).
 """
 
 from datetime import datetime
@@ -16,6 +18,7 @@ from backend.app.models import Notification
 from backend.app.services.notifications.adaptive_policy_v1 import (
     compute_adaptive_state,
     is_companion_send_allowed,
+    is_in_avoid_hours,
 )
 from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
 
@@ -83,13 +86,16 @@ def can_send_v1(
     # Map channel for quiet_hours (expects morning | engagement | health_alert)
     qh_channel = "engagement" if channel == "companion" else channel
 
-    # A) Adaptive pause (companion only)
+    # A) Adaptive timing (companion only; R-023: never a pause - the next tick outside the avoided hours sends)
+    adaptive_state: Dict[str, Any] = {}
     if channel == "companion":
         allowed_pause, pause_reason = is_companion_send_allowed(db, user_id, now, days=7)
         if not allowed_pause:
             reasons.append("paused")
-            state = compute_adaptive_state(db, user_id, now, days=7)
-            paused_until = state.get("paused_until")
+        adaptive_state = compute_adaptive_state(db, user_id, now, days=7)
+        paused_until = adaptive_state.get("paused_until")
+        if not force and is_in_avoid_hours(adaptive_state, now):
+            reasons.append("timing")
 
     # B) Quiet hours (health_alert + critical bypasses; force bypasses quiet)
     if not force and not (channel == "health_alert" and priority_lower == "critical"):
@@ -105,8 +111,7 @@ def can_send_v1(
 
     # D) Cap (companion only)
     if channel == "companion":
-        state = compute_adaptive_state(db, user_id, now, days=7)
-        cap = state.get("companion_cap_override", 2)
+        cap = adaptive_state.get("companion_cap_override", 2)
         count_today = _count_companion_today(db, user_id, now)
         if count_today >= cap:
             reasons.append("cap")

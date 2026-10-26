@@ -209,7 +209,15 @@ def run_morning_notifications():
                 scanned += 1
                 try:
                     now_utc = now.replace(tzinfo=pytz.UTC)
-                    if not should_run_daily_smart_touchpoint(db, user, now_utc):
+                    # R-023: a timing/frequency dislike moves the digest to another slot instead of stopping it.
+                    from backend.app.services.i10.plan_progress import preferred_digest_local_time
+
+                    if not should_run_daily_smart_touchpoint(
+                        db,
+                        user,
+                        now_utc,
+                        local_time=preferred_digest_local_time(db, user.id),
+                    ):
                         continue
 
                     local_date = user_local_calendar_date(db, user, now_utc)

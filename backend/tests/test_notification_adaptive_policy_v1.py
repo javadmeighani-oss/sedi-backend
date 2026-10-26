@@ -64,18 +64,20 @@ def test_two_dislikes_cap_override_one(db, user, notif):
     assert state["counts"]["dislike"] == 2
 
 
-def test_three_dismiss_paused_until_set(db, user, notif):
-    """3 dismiss -> paused_until set (now + 48h)."""
+def test_three_dismiss_never_pause_only_soften(db, user, notif):
+    """R-023: 3 dismiss -> NO pause; the cap is softened to 1/day and the ignored hour is avoided."""
     _add_feedback(db, user.id, "dismiss", notif.id)
     _add_feedback(db, user.id, "dismiss", notif.id)
     _add_feedback(db, user.id, "dismiss", notif.id)
     now = datetime.utcnow()
     state = compute_adaptive_state(db, user.id, now, days=7)
-    assert state["paused_until"] is not None
+    assert state["paused_until"] is None
     assert state["counts"]["dismiss"] == 3
+    assert state["companion_cap_override"] == 1
     allowed, reason = is_companion_send_allowed(db, user.id, now, days=7)
-    assert allowed is False
-    assert reason == "paused"
+    assert allowed is True
+    assert reason == ""
+    assert notif.created_at.hour in state["timing"]["avoid_hours_utc"]
 
 
 def test_two_likes_and_two_dislikes_precedence_cap(db, user, notif):
@@ -158,30 +160,59 @@ def _add_reason_feedback(db: Session, user_id: int, notification_id: int, reason
     db.commit()
 
 
-def test_too_frequent_or_wrong_timing_reason_pauses_sending(db, user, notif):
-    for reason in ("too_frequent", "wrong_timing"):
-        _add_reason_feedback(db, user.id, notif.id, reason)
-        allowed, why = is_companion_send_allowed(db, user.id, datetime.utcnow())
-        assert allowed is False and why == "paused"
-        db.query(NotificationFeedback).delete()
+def test_too_frequent_and_wrong_timing_reasons_adapt_never_pause(db, user, notif):
+    """R-023: too_frequent -> one a day; wrong_timing -> another time of day. Sending is never switched off."""
+    now = datetime.utcnow()
+    _add_reason_feedback(db, user.id, notif.id, "too_frequent")
+    allowed, why = is_companion_send_allowed(db, user.id, now)
+    st = compute_adaptive_state(db, user.id, now)
+    assert allowed is True and why == ""
+    assert st["paused_until"] is None and st["companion_cap_override"] == 1
+    db.query(NotificationFeedback).delete()
+    db.commit()
+    _add_reason_feedback(db, user.id, notif.id, "wrong_timing")
+    allowed, why = is_companion_send_allowed(db, user.id, now)
+    st = compute_adaptive_state(db, user.id, now)
+    assert allowed is True and st["paused_until"] is None
+    assert st["timing"]["wrong_timing"] is True
+    band = {(notif.created_at.hour + d) % 24 for d in (-1, 0, 1)}
+    assert set(st["timing"]["avoid_hours_utc"]) == band
+
+
+def test_avoided_hours_are_capped_so_the_day_is_never_muted(db, user):
+    now = datetime.utcnow()
+    for h in (1, 5, 9, 13, 17, 21):
+        n = Notification(
+            user_id=user.id, type="connection_ping", title="T", body="B", priority="normal",
+            is_read=False, is_sent=True, created_at=now.replace(hour=h, minute=0, second=0, microsecond=0),
+        )
+        db.add(n)
         db.commit()
+        db.refresh(n)
+        _add_reason_feedback(db, user.id, n.id, "wrong_timing")
+    st = compute_adaptive_state(db, user.id, now)
+    assert len(st["timing"]["avoid_hours_utc"]) <= 9
 
 
 def test_irrelevant_and_unclear_reasons_change_content_not_frequency(db, user, notif):
     _add_reason_feedback(db, user.id, notif.id, "irrelevant")
     st = compute_adaptive_state(db, user.id, datetime.utcnow())
-    assert st["content_hints"] == {"avoid_topic": True, "simple_copy": False}
+    assert st["content_hints"] == {"avoid_topic": True, "simple_copy": False, "lighter_touch": False}
     assert st["paused_until"] is None
     _add_reason_feedback(db, user.id, notif.id, "unclear")
     st = compute_adaptive_state(db, user.id, datetime.utcnow())
     assert st["content_hints"]["simple_copy"] is True and st["paused_until"] is None
 
 
-def test_three_dislikes_in_window_pause_48h(db, user, notif):
+def test_three_dislikes_change_the_style_not_the_sending(db, user, notif):
+    """R-023: many dislikes -> lighter touch (plain check-in, no topic recap); never a pause."""
     for _ in range(3):
         _add_feedback(db, user.id, "dislike", notif.id)
-    st = compute_adaptive_state(db, user.id, datetime.utcnow())
-    assert st["paused_until"] is not None
+    now = datetime.utcnow()
+    st = compute_adaptive_state(db, user.id, now)
+    assert st["paused_until"] is None
+    assert st["content_hints"]["lighter_touch"] is True
+    assert is_companion_send_allowed(db, user.id, now) == (True, "")
 
 
 def test_simple_copy_hint_uses_plainest_engagement_wording():

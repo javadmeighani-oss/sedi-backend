@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import logging
@@ -79,6 +80,8 @@ class DailyWellnessDigestFacts:
     # Stage 06 / B2-D4: progress of today's composed plan items + morning/evening review mode.
     plan_progress: Optional[dict] = None
     review_mode: str = "morning"
+    # R-023 text-type adaptation of the general check-in: "default" | "practical" | "short".
+    style: str = "default"
 
 
 _DIGEST_TITLES = {
@@ -625,6 +628,11 @@ def _plan_progress_body(p: dict, mode: str, lang: str) -> str:
 
 def _general_checkin_pair(facts: DailyWellnessDigestFacts, lang: str) -> tuple[str, str]:
     pairs = _GENERAL_CHECKIN_PAIRS.get(lang) or _GENERAL_CHECKIN_PAIRS["en"]
+    # R-023 text-type adaptation: "practical" = the one-small-step text, "short" = the plain "I'm here" text.
+    if facts.style == "practical":
+        return pairs[3]
+    if facts.style == "short":
+        return pairs[4]
     local_day = facts.local_period_date or facts.observation_period_start.date()
     idx = _rotation_variant_index(
         user_id=facts.user_id,
@@ -758,9 +766,10 @@ def enqueue_daily_wellness_digest(
     from backend.app.services.i10.plan_progress import feedback_state
 
     fb = feedback_state(db, facts.user_id)
-    if fb["skip"] or (fb["avoid_generic"] and facts.content_family is DailySmartContentFamily.GENERAL_CHECKIN):
-        logger.info("[I10-B11] feedback-throttled user=%s digest=%s fb=%s", facts.user_id, occurrence_key, fb)
-        return None
+    # R-023: never cut the digest off; change the TEXT TYPE instead of the generic hello the user disliked.
+    if facts.content_family is DailySmartContentFamily.GENERAL_CHECKIN and (fb["avoid_generic"] or fb["simple"]):
+        facts = dataclasses.replace(facts, style="short" if fb["simple"] else "practical")
+        logger.info("[I10-B11] feedback-adapted user=%s digest=%s style=%s", facts.user_id, occurrence_key, facts.style)
 
     if facts.health_subject_id is None:
         health_subject_id = resolve_or_ensure_self_health_subject_id(db, facts.user_id)
