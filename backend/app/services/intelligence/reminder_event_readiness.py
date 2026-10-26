@@ -1,15 +1,19 @@
 """I3 request-local reminder/event slot readiness (no DB, no LLM).
 
 Bounded deterministic extraction of title/date/time from the current message.
-Timezone must be supplied by I1/I2 locale resolution — never guessed.
+Timezone must be supplied by I1/I2 locale resolution — never guessed here.
 Does not own persistence (UserEvent) or notifications (I10).
+
+R-026 (2026-10-26): the parser understands how people really ask in Persian/Arabic/English:
+"فردا ساعت ۱۰ صبح یادآوری کن ...", "امشب ساعت ۹", "پس‌فردا ساعت ۱۴", "۲ ساعت دیگه", "۵ آبان ساعت ۸ صبح",
+"remind me tomorrow at 10am ...". A reminder asked without an offset fires AT the stated time.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -24,30 +28,61 @@ from backend.app.services.intelligence.contracts import (
     ReadinessStatus,
     RequestKind,
 )
+from backend.app.utils.jalali_calendar import (
+    JALALI_MONTHS_FA,
+    gregorian_to_jalali,
+    jalali_month_length,
+    jalali_to_gregorian,
+)
+
+_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+MAX_OFFSET_MINUTES = 7 * 24 * 60
 
 _RECURRENCE = re.compile(
     r"(هر\s*شب|هر\s*روز|هر\s*هفته|every\s+night|every\s+day|daily|weekly|"
-    r"كل\s*ليلة|كل\s*يوم|كل\s*أسبوع)",
+    r"کل\s*ل[يی]لة|کل\s*[يی]وم|کل\s*أسبوع|کل\s*شب|کل\s*روز)",
     re.IGNORECASE,
 )
 
-_REMINDER_OFFSET = re.compile(
-    r"(?:remind\s+me\s+)?(?P<n>\d+)\s*(?:hour|hours|hr|hrs|ساعت|ساعة)s?\s*(?:before|قبل)|"
-    r"(?:remind\s+me\s+)?(?P<m>\d+)\s*(?:min|mins|minute|minutes|دقیقه|دقيقة)s?\s*(?:before|قبل)|"
-    r"(?:remind\s+me\s+)?(?P<d>\d+)\s*(?:day|days|روز|يوم)s?\s*(?:before|قبل)|"
-    r"(?:at\s+event\s+time|وقت\s*رویداد|في\s*وقت\s*الحدث)",
+_REMINDER_WORDS = re.compile(
+    r"remind|یاد\s*آور[یی]?|یادم\s*(?:بنداز|بیار|بیاور)|خبرم\s*کن|ذ[كک]رن[يی]|تذ[كک][يی]ر",
     re.IGNORECASE,
 )
 
-_TIME = re.compile(
-    r"(?:ساعت|at|الساعة)?\s*(?P<h>\d{1,2})(?::(?P<min>\d{2}))?(?:\s*(?P<ampm>am|pm))?",
+_OFFSET = re.compile(
+    r"(?P<n>\d+|نیم)\s*(?P<u>hours?|hrs?|ساعت|ساعة|mins?|minutes?|دق[يی]قه|دق[يی]قة|days?|روز|[يی]وم)\s*"
+    r"(?:before|prior|قبل(?:\s*از)?|پیش(?:\s*از)?)",
+    re.IGNORECASE,
+)
+_AT_EVENT_TIME = re.compile(
+    r"at\s+(?:the\s+)?event\s+time|on\s+time|سر\s*وقت|دق[يی]قا\s*(?:سر)?\s*ساعت|وقت\s*رو[يی]داد|ف[يی]\s*وقت\s*الحدث",
     re.IGNORECASE,
 )
 
-_DAY_TODAY = re.compile(r"\b(today|امروز|اليوم)\b", re.IGNORECASE)
-_DAY_TOMORROW = re.compile(r"\b(tomorrow|فردا|غدا|غداً)\b", re.IGNORECASE)
+_WORD_NUMBERS = {"یه": 1, "یک": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "نیم": 0.5}
 
-# Weekday tokens → Python weekday (Mon=0 … Sun=6)
+_RELATIVE = re.compile(
+    r"(?:(?P<n>\d+|یه|یک|دو|سه|چهار|پنج|شش|نیم)\s*(?P<u>ساعت|دق[يی]قه|hours?|hrs?|minutes?|mins?)\s*(?:دیگه|دیگر|بعد|دیگر)"
+    r"|in\s+(?P<n2>\d+|an?|half\s+an)\s*(?P<u2>hours?|hrs?|minutes?|mins?)"
+    r"|(?P<half>نیم\s*ساعت)\s*(?:دیگه|دیگر|بعد))",
+    re.IGNORECASE,
+)
+
+_DAY_AFTER_TOMORROW = re.compile(r"پس\s*فردا|day\s+after\s+tomorrow|بعد\s*غد", re.IGNORECASE)
+_DAY_TOMORROW = re.compile(r"(?<![\w])(tomorrow|فردا|غدا|غداً)(?![\w])", re.IGNORECASE)
+_DAY_TONIGHT = re.compile(r"(?<![\w])(tonight|امشب|هذه\s*الل[يی]لة)(?![\w])", re.IGNORECASE)
+_DAY_TODAY = re.compile(r"(?<![\w])(today|امروز|ال[يی]وم)(?![\w])", re.IGNORECASE)
+_IN_N_DAYS = re.compile(r"(\d{1,2})\s*(?:روز|days?)\s*(?:دیگه|دیگر|بعد|later)|in\s+(\d{1,2})\s+days?", re.IGNORECASE)
+_NEXT_WEEK = re.compile(r"هفته\s*(?:ی\s*)?(?:بعد|آینده|دیگه|دیگر)|next\s+week|الأسبوع\s*القادم", re.IGNORECASE)
+_NOW = re.compile(r"(?<![\w])(?:الان|همین\s*الان|همین\s*حالا|right\s+now|now|immediately|الآن|حالا)(?![\w])", re.IGNORECASE)
+
+_JALALI_DATE = re.compile(
+    r"(?<!\d)(?P<d>\d{1,2})\s*(?P<m>" + "|".join(JALALI_MONTHS_FA) + r")(?![\w])(?:\s*(?:ماه))?(?:\s*(?P<y>1[34]\d{2}))?",
+)
+_NUMERIC_DATE = re.compile(r"(?<!\d)(?P<y>1[34]\d{2}|20\d{2})[/-](?P<m>\d{1,2})[/-](?P<d>\d{1,2})(?!\d)")
+
+# Weekday tokens → Python weekday (Mon=0 … Sun=6); longest token wins (e.g. "سه شنبه" before "شنبه").
 _WEEKDAYS = {
     "monday": 0,
     "tuesday": 1,
@@ -57,15 +92,15 @@ _WEEKDAYS = {
     "saturday": 5,
     "sunday": 6,
     "دوشنبه": 0,
-    "سه‌شنبه": 1,
     "سه شنبه": 1,
     "چهارشنبه": 2,
+    "چهار شنبه": 2,
     "پنجشنبه": 3,
-    "پنج‌شنبه": 3,
+    "پنج شنبه": 3,
     "جمعه": 4,
     "شنبه": 5,
     "یکشنبه": 6,
-    "يكشنبه": 6,
+    "یک شنبه": 6,
     "الاثنين": 0,
     "الثلاثاء": 1,
     "الاربعاء": 2,
@@ -76,14 +111,43 @@ _WEEKDAYS = {
     "الاحد": 6,
     "الأحد": 6,
 }
+_WEEKDAYS = {k.replace("ي", "ی").replace("ك", "ک"): v for k, v in _WEEKDAYS.items()}
+_WEEKDAY_TOKENS = sorted(_WEEKDAYS, key=len, reverse=True)
+
+_PM_WORDS = re.compile(
+    r"(?<![\w])(?:عصر|بعد از ظهر|بعدازظهر|شب|امشب|مساء|مساءً|pm|evening|night|afternoon|tonight)(?![\w])",
+    re.IGNORECASE,
+)
+_NOON_WORDS = re.compile(r"(?<![\w])(?:ظهر|noon)(?![\w])", re.IGNORECASE)
+_AM_WORDS = re.compile(r"(?<![\w])(?:صبح|بامداد|صباح|am|morning)(?![\w])", re.IGNORECASE)
+
+_TIME_AFTER_WORD = re.compile(
+    r"(?:ساعت|الساعة|at|around)\s*(?P<h>\d{1,2})(?:[:٫.](?P<min>\d{2}))?"
+    r"(?:\s*(?P<half>و\s*نیم))?(?:\s*(?P<ap>am|pm))?",
+    re.IGNORECASE,
+)
+_TIME_COLON = re.compile(r"(?<!\d)(?P<h>\d{1,2}):(?P<min>\d{2})(?!\d)(?:\s*(?P<ap>am|pm))?", re.IGNORECASE)
+_TIME_SUFFIX = re.compile(
+    r"(?<![\d/:-])(?P<h>\d{1,2})\s*(?P<ap>am|pm|صبح|ظهر|عصر|شب|بعد\s*از\s*ظهر)(?![\w])",
+    re.IGNORECASE,
+)
 
 _EVENT_HINTS = (
-    (re.compile(r"آزمایش\s*خون|lab\s*test|تحليل\s*دم", re.I), "lab_test", "medical", "Lab test"),
-    (re.compile(r"نوبت\s*دکتر|doctor\s*(?:visit|appointment)|موعد\s*(?:طبيب|الدكتور)", re.I), "doctor_visit", "medical", "Doctor visit"),
-    (re.compile(r"امتحان|exam\b|اختبار", re.I), "exam", "education", "Exam"),
-    (re.compile(r"جلسه|meeting|موعد\s*عمل|work\s*meeting", re.I), "work_meeting", "work", "Meeting"),
-    (re.compile(r"deadline|مهلت", re.I), "deadline", "work", "Deadline"),
+    (re.compile(r"آزمایش\s*خون|lab\s*test|تحل[يی]ل\s*دم|آزمایش", re.I), "lab_test", "medical"),
+    (re.compile(r"نوبت\s*(?:دکتر|پزشک|دندانپزشک|دندان\s*پزشک)|doctor\s*(?:visit|appointment)|موعد\s*(?:ال)?(?:طب[يی]ب|د[كک]تور)|دکتر|پزشک", re.I), "doctor_visit", "medical"),
+    (re.compile(r"امتحان|exam\b|اختبار", re.I), "exam", "education"),
+    (re.compile(r"جلسه|meeting|موعد\s*عمل|work\s*meeting", re.I), "work_meeting", "work"),
+    (re.compile(r"deadline|مهلت", re.I), "deadline", "work"),
 )
+
+_TITLE_DEFAULTS = {
+    "lab_test": {"fa": "آزمایش خون", "ar": "تحليل الدم", "en": "Lab test"},
+    "doctor_visit": {"fa": "نوبت دکتر", "ar": "موعد الطبيب", "en": "Doctor visit"},
+    "exam": {"fa": "امتحان", "ar": "اختبار", "en": "Exam"},
+    "work_meeting": {"fa": "جلسه", "ar": "اجتماع", "en": "Meeting"},
+    "deadline": {"fa": "مهلت کار", "ar": "موعد التسليم", "en": "Deadline"},
+    "other": {"fa": "یادآوری", "ar": "تذكير", "en": "Reminder"},
+}
 
 
 @dataclass(frozen=True)
@@ -96,6 +160,9 @@ class ReminderEventDraft:
     reminder_enabled: bool
     reminder_offsets: tuple[int, ...]
     importance: str = "normal"
+    # R-026: how the time was said (used for the confirmation sentence).
+    relative: bool = False
+    offsets_defaulted: bool = False
 
 
 def _clarification(
@@ -107,9 +174,14 @@ def _clarification(
 ) -> ClarificationResult:
     messages = {
         "tpl.reminder.datetime.v1": {
-            "en": "When is this scheduled? Please include a clear date and time.",
-            "fa": "این برنامه چه زمانی است؟ لطفاً تاریخ و ساعت را مشخص بگویید.",
-            "ar": "متى هذا الموعد؟ يرجى ذكر التاريخ والوقت بوضوح.",
+            "en": "When should I remind you? Please tell me the date and time, like “tomorrow at 10 am”.",
+            "fa": "کِی یادت بندازم؟ روز و ساعتش رو بگو، مثلاً «فردا ساعت ۱۰ صبح».",
+            "ar": "متى أذكّرك؟ أخبرني باليوم والساعة، مثل «غداً الساعة 10 صباحاً».",
+        },
+        "tpl.reminder.past.v1": {
+            "en": "That time has already passed today. Which other time or day should I use?",
+            "fa": "این ساعت امروز گذشته. چه ساعت یا روز دیگه‌ای بذارم؟",
+            "ar": "هذا الوقت مضى اليوم. أي وقت أو يوم آخر أضع؟",
         },
         "tpl.reminder.timezone.v1": {
             "en": "I need your timezone before I can schedule this. Please set your timezone in Profile.",
@@ -145,38 +217,39 @@ def _outcome(req_id: str, key: str, status: FactRequirementStatus, priority: int
     )
 
 
-def _parse_offsets(text: str) -> tuple[bool, tuple[int, ...]]:
-    """Return (reminder_requested, offsets). Unsupported → empty offsets with requested True for fail-closed upstream."""
-    lowered = text.lower()
-    if not re.search(
-        r"remind|یادآور|یادم\s*بنداز|تذكير|ذكرني|before|قبل",
-        text,
-        re.IGNORECASE,
-    ):
-        return False, ()
+def _normalize(text: str) -> str:
+    t = (text or "").translate(_DIGITS)
+    t = t.replace("‌", " ").replace("ي", "ی").replace("ك", "ک").replace("ـ", "")
+    return re.sub(r"\s+", " ", t).strip()
 
-    if re.search(r"at\s+event\s+time|وقت\s*رویداد|في\s*وقت\s*الحدث", text, re.I):
-        return True, (0,)
 
-    m = _REMINDER_OFFSET.search(text)
+def _parse_offsets(text: str) -> tuple[bool, tuple[int, ...], bool]:
+    """Return (reminder_requested, offsets, defaulted).
+
+    R-026: a reminder asked without an offset fires AT the stated time (offset 0).
+    An explicit offset ("1 hour before", "نیم ساعت قبل") is honoured for any value up to 7 days.
+    """
+    t = _normalize(text)
+    requested = bool(_REMINDER_WORDS.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t))
+    if not requested:
+        return False, (), False
+    if _AT_EVENT_TIME.search(t):
+        return True, (0,), False
+    m = _OFFSET.search(t)
     if not m:
-        # Reminder words present but offset unclear → treat as incomplete offset (caller clarifies via datetime/title path or defaults off)
-        return True, ()
-
-    if m.groupdict().get("n"):
-        hours = int(m.group("n"))
-        mins = hours * 60
-    elif m.groupdict().get("m"):
-        mins = int(m.group("m"))
-    elif m.groupdict().get("d"):
-        mins = int(m.group("d")) * 1440
+        return True, (0,), True
+    raw = m.group("n")
+    n = 0.5 if raw == "نیم" else float(raw)
+    unit = (m.group("u") or "").lower()
+    if unit.startswith(("hour", "hr", "ساعت", "ساعة")):
+        mins = int(n * 60)
+    elif unit.startswith(("min", "دقیقه", "دقيقة")):
+        mins = int(n)
     else:
-        return True, ()
-
-    allowed = {0, 15, 30, 60, 1440}
-    if mins not in allowed:
-        return True, ()  # unsupported → fail closed (no invent)
-    return True, (mins,)
+        mins = int(n * 1440)
+    if mins < 0 or mins > MAX_OFFSET_MINUTES:
+        return True, (0,), True
+    return True, (mins,), False
 
 
 def _next_weekday(local_now: datetime, weekday: int) -> datetime:
@@ -186,65 +259,194 @@ def _next_weekday(local_now: datetime, weekday: int) -> datetime:
     return local_now + timedelta(days=days)
 
 
-def _resolve_day(text: str, local_now: datetime) -> Optional[datetime]:
-    if _DAY_TODAY.search(text):
-        return local_now
+def _jalali_year_and_today(local_now: datetime) -> tuple[int, int, int]:
+    return gregorian_to_jalali(local_now.year, local_now.month, local_now.day)
+
+
+def _resolve_date(text: str, local_now: datetime) -> Optional[datetime]:
+    """Day-level resolution (time of day is applied by the caller)."""
+    if _DAY_AFTER_TOMORROW.search(text):
+        return local_now + timedelta(days=2)
     if _DAY_TOMORROW.search(text):
         return local_now + timedelta(days=1)
+    if _DAY_TONIGHT.search(text) or _DAY_TODAY.search(text):
+        return local_now
+    m = _IN_N_DAYS.search(text)
+    if m:
+        n = int(m.group(1) or m.group(2))
+        if 0 < n <= 90:
+            return local_now + timedelta(days=n)
+    m = _NUMERIC_DATE.search(text)
+    if m:
+        y, mo, d = int(m.group("y")), int(m.group("m")), int(m.group("d"))
+        try:
+            if y < 1700:  # Jalali year
+                if not (1 <= mo <= 12 and 1 <= d <= jalali_month_length(y, mo)):
+                    return None
+                gy, gm, gd = jalali_to_gregorian(y, mo, d)
+            else:
+                gy, gm, gd = y, mo, d
+            return local_now.replace(year=gy, month=gm, day=gd)
+        except ValueError:
+            return None
+    m = _JALALI_DATE.search(text)
+    if m:
+        d = int(m.group("d"))
+        mo = JALALI_MONTHS_FA.index(m.group("m")) + 1
+        jy_now, jm_now, jd_now = _jalali_year_and_today(local_now)
+        y = int(m.group("y")) if m.group("y") else jy_now
+        if not (1 <= d <= jalali_month_length(y, mo)):
+            return None
+        if not m.group("y") and (mo, d) < (jm_now, jd_now):
+            y += 1  # no year said and the date already passed this year -> next year
+            if d > jalali_month_length(y, mo):
+                return None
+        gy, gm, gd = jalali_to_gregorian(y, mo, d)
+        return local_now.replace(year=gy, month=gm, day=gd)
     lowered = text.lower()
-    for token, wd in _WEEKDAYS.items():
-        if token in lowered or token in text:
-            # If phrase also says today, today wins (already handled).
-            return _next_weekday(local_now, wd)
+    for token in _WEEKDAY_TOKENS:
+        if re.search(r"(?<![\w])" + re.escape(token) + r"(?![\w])", lowered):
+            target = _next_weekday(local_now, _WEEKDAYS[token])
+            return target + timedelta(days=7) if _NEXT_WEEK.search(text) else target
     return None
 
 
-def _resolve_time(text: str) -> Optional[tuple[int, int]]:
-    # Prefer explicit hour markers
-    candidates = list(_TIME.finditer(text))
-    if not candidates:
-        # Persian digits ۱۰
-        fa = text.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
-        candidates = list(_TIME.finditer(fa))
-    if not candidates:
-        return None
-    # Prefer match near ساعت/at
-    chosen = candidates[-1]
-    for c in candidates:
-        start = max(0, c.start() - 8)
-        window = text[start : c.end() + 2]
-        if re.search(r"ساعت|at|الساعة", window, re.I):
-            chosen = c
-            break
-    h = int(chosen.group("h"))
-    minute = int(chosen.group("min") or 0)
-    ampm = (chosen.group("ampm") or "").lower()
-    if ampm == "pm" and h < 12:
-        h += 12
-    if ampm == "am" and h == 12:
-        h = 0
-    # FA/AR wall-clock without am/pm: early afternoon hours are commonly spoken
-    # as 1–6 (e.g. "ساعت ۵ جلسه" → 17:00). Morning medical hours like ۱۰ stay 10.
-    if not ampm and 1 <= h <= 6 and re.search(r"ساعت|الساعة", text):
+def _apply_period(h: int, minute: int, text: str, explicit_ap: str) -> Optional[tuple[int, int, int]]:
+    """Return (hour24, minute, day_shift) or None when invalid."""
+    ap = (explicit_ap or "").lower()
+    day_shift = 0
+    pm = ap == "pm" or bool(_PM_WORDS.search(ap)) if ap else False
+    noon = bool(_NOON_WORDS.search(ap)) if ap else False
+    am = ap == "am" or bool(_AM_WORDS.search(ap)) if ap else False
+    if not ap:
+        # Period word elsewhere in the sentence ("ساعت ۸ شب", "10 صبح").
+        if _PM_WORDS.search(text):
+            pm = True
+        elif _NOON_WORDS.search(text):
+            noon = True
+        elif _AM_WORDS.search(text):
+            am = True
+    if pm:
+        if h == 12 and re.search(r"شب|night|مساء", ap or text):
+            h, day_shift = 0, 1  # "۱۲ شب" = midnight starting the next day
+        elif 1 <= h <= 11:
+            if re.search(r"شب|night|مساء", ap or text) and h <= 5:
+                pass  # "ساعت ۲ شب" is after midnight, spoken as night
+            else:
+                h += 12
+    elif noon:
+        if 1 <= h <= 4:
+            h += 12
+    elif am:
+        if h == 12:
+            h = 0
+    elif 1 <= h <= 6 and re.search(r"ساعت|الساعة", text):
+        # FA/AR wall-clock without a period word: early hours are afternoon ("ساعت ۵ جلسه" → 17:00).
         h += 12
     if h > 23 or minute > 59:
         return None
-    return h, minute
+    return h, minute, day_shift
 
 
-def _resolve_event_meta(text: str) -> tuple[str, str, str]:
-    for pat, etype, domain, title in _EVENT_HINTS:
+def _resolve_time(text: str) -> Optional[tuple[int, int, int]]:
+    m = _TIME_AFTER_WORD.search(text)
+    if m:
+        minute = int(m.group("min") or (30 if m.group("half") else 0))
+        return _apply_period(int(m.group("h")), minute, text, m.group("ap") or "")
+    m = _TIME_COLON.search(text)
+    if m:
+        return _apply_period(int(m.group("h")), int(m.group("min")), text, m.group("ap") or "")
+    m = _TIME_SUFFIX.search(text)
+    if m:
+        return _apply_period(int(m.group("h")), 0, text, m.group("ap") or "")
+    return None
+
+
+def _resolve_relative(text: str, local_now: datetime) -> Optional[datetime]:
+    m = _RELATIVE.search(text)
+    if not m:
+        return None
+    if m.group("half"):
+        return local_now + timedelta(minutes=30)
+    raw = m.group("n") or m.group("n2") or ""
+    unit = (m.group("u") or m.group("u2") or "").lower()
+    if raw in ("a", "an"):
+        n = 1.0
+    elif raw.startswith("half"):
+        n = 0.5
+    elif raw.isdigit():
+        n = float(raw)
+    else:
+        n = float(_WORD_NUMBERS.get(raw, 0))
+    if n <= 0:
+        return None
+    mins = n * 60 if unit.startswith(("ساعت", "hour", "hr")) else n
+    if mins <= 0 or mins > 24 * 60:
+        return None
+    return local_now + timedelta(minutes=mins)
+
+
+def _guess_language(text: str, language: Optional[str]) -> str:
+    if language in ("fa", "ar", "en"):
+        return language
+    if re.search(r"[پچژگیک]", text):  # Persian-only letters (U+06CC ی, U+06A9 ک, پ چ ژ گ)
+        return "fa"
+    if re.search(r"[؀-ۿ]", text):
+        return "ar"
+    return "en"
+
+
+def _resolve_event_meta(text: str, lang: str) -> tuple[str, str, str]:
+    etype, domain = "other", "lifestyle"
+    for pat, t, d in _EVENT_HINTS:
         if pat.search(text):
-            return title, domain, etype
-    # Reminder-only body
-    cleaned = re.sub(
-        r"(remind\s+me|set\s+a?\s*reminder|یادآوری\s*کن|یادم\s*بنداز|ذكرني|تذكير)",
-        "",
-        text,
-        flags=re.I,
-    ).strip(" .،,")
-    title = cleaned[:120] if cleaned else "Reminder"
-    return title, "lifestyle", "other"
+            etype, domain = t, d
+            break
+    cleaned = _clean_title(text)
+    if cleaned:
+        return cleaned[:120], domain, etype
+    return _TITLE_DEFAULTS.get(etype, _TITLE_DEFAULTS["other"])[lang], domain, etype
+
+
+_TITLE_NOISE = (
+    _RECURRENCE,
+    _REMINDER_WORDS,
+    _OFFSET,
+    _AT_EVENT_TIME,
+    _RELATIVE,
+    _DAY_AFTER_TOMORROW,
+    _DAY_TOMORROW,
+    _DAY_TONIGHT,
+    _DAY_TODAY,
+    _IN_N_DAYS,
+    _NEXT_WEEK,
+    _NOW,
+    _NUMERIC_DATE,
+    _JALALI_DATE,
+    _TIME_AFTER_WORD,
+    _TIME_COLON,
+    _TIME_SUFFIX,
+)
+_FILLER = re.compile(
+    r"(?<![\w])(?:لطفا|لطفاً|please|کن|کنی|کنید|بکن|بده|بهم|به من|برام|برای من|برایم|بگو|که|تا|برای|را|رو|"
+    r"that|me|set|reminder|دارم|دارید|هست|ساعت|صبح|ظهر|عصر|شب|am|pm|before|prior|"
+    r"نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
+    re.IGNORECASE,
+)
+
+
+def _clean_title(text: str) -> str:
+    t = _normalize(text)
+    for rx in _TITLE_NOISE:
+        t = rx.sub(" ", t)
+    for token in _WEEKDAY_TOKENS:
+        t = re.sub(r"(?<![\w])" + re.escape(token) + r"(?![\w])", " ", t, flags=re.IGNORECASE)
+    t = _FILLER.sub(" ", t)
+    t = re.sub(r"[\d]+", " ", t)
+    t = re.sub(r"^\s*to\s+", "", t, flags=re.IGNORECASE)
+    t = re.sub(r"[.,،؛:!?؟\-_/()\"'«»]+", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
 
 
 def parse_reminder_event_draft(
@@ -252,14 +454,16 @@ def parse_reminder_event_draft(
     message: str,
     timezone_name: Optional[str],
     now_utc: Optional[datetime] = None,
+    language: Optional[str] = None,
 ) -> tuple[Optional[ReminderEventDraft], Optional[str]]:
     """
     Returns (draft, missing_slot_key).
-    missing_slot_key in {timezone, recurrence, datetime, title} or None when ready.
+    missing_slot_key in {timezone, recurrence, datetime, past, title} or None when ready.
     """
-    text = (message or "").strip()
-    if not text:
+    raw = (message or "").strip()
+    if not raw:
         return None, "title"
+    text = _normalize(raw)
 
     if _RECURRENCE.search(text):
         return None, "recurrence"
@@ -276,23 +480,34 @@ def parse_reminder_event_draft(
     if effective.tzinfo is None:
         effective = effective.replace(tzinfo=timezone.utc)
     local_now = effective.astimezone(tz)
+    lang = _guess_language(raw, language)
 
-    day = _resolve_day(text, local_now)
-    time_hm = _resolve_time(text)
-    if day is None or time_hm is None:
-        return None, "datetime"
+    relative_dt = _resolve_relative(text, local_now)
+    if relative_dt is None and _NOW.search(text) and _resolve_time(text) is None and _resolve_date(text, local_now) is None:
+        relative_dt = local_now + timedelta(minutes=2)  # "send it now": the next scheduler tick
+    relative = relative_dt is not None
+    if relative_dt is not None:
+        starts_local = relative_dt.replace(second=0, microsecond=0)
+    else:
+        day = _resolve_date(text, local_now)
+        time_hm = _resolve_time(text)
+        if day is None or time_hm is None:
+            return None, "datetime"
+        hour, minute, day_shift = time_hm
+        starts_local = day.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=day_shift)
+        if starts_local <= local_now:
+            return None, "past"
 
-    hour, minute = time_hm
-    starts_local = day.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    # Keep "today" even if time already passed — do not auto-roll to tomorrow.
-    title, domain, etype = _resolve_event_meta(text)
+    title, domain, etype = _resolve_event_meta(text, lang)
     if not title.strip():
         return None, "title"
 
-    rem_req, offsets = _parse_offsets(text)
-    if rem_req and not offsets:
-        # Explicit reminder without supported offset → fail closed to clarification
-        return None, "datetime"
+    rem_req, offsets, defaulted = _parse_offsets(text)
+    if not rem_req:
+        # A stated appointment/plan without reminder words: Sedi still reminds, one hour ahead by default.
+        offsets, defaulted = (60,), True
+    if relative:
+        offsets = (0,)
 
     return (
         ReminderEventDraft(
@@ -301,11 +516,61 @@ def parse_reminder_event_draft(
             event_type=etype,
             starts_at_local=starts_local.replace(tzinfo=None),
             timezone_name=timezone_name,
-            reminder_enabled=bool(rem_req and offsets),
-            reminder_offsets=offsets if rem_req else (),
+            reminder_enabled=True,
+            reminder_offsets=offsets,
+            relative=relative,
+            offsets_defaulted=defaulted,
         ),
         None,
     )
+
+
+def _two(n: int) -> str:
+    return f"{n:02d}"
+
+
+def describe_when(draft: ReminderEventDraft, lang: str, now_utc: Optional[datetime] = None) -> str:
+    """Natural phrase for the confirmation: «فردا ساعت ۱۰:۰۰» / "tomorrow at 10:00" (user's own timezone)."""
+    try:
+        tz = ZoneInfo(draft.timezone_name)
+    except ZoneInfoNotFoundError:
+        tz = timezone.utc
+    effective = now_utc or datetime.now(timezone.utc)
+    if effective.tzinfo is None:
+        effective = effective.replace(tzinfo=timezone.utc)
+    today = effective.astimezone(tz).date()
+    d: date = draft.starts_at_local.date()
+    hhmm = f"{_two(draft.starts_at_local.hour)}:{_two(draft.starts_at_local.minute)}"
+    delta = (d - today).days
+    if lang == "fa":
+        digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+        if delta == 0:
+            day_txt = "امروز"
+        elif delta == 1:
+            day_txt = "فردا"
+        elif delta == 2:
+            day_txt = "پس‌فردا"
+        else:
+            jy, jm, jd = gregorian_to_jalali(d.year, d.month, d.day)
+            day_txt = f"{jd} {JALALI_MONTHS_FA[jm - 1]}"
+        return f"{day_txt} ساعت {hhmm}".translate(digits)
+    if lang == "ar":
+        if delta == 0:
+            day_txt = "اليوم"
+        elif delta == 1:
+            day_txt = "غداً"
+        elif delta == 2:
+            day_txt = "بعد غد"
+        else:
+            day_txt = d.strftime("%Y-%m-%d")
+        return f"{day_txt} الساعة {hhmm}"
+    if delta == 0:
+        day_txt = "today"
+    elif delta == 1:
+        day_txt = "tomorrow"
+    else:
+        day_txt = d.strftime("%b %d")
+    return f"{day_txt} at {hhmm}"
 
 
 def evaluate_reminder_event_readiness(
@@ -318,7 +583,7 @@ def evaluate_reminder_event_readiness(
 ) -> ReadinessResult:
     """I3 readiness for REMINDER/ACTION using request-local slots only."""
     draft, missing = parse_reminder_event_draft(
-        message=message, timezone_name=timezone_name, now_utc=now_utc
+        message=message, timezone_name=timezone_name, now_utc=now_utc, language=str(getattr(language, "value", language))
     )
     if missing is None and draft is not None:
         return ReadinessResult(
@@ -338,6 +603,7 @@ def evaluate_reminder_event_readiness(
         "timezone": ("rem.timezone", "profile.timezone", "tpl.reminder.timezone.v1", 20),
         "recurrence": ("rem.recurrence", "request.local.recurrence", "tpl.reminder.recurrence.v1", 5),
         "datetime": ("rem.datetime", "request.local.datetime", "tpl.reminder.datetime.v1", 10),
+        "past": ("rem.datetime", "request.local.datetime", "tpl.reminder.past.v1", 10),
         "title": ("rem.title", "request.local.title", "tpl.reminder.title.v1", 30),
     }
     req_id, ckey, tpl, prio = key_map.get(

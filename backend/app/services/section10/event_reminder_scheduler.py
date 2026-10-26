@@ -26,15 +26,15 @@ def _parse_offsets(reminder_offsets_json: Optional[str]) -> List[int]:
 
 
 def _event_local_starts_at(event: models.UserEvent) -> Optional[datetime]:
-    tz_name = event.timezone or "Asia/Tehran"
-    try:
-        tz = pytz.timezone(tz_name)
-    except pytz.UnknownTimeZoneError:
-        tz = pytz.timezone("Asia/Tehran")
-    starts = event.starts_at
-    if starts.tzinfo is None:
-        starts = tz.localize(starts)
-    return starts.astimezone(pytz.UTC).replace(tzinfo=None)
+    from backend.app.services.i10.event_reminder_i10_adapter import event_starts_utc
+
+    return event_starts_utc(event)
+
+
+# A reminder is sent when its fire time has come; if the scheduler was down it is still sent for this long.
+LATE_SEND_WINDOW_MINUTES = 30
+# ...but never after the event itself is well underway.
+POST_START_LIMIT_MINUTES = 10
 
 
 def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
@@ -44,7 +44,7 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
     from backend.app.services.i10.event_reminder_i10_adapter import (
         build_event_occurrence_key,
         enqueue_event_reminder_notification,
-        is_medical_remindable_event,
+        is_remindable_event,
     )
 
     now = now or datetime.utcnow()
@@ -58,14 +58,14 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
         .all()
     )
     for event in rows:
-        if not is_medical_remindable_event(event):
+        if not is_remindable_event(event):
             continue
         starts_utc = _event_local_starts_at(event)
-        if starts_utc is None or starts_utc <= now:
+        if starts_utc is None or now > starts_utc + timedelta(minutes=POST_START_LIMIT_MINUTES):
             continue
         for offset_min in _parse_offsets(event.reminder_offsets_json):
             fire_at = starts_utc - timedelta(minutes=offset_min)
-            if fire_at > now or (now - fire_at) > timedelta(minutes=30):
+            if fire_at > now or (now - fire_at) > timedelta(minutes=LATE_SEND_WINDOW_MINUTES):
                 continue
             occurrence_key = build_event_occurrence_key(
                 user_id=event.user_id, event_id=event.id, offset_min=offset_min
