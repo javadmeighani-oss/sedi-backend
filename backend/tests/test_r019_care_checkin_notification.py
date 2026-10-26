@@ -52,19 +52,44 @@ def test_due_checkin_is_a_normal_smart_notification(db):
     assert task.status == "notified"
 
 
-def test_user_reactions_pause_the_checkin_like_any_companion_ping(db):
+def test_dislikes_never_stop_the_checkin_they_only_adapt_it(db):
+    """R-023: three dislikes soften the daily cap / change the style, but the care check-in is still delivered."""
     u, task = _scheduled_user(db, "+17770019002")
-    # three recent dislikes -> adaptive policy pauses companion-style pings for 48h
     seed = models.Notification(user_id=u.id, type="connection_ping", title="x", body="y", channel="push", status="sent")
     db.add(seed)
     db.flush()
     for _ in range(3):
         db.add(models.NotificationFeedback(notification_id=seed.id, user_id=u.id, action="dislike", created_at=datetime.utcnow()))
     db.commit()
-    assert process_due_follow_up_tasks(db) == 0
+    assert process_due_follow_up_tasks(db) == 1
     db.refresh(task)
-    assert task.status == "open"  # waits, nothing sent
-    assert db.query(models.Notification).filter(models.Notification.template_key == "care_checkin").count() == 0
+    assert task.status == "notified"
+    assert db.query(models.Notification).filter(models.Notification.template_key == "care_checkin").count() == 1
+
+
+def test_a_timing_dislike_makes_the_checkin_wait_for_another_hour_not_vanish(db):
+    """R-023: a wrong_timing dislike avoids that hour of the day; the task stays open and is sent in another hour."""
+    u, task = _scheduled_user(db, "+17770019004")
+    now = datetime.utcnow()
+    seed = models.Notification(
+        user_id=u.id, type="connection_ping", title="x", body="y", channel="push", status="sent",
+        created_at=now, sent_at=now,
+    )
+    db.add(seed)
+    db.flush()
+    db.add(models.NotificationFeedback(
+        notification_id=seed.id, user_id=u.id, action="dislike",
+        meta_json='{"reason": "wrong_timing"}', created_at=now,
+    ))
+    db.commit()
+    assert process_due_follow_up_tasks(db) == 0  # this hour is avoided -> waits
+    db.refresh(task)
+    assert task.status == "open"
+    # six hours later (outside the +-1h band) the very same task goes out
+    later = now + timedelta(hours=6)
+    assert process_due_follow_up_tasks(db, now=later) == 1
+    db.refresh(task)
+    assert task.status == "notified"
 
 
 def test_a_checkin_that_could_not_be_sent_for_a_week_is_dropped(db):

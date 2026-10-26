@@ -953,7 +953,8 @@ class DecisionEngine:
             content_hints = {}
 
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
-        if content_hints.get("simple_copy"):
+        # R-023: lighter_touch (>= 3 dislikes) = plainest wording and no topic recap - the style changes, sending goes on.
+        if content_hints.get("simple_copy") or content_hints.get("lighter_touch"):
             inputs["simple_copy"] = True
         try:
             from backend.app.services.i6.consent_service import PERM_READ, has_permission
@@ -967,7 +968,7 @@ class DecisionEngine:
             pass
         # Privacy-safe coarse topic only — never raw chat / health-sensitive text.
         try:
-            if content_hints.get("avoid_topic"):
+            if content_hints.get("avoid_topic") or content_hints.get("lighter_touch"):
                 raise LookupError("user said the last topic was not relevant")
             from backend.app.services.i7.privacy_safe_recent_topic import (
                 display_phrase_for_topic_label,

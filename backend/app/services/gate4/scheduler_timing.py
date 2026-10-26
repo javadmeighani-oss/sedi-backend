@@ -126,9 +126,11 @@ def should_run_daily_smart_touchpoint(
     now_utc: datetime,
     *,
     tolerance_minutes: int = GATE4_DAILY_TOLERANCE_MINUTES,
+    local_time: str = CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
 ) -> bool:
     """
-    V1 Daily Smart Touchpoint: True when user-local time is within 09:00 ± tolerance.
+    V1 Daily Smart Touchpoint: True when user-local time is within `local_time` ± tolerance
+    (09:00 by default; R-023: another slot after a timing/frequency dislike - see plan_progress).
 
     Timezone from profile/I2/Gate4 resolver. Ignores prefs daily_notification_time
     so schedule stays fixed at 09:00 (no 08:00 fallback on this path).
@@ -138,7 +140,7 @@ def should_run_daily_smart_touchpoint(
     local_dt = get_local_now(_ensure_utc(now_utc), tz_name)
     return is_daily_notification_time(
         local_dt,
-        CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
+        local_time or CANONICAL_DAILY_SMART_TOUCHPOINT_TIME,
         tolerance_minutes=tolerance_minutes,
     )
 

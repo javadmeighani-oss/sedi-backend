@@ -55,18 +55,20 @@ def notif(db, user):
     return n
 
 
-def test_paused_blocks_companion(db, user, notif):
-    """3 dismiss feedbacks -> can_send_v1 for companion returns allowed=False, 'paused' in reasons."""
+def test_dismissals_never_pause_companion_they_shift_the_time(db, user, notif):
+    """R-023: 3 dismissals -> never 'paused'. The hour that was ignored is skipped, any other hour sends."""
     _add_feedback(db, user.id, "dismiss", notif.id)
     _add_feedback(db, user.id, "dismiss", notif.id)
     _add_feedback(db, user.id, "dismiss", notif.id)
-    now = datetime.utcnow()
-    result = can_send_v1(
-        db, user.id, "companion", "companion_daily_checkin_v1", "normal", now,
-    )
-    assert result["allowed"] is False
-    assert "paused" in result["reasons"]
-    assert result.get("paused_until") is not None
+    bad_hour = notif.created_at.hour
+    day = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    in_bad = day.replace(hour=bad_hour)
+    far = day.replace(hour=(bad_hour + 12) % 24)
+    blocked = can_send_v1(db, user.id, "companion", "companion_daily_checkin_v1", "normal", in_bad)
+    assert "paused" not in blocked["reasons"] and blocked.get("paused_until") is None
+    assert "timing" in blocked["reasons"]
+    ok = can_send_v1(db, user.id, "companion", "companion_daily_checkin_v1", "normal", far)
+    assert "paused" not in ok["reasons"] and "timing" not in ok["reasons"]
 
 
 def test_quiet_hours_blocks_companion(db, user):
