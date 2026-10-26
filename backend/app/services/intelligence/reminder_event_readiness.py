@@ -174,7 +174,7 @@ def _clarification(
 ) -> ClarificationResult:
     messages = {
         "tpl.reminder.datetime.v1": {
-            "en": "When should I remind you? Please tell me the day and the hour, like “tomorrow at 10 am”.",
+            "en": "When should I remind you? Please tell me the date and time, like “tomorrow at 10 am”.",
             "fa": "کِی یادت بندازم؟ روز و ساعتش رو بگو، مثلاً «فردا ساعت ۱۰ صبح».",
             "ar": "متى أذكّرك؟ أخبرني باليوم والساعة، مثل «غداً الساعة 10 صباحاً».",
         },
