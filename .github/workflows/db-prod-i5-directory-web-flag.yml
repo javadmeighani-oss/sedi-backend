@@ -17,8 +17,12 @@ on:
       image_digest:
         description: "Exact sha256:<64 hex> running image digest"
         required: true
+      rootfs_sha256:
+        description: "Optional 64-hex RUNNER_ROOTFS_SHA256 of the secure-transfer deploy run (archive-loaded images have no RepoDigests)"
+        required: false
+        default: ""
       flag_name:
-        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED | SEDI_INTELLIGENCE_ORCHESTRATOR_V1"
+        description: "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED (default) | SEDI_SCIS_SEMANTIC_INDEX_ENABLED | SEDI_INTELLIGENCE_ORCHESTRATOR_V1 | SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED | SEDI_ATTACHMENTS_ENABLED | SEDI_MEMORY_LLM_EXTRACTION_ENABLED | SEDI_DAILY_INITIATIVE_ENABLED | SEDI_EVENT_REMINDER_SCHEDULER_ENABLED"
         required: false
         default: SEDI_DIRECTORY_WEB_LOOKUP_ENABLED
 
@@ -56,12 +60,18 @@ jobs:
           grep -Fq 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' "$F"
           grep -Fq 'SEDI_SCIS_SEMANTIC_INDEX_ENABLED' "$F"
           grep -Fq 'SEDI_INTELLIGENCE_ORCHESTRATOR_V1' "$F"
+          grep -Fq 'SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED' "$F"
+          grep -Fq 'SEDI_ATTACHMENTS_ENABLED' "$F"
+          grep -Fq 'SEDI_MEMORY_LLM_EXTRACTION_ENABLED' "$F"
+          grep -Fq 'SEDI_DAILY_INITIATIVE_ENABLED' "$F"
+          grep -Fq 'SEDI_EVENT_REMINDER_SCHEDULER_ENABLED' "$F"
       - name: SSH run
         env:
           TAG: ${{ github.event.inputs.image_tag }}
           DIG: ${{ github.event.inputs.image_digest }}
           PHASE: ${{ github.event.inputs.phase }}
           FLAG_NAME: ${{ github.event.inputs.flag_name || 'SEDI_DIRECTORY_WEB_LOOKUP_ENABLED' }}
+          ROOTFS: ${{ github.event.inputs.rootfs_sha256 }}
         run: |
           set -Eeuo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -78,7 +88,7 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") PHASE=$(printf '%q' "${PHASE}") FLAG_NAME=$(printf '%q' "${FLAG_NAME}") \
-             IMAGE_SHA=$(printf '%q' "${TAG}") IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") IMAGE_DIGEST=$(printf '%q' "${DIG}") ROOTFS_SHA256=$(printf '%q' "${ROOTFS}") \
              bash $(printf '%q' "${REMOTE_DIR}/db_prod_i5_directory_web_flag_remote.sh")" \
             2>&1 | tee /tmp/webflag.log
           grep -Eq 'WEBFLAG\|phase_(preflight|activate|kill_switch)\|PASS' /tmp/webflag.log
