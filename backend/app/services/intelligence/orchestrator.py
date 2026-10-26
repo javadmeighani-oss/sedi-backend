@@ -429,6 +429,26 @@ class IntelligenceOrchestrator:
         )
         self._safety_validator = safety_validator or validate_generated_response
 
+    def _reminder_timezone(self, ctx, user_id: int) -> Optional[str]:
+        """Device/profile timezone, else the same canonical fallback the scheduler uses (profile -> memory -> default).
+
+        R-026: the Profile screen has no timezone field, so "set your timezone in Profile" could never be satisfied;
+        a reminder uses the exact timezone the reminder scheduler will use anyway.
+        """
+        tz = ctx.locale.timezone
+        if tz:
+            return tz
+        try:
+            if self._db is not None:
+                from backend.app.services.gate4.policy_prefs_bridge import (
+                    resolve_validated_user_timezone,
+                )
+
+                return resolve_validated_user_timezone(self._db, user_id)
+        except Exception:
+            pass
+        return None
+
     def _rollout_mode(self):
         if self._structured_mode_override is not None:
             return "structured" if self._structured_mode_override else "compatibility"
@@ -837,7 +857,7 @@ class IntelligenceOrchestrator:
                         message=message,
                         language=lang,
                         intent=intent_meta,
-                        timezone_name=ctx.locale.timezone,
+                        timezone_name=self._reminder_timezone(ctx, authenticated_user_id),
                     )
                     ctx.append_stage(
                         StageName.EVALUATE_INFORMATION_READINESS,
@@ -931,7 +951,7 @@ class IntelligenceOrchestrator:
                         authenticated_user_id=authenticated_user_id,
                         language=lang,
                         message=message,
-                        timezone_name=ctx.locale.timezone,
+                        timezone_name=self._reminder_timezone(ctx, authenticated_user_id),
                     )
                     ctx.append_stage(
                         StageName.EVALUATE_INFORMATION_READINESS,
@@ -1339,19 +1359,19 @@ class IntelligenceOrchestrator:
                     self._db,
                     user_id=authenticated_user_id,
                     message=message,
-                    timezone_name=ctx.locale.timezone,
+                    timezone_name=self._reminder_timezone(ctx, authenticated_user_id),
+                    language=lang,
                 )
                 extra_reason_codes.append("I3_REMINDER_USEREVENT_DISPATCH")
                 if dispatched.get("duplicate"):
                     extra_reason_codes.append("I3_REMINDER_USEREVENT_DEDUPED")
                 elif dispatched.get("created"):
                     extra_reason_codes.append("I3_REMINDER_USEREVENT_CREATED")
-                if lang == "fa":
-                    reminder_message = "حله، توی «برنامه‌ی من» ثبتش کردم و سر وقتش یادت می‌ندازم."
-                elif lang == "ar":
-                    reminder_message = "تم، حفظتُه في «جدولي» وسأذكّرك في وقته."
-                else:
-                    reminder_message = "Done — I’ve added it to My Schedule and I’ll remind you when it’s time."
+                from backend.app.services.intelligence.reminder_event_dispatch import (
+                    confirmation_message,
+                )
+
+                reminder_message = confirmation_message(dispatched, lang)
             except Exception:
                 extra_reason_codes.append("I3_REMINDER_USEREVENT_FAIL_CLOSED")
                 reminder_message = (

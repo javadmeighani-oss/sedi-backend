@@ -1,10 +1,12 @@
-"""I10 adapter for SELF medical event reminders (B10) — UserEvent authority preserved."""
+"""I10 adapter for SELF event reminders (B10 medical + R-026 generic) — UserEvent authority preserved."""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
+
+import pytz
 
 from sqlalchemy.orm import Session
 
@@ -95,20 +97,114 @@ def resolve_event_semantic_family(event_type: str, *, medical: bool = True) -> I
     return I10SemanticFamily.MEDICAL_EVENT_REMINDER
 
 
-def _reminder_copy(event: models.UserEvent, *, medical: bool) -> Tuple[str, str, str]:
-    """Type-aware factual reminder copy — no diagnosis, prep instructions, or attendance claims."""
-    title = (event.title or ("Medical event" if medical else "Scheduled event"))[:256]
+REMINDER_EXPIRY_GRACE_MINUTES = 30
+_TITLES = {
+    "fa": "یادآوری از صدی",
+    "ar": "تذكير من صدی",
+    "en": "Reminder from Sedi",
+}
+
+
+def event_starts_utc(event: models.UserEvent) -> Optional[datetime]:
+    """UserEvent.starts_at (naive, in the event's own timezone) -> naive UTC."""
+    starts = event.starts_at
+    if starts is None:
+        return None
+    try:
+        tz = pytz.timezone(event.timezone or "Asia/Tehran")
+    except pytz.UnknownTimeZoneError:
+        tz = pytz.timezone("Asia/Tehran")
+    if starts.tzinfo is None:
+        starts = tz.localize(starts)
+    return starts.astimezone(pytz.UTC).replace(tzinfo=None)
+
+
+def _user_language(db: Optional[Session], user_id: int) -> str:
+    if db is None:
+        return "en"
+    try:
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        lang = (getattr(user, "preferred_language", None) or "").strip().lower()
+    except Exception:
+        lang = ""
+    return lang if lang in ("fa", "ar", "en") else "en"
+
+
+def _lead_phrase(offset_min: int, lang: str) -> str:
+    """How far ahead the event is: "الان" / "یه ساعت دیگه" / "in 15 minutes"."""
+    if offset_min <= 0:
+        return {"fa": "الان", "ar": "الآن", "en": "Now"}[lang]
+    if lang == "fa":
+        digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+        if offset_min % 1440 == 0:
+            n = offset_min // 1440
+            return "فردا" if n == 1 else f"{n} روز دیگه".translate(digits)
+        if offset_min % 60 == 0:
+            n = offset_min // 60
+            return "یه ساعت دیگه" if n == 1 else f"{n} ساعت دیگه".translate(digits)
+        return f"{offset_min} دقیقه دیگه".translate(digits)
+    if lang == "ar":
+        if offset_min % 1440 == 0:
+            n = offset_min // 1440
+            return "غداً" if n == 1 else f"بعد {n} أيام"
+        if offset_min % 60 == 0:
+            n = offset_min // 60
+            return "بعد ساعة" if n == 1 else f"بعد {n} ساعات"
+        return f"بعد {offset_min} دقيقة"
+    if offset_min % 1440 == 0:
+        n = offset_min // 1440
+        return "Tomorrow" if n == 1 else f"In {n} days"
+    if offset_min % 60 == 0:
+        n = offset_min // 60
+        return "In 1 hour" if n == 1 else f"In {n} hours"
+    return f"In {offset_min} minutes"
+
+
+def _reminder_copy(
+    event: models.UserEvent,
+    *,
+    medical: bool,
+    lang: str = "en",
+    offset_min: int = 0,
+) -> Tuple[str, str, str]:
+    """Warm, localized reminder copy (R-011/R-026).
+
+    Lock-screen safe: medical reminders never repeat the user's own title; generic ones show the user's own
+    reminder text because they asked for exactly that text.
+    """
+    lang = lang if lang in _TITLES else "en"
+    title = _TITLES[lang]
+    lead = _lead_phrase(offset_min, lang)
     if not medical:
-        return title, "Your scheduled event is approaching.", "generic_event_reminder"
+        label = (event.title or "").strip()
+        if lang == "fa":
+            body = f"{lead} وقتِ «{label}»ه 🌿" if label else f"{lead} وقت یادآوری‌ته 🌿"
+        elif lang == "ar":
+            body = f"{lead} موعد «{label}» 🌿" if label else f"{lead} موعد تذكيرك 🌿"
+        else:
+            body = f"{lead}: {label} 🌿" if label else f"{lead} it's time for your reminder 🌿"
+        return title, body, "generic_event_reminder"
     if event.event_type == DOCTOR_EVENT_TYPE:
-        body = "Your scheduled doctor visit is approaching."
         template_key = "doctor_appointment_reminder"
+        body = {
+            "fa": f"{lead} وقت نوبت دکترته 🌿",
+            "ar": f"{lead} موعد زيارة طبيبك 🌿",
+            "en": f"{lead}: your doctor visit 🌿",
+        }[lang]
     elif event.event_type == LAB_EVENT_TYPE:
-        body = "Your scheduled lab test is approaching."
         template_key = "lab_appointment_reminder"
+        body = {
+            "fa": f"{lead} وقت آزمایشته 🌿",
+            "ar": f"{lead} موعد تحليلك 🌿",
+            "en": f"{lead}: your lab test 🌿",
+        }[lang]
     else:
-        body = "Your scheduled medical event is approaching."
         template_key = "medical_event_reminder"
+        body = {
+            "fa": f"{lead} یه برنامه‌ی پزشکی داری 🌿",
+            "ar": f"{lead} لديك موعد طبي 🌿",
+            "en": f"{lead}: you have a medical event 🌿",
+        }[lang]
     return title, body, template_key
 
 
@@ -118,10 +214,14 @@ def build_event_reminder_payload(
     user_id: int,
     occurrence_key: str,
     offset_min: int,
+    language: str = "en",
 ) -> NotificationPayload:
-    if not is_medical_remindable_event(event):
-        raise ValueError("B10 payload is medical-event only")
-    title, body, template_key = _reminder_copy(event, medical=True)
+    medical = is_medical_remindable_event(event)
+    if not medical and not is_generic_remindable_event(event):
+        raise ValueError("event is not remindable")
+    title, body, template_key = _reminder_copy(
+        event, medical=medical, lang=language, offset_min=offset_min
+    )
     context = sanitize_notification_context(
         {
             "template_key": template_key,
@@ -131,7 +231,7 @@ def build_event_reminder_payload(
     )
     return NotificationPayload(
         user_id=user_id,
-        type="health_alert",
+        type="health_alert" if medical else "connection_ping",
         title=title,
         body=body,
         priority="normal",
@@ -143,6 +243,7 @@ def build_event_reminder_payload(
             "offset_minutes": offset_min,
             "reminder_stage": REMINDER_STAGE_UPCOMING,
             "post_event_follow_up_eligible": False,
+            "language": language,
         },
         category=NotificationCategory.EVENT_REMINDER.value,
         source_type=NotificationSourceType.USER_EVENT.value,
@@ -150,7 +251,9 @@ def build_event_reminder_payload(
         risk_level=NotificationRiskLevel.NORMAL.value,
         template_key=template_key,
         context=context,
-        privacy_class=I10PrivacyClass.HEALTH_SENSITIVE.value,
+        privacy_class=(
+            I10PrivacyClass.HEALTH_SENSITIVE.value if medical else I10PrivacyClass.PRIVATE.value
+        ),
     )
 
 
@@ -176,14 +279,28 @@ def enqueue_event_reminder_notification(
     occurrence_key: str,
     offset_min: int,
 ) -> Optional[models.Notification]:
-    if not is_medical_remindable_event(event):
+    if not is_remindable_event(event):
         return None
-    medical = True
+    medical = is_medical_remindable_event(event)
     health_subject_id = resolve_or_ensure_self_health_subject_id(db, user_id)
+    language = _user_language(db, user_id)
     payload = build_event_reminder_payload(
-        event, user_id=user_id, occurrence_key=occurrence_key, offset_min=offset_min
+        event,
+        user_id=user_id,
+        occurrence_key=occurrence_key,
+        offset_min=offset_min,
+        language=language,
     )
     semantic = resolve_event_semantic_family(event.event_type, medical=medical)
+    # The UserEvent is the validity authority: the reminder stays deliverable until the event has started
+    # (plus a short grace), then expires. Without this the provider freshness gate blocks the send.
+    starts_utc = event_starts_utc(event)
+    now_aware = datetime.now(timezone.utc)
+    expires_at = (
+        (starts_utc.replace(tzinfo=timezone.utc) + timedelta(minutes=REMINDER_EXPIRY_GRACE_MINUTES))
+        if starts_utc
+        else None
+    )
     candidate = I10NotificationCandidate(
         candidate_key=occurrence_key,
         health_subject_id=health_subject_id,
@@ -201,6 +318,8 @@ def enqueue_event_reminder_notification(
             I10PrivacyClass.HEALTH_SENSITIVE if medical else I10PrivacyClass.PRIVATE
         ),
         provenance_refs=(f"user_event:{event.id}", f"offset_min:{offset_min}"),
+        valid_from=now_aware,
+        expires_at=expires_at,
     )
     result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
     if result.decision != I10DecisionValue.SEND or result.notification_id is None:

@@ -94,11 +94,17 @@ def test_lab_test_recognized(gate4_patch, db):
     assert resolve_event_semantic_family(ev.event_type) == I10SemanticFamily.LAB_APPOINTMENT_REMINDER
 
 
-def test_non_medical_event_skipped(gate4_patch, db):
+def test_non_medical_event_is_reminded_as_generic_reminder(gate4_patch, db):
+    """R-026: a user-requested non-medical reminder is delivered through I10 as a REMINDER (it used to be dropped silently)."""
     user = _user(db)
     _event(db, user, event_type="birthday", event_domain="personal", title="Party")
-    assert process_event_reminders(db) == 0
-    assert db.query(models.Notification).count() == 0
+    assert process_event_reminders(db) == 1
+    notif = db.query(models.Notification).filter(models.Notification.user_id == user.id).one()
+    decision = db.query(models.I10NotificationDecision).filter(
+        models.I10NotificationDecision.id == notif.i10_policy_decision_id
+    ).one()
+    assert decision.semantic_family == I10SemanticFamily.REMINDER.value
+    assert notif.template_key == "generic_event_reminder" and "Party" in notif.body
 
 
 def test_doctor_reminder_routes_i10(gate4_patch, db):

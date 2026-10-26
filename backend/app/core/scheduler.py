@@ -825,7 +825,7 @@ def start_scheduler():
                 scheduler.add_job(
                     _section10_reminder_tick,
                     "interval",
-                    minutes=15,
+                    minutes=5,  # R-026: reminders must fire close to the time the user asked for
                     id="section10_reminder_schedulers",
                     replace_existing=True,
                     max_instances=1,
