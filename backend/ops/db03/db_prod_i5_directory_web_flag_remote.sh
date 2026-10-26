@@ -11,14 +11,24 @@ ENV_FILE="/etc/sedi/sedi-backend.env"
 FLAG="${FLAG_NAME:-SEDI_DIRECTORY_WEB_LOOKUP_ENABLED}"
 case "${FLAG}" in
   SEDI_DIRECTORY_WEB_LOOKUP_ENABLED|SEDI_SCIS_SEMANTIC_INDEX_ENABLED|SEDI_INTELLIGENCE_ORCHESTRATOR_V1) ;;
+  SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED|SEDI_ATTACHMENTS_ENABLED|SEDI_MEMORY_LLM_EXTRACTION_ENABLED|SEDI_DAILY_INITIATIVE_ENABLED) ;;
+  SEDI_EVENT_REMINDER_SCHEDULER_ENABLED) ;;
   *) echo "FLAG_NOT_ALLOWED"; exit 2 ;;
 esac
 s "flag_name" "${FLAG}"
-EXPECTED_HEAD="089_i5_directory_doctor_feedback"
+# R-021: the attachments flag needs the user_attachments table (migration 090); the other flags work on 089 or 090.
+case "${FLAG}" in
+  SEDI_ATTACHMENTS_ENABLED) ALLOWED_HEADS="090_i7_user_attachments" ;;
+  *) ALLOWED_HEADS="089_i5_directory_doctor_feedback 090_i7_user_attachments" ;;
+esac
 
 psql_prod() {
   docker exec sedi-postgres psql -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" \
     -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -tA -c "$1" | tr -d '\r'
+}
+rootfs_sha() {
+  local j; j="$(docker image inspect "$1" --format '{{json .RootFS.Layers}}')"
+  printf '%s' "${j}" | sha256sum | awk '{print $1}'
 }
 require_identity() {
   [ -f "${ENV_FILE}" ] || { s "env_file" "MISSING"; return 1; }
@@ -27,7 +37,8 @@ require_identity() {
   id="$(docker inspect sedi-backend --format '{{.Image}}')"
   echo "${img}" | grep -Fq "${IMAGE_SHA}" || { s "image_tag_guard" "FAIL"; return 10; }
   local digests rev
-  digests="$(docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | tr '\n' ' ')"
+  digests="$(docker image inspect "${id}" --format '{{range .RepoDigests}}{{println .}}{{end}}' | tr '
+' ' ')"
   rev="$(docker image inspect "${id}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
   s "running_oci_revision" "${rev}"
   if echo "${digests}" | grep -Fq "${IMAGE_DIGEST}"; then
@@ -35,12 +46,15 @@ require_identity() {
   elif [ "${rev}" = "${IMAGE_SHA}" ]; then
     # Secure-transfer deploys load an archive; the deploy job verified the digest before transfer.
     s "image_digest_guard" "PASS_BY_OCI_REVISION"
+  elif [ -n "${ROOTFS_SHA256:-}" ] && echo "${ROOTFS_SHA256}" | grep -Eq '^[0-9a-f]{64}$' && [ "$(rootfs_sha "${id}")" = "${ROOTFS_SHA256}" ]; then
+    # Archive-loaded image: the content-addressed rootfs layer list must match the registry image exactly.
+    s "image_digest_guard" "PASS_VIA_ROOTFS_LAYERS"
   else
     s "image_digest_guard" "FAIL"; return 11
   fi
   local head; head="$(psql_prod "SELECT version_num FROM alembic_version;")"
   s "alembic_head" "${head}"
-  [ "${head}" = "${EXPECTED_HEAD}" ] || return 12
+  echo " ${ALLOWED_HEADS} " | grep -Fq " ${head} " || return 12
   curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s "health" "PASS"
 }
 flag_state() {
