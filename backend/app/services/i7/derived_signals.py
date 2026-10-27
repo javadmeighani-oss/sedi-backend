@@ -129,6 +129,13 @@ def _feedback_signal(db: Session, user_id: int, local_day: date) -> dict:
     return out
 
 
+def _done_signal(db: Session, user_id: int, local_day: date) -> dict:
+    """R-031: what the USER did that day (counts per domain from the schedule ledger; never titles)."""
+    from backend.app.services.i7.user_done import done_counts_for_day
+
+    return done_counts_for_day(db, user_id, local_day)
+
+
 def _topic_signal(db: Session, user_id: int, turns: Iterable[Any]) -> list:
     """Verified I5 concept keys named in the day's eligible user turns (keys only, never text)."""
     try:
@@ -154,6 +161,7 @@ def collect_daily_signals(db: Session, user_id: int, local_day: date, turns: Ite
     for name, fn in (
         ("plan", lambda: _plan_signal(db, user_id, local_day)),
         ("feedback", lambda: _feedback_signal(db, user_id, local_day)),
+        ("user_done", lambda: _done_signal(db, user_id, local_day)),
     ):
         try:
             val = fn()
@@ -182,9 +190,12 @@ def merge_signals(parts: Iterable[dict]) -> dict:
     days_with_plan = 0
     wellbeing: Counter = Counter()
     days_with_wellbeing = 0
+    done_parts: list = []
     for s in parts:
         if not s:
             continue
+        if s.get("user_done"):
+            done_parts.append(s.get("user_done"))
         w = s.get("wellbeing") or {}
         if w:
             days_with_wellbeing += 1
@@ -210,6 +221,12 @@ def merge_signals(parts: Iterable[dict]) -> dict:
         out["topics"] = [k for k, _ in topics.most_common(MAX_TOPICS)]
     if sum(wellbeing.values()):
         out["wellbeing"] = {**{k: v for k, v in wellbeing.items() if v}, "days": days_with_wellbeing}
+    if done_parts:
+        from backend.app.services.i7.user_done import merge_done_counts
+
+        merged_done = merge_done_counts(done_parts)
+        if merged_done:
+            out["user_done"] = merged_done
     return out
 
 

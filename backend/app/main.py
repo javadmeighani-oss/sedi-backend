@@ -32,7 +32,7 @@ from backend.app.routers import (
     i5_iran_directory,
     i8_actions,
 )
-from backend.app.routers import memory_attachments, ops
+from backend.app.routers import memory_attachments, ops, schedule_done
 from backend.app.core.process_role import should_start_scheduler
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -89,6 +89,7 @@ app.include_router(memory.router, prefix="/memory", tags=["Memory"])
 app.include_router(memory_attachments.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 app.include_router(user_medications.router, prefix="/user", tags=["User"])
+app.include_router(schedule_done.router, prefix="/user", tags=["User"])  # R-031: user-done actions -> I7
 app.include_router(user_profile_facts.router, prefix="/user", tags=["User"])
 app.include_router(user_caregivers.router, prefix="/user", tags=["User"])
 app.include_router(user_dependents.router, prefix="/user", tags=["User"])
