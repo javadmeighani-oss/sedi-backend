@@ -33,6 +33,9 @@ _CATEGORIES = (
     ("sleep", ("خواب", "بی‌خوابی", "بیخوابی", "sleep", "insomnia", "نوم", "أرق")),
     ("work", ("سر کار", "محل کار", "شغل", "رئیس", "همکار", "my job", "at work", "my boss", "العمل", "مديري")),
     ("family", ("مادرم", "پدرم", "همسرم", "فرزندم", "خانواده", "my mother", "my father", "my wife", "my husband", "my family", "أمي", "أبي", "زوجي", "عائلتي")),
+    # D-103: the newest chats are often about Sedi herself; name that instead of falling back to a stale memory.
+    ("reminders", ("یادآور", "یاداور", "یادم بنداز", "نوتیف", "اعلان", "remind", "notification", "تذكير", "اشعار", "إشعار")),
+    ("tone", ("لحن", "tone", "نحوه صحبت", "طرز حرف", "لهجة")),
 )
 
 # R-014: a disease topic is recapped with its aspect ("پیشگیری از دیابت"), so the opener proves Sedi followed the thread.
@@ -86,6 +89,8 @@ _PHRASE_IN_APP = {
     "skin": {"fa": "مراقبت از پوستت", "en": "taking care of your skin", "ar": "العناية ببشرتك"},
     "weight": {"fa": "وزن و تناسب اندامت", "en": "your weight and fitness", "ar": "وزنك ولياقتك"},
     "feelings": {"fa": "حال و روحیه‌ات", "en": "how you've been feeling", "ar": "مزاجك وحالك"},
+    "reminders": {"fa": "یادآورها و اعلان‌هات", "en": "your reminders and notifications", "ar": "تذكيراتك وإشعاراتك"},
+    "tone": {"fa": "لحن و سبک حرف زدنمون", "en": "how we talk to each other", "ar": "أسلوب حديثنا"},
     "disease_generic": {"fa": "موضوع سلامتت", "en": "a health topic of yours", "ar": "موضوع صحي يهمك"},
 }
 # Lock-screen copy: only coarse, non-revealing topics (feelings / family give no topic at all).
@@ -96,6 +101,7 @@ _PHRASE_LOCK = {
     "work": _PHRASE_IN_APP["work"],
     "hair": _PHRASE_IN_APP["hair"],
     "skin": _PHRASE_IN_APP["skin"],
+    "reminders": _PHRASE_IN_APP["reminders"],
     "disease": _PHRASE_IN_APP["disease_generic"],
 }
 
@@ -155,6 +161,17 @@ def _disease_label(db: Session, text: str, lang: str) -> Optional[str]:
         return None
 
 
+def _looks_like_story(text: str) -> bool:
+    """D-103: a stored «interest/concern» that is really a sentence the user said («من مادرم این بیماری را داشت. …»)
+    must never be spoken back as a topic. A real label is a few words without sentence punctuation."""
+    t = " ".join((text or "").split())
+    if not t:
+        return True
+    if len(t.split()) > 4 or len(t) > 40:
+        return True
+    return any(ch in t for ch in ".!؟?")
+
+
 def _memory_topic(db: Session, user_id: int, lang: str, privacy: str) -> Optional[str]:
     """R-014: with no usable recent turn, name something Sedi REMEMBERS about the user (second memory), so openers and
     notifications stay personal. Lock screen: a disease stays generic, interests are never named."""
@@ -169,7 +186,7 @@ def _memory_topic(db: Session, user_id: int, lang: str, privacy: str) -> Optiona
     except Exception:
         return None
     concern = by_key.get(("medical", "health_concerns"))
-    if concern:
+    if concern and not _looks_like_story(concern.split("،")[0]):
         if privacy == "lock_screen":
             return _PHRASE_LOCK["disease"][lang]
         first = concern.split("،")[0].strip()
@@ -178,7 +195,9 @@ def _memory_topic(db: Session, user_id: int, lang: str, privacy: str) -> Optiona
         return _PHRASE_IN_APP["work"][lang]
     interest = by_key.get(("preferences", "interests"))
     if interest and privacy != "lock_screen":
-        return interest.split("،")[0].strip()
+        first_interest = interest.split("،")[0].strip()
+        if first_interest and not _looks_like_story(first_interest):
+            return first_interest
     return None
 
 
@@ -219,12 +238,14 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
         rows = query_eligible_raw(db, user_id, limit=_LIMIT)
     except Exception:
         return None
+    had_recent_turn = False
     for row in rows or []:
         if int(getattr(row, "user_id", user_id) or user_id) != int(user_id):
             continue
         text = str(getattr(row, "user_message", "") or "")
         if is_trivial_turn(text):
             continue
+        had_recent_turn = True
         label = _disease_label(db, text, lang) or _lexicon_condition(text)
         if label:
             if privacy == "lock_screen":
@@ -239,4 +260,8 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
                 return None  # feelings / family: say nothing specific on a lock screen
             return block[lang]
         return _PHRASE_IN_APP[key][lang]
+    if had_recent_turn:
+        # D-103: the user talked recently but about nothing we can name safely. Warm generic copy beats an old,
+        # unrelated memory ("last time we talked about ..." must be about the LAST chat).
+        return None
     return _memory_topic(db, user_id, lang, privacy)
