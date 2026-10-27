@@ -41,7 +41,8 @@ MAX_OFFSET_MINUTES = 7 * 24 * 60
 
 _RECURRENCE = re.compile(
     r"(هر\s*شب|هر\s*روز|هر\s*هفته|every\s+night|every\s+day|daily|weekly|"
-    r"کل\s*ل[يی]لة|کل\s*[يی]وم|کل\s*أسبوع|کل\s*شب|کل\s*روز)",
+    r"کل\s*ل[يی]لة|کل\s*[يی]وم|کل\s*أسبوع|کل\s*شب|کل\s*روز|"
+    r"هر\s*(?:صبح|ظهر|عصر)|every\s+(?:morning|evening|afternoon)|كل\s*صباح)",
     re.IGNORECASE,
 )
 
@@ -114,6 +115,29 @@ _WEEKDAYS = {
 _WEEKDAYS = {k.replace("ي", "ی").replace("ك", "ک"): v for k, v in _WEEKDAYS.items()}
 _WEEKDAY_TOKENS = sorted(_WEEKDAYS, key=len, reverse=True)
 
+_EVERY_N = re.compile(
+    r"هر\s*\d+\s*(?:ساعت|دقیقه)|every\s+\d+\s*(?:hours?|hrs?|minutes?|mins?)|every\s+(?:hour|other)|كل\s*\d+\s*ساع",
+    re.IGNORECASE,
+)
+_WEEKDAY_BYDAY = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
+_EVERY_WEEKDAY_PREFIX = re.compile(r"(?:هر|every|each|کل)\s+$", re.IGNORECASE)
+_WEEKLY = re.compile(r"هر\s*هفته|every\s+week|weekly|کل\s*أسبوع|اسبوع[يی]ا", re.IGNORECASE)
+
+
+def _detect_recurrence(text: str, first_local: datetime) -> Optional[str]:
+    """DEBT-044: map "هر روز/هر شب/every day/هر دوشنبه/every monday/weekly" to a bounded rule, else None."""
+    lowered = text.lower()
+    for token in _WEEKDAY_TOKENS:
+        for m in re.finditer(r"(?<![\w])" + re.escape(token) + r"(?![\w])", lowered):
+            if _EVERY_WEEKDAY_PREFIX.search(lowered[: m.start()]):
+                return f"FREQ=WEEKLY;BYDAY={_WEEKDAY_BYDAY[_WEEKDAYS[token]]}"
+    if _WEEKLY.search(text):
+        return f"FREQ=WEEKLY;BYDAY={_WEEKDAY_BYDAY[first_local.weekday()]}"
+    if _RECURRENCE.search(text):
+        return "FREQ=DAILY"
+    return None
+
+
 _PM_WORDS = re.compile(
     r"(?<![\w])(?:عصر|بعد از ظهر|بعدازظهر|شب|امشب|مساء|مساءً|pm|evening|night|afternoon|tonight)(?![\w])",
     re.IGNORECASE,
@@ -163,6 +187,8 @@ class ReminderEventDraft:
     # R-026: how the time was said (used for the confirmation sentence).
     relative: bool = False
     offsets_defaulted: bool = False
+    # DEBT-044: "FREQ=DAILY" or "FREQ=WEEKLY;BYDAY=MO" when asked "every day/week ... remind me".
+    recurrence_rule: Optional[str] = None
 
 
 def _clarification(
@@ -189,9 +215,9 @@ def _clarification(
             "ar": "أحتاج إلى منطقتك الزمنية قبل الجدولة. يرجى ضبطها في الملف الشخصي.",
         },
         "tpl.reminder.recurrence.v1": {
-            "en": "I can schedule a single event, but not a repeating routine yet. Please give one date and time.",
-            "fa": "فعلاً فقط یک رویداد تکی را می‌توانم ثبت کنم، نه برنامهٔ تکراری. یک تاریخ و ساعت بگویید.",
-            "ar": "يمكنني جدولة حدث واحد فقط حالياً وليس روتيناً متكرراً. أعطني تاريخاً ووقتاً واحداً.",
+            "en": "I can repeat a reminder every day or every week, like “every day at 8 remind me to drink water”. Which one would you like?",
+            "fa": "می‌تونم یادآور رو هر روز یا هر هفته تکرار کنم، مثلاً «هر روز ساعت ۸ یادم بنداز آب بخورم». کدومشو بذارم؟",
+            "ar": "يمكنني تكرار التذكير كل يوم أو كل أسبوع، مثل «كل يوم الساعة 8 ذكّرني بشرب الماء». أيهما تريد؟",
         },
         "tpl.reminder.title.v1": {
             "en": "What should I put on your schedule?",
@@ -430,7 +456,7 @@ _TITLE_NOISE = (
 _FILLER = re.compile(
     r"(?<![\w])(?:لطفا|لطفاً|please|کن|کنی|کنید|بکن|بده|بهم|به من|برام|برای من|برایم|بگو|که|تا|برای|را|رو|"
     r"that|me|set|reminder|دارم|دارید|هست|ساعت|صبح|ظهر|عصر|شب|am|pm|before|prior|"
-    r"نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
+    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
     re.IGNORECASE,
 )
 
@@ -465,8 +491,11 @@ def parse_reminder_event_draft(
         return None, "title"
     text = _normalize(raw)
 
-    if _RECURRENCE.search(text):
-        return None, "recurrence"
+    if _EVERY_N.search(text):
+        return None, "recurrence"  # sub-daily repetition is not supported
+    recurring = _detect_recurrence(text, datetime.now()) is not None
+    if recurring and not _REMINDER_WORDS.search(text):
+        return None, "recurrence"  # a habit statement ("هر شب ساعت ۱۱ می‌خوابم") is not a reminder request
 
     if not timezone_name or not str(timezone_name).strip():
         return None, "timezone"
@@ -482,11 +511,31 @@ def parse_reminder_event_draft(
     local_now = effective.astimezone(tz)
     lang = _guess_language(raw, language)
 
-    relative_dt = _resolve_relative(text, local_now)
-    if relative_dt is None and _NOW.search(text) and _resolve_time(text) is None and _resolve_date(text, local_now) is None:
+    if recurring and (_resolve_relative(text, local_now) is not None or _NOW.search(text)):
+        return None, "recurrence"  # "every 2 hours" is not a supported pattern
+
+    relative_dt = None if recurring else _resolve_relative(text, local_now)
+    if not recurring and relative_dt is None and _NOW.search(text) and _resolve_time(text) is None and _resolve_date(text, local_now) is None:
         relative_dt = local_now + timedelta(minutes=2)  # "send it now": the next scheduler tick
     relative = relative_dt is not None
-    if relative_dt is not None:
+    recurrence_rule: Optional[str] = None
+    if recurring:
+        time_hm = _resolve_time(text)
+        if time_hm is None:
+            return None, "datetime"
+        hour, minute, day_shift = time_hm
+        no_weekday = text.lower()
+        for token in _WEEKDAY_TOKENS:
+            no_weekday = re.sub(r"(?<![\w])" + re.escape(token) + r"(?![\w])", " ", no_weekday)
+        day = _resolve_date(no_weekday, local_now) or local_now
+        starts_local = day.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=day_shift)
+        recurrence_rule = _detect_recurrence(text, starts_local)
+        if recurrence_rule and recurrence_rule.startswith("FREQ=WEEKLY;BYDAY="):
+            target = _WEEKDAY_BYDAY.index(recurrence_rule.rsplit("=", 1)[1])
+            starts_local += timedelta(days=(target - starts_local.weekday()) % 7)
+        if starts_local <= local_now:
+            starts_local += timedelta(days=7 if (recurrence_rule or "").startswith("FREQ=WEEKLY") else 1)
+    elif relative_dt is not None:
         starts_local = relative_dt.replace(second=0, microsecond=0)
     else:
         day = _resolve_date(text, local_now)
@@ -520,9 +569,14 @@ def parse_reminder_event_draft(
             reminder_offsets=offsets,
             relative=relative,
             offsets_defaulted=defaulted,
+            recurrence_rule=recurrence_rule,
         ),
         None,
     )
+
+
+_WEEKDAY_NAME_FA = ("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه")
+_WEEKDAY_NAME_AR = ("الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد")
 
 
 def _two(n: int) -> str:
@@ -542,6 +596,17 @@ def describe_when(draft: ReminderEventDraft, lang: str, now_utc: Optional[dateti
     d: date = draft.starts_at_local.date()
     hhmm = f"{_two(draft.starts_at_local.hour)}:{_two(draft.starts_at_local.minute)}"
     delta = (d - today).days
+    rule = draft.recurrence_rule or ""
+    if rule:
+        if lang == "fa":
+            digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+            day_txt = "هر هفته " + _WEEKDAY_NAME_FA[d.weekday()] if rule.startswith("FREQ=WEEKLY") else "هر روز"
+            return f"{day_txt} ساعت {hhmm}".translate(digits)
+        if lang == "ar":
+            day_txt = "كل أسبوع " + _WEEKDAY_NAME_AR[d.weekday()] if rule.startswith("FREQ=WEEKLY") else "كل يوم"
+            return f"{day_txt} الساعة {hhmm}"
+        day_txt = f"every {d.strftime('%A')}" if rule.startswith("FREQ=WEEKLY") else "every day"
+        return f"{day_txt} at {hhmm}"
     if lang == "fa":
         digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
         if delta == 0:

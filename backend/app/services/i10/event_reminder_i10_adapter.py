@@ -47,8 +47,12 @@ MEDICAL_EVENT_TYPES = frozenset({
 REMINDER_STAGE_UPCOMING = "upcoming"
 
 
-def build_event_occurrence_key(*, user_id: int, event_id: int, offset_min: int) -> str:
-    return f"i10:event:{user_id}:{event_id}:{offset_min}"
+def build_event_occurrence_key(
+    *, user_id: int, event_id: int, offset_min: int, occurrence_day: Optional[str] = None
+) -> str:
+    """Unique per reminder; a repeating event adds the occurrence's local day (YYYYMMDD) so every day dedupes alone."""
+    base = f"i10:event:{user_id}:{event_id}:{offset_min}"
+    return f"{base}:{occurrence_day}" if occurrence_day else base
 
 
 GENERIC_EVENT_TYPES = frozenset({
@@ -278,6 +282,7 @@ def enqueue_event_reminder_notification(
     user_id: int,
     occurrence_key: str,
     offset_min: int,
+    starts_utc_override: Optional[datetime] = None,
 ) -> Optional[models.Notification]:
     if not is_remindable_event(event):
         return None
@@ -294,7 +299,7 @@ def enqueue_event_reminder_notification(
     semantic = resolve_event_semantic_family(event.event_type, medical=medical)
     # The UserEvent is the validity authority: the reminder stays deliverable until the event has started
     # (plus a short grace), then expires. Without this the provider freshness gate blocks the send.
-    starts_utc = event_starts_utc(event)
+    starts_utc = starts_utc_override or event_starts_utc(event)
     now_aware = datetime.now(timezone.utc)
     expires_at = (
         (starts_utc.replace(tzinfo=timezone.utc) + timedelta(minutes=REMINDER_EXPIRY_GRACE_MINUTES))

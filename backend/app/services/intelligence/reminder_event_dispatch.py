@@ -95,6 +95,7 @@ def dispatch_reminder_user_event(
         importance=resolved.importance,  # type: ignore[arg-type]
         reminder_enabled=bool(resolved.reminder_enabled),
         reminder_offsets=offsets,
+        recurrence_rule=resolved.recurrence_rule,
         source="conversation",
     )
     event = create_event(db, user_id, body)
