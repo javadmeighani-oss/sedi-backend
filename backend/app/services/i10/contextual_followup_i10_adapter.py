@@ -111,6 +111,45 @@ def _initiative_copy(db: Session, task: models.CareFollowUpTask, name: Optional[
     return ("Sedi" if lang == "en" else "صدی"), body, "daily_initiative"
 
 
+def _explicit_language(db: Session, user_id: int) -> str:
+    """fa/ar only when the user's language is explicitly set; otherwise the long-standing English copy stays."""
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == user_id).first()
+        raw = ((row[0] if row else None) or "").strip().lower().split("-")[0]
+        return raw if raw in ("fa", "ar") else "en"
+    except Exception:
+        return "en"
+
+
+def _reaction_hints(db: Session, user_id: int) -> dict:
+    """P7: what Sedi learned from the user's Like/Dislike/dismiss reactions (content hints). Fail-open."""
+    try:
+        from datetime import datetime
+
+        from backend.app.services.notifications.adaptive_policy_v1 import compute_adaptive_state
+
+        return compute_adaptive_state(db, user_id, datetime.utcnow()).get("content_hints") or {}
+    except Exception:
+        return {}
+
+
+_GENERAL_FOLLOWUP = {
+    # (with the topic) / (gentle: the user said the last follow-up was not relevant, unclear or too much)
+    "fa": (
+        "{who}گفته بودی بعداً درباره‌ی «{topic}» ادامه بدیم. الان وقت داری؟",
+        "{who}دلم خواست ادامه‌ی حرف‌هامون رو بگیریم. هر وقت وقت داشتی، من اینجام.",
+    ),
+    "ar": (
+        "{who}طلبتَ أن نكمل لاحقاً حديثنا عن «{topic}». هل لديك وقت الآن؟",
+        "{who}أحببت أن نكمل حديثنا. في أي وقت يناسبك، أنا هنا.",
+    ),
+}
+_POST_EVENT_FOLLOWUP = {
+    "fa": "{who}موعدت چطور پیش رفت؟ اگه خواستی درباره‌اش حرف بزنیم.",
+    "ar": "{who}كيف سار موعدك؟ إن أردت نتحدث عنه.",
+}
+
+
 def render_followup_copy(
     db: Session,
     task: models.CareFollowUpTask,
@@ -124,6 +163,25 @@ def render_followup_copy(
         return _care_checkin_copy(db, task, name)
     if meta.follow_up_kind == "daily_initiative":
         return _initiative_copy(db, task, name)
+
+    # P7: the follow-up speaks the user's language, and learns from reactions - a user who said the last one was not
+    # relevant / unclear gets the gentle wording without the topic.
+    lang = _explicit_language(db, task.user_id)
+    if lang in ("fa", "ar"):
+        hints = _reaction_hints(db, task.user_id)
+        who = (f"{name} جان، " if lang == "fa" else f"{name}، ") if name else ""
+        if task.source == FollowUpTaskSource.POST_EVENT.value:
+            return "صدی", _POST_EVENT_FOLLOWUP[lang].format(who=who), "post_event_follow_up"
+        with_topic, gentle = _GENERAL_FOLLOWUP[lang]
+        topic = (task.title or "").strip()[:120]
+        use_gentle = (
+            not topic
+            or hints.get("avoid_topic")
+            or hints.get("simple_copy")
+            or hints.get("lighter_touch")
+        )
+        body = gentle.format(who=who) if use_gentle else with_topic.format(who=who, topic=topic)
+        return "صدی", body, "contextual_follow_up"
 
     if task.source == FollowUpTaskSource.POST_EVENT.value:
         title = "Follow-up on your appointment"

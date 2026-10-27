@@ -18,6 +18,9 @@ What each reaction changes (last N days, default 7; the effect fades after the w
 - like >= 2                    -> cap 2 (no reduction).
 - open does not change anything.
 
+P7 (2026-10-27): a dislike WITHOUT a reason (the tray button has no UI to ask) is understood from evidence instead of
+being ignored - see ``infer_dislike_reasons``. The user's own reason always wins for that notification.
+
 A guard keeps the adaptation from muting a user by accident: at most ``MAX_AVOID_HOURS`` distinct hours (3) are avoided,
 each widened by one hour -> at most 9 of the 24 hours of the day are ever skipped.
 """
@@ -40,6 +43,56 @@ from backend.app.models import Notification, NotificationFeedback
 
 def _hour_band(hour: int) -> List[int]:
     return [(hour - 1) % 24, hour % 24, (hour + 1) % 24]
+
+
+NIGHT_START_HOUR = 22  # local hours [22, 24) and [0, 7) count as "the middle of the night"
+NIGHT_END_HOUR = 7
+MANY_IN_24H = 3  # this many notifications within 24h before the disliked one = "too frequent"
+_TOPIC_TEMPLATE_CUES = ("continu", "follow", "recap", "topic", "checkin", "check_in", "initiative")
+
+
+def _user_zone(db: Session, user_id: int):
+    import pytz
+
+    try:
+        from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+
+        return pytz.timezone(resolve_validated_user_timezone(db, user_id))
+    except Exception:
+        return pytz.timezone("Asia/Tehran")
+
+
+def infer_dislike_reasons(db: Session, user_id: int, notification: Notification, zone=None) -> List[str]:
+    """Deterministic understanding of WHY a notification was disliked when the user gave no reason (P7).
+
+    Evidence, in order: (1) it arrived in the middle of the user's night -> wrong_timing; (2) three or more notifications
+    in the 24h before it -> too_frequent; (3) it was a follow-up / topic recap -> irrelevant (do not reference the past
+    topic); (4) otherwise the safest change: no topic recap and the plainest wording (not_helpful + unclear).
+    Returns bounded reason names (the same vocabulary the user could have chosen)."""
+    import pytz
+
+    stamp = notification.sent_at or notification.created_at
+    if stamp is None:
+        return ["not_helpful", "unclear"]
+    zone = zone or _user_zone(db, user_id)
+    aware = stamp if stamp.tzinfo else pytz.UTC.localize(stamp)
+    local_hour = aware.astimezone(zone).hour
+    if local_hour >= NIGHT_START_HOUR or local_hour < NIGHT_END_HOUR:
+        return ["wrong_timing"]
+    since = stamp - timedelta(hours=24)
+    recent = (
+        db.query(Notification.id)
+        .filter(Notification.user_id == user_id, Notification.created_at >= since, Notification.created_at <= stamp)
+        .count()
+    )
+    if recent >= MANY_IN_24H:
+        return ["too_frequent"]
+    marker = " ".join(
+        str(x or "") for x in (notification.template_key, notification.category, notification.source_type)
+    ).lower()
+    if any(cue in marker for cue in _TOPIC_TEMPLATE_CUES):
+        return ["irrelevant"]
+    return ["not_helpful", "unclear"]
 
 
 def _notification_hours(db: Session, notification_ids: List[int]) -> Dict[int, int]:
@@ -89,6 +142,20 @@ def compute_adaptive_state(
     too_frequent = False
     wrong_timing = False
     timing_sources: List[tuple] = []  # (created_at, notification_id) of reactions about the time of day
+    # P7: dislikes that carry no reason are understood from evidence (the user's own reason always wins).
+    explained_ids = set()
+    for r in rows:
+        if r.action == "dislike" and r.meta_json:
+            try:
+                import json as _json
+
+                if (_json.loads(r.meta_json) or {}).get("reason"):
+                    explained_ids.add(r.notification_id)
+            except (TypeError, ValueError, AttributeError):
+                pass
+    inferred_count: Dict[str, int] = {}
+    inferred_for: set = set()
+    zone = None
     for r in rows:
         if r.action in counts:
             counts[r.action] = counts[r.action] + 1
@@ -101,15 +168,34 @@ def compute_adaptive_state(
                 reason = meta.get("reason")
             except (TypeError, ValueError, AttributeError):
                 reason = None
-        if reason:
-            reasons_count[reason] = reasons_count.get(reason, 0) + 1
-            if reason in TOPIC_AVOID_REASONS:
+        inferred: List[str] = []
+        if (
+            not reason
+            and r.action == "dislike"
+            and r.notification_id is not None
+            and r.notification_id not in explained_ids
+            and r.notification_id not in inferred_for
+        ):
+            try:
+                note = db.query(Notification).filter(Notification.id == r.notification_id).first()
+                if note is not None:
+                    zone = zone or _user_zone(db, user_id)
+                    inferred = infer_dislike_reasons(db, user_id, note, zone)
+                    inferred_for.add(r.notification_id)
+            except Exception:
+                inferred = []
+        for reason_name in ([reason] if reason else []) + inferred:
+            if reason_name in inferred:
+                inferred_count[reason_name] = inferred_count.get(reason_name, 0) + 1
+            else:
+                reasons_count[reason_name] = reasons_count.get(reason_name, 0) + 1
+            if reason_name in TOPIC_AVOID_REASONS:
                 avoid_topic = True
-            if reason in SIMPLE_REASONS:
+            if reason_name in SIMPLE_REASONS:
                 simple_copy = True
-            if reason in FREQUENCY_REASONS:
+            if reason_name in FREQUENCY_REASONS:
                 too_frequent = True
-            if reason in TIMING_REASONS:
+            if reason_name in TIMING_REASONS:
                 wrong_timing = True
                 timing_sources.append((r.created_at, r.notification_id))
         if r.action == "dismiss":
@@ -151,6 +237,7 @@ def compute_adaptive_state(
         "timing": {"avoid_hours_utc": avoid_hours, "wrong_timing": wrong_timing},
         "counts": counts,
         "reasons_count": reasons_count,
+        "inferred_reasons_count": inferred_count,
         "content_hints": {
             "avoid_topic": avoid_topic,
             "simple_copy": simple_copy,
