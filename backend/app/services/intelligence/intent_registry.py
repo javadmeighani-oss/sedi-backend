@@ -155,6 +155,11 @@ _RULES: tuple[_Rule, ...] = (
             "doctor appointment",
             "lab test",
             "i have a doctor",
+            # D-103: asking Sedi to send a notification/reminder.
+            "send me a notification",
+            "send a notification",
+            "send me a reminder",
+            "notify me",
         ),
         phrases_fa=(
             "یادآوری کن",
@@ -167,6 +172,18 @@ _RULES: tuple[_Rule, ...] = (
             "دکتر دارم",
             "امتحان دارم",
             "جلسه دارم",
+            # D-103: «الان یک نوتیف پیگیری برای من ارسال کن» is a reminder/notification action, not a general question.
+            "نوتیف پیگیری",
+            "نوتیف بفرست",
+            "نوتیف ارسال",
+            "نوتیفیکیشن بفرست",
+            "نوتیفیکیشن ارسال",
+            "اعلان بفرست",
+            "اعلان ارسال",
+            "یک نوتیف برای من",
+            "یه نوتیف برای من",
+            "برام نوتیف",
+            "برایم نوتیف",
         ),
         phrases_ar=(
             "ذكرني",
@@ -177,6 +194,9 @@ _RULES: tuple[_Rule, ...] = (
             "موعد طبيب",
             "تحليل دم",
             "اجتماع عمل",
+            "ارسل لي اشعار",
+            "ارسل لي تنبيه",
+            "ارسل اشعار",
         ),
     ),
     _Rule(
