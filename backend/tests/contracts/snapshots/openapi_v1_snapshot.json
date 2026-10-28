@@ -33,6 +33,83 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "ActionEditRequest": {
+        "additionalProperties": false,
+        "description": "The user's own correction of one plan item: any subset of time, title, note, duration (exercise).",
+        "properties": {
+          "duration_minutes": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Minutes"
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "maxLength": 5,
+                "minLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "HH:MM, the user's local time",
+            "title": "Local Time"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "ActionEditRequest",
+        "type": "object"
+      },
+      "ActionReplaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "item_id": {
+            "description": "An item_id offered by /alternatives",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ],
+        "title": "ActionReplaceRequest",
+        "type": "object"
+      },
       "ActionReviewRequest": {
         "additionalProperties": false,
         "properties": {
@@ -14392,6 +14469,216 @@
         "summary": "Get Next Question Endpoint",
         "tags": [
           "Knowledge"
+        ]
+      }
+    },
+    "/lifestyle/actions/{action_id}": {
+      "delete": {
+        "description": "The user takes one plan item out of this week (owner only, ACTIVE items only).",
+        "operationId": "lifestyle_action_remove_lifestyle_actions__action_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Remove",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      },
+      "patch": {
+        "description": "The user corrects one plan item: time, title, note or duration (owner only, ACTIVE items only).",
+        "operationId": "lifestyle_action_edit_lifestyle_actions__action_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Edit",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/actions/{action_id}/alternatives": {
+      "get": {
+        "description": "Up to 3 other catalogue items that fit this item's slot and the user's allergies / dislikes / limits.",
+        "operationId": "lifestyle_action_alternatives_lifestyle_actions__action_id__alternatives_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Alternatives",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/actions/{action_id}/replace": {
+      "post": {
+        "description": "The user swaps this item for one of its alternatives (an item the rules would not have refused).",
+        "operationId": "lifestyle_action_replace_lifestyle_actions__action_id__replace_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionReplaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Replace",
+        "tags": [
+          "Lifestyle Data"
         ]
       }
     },

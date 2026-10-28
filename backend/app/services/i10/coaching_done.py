@@ -177,3 +177,38 @@ def handle_coaching_done_for_notification(
         action_status=completion.status,
         already_completed=completion.already_completed,
     )
+
+
+def handle_coaching_not_done_for_notification(
+    db: Session,
+    *,
+    notification: models.Notification,
+    actor_user_id: int,
+    payload: dict[str, Any],
+) -> InteractionRecordResult:
+    """Authorized NOT-DONE path: provenance -> I8 review (skipped + bounded reason) -> ledger record.
+
+    The reason is optional (the tray asks it right after the tap); an unknown value is stored as ``other``. A review of an
+    item that is no longer ACTIVE (already completed / expired) is not an error: the tap is still recorded.
+    """
+    from backend.app.services.i8.action_review import SKIP_REASONS, ActionReviewError, record_review
+
+    action = resolve_i8_action_from_coaching_notification(
+        db,
+        notification=notification,
+        actor_user_id=actor_user_id,
+        payload=payload,
+    )
+    raw_reason = str(payload.get("reason") or "").strip()
+    reason = raw_reason if raw_reason in SKIP_REASONS else "other"
+    try:
+        record_review(db, actor_user_id=actor_user_id, action_id=int(action.id), outcome="skipped", reason=reason)
+    except ActionReviewError as exc:
+        if exc.code != "ACTION_NOT_REVIEWABLE":
+            raise HTTPException(status_code=422, detail=exc.code) from exc
+    return record_notification_interaction(
+        db,
+        notification=notification,
+        recipient_user_id=actor_user_id,
+        payload=payload,
+    )

@@ -43,6 +43,10 @@ CHANNEL_HEALTH_ALERT_V2 = "health_alert_v2"
 # Mobile interaction actions exposed on push metadata (FA/EN/AR labels via contract).
 MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("like", "dislike", "open_chat")
 
+# P8: nutrition / exercise plan follow-ups ask "did you do it?" with these three tray buttons instead.
+PLAN_FOLLOWUP_ACTIONS: tuple[str, ...] = ("done", "plan_not_done", "later")
+PLAN_FOLLOWUP_TEMPLATE_KEYS = frozenset({"nutrition_plan_follow_up", "exercise_plan_follow_up"})
+
 
 def normalize_push_language(language: str | None) -> str:
     """Normalize user language for push payload; unsupported values fall back to ``en``."""
@@ -66,7 +70,7 @@ def _resolve_v1_action_ids(actions: Sequence[str] | None, *, include_future: boo
         if is_future_only_action(action_id) and not include_future:
             continue
         key = str(action_id).strip()
-        if key in MOBILE_INTERACTION_ACTIONS:
+        if key in MOBILE_INTERACTION_ACTIONS or key in PLAN_FOLLOWUP_ACTIONS:
             resolved.append(key)
             continue
         if not include_future and not is_v1_action(action_id):
@@ -350,7 +354,9 @@ def enrich_notification_fcm_data(
         source_notification_id=source_notification_id or notification_id,
         template_key=template_key,
         include_source_refs=False,
-        actions=list(MOBILE_INTERACTION_ACTIONS),
+        actions=list(
+            PLAN_FOLLOWUP_ACTIONS if template_key in PLAN_FOLLOWUP_TEMPLATE_KEYS else MOBILE_INTERACTION_ACTIONS
+        ),
     )
     merged = merge_gate4_into_fcm_data(legacy_data, gate4_data)
     android_opts = build_gate4_android_notification_options(

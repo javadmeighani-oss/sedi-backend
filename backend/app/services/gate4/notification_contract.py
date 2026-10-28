@@ -135,6 +135,22 @@ ACTION_LABELS: Final[Mapping[str, Mapping[str, str]]] = {
         SmartNotificationLanguage.EN.value: "Talk to Sedi",
         SmartNotificationLanguage.AR.value: "لنتحدث مع صدی",
     },
+    # P8: plan follow-up buttons ("did you do it?") for nutrition / exercise reminders.
+    "done": {
+        SmartNotificationLanguage.FA.value: "آره، انجام شد",
+        SmartNotificationLanguage.EN.value: "Done",
+        SmartNotificationLanguage.AR.value: "تم",
+    },
+    "plan_not_done": {
+        SmartNotificationLanguage.FA.value: "نشد",
+        SmartNotificationLanguage.EN.value: "Not done",
+        SmartNotificationLanguage.AR.value: "لم يتم",
+    },
+    "later": {
+        SmartNotificationLanguage.FA.value: "بعداً",
+        SmartNotificationLanguage.EN.value: "Later",
+        SmartNotificationLanguage.AR.value: "لاحقًا",
+    },
 }
 
 # Legacy aliases for open/dismiss only. LIKE/DISLIKE must NOT collapse into timing/ack policy.
