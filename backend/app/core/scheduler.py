@@ -816,16 +816,24 @@ def start_scheduler():
             if s10_flags.event_reminder_scheduler_enabled() or s10_flags.lifestyle_reminder_scheduler_enabled():
 
                 def _section10_reminder_tick():
+                    created = 0
                     with next(get_db()) as db:
                         if s10_flags.event_reminder_scheduler_enabled():
-                            process_event_reminders(db)
+                            created += process_event_reminders(db) or 0
                         if s10_flags.lifestyle_reminder_scheduler_enabled():
-                            process_lifestyle_reminders(db)
+                            created += process_lifestyle_reminders(db) or 0
+                    if created:
+                        # Javad 2026-10-28: a reminder promised for 20:52 arrived at 20:59 (5-min enqueue poll + 5-min
+                        # outbox poll). Send what was just queued now instead of waiting for the next outbox run.
+                        try:
+                            run_deliver_pending()
+                        except Exception as e:
+                            print(f"[Sedi Scheduler] immediate reminder delivery failed (outbox will retry): {e}")
 
                 scheduler.add_job(
                     _section10_reminder_tick,
                     "interval",
-                    minutes=5,  # R-026: reminders must fire close to the time the user asked for
+                    minutes=1,  # R-026: reminders must fire close to the time the user asked for (was 5, up to +10 with the outbox)
                     id="section10_reminder_schedulers",
                     replace_existing=True,
                     max_instances=1,
