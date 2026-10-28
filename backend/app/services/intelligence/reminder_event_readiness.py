@@ -147,8 +147,12 @@ _AM_WORDS = re.compile(r"(?<![\w])(?:صبح|بامداد|صباح|am|morning)(?!
 
 _TIME_AFTER_WORD = re.compile(
     r"(?:ساعت|الساعة|at|around)\s*(?P<h>\d{1,2})(?:[:٫.](?P<min>\d{2}))?"
-    r"(?:\s*(?P<half>و\s*نیم))?(?:\s*(?P<ap>am|pm))?",
+    r"(?:\s*(?P<half>و\s*نیم))?(?:\s*و\s*(?P<min2>\d{1,2})\s*دق[يی]قه)?(?:\s*(?P<ap>am|pm))?",
     re.IGNORECASE,
+)
+# «تا ۲۱ و ۲۰ دقیقه» = 21:20 (hour and minutes spoken together, no «ساعت»); not «۲ ساعت و ۳۰ دقیقه دیگه».
+_TIME_H_AND_MIN = re.compile(
+    r"(?<![\d:])(?P<h>\d{1,2})\s*و\s*(?P<min>\d{1,2})\s*دق[يی]قه(?!\s*(?:دیگه|دیگر|بعد|قبل|پیش))",
 )
 _TIME_COLON = re.compile(r"(?<!\d)(?P<h>\d{1,2}):(?P<min>\d{2})(?!\d)(?:\s*(?P<ap>am|pm))?", re.IGNORECASE)
 _TIME_SUFFIX = re.compile(
@@ -404,8 +408,11 @@ def _apply_period(h: int, minute: int, text: str, explicit_ap: str) -> Optional[
 def _resolve_time(text: str) -> Optional[tuple[int, int, int]]:
     m = _TIME_AFTER_WORD.search(text)
     if m:
-        minute = int(m.group("min") or (30 if m.group("half") else 0))
+        minute = int(m.group("min") or m.group("min2") or (30 if m.group("half") else 0))
         return _apply_period(int(m.group("h")), minute, text, m.group("ap") or "")
+    m = _TIME_H_AND_MIN.search(text)
+    if m:
+        return _apply_period(int(m.group("h")), int(m.group("min")), text, "")
     m = _TIME_COLON.search(text)
     if m:
         return _apply_period(int(m.group("h")), int(m.group("min")), text, m.group("ap") or "")
@@ -477,6 +484,7 @@ _TITLE_NOISE = (
     _NUMERIC_DATE,
     _JALALI_DATE,
     _TIME_AFTER_WORD,
+    _TIME_H_AND_MIN,
     _TIME_COLON,
     _TIME_SUFFIX,
 )
@@ -567,12 +575,17 @@ def parse_reminder_event_draft(
     else:
         day = _resolve_date(text, local_now)
         time_hm = _resolve_time(text)
+        implicit_day = day is None and time_hm is not None and bool(_REMINDER_WORDS.search(text))
+        if implicit_day:
+            day = local_now  # «تا ۲۱:۲۰ یادم بنداز»: no day said -> the next time that clock shows
         if day is None or time_hm is None:
             return None, "datetime"
         hour, minute, day_shift = time_hm
         starts_local = day.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=day_shift)
         if starts_local <= local_now:
-            return None, "past"
+            if not implicit_day:
+                return None, "past"
+            starts_local += timedelta(days=1)
 
     title, domain, etype = _resolve_event_meta(text, lang)
     if not title.strip():

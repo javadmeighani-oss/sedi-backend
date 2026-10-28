@@ -229,10 +229,10 @@ def test_unknown_language_falls_back_to_english(chain_patch, db):
     assert db.query(models.Notification).one().title == "Reminder from Sedi"
 
 
-def test_scheduler_runs_every_five_minutes_and_uses_generic_path():
+def test_scheduler_runs_every_minute_and_uses_generic_path():
     root = Path(__file__).resolve().parents[2]
     src = (root / "backend" / "app" / "core" / "scheduler.py").read_text(encoding="utf-8")
     i = src.index("_section10_reminder_tick,")
-    assert "minutes=5" in src[i : i + 120]
+    assert "minutes=1," in src[i : i + 120]  # 2026-10-28: was 5 (a reminder arrived 7 min late), see test_reminder_delivery_latency
     sched = (root / "backend" / "app" / "services" / "section10" / "event_reminder_scheduler.py").read_text(encoding="utf-8")
     assert "is_remindable_event" in sched and "is_medical_remindable_event(event)" not in sched
