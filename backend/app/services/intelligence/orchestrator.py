@@ -445,22 +445,47 @@ class IntelligenceOrchestrator:
                 parse_reminder_event_draft,
             )
 
-            last = (
+            rows = (
                 self._db.query(models.Memory)
                 .filter(models.Memory.user_id == user_id)
                 .order_by(models.Memory.created_at.desc())
-                .first()
+                .limit(4)
+                .all()
             )
-            if last is None or last.created_at is None:
+            fresh = [
+                r for r in rows
+                if r.created_at is not None
+                and datetime.utcnow() - r.created_at.replace(tzinfo=None) <= timedelta(minutes=30)
+            ]
+            if not fresh:
                 return message
-            if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
-                return message
-            if not is_reminder_clarification(getattr(last, "sedi_response", None)):
+            tz_name = self._reminder_timezone(ctx, user_id)
+            asked = is_reminder_clarification(getattr(fresh[0], "sedi_response", None))
+            if not asked:
+                # Javad 2026-10-28: after an unfinished reminder request ("نوتیف بفرست ساعت ۲۱:۳۵" with no day) a short answer
+                # that only carries a time/day continues THAT request, even when another turn was answered in between.
+                if len(message.split()) > 8:
+                    return message
+                from backend.app.services.intelligence.intent_registry import IntentId, resolve_intent
+
+                def _is_reminder_request(text: str) -> bool:
+                    return resolve_intent(message=text or "", language=lang).intent_id is IntentId.REMINDER
+
+                if _is_reminder_request(message):
+                    return message  # a complete request of its own
+                for r in fresh:
+                    prior = getattr(r, "user_message", None) or ""
+                    if not _is_reminder_request(prior):
+                        continue
+                    _, prior_missing = parse_reminder_event_draft(message=prior, timezone_name=tz_name, language=lang)
+                    asked = prior_missing is not None  # the earlier request never got its time
+                    break
+            if not asked:
                 return message
             candidate = answer_as_reminder_request(message, lang)
             draft, missing = parse_reminder_event_draft(
                 message=candidate,
-                timezone_name=self._reminder_timezone(ctx, user_id),
+                timezone_name=tz_name,
                 language=lang,
             )
             if draft is None or missing is not None:
