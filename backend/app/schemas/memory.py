@@ -90,3 +90,31 @@ class LifeEventUpdateRequest(BaseModel):
     occurred_at: Optional[datetime] = None
     subject: Optional[str] = Field(None, max_length=16)
     precision: Optional[str] = Field(None, max_length=8)
+
+
+# --- H1: memory explorer (calendar, one day, search, day notes, turn edit) ---
+
+
+class MemoryTurnEditRequest(BaseModel):
+    """The user's own correction of a chat turn that is still inside the 30-day window."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_message: Optional[str] = Field(None, min_length=1, max_length=4000)
+    sedi_response: Optional[str] = Field(None, max_length=4000)
+
+
+class DayNoteCreateRequest(BaseModel):
+    """A note on one local day, or a correction placed beside an old derived summary (the summary is never rewritten)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    day: str = Field(..., min_length=10, max_length=10, description="YYYY-MM-DD, the user's local day")
+    text: str = Field(..., min_length=1, max_length=240)
+    kind: str = Field("note", max_length=16)
+
+
+class DayNoteUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(..., min_length=1, max_length=240)

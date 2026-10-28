@@ -4,7 +4,7 @@ Memory router: daily summary (save/latest) + chat history from Memory table.
 GET /memory/history - grouped conversation history for UI (daily/weekly/monthly/yearly).
 """
 from collections import defaultdict
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -21,6 +21,9 @@ from backend.app.schemas.memory import (
     MemoryFactEditRequest,
     LifeEventCreateRequest,
     LifeEventUpdateRequest,
+    MemoryTurnEditRequest,
+    DayNoteCreateRequest,
+    DayNoteUpdateRequest,
 )
 from backend.app.routers.auth_otp import get_current_user
 from backend.app.services.gate4.policy_prefs_bridge import (
@@ -507,4 +510,137 @@ def memory_delete_event(
 
     if not delete_life_event(db, auth_user.id, event_id):
         raise HTTPException(status_code=404, detail="EVENT_NOT_FOUND_OR_NOT_PERMITTED")
+    return APIResponse(ok=True, data={"deleted": True})
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# H1 — memory explorer. I7 owns the read model (services/i7/memory_explorer.py); raw chat text is shown and editable only
+# inside the 30-day retention window, older days come from derived summaries / events / facts. JWT identity only.
+# ---------------------------------------------------------------------------------------------------------------------
+def _parse_day(value: str):
+    from datetime import date as _date
+
+    try:
+        return _date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="INVALID_DATE")
+
+
+@router.get("/calendar", response_model=APIResponse)
+def memory_calendar(
+    from_: str = Query(..., alias="from", description="YYYY-MM-DD (user-local)"),
+    to: str = Query(..., description="YYYY-MM-DD (user-local), at most 70 days after from"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Days that hold a memory (counts only, no text) — drives the calendar dots."""
+    from backend.app.services.i7.memory_explorer import get_calendar
+
+    start, end = _parse_day(from_), _parse_day(to)
+    if end < start or (end - start).days > 70:
+        raise HTTPException(status_code=422, detail="INVALID_RANGE")
+    return APIResponse(ok=True, data=get_calendar(db, auth_user.id, start, end))
+
+
+@router.get("/day", response_model=APIResponse)
+def memory_day(
+    date: str = Query(..., description="YYYY-MM-DD (user-local)"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """One local day: turns (<=30 days only), Sedi's derived summary, events, my notes/corrections and learned facts."""
+    from backend.app.services.i7.memory_explorer import get_day
+
+    return APIResponse(ok=True, data=get_day(db, auth_user.id, _parse_day(date)))
+
+
+@router.get("/search", response_model=APIResponse)
+def memory_search(
+    q: str = Query(..., min_length=2, max_length=80),
+    from_: Optional[str] = Query(None, alias="from"),
+    to: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=50),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Keyword search over my memory. Days older than 30 are searched through summaries, events, notes and facts only."""
+    from backend.app.services.i7.memory_explorer import search
+
+    start = _parse_day(from_) if from_ else None
+    end = _parse_day(to) if to else None
+    return APIResponse(ok=True, data=search(db, auth_user.id, q, from_day=start, to_day=end, limit=limit))
+
+
+@router.patch("/turns/{memory_id}", response_model=APIResponse)
+def memory_edit_turn(
+    memory_id: int,
+    body: MemoryTurnEditRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.memory_explorer import edit_turn
+
+    if body.user_message is None and body.sedi_response is None:
+        raise HTTPException(status_code=422, detail="NOTHING_TO_UPDATE")
+    turn = edit_turn(db, auth_user.id, memory_id, user_message=body.user_message, sedi_response=body.sedi_response)
+    if turn is None:
+        raise HTTPException(status_code=404, detail="TURN_NOT_FOUND_OR_NOT_EDITABLE")
+    return APIResponse(ok=True, data=turn)
+
+
+@router.delete("/turns/{memory_id}", response_model=APIResponse)
+def memory_delete_turn(
+    memory_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Forget one chat turn (same guarded path as /memory/forget), then re-derive that day's summary."""
+    from backend.app.services.i7.memory_explorer import refresh_day_summary
+
+    owned = db.query(models.Memory).filter(models.Memory.id == memory_id, models.Memory.user_id == auth_user.id).first()
+    created_at = owned.created_at if owned is not None else None
+    result = forget_memory_turn(memory_id=memory_id, auth_user=auth_user, db=db)
+    refresh_day_summary(db, auth_user.id, created_at)
+    return result
+
+
+@router.post("/day-notes", response_model=APIResponse)
+def memory_add_day_note(
+    body: DayNoteCreateRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.memory_explorer import add_day_note
+
+    note = add_day_note(db, auth_user.id, day=_parse_day(body.day), text=body.text, kind=body.kind)
+    if note is None:
+        raise HTTPException(status_code=403, detail="MEMORY_WRITE_NOT_GRANTED")
+    return APIResponse(ok=True, data=note)
+
+
+@router.patch("/day-notes/{note_id}", response_model=APIResponse)
+def memory_edit_day_note(
+    note_id: int,
+    body: DayNoteUpdateRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.memory_explorer import update_day_note
+
+    note = update_day_note(db, auth_user.id, note_id, text=body.text)
+    if note is None:
+        raise HTTPException(status_code=404, detail="NOTE_NOT_FOUND_OR_NOT_PERMITTED")
+    return APIResponse(ok=True, data=note)
+
+
+@router.delete("/day-notes/{note_id}", response_model=APIResponse)
+def memory_delete_day_note(
+    note_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.memory_explorer import delete_day_note
+
+    if not delete_day_note(db, auth_user.id, note_id):
+        raise HTTPException(status_code=404, detail="NOTE_NOT_FOUND_OR_NOT_PERMITTED")
     return APIResponse(ok=True, data={"deleted": True})
