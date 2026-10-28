@@ -6,7 +6,7 @@ Parser -> UserEvent.recurrence_rule -> scheduler fires every occurrence once, vi
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -127,20 +127,23 @@ def _user(db) -> models.User:
 
 
 def test_chat_repeat_fires_each_day_once(chain_patch, db):
+    # Dates are derived from the real clock: the I10 candidate expiry (occurrence + 30 min) is checked against "now".
+    from backend.app.services.i10.event_reminder_i10_adapter import event_starts_utc
+
     user = _user(db)
     result = dispatch_reminder_user_event(
         db,
         user_id=user.id,
         message="هر روز ساعت ۸ صبح یادم بنداز آب بخورم",
         timezone_name=TZ,
-        now_utc=NOW,
+        now_utc=datetime.now(timezone.utc),
         language="fa",
     )
     assert result["created"] is True and "هر روز" in result["when"]
     event = db.query(models.UserEvent).filter(models.UserEvent.user_id == user.id).one()
     assert event.recurrence_rule == "FREQ=DAILY" and json.loads(event.reminder_offsets_json) == [0]
 
-    day1 = datetime(2026, 10, 28, 4, 31)  # 08:01 Tehran on the first day
+    day1 = event_starts_utc(event) + timedelta(minutes=1)  # one minute after the first occurrence (08:00 Tehran)
     assert process_event_reminders(db, now=day1 - timedelta(minutes=30)) == 0
     assert process_event_reminders(db, now=day1) == 1
     assert process_event_reminders(db, now=day1 + timedelta(minutes=5)) == 0  # same occurrence, no duplicate

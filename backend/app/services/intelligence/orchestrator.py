@@ -429,6 +429,46 @@ class IntelligenceOrchestrator:
         )
         self._safety_validator = safety_validator or validate_generated_response
 
+    def _continue_reminder_clarification(self, ctx, user_id: int, message: str, lang: str) -> str:
+        """D-130: Sedi asked «کِی یادت بندازم؟» and the user answers «حدود ۵ دقیقه دیگه» (no reminder word) - that answer is the
+        reminder, not a new general question the LLM would refuse. Returns the answer phrased as a reminder request, or
+        the message unchanged. Deterministic, fail-open, only within 30 minutes of Sedi's question."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return message
+            from datetime import datetime, timedelta
+
+            from backend.app import models
+            from backend.app.services.intelligence.reminder_event_readiness import (
+                answer_as_reminder_request,
+                is_reminder_clarification,
+                parse_reminder_event_draft,
+            )
+
+            last = (
+                self._db.query(models.Memory)
+                .filter(models.Memory.user_id == user_id)
+                .order_by(models.Memory.created_at.desc())
+                .first()
+            )
+            if last is None or last.created_at is None:
+                return message
+            if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
+                return message
+            if not is_reminder_clarification(getattr(last, "sedi_response", None)):
+                return message
+            candidate = answer_as_reminder_request(message, lang)
+            draft, missing = parse_reminder_event_draft(
+                message=candidate,
+                timezone_name=self._reminder_timezone(ctx, user_id),
+                language=lang,
+            )
+            if draft is None or missing is not None:
+                return message
+            return candidate
+        except Exception:
+            return message
+
     def _reminder_timezone(self, ctx, user_id: int) -> Optional[str]:
         """Device/profile timezone, else the same canonical fallback the scheduler uses (profile -> memory -> default).
 
@@ -811,6 +851,9 @@ class IntelligenceOrchestrator:
                 if discovery_classification is not None
                 else None
             )
+
+            # D-130: an answer to Sedi's own reminder question continues that reminder.
+            message = self._continue_reminder_clarification(ctx, authenticated_user_id, message, lang)
 
             # 7–9) I3 stages
             if rollout_mode != "structured":

@@ -234,6 +234,33 @@ def _clarification(
     )
 
 
+# D-130: the first words of Sedi's own "when should I remind you?" questions (datetime / past / title), fa + ar + en.
+_CLARIFICATION_OPENINGS = (
+    "When should I remind you?",
+    "That time has already passed today.",
+    "What should I put on your schedule?",
+    "کِی یادت بندازم؟",
+    "این ساعت امروز گذشته.",
+    "چه چیزی را در برنامهٔ شما ثبت کنم؟",
+    "متى أذكّرك؟",
+    "هذا الوقت مضى اليوم.",
+    "ماذا أضع في جدولك؟",
+)
+
+_ANSWER_PREFIX = {"fa": "یادم بنداز ", "ar": "ذكرني ", "en": "remind me "}
+
+
+def is_reminder_clarification(sedi_text: Optional[str]) -> bool:
+    """True when [sedi_text] is one of Sedi's own reminder questions (so the user's next message is the answer)."""
+    t = (sedi_text or "").strip()
+    return any(op in t for op in _CLARIFICATION_OPENINGS)
+
+
+def answer_as_reminder_request(answer: str, language: str) -> str:
+    """The user's short answer («حدود ۵ دقیقه دیگه») phrased as a full reminder request the parser understands."""
+    return _ANSWER_PREFIX.get(language if language in _ANSWER_PREFIX else "en", "remind me ") + (answer or "").strip()
+
+
 def _outcome(req_id: str, key: str, status: FactRequirementStatus, priority: int) -> FactRequirementOutcome:
     return FactRequirementOutcome(
         requirement_id=req_id,
@@ -456,7 +483,7 @@ _TITLE_NOISE = (
 _FILLER = re.compile(
     r"(?<![\w])(?:لطفا|لطفاً|please|کن|کنی|کنید|بکن|بده|بهم|به من|برام|برای من|برایم|بگو|که|تا|برای|را|رو|"
     r"that|me|set|reminder|دارم|دارید|هست|ساعت|صبح|ظهر|عصر|شب|am|pm|before|prior|"
-    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
+    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|میخوام|میخواهم|کنم|حدود|تقریبا|تقریباً|about|around|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
     re.IGNORECASE,
 )
 
