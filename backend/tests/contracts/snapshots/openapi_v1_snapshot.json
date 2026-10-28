@@ -905,6 +905,53 @@
         "title": "ChatRequest",
         "type": "object"
       },
+      "DayNoteCreateRequest": {
+        "additionalProperties": false,
+        "description": "A note on one local day, or a correction placed beside an old derived summary (the summary is never rewritten).",
+        "properties": {
+          "day": {
+            "description": "YYYY-MM-DD, the user's local day",
+            "maxLength": 10,
+            "minLength": 10,
+            "title": "Day",
+            "type": "string"
+          },
+          "kind": {
+            "default": "note",
+            "maxLength": 16,
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "text"
+        ],
+        "title": "DayNoteCreateRequest",
+        "type": "object"
+      },
+      "DayNoteUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "DayNoteUpdateRequest",
+        "type": "object"
+      },
       "DecisionTestRequest": {
         "properties": {
           "event": {
@@ -5282,6 +5329,39 @@
           }
         },
         "title": "MemorySaveRequest",
+        "type": "object"
+      },
+      "MemoryTurnEditRequest": {
+        "additionalProperties": false,
+        "description": "The user's own correction of a chat turn that is still inside the 30-day window.",
+        "properties": {
+          "sedi_response": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sedi Response"
+          },
+          "user_message": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Message"
+          }
+        },
+        "title": "MemoryTurnEditRequest",
         "type": "object"
       },
       "MlBaselineRunData": {
@@ -15018,6 +15098,67 @@
         ]
       }
     },
+    "/memory/calendar": {
+      "get": {
+        "description": "Days that hold a memory (counts only, no text) — drives the calendar dots.",
+        "operationId": "memory_calendar_memory_calendar_get",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD (user-local)",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "YYYY-MM-DD (user-local)",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD (user-local), at most 70 days after from",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "YYYY-MM-DD (user-local), at most 70 days after from",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Calendar",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
     "/memory/consent": {
       "get": {
         "description": "Current memory-consent status for the authenticated user (JWT only).",
@@ -15094,6 +15235,204 @@
           }
         ],
         "summary": "Revoke Memory Consent Endpoint",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/day": {
+      "get": {
+        "description": "One local day: turns (<=30 days only), Sedi's derived summary, events, my notes/corrections and learned facts.",
+        "operationId": "memory_day_memory_day_get",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD (user-local)",
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "description": "YYYY-MM-DD (user-local)",
+              "title": "Date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Day",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/day-notes": {
+      "post": {
+        "operationId": "memory_add_day_note_memory_day_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DayNoteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Add Day Note",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/day-notes/{note_id}": {
+      "delete": {
+        "operationId": "memory_delete_day_note_memory_day_notes__note_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Delete Day Note",
+        "tags": [
+          "Memory"
+        ]
+      },
+      "patch": {
+        "operationId": "memory_edit_day_note_memory_day_notes__note_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DayNoteUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Edit Day Note",
         "tags": [
           "Memory"
         ]
@@ -15679,6 +16018,203 @@
           }
         ],
         "summary": "Save Memory",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/search": {
+      "get": {
+        "description": "Keyword search over my memory. Days older than 30 are searched through summaries, events, notes and facts only.",
+        "operationId": "memory_search_memory_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Search",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/turns/{memory_id}": {
+      "delete": {
+        "description": "Forget one chat turn (same guarded path as /memory/forget), then re-derive that day's summary.",
+        "operationId": "memory_delete_turn_memory_turns__memory_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Delete Turn",
+        "tags": [
+          "Memory"
+        ]
+      },
+      "patch": {
+        "operationId": "memory_edit_turn_memory_turns__memory_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryTurnEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Memory Edit Turn",
         "tags": [
           "Memory"
         ]
