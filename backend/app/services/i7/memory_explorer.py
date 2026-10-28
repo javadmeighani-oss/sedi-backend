@@ -350,6 +350,15 @@ def _summary_text(lang: str, signals: dict, turn_count: int) -> str:
         parts.append(labels["wb_join"].format(x=sep.join(labels["wb"][k] for k in wb_keys[:3])))
     if done_total:
         parts.append(labels["done"].format(n=done_total))
+    hr_avg = int((signals.get("hr") or {}).get("avg", 0) or 0)
+    if hr_avg:
+        parts.append(
+            {
+                "fa": f"ضربان قلبت به‌طور میانگین حدود {hr_avg} بود.",
+                "ar": f"كان متوسط نبض قلبك نحو {hr_avg}.",
+                "en": f"Your heart rate averaged about {hr_avg}.",
+            }[lang if lang in ("fa", "ar", "en") else "en"]
+        )
     if not parts and turn_count:
         parts.append(labels["turns"].format(n=turn_count))
     return " ".join(parts)
@@ -364,6 +373,7 @@ def _chips(signals: dict) -> dict[str, Any]:
         "plan_done": int(plan.get("done", 0) or 0),
         "plan_total": int(plan.get("total", 0) or 0),
         "user_done": int(done.get("total", 0) or 0) if isinstance(done, dict) else 0,
+        "hr_avg": int((signals.get("hr") or {}).get("avg", 0) or 0),
     }
 
 
@@ -469,7 +479,7 @@ def get_day(db: Session, user_id: int, day: date, *, now: Optional[datetime] = N
             payload = json.loads(stored.structured_summary_json or "{}")
             turn_count = turn_count or int(payload.get("turn_count", 0) or 0)
             out["summary"]["derived"] = True
-        elif turns:
+        else:  # no stored summary yet: derive the day's signals live (chat-less days still have gadget data)
             from backend.app.services.i7.derived_signals import collect_daily_signals
 
             signals = collect_daily_signals(db, user_id, day, turns)

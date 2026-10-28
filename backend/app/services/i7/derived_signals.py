@@ -155,6 +155,32 @@ def _topic_signal(db: Session, user_id: int, turns: Iterable[Any]) -> list:
         return []
 
 
+def _hr_signal(db: Session, user_id: int, local_day: date) -> dict:
+    """P10: the day's heart-rate average / min / max / count (accepted gadget readings only). {} when none."""
+    from sqlalchemy import func
+
+    from backend.app.services.i7.memory_explorer import _zone, day_bounds_utc
+
+    zone, _ = _zone(db, user_id)
+    start, end = day_bounds_utc(local_day, zone)
+    pm = models.PhysiologicalMeasurement
+    count, avg, low, high = (
+        db.query(func.count(pm.id), func.avg(pm.numeric_value), func.min(pm.numeric_value), func.max(pm.numeric_value))
+        .filter(
+            pm.user_id == user_id,
+            pm.measurement_type == "heart_rate",
+            pm.ingestion_status == "accepted",
+            pm.numeric_value.isnot(None),
+            pm.measured_at >= start,
+            pm.measured_at < end,
+        )
+        .one()
+    )
+    if not count:
+        return {}
+    return {"count": int(count), "avg": round(float(avg)), "min": round(float(low)), "max": round(float(high))}
+
+
 def collect_daily_signals(db: Session, user_id: int, local_day: date, turns: Iterable[Any]) -> dict:
     """Non-empty signals of one local day, or {} (then the DAILY payload is unchanged)."""
     out: dict = {}
@@ -162,6 +188,7 @@ def collect_daily_signals(db: Session, user_id: int, local_day: date, turns: Ite
         ("plan", lambda: _plan_signal(db, user_id, local_day)),
         ("feedback", lambda: _feedback_signal(db, user_id, local_day)),
         ("user_done", lambda: _done_signal(db, user_id, local_day)),
+        ("hr", lambda: _hr_signal(db, user_id, local_day)),
     ):
         try:
             val = fn()
@@ -183,6 +210,7 @@ def collect_daily_signals(db: Session, user_id: int, local_day: date, turns: Ite
 
 def merge_signals(parts: Iterable[dict]) -> dict:
     """Pure merge of child signals into a parent period (sums, reason counts, topic frequency)."""
+    parts = parts_list = list(parts)
     plan = Counter()
     fb = Counter()
     reasons: Counter = Counter()
@@ -211,7 +239,20 @@ def merge_signals(parts: Iterable[dict]) -> dict:
             fb[k] += int(f.get(k, 0) or 0)
         reasons.update({k: int(v) for k, v in (f.get("dislike_reasons") or {}).items()})
         topics.update(s.get("topics") or [])
+    hr_count, hr_sum, hr_days, hr_min, hr_max = 0, 0.0, 0, None, None
+    for s in parts_list:
+        h = (s or {}).get("hr") or {}
+        if h:
+            hr_days += 1
+            c = int(h.get("count", 0) or 0)
+            hr_count += c
+            hr_sum += c * float(h.get("avg", 0) or 0)
+            lo, hi = h.get("min"), h.get("max")
+            hr_min = lo if hr_min is None or (lo is not None and lo < hr_min) else hr_min
+            hr_max = hi if hr_max is None or (hi is not None and hi > hr_max) else hr_max
     out: dict = {}
+    if hr_count:
+        out["hr"] = {"count": hr_count, "avg": round(hr_sum / hr_count), "min": hr_min, "max": hr_max, "days": hr_days}
     if plan:
         reviewed = plan["done"] + plan["skipped"] + plan["pending"]
         out["plan"] = {**dict(plan), "days": days_with_plan, "percent": round(100 * plan["done"] / reviewed) if reviewed else 0}

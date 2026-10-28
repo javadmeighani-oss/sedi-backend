@@ -51,6 +51,11 @@ def medication_stock_notifications_enabled() -> bool:
     return _env_flag_enabled("SEDI_MEDICATION_STOCK_NOTIFICATIONS_ENABLED")
 
 
+# P10: one gentle question when the gadget has gone quiet (OFF unless named by Javad, Tier 2)
+def i10_hr_data_gap_enabled() -> bool:
+    return _env_flag_enabled("SEDI_I10_HR_DATA_GAP_ENABLED")
+
+
 # Event / lifestyle schedulers
 def event_reminder_scheduler_enabled() -> bool:
     return _env_flag_enabled("SEDI_EVENT_REMINDER_SCHEDULER_ENABLED")
