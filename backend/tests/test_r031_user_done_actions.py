@@ -216,13 +216,24 @@ _FLAG_PATCH = patch(
 
 
 def test_a_repeating_occurrence_that_is_done_is_not_reminded(db):
+    # Dates come from the real clock: the I10 candidate expiry (occurrence + 30 min) is checked against "now".
+    import pytz
+
+    zone = pytz.timezone("Asia/Tehran")
     u = _user(db, "+17770041011", tz="Asia/Tehran")
     ensure_self_subject_for_account(db, u.id, commit=True)
-    ev = _event(db, u, title="آب بخورم", etype="other", edomain="lifestyle", rule="FREQ=DAILY", starts=datetime(2026, 10, 20, 8, 0))
-    user_done.record(db, u.id, kind="event", ref_id=ev.id, day=date(2026, 10, 28), hhmm=None, domain="other", done=True)
+    day_a = (datetime.now(zone) + timedelta(days=1)).date()  # tomorrow
+    day_b = day_a + timedelta(days=1)
+    ev = _event(
+        db, u, title="آب بخورم", etype="other", edomain="lifestyle", rule="FREQ=DAILY",
+        starts=datetime.combine(day_a - timedelta(days=7), dtime(8, 0)),
+    )
+    user_done.record(db, u.id, kind="event", ref_id=ev.id, day=day_a, hhmm=None, domain="other", done=True)
     db.commit()
+
+    def after_0800(day):  # one minute after 08:00 Tehran of that day, as naive UTC
+        return zone.localize(datetime.combine(day, dtime(8, 1))).astimezone(pytz.UTC).replace(tzinfo=None)
+
     with _GATE4_PATCH, _FLAG_PATCH:
-        # 08:01 Tehran on the 28th = 04:31 UTC: done -> nothing
-        assert process_event_reminders(db, now=datetime(2026, 10, 28, 4, 31)) == 0
-        # the 29th is not done -> reminded
-        assert process_event_reminders(db, now=datetime(2026, 10, 29, 4, 31)) == 1
+        assert process_event_reminders(db, now=after_0800(day_a)) == 0  # done -> nothing
+        assert process_event_reminders(db, now=after_0800(day_b)) == 1  # not done -> reminded
