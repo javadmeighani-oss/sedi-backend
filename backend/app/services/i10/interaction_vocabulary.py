@@ -126,6 +126,8 @@ def resolve_interaction_verb(payload: Mapping[str, Any]) -> ResolvedInteraction:
             verb = CanonicalInteractionVerb.TALK_TO_SEDI
         elif lowered == "done":
             verb = CanonicalInteractionVerb.DONE
+        elif lowered in ("later", "plan_not_done"):
+            verb = CanonicalInteractionVerb.NOT_NOW
         elif lowered == "like":
             verb = CanonicalInteractionVerb.LIKE
         elif lowered == "dislike":

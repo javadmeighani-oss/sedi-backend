@@ -91,6 +91,49 @@ def lifestyle_action_review(
     return APIResponse(ok=True, data=data)
 
 
+class ActionMoveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    local_time: str = Field(..., min_length=5, max_length=5, description="HH:MM, the user's local time")
+
+
+def _action_edit_http_error(exc) -> HTTPException:
+    status = 404 if exc.code == "ACTION_NOT_FOUND" else (403 if exc.code == "ACTION_OWNER_MISMATCH" else 422)
+    return HTTPException(status_code=status, detail=exc.code)
+
+
+@router.patch("/actions/{action_id}", response_model=APIResponse)
+def lifestyle_action_move(
+    action_id: int,
+    payload: ActionMoveRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The user moves one plan item to another time of day (owner only, ACTIVE items only)."""
+    from backend.app.services.i8.action_edit import ActionEditError, move_action_time
+
+    try:
+        data = move_action_time(db, actor_user_id=auth_user.id, action_id=action_id, local_time=payload.local_time)
+    except ActionEditError as exc:
+        raise _action_edit_http_error(exc)
+    return APIResponse(ok=True, data=data)
+
+
+@router.delete("/actions/{action_id}", response_model=APIResponse)
+def lifestyle_action_remove(
+    action_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The user takes one plan item out of this week (owner only, ACTIVE items only)."""
+    from backend.app.services.i8.action_edit import ActionEditError, remove_action
+
+    try:
+        data = remove_action(db, actor_user_id=auth_user.id, action_id=action_id)
+    except ActionEditError as exc:
+        raise _action_edit_http_error(exc)
+    return APIResponse(ok=True, data=data)
+
+
 def _require_admin(request: Request) -> None:
     """Fail-closed admin guard: ADMIN_TOKEN must be set; X-Admin-Token must match."""
     expected = os.environ.get("ADMIN_TOKEN", "").strip()

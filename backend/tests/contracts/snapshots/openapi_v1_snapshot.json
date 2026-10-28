@@ -33,6 +33,23 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "ActionMoveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "local_time": {
+            "description": "HH:MM, the user's local time",
+            "maxLength": 5,
+            "minLength": 5,
+            "title": "Local Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "local_time"
+        ],
+        "title": "ActionMoveRequest",
+        "type": "object"
+      },
       "ActionReviewRequest": {
         "additionalProperties": false,
         "properties": {
@@ -14392,6 +14409,110 @@
         "summary": "Get Next Question Endpoint",
         "tags": [
           "Knowledge"
+        ]
+      }
+    },
+    "/lifestyle/actions/{action_id}": {
+      "delete": {
+        "description": "The user takes one plan item out of this week (owner only, ACTIVE items only).",
+        "operationId": "lifestyle_action_remove_lifestyle_actions__action_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Remove",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      },
+      "patch": {
+        "description": "The user moves one plan item to another time of day (owner only, ACTIVE items only).",
+        "operationId": "lifestyle_action_move_lifestyle_actions__action_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionMoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Action Move",
+        "tags": [
+          "Lifestyle Data"
         ]
       }
     },

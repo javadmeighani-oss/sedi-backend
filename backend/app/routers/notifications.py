@@ -1349,6 +1349,15 @@ def submit_notification_feedback(
             actor_user_id=user_id,
             payload=payload,
         ).interaction
+    elif str(payload.get("action_id") or "").strip().lower() == "plan_not_done":
+        from backend.app.services.i10.coaching_done import handle_coaching_not_done_for_notification
+
+        record_result = handle_coaching_not_done_for_notification(
+            db,
+            notification=notification,
+            actor_user_id=user_id,
+            payload=payload,
+        )
     else:
         record_result = record_notification_interaction(
             db,
