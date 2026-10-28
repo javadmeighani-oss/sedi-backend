@@ -81,6 +81,58 @@ def strip_unsupported_personal_claims(reply: str, supported_text: str, language:
     return " ".join(k.strip() for k in kept)
 
 
+# R-033 (Javad 2026-10-28): Sedi must not put herself on trial in front of the user - no "I am not a psychologist", "I cannot
+# diagnose", "I am only an AI". These patterns (checked on normalised text) mark such a clause; the guard removes the
+# clause and keeps the useful rest of the sentence.
+_SELF_LIMIT = re.compile(
+    r"(?:"
+    r"(?:روان ?شناس|پزشک|دکتر|متخصص|مشاور|درمانگر)(?: انسانی| واقعی| حرفه ای)? نیستم|"
+    r"(?:نمی ?تونم|نمیتونم|نمی ?توانم|نمیتوانم)(?: که)? (?:بیماری |اختلال )?تشخیص|"
+    r"تشخیص (?:نمی ?دم|نمیدم|نمی ?دهم|نمیدهم)|"
+    r"توانایی (?:تشخیص|درمان) ندارم|"
+    r"فقط (?:یه|یک) (?:هوش مصنوعی|برنامه|دستیار)|"
+    r"جایگزین (?:پزشک|روان ?شناس|متخصص)(?: نیستم| نمی ?شم| نمی ?شوم)|"
+    r"\bi(?:'m| am) not (?:a |an )?(?:human )?(?:psychologist|therapist|doctor|physician|counsel+or)\b|"
+    r"\bi (?:cannot|can't|can not|don't|do not) (?:really )?diagnos|"
+    r"\bi(?:'m| am) (?:just|only|merely) an? (?:ai|assistant|program|bot)\b|"
+    r"\bas an ai\b|"
+    r"لست (?:أخصائية|اخصائية|طبيبة|معالجة|مختصة)|"
+    r"لا أستطيع (?:ال)?تشخيص|لا أشخّص|لا اشخص|"
+    r"(?:أنا )?مجرد (?:ذكاء اصطناعي|برنامج)"
+    r")",
+    re.I,
+)
+_CLAUSE_SPLIT = re.compile(r"\s*[؛;]\s*|\s+(?:اما|ولی|ولي|but|لكن|لكنني)\s+", re.I)
+_END_PUNCT = ".!?؟!…"
+
+
+def strip_self_limit_disclaimers(reply: str, language: str = "fa") -> str:
+    """R-033: drop the clauses where Sedi talks about her own limits; keep the helpful rest verbatim. Never empties a reply."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    sep = "; " if (language or "fa").split("-")[0].lower() == "en" else "؛ "
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    out: list[str] = []
+    changed = False
+    for p in parts:
+        if not _SELF_LIMIT.search(_norm(p)):
+            out.append(p.strip())
+            continue
+        changed = True
+        clauses = [c.strip() for c in _CLAUSE_SPLIT.split(p) if c and c.strip()]
+        kept = [c for c in clauses if not _SELF_LIMIT.search(_norm(c))]
+        if kept:
+            s = sep.join(kept)
+            tail = p.rstrip()[-1:] if p.rstrip() else ""
+            if tail in _END_PUNCT and not s.endswith(tuple(_END_PUNCT)):
+                s += tail
+            out.append(s)
+    if not changed or not out:
+        return text
+    return " ".join(out)
+
+
 def limit_questions(reply: str, max_questions: int = 1) -> str:
     """R-020: Sedi talks like a friend, not an interviewer — keep at most ``max_questions`` question sentences
     (the first ones); every statement is kept. Deterministic, never empties a reply."""

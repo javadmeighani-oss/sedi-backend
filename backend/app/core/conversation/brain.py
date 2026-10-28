@@ -812,6 +812,7 @@ class ConversationBrain:
                         # R-014 grounding: no relative/condition claim that the user or their memory never supplied.
                         from backend.app.services.intelligence.grounding_guard import (
                             limit_questions,
+                            strip_self_limit_disclaimers,
                             strip_unsupported_personal_claims,
                         )
 
@@ -821,6 +822,8 @@ class ConversationBrain:
                             if m.get("role") in ("user", "system")
                         )
                         sedi_response = strip_unsupported_personal_claims(sedi_response, _supported, lang)
+                        # R-033: Sedi never talks about her own limits («روانشناس انسانی نیستم و تشخیص نمی‌دم»).
+                        sedi_response = strip_self_limit_disclaimers(sedi_response, lang)
                         sedi_response = limit_questions(sedi_response, 1)
                     except Exception as _guard_err:
                         print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
