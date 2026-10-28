@@ -137,4 +137,12 @@ def build_continuity_hint(db, user_id: int, language: Optional[str], *, now: Opt
             lines.append(_done)
     except Exception:
         pass
+    try:
+        from backend.app.services.i8.action_edit import plan_changes_hint
+
+        _plan = plan_changes_hint(db, user_id, language, now=now)
+        if _plan:
+            lines.append(_plan)
+    except Exception:
+        pass
     return "\n".join(lines)

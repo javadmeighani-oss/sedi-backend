@@ -91,9 +91,19 @@ def lifestyle_action_review(
     return APIResponse(ok=True, data=data)
 
 
-class ActionMoveRequest(BaseModel):
+class ActionEditRequest(BaseModel):
+    """The user's own correction of one plan item: any subset of time, title, note, duration (exercise)."""
+
     model_config = ConfigDict(extra="forbid")
-    local_time: str = Field(..., min_length=5, max_length=5, description="HH:MM, the user's local time")
+    local_time: Optional[str] = Field(None, min_length=5, max_length=5, description="HH:MM, the user's local time")
+    title: Optional[str] = Field(None, min_length=1, max_length=120)
+    note: Optional[str] = Field(None, max_length=240)
+    duration_minutes: Optional[int] = Field(None, ge=5, le=180)
+
+
+class ActionReplaceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_id: str = Field(..., min_length=1, max_length=64, description="An item_id offered by /alternatives")
 
 
 def _action_edit_http_error(exc) -> HTTPException:
@@ -102,17 +112,58 @@ def _action_edit_http_error(exc) -> HTTPException:
 
 
 @router.patch("/actions/{action_id}", response_model=APIResponse)
-def lifestyle_action_move(
+def lifestyle_action_edit(
     action_id: int,
-    payload: ActionMoveRequest,
+    payload: ActionEditRequest,
     auth_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """The user moves one plan item to another time of day (owner only, ACTIVE items only)."""
-    from backend.app.services.i8.action_edit import ActionEditError, move_action_time
+    """The user corrects one plan item: time, title, note or duration (owner only, ACTIVE items only)."""
+    from backend.app.services.i8.action_edit import ActionEditError, edit_action
 
     try:
-        data = move_action_time(db, actor_user_id=auth_user.id, action_id=action_id, local_time=payload.local_time)
+        data = edit_action(
+            db,
+            actor_user_id=auth_user.id,
+            action_id=action_id,
+            local_time=payload.local_time,
+            title=payload.title,
+            note=payload.note,
+            duration_minutes=payload.duration_minutes,
+        )
+    except ActionEditError as exc:
+        raise _action_edit_http_error(exc)
+    return APIResponse(ok=True, data=data)
+
+
+@router.get("/actions/{action_id}/alternatives", response_model=APIResponse)
+def lifestyle_action_alternatives(
+    action_id: int,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Up to 3 other catalogue items that fit this item's slot and the user's allergies / dislikes / limits."""
+    from backend.app.services.i8.action_edit import ActionEditError, list_alternatives
+
+    try:
+        items = list_alternatives(db, actor_user_id=auth_user.id, action_id=action_id)
+    except ActionEditError as exc:
+        raise _action_edit_http_error(exc)
+    return APIResponse(ok=True, data={"alternatives": items})
+
+
+@router.post("/actions/{action_id}/replace", response_model=APIResponse)
+def lifestyle_action_replace(
+    action_id: int,
+    payload: ActionReplaceRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The user swaps this item for one of its alternatives (an item the rules would not have refused)."""
+    from backend.app.services.i8.action_edit import ActionEditError, replace_action_item
+
+    try:
+        data = replace_action_item(db, actor_user_id=auth_user.id, action_id=action_id, item_id=payload.item_id)
     except ActionEditError as exc:
         raise _action_edit_http_error(exc)
     return APIResponse(ok=True, data=data)

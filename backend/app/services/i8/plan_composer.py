@@ -391,6 +391,8 @@ def compose_week_plan(
                     meta.update({"activity_type": entry["item"]["type"], "activity_title": title, "duration_minutes": minutes or None})
                 presentation = _build_display_meta(window=window, day_index=i + 1, cycle_start=cycle_start, display_meta=meta)
                 presentation.update({"detail": detail, "source": SOURCE_TAG, "domain": domain})
+                if entry["slot"] != "rest":
+                    presentation["item_id"] = entry["item"]["id"]
                 lines.append((slot, local_time, title, detail))
                 if not persist:
                     continue
