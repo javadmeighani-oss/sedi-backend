@@ -98,6 +98,14 @@ def build_continuity_hint(db, user_id: int, language: Optional[str], *, now: Opt
     lang = _lang(language)
     lines: list[str] = []
     try:
+        from backend.app.services.i7.same_day_recap import today_so_far_hint
+
+        _today = today_so_far_hint(db, user_id, language, now=now)
+        if _today:
+            lines.append(_today)
+    except Exception:
+        pass
+    try:
         ev = recent_life_event(db, user_id, now=now)
     except Exception:
         ev = None
