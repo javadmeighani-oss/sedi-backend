@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from backend.app import models
 
 _OPENER_COOLDOWN = timedelta(hours=12)
+# P9: the app was closed and opened again. Any reopen counts; this only absorbs a crash/restart loop.
+_REOPEN_GUARD = timedelta(minutes=2)
 
 _INTRO: Dict[str, str] = {
     "en": (
@@ -154,12 +156,23 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
         return None
     last = _last_user_message_at(db, user.id)
     now = datetime.now(timezone.utc)
-    if last is not None:
-        last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
-        if now - last_aware < _OPENER_COOLDOWN:
-            return None
     lang = _lang(user)
     name_part = _name_part(user, lang)
+    if last is not None:
+        last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
+        if now - last_aware < _REOPEN_GUARD:
+            return None
+        # P9: the user already talked to Sedi today and the app was opened again -> compress today and invite.
+        try:
+            from backend.app.services.i7.same_day_recap import build_same_day_recap, same_day_opener
+
+            recap = build_same_day_recap(db, user.id, lang)
+            if recap:
+                return same_day_opener(lang, _hello(lang, name_part), recap)
+        except Exception:
+            pass
+        if now - last_aware < _OPENER_COOLDOWN:
+            return None
     topic = None
     try:
         from backend.app.services.i7.conversation_recap import recap_topic
