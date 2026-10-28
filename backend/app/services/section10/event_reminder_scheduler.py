@@ -16,6 +16,18 @@ from backend.app.services.section10 import feature_flags
 _BYDAY = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
 
 
+def _occurrence_done(db: Session, event: models.UserEvent, day_tag: str) -> bool:
+    """R-031: fail-open - any problem reading the ledger means "not done" (the reminder is sent)."""
+    try:
+        from datetime import datetime as _dt
+
+        from backend.app.services.i7.user_done import is_event_occurrence_done
+
+        return is_event_occurrence_done(db, event.user_id, event.id, _dt.strptime(day_tag, "%Y%m%d").date())
+    except Exception:
+        return False
+
+
 def _parse_offsets(reminder_offsets_json: Optional[str]) -> List[int]:
     if not reminder_offsets_json:
         return [60]
@@ -106,6 +118,8 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
         for starts_utc, day_tag in occurrences:
             if now > starts_utc + timedelta(minutes=POST_START_LIMIT_MINUTES):
                 continue
+            if day_tag and _occurrence_done(db, event, day_tag):
+                continue  # R-031: the user already did this occurrence
             for offset_min in _parse_offsets(event.reminder_offsets_json):
                 fire_at = starts_utc - timedelta(minutes=offset_min)
                 if fire_at > now or (now - fire_at) > timedelta(minutes=LATE_SEND_WINDOW_MINUTES):

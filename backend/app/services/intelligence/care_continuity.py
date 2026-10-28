@@ -122,4 +122,19 @@ def build_continuity_hint(db, user_id: int, language: Optional[str], *, now: Opt
             lines.append(f"[اقتراحات_سابقة] (من محادثات الأيام الماضية) {joined} — إن ناسب، اسألي كيف سارت قبل اقتراح جديد.")
         else:
             lines.append(f"[EARLIER_SUGGESTIONS] (from conversations in the past days) {joined} — if it fits, ask how those went before suggesting something new.")
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+
+        import pytz
+
+        from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+        from backend.app.services.i7.user_done import done_today_hint
+
+        _zone = pytz.timezone(resolve_validated_user_timezone(db, user_id))
+        _today = (now or _dt.now(_tz.utc)).astimezone(_zone).date()
+        _done = done_today_hint(db, user_id, language, _today)
+        if _done:
+            lines.append(_done)
+    except Exception:
+        pass
     return "\n".join(lines)

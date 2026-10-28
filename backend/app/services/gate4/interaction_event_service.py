@@ -23,7 +23,7 @@ from backend.app.services.gate4.notification_contract import (
 logger = logging.getLogger(__name__)
 
 ALLOWED_INTERACTION_CHANNELS = frozenset({"text", "voice", "call", "video"})
-ALLOWED_SOURCES = frozenset({"chat", "notification", "device", "system"})
+ALLOWED_SOURCES = frozenset({"chat", "notification", "device", "system", "schedule"})  # "schedule" = R-031 user-done ledger
 
 CANONICAL_ACTION_TO_EVENT_TYPE: Mapping[str, str] = {
     SmartNotificationAction.ACK_THANKS.value: "notification_ack",
