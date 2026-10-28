@@ -36,6 +36,102 @@ def _as_utc(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(timezone.utc)
 
 
+def _summary(points: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """Sample-weighted average and the lowest / highest reading over the range (None without data)."""
+    if not points:
+        return None
+    weight = sum(max(1, int(p.get("count") or 0)) for p in points)
+    avg = sum(float(p["avg"]) * max(1, int(p.get("count") or 0)) for p in points) / weight
+    lows = [p["min"] for p in points if p.get("min") is not None]
+    highs = [p["max"] for p in points if p.get("max") is not None]
+    return {
+        "avg": round(avg),
+        "min": round(min(lows)) if lows else round(min(float(p["avg"]) for p in points)),
+        "max": round(max(highs)) if highs else round(max(float(p["avg"]) for p in points)),
+    }
+
+
+def _trend(points: list[dict[str, Any]]) -> str:
+    """'steady' | 'up' | 'down' | 'insufficient' - the first quarter against the last quarter of the range. A plain
+    observation of the user's own numbers, never a clinical reading."""
+    if len(points) < 4:
+        return "insufficient"
+    q = max(1, len(points) // 4)
+    first = sum(float(p["avg"]) for p in points[:q]) / q
+    last = sum(float(p["avg"]) for p in points[-q:]) / q
+    if last - first >= 5:
+        return "up"
+    if first - last >= 5:
+        return "down"
+    return "steady"
+
+
+def _data_status(db: Session, user_id: int, now: datetime, latest_at: Optional[str]) -> dict[str, Any]:
+    """Exact state of the gadget's data: receiving / quiet / stale / never, today's count and gaps, this week's coverage."""
+    from backend.app.services.i7.memory_explorer import _zone, day_bounds_utc
+
+    pm = models.PhysiologicalMeasurement
+    zone, _ = _zone(db, user_id)
+    today = now.astimezone(zone).date()
+    start, end = day_bounds_utc(today, zone)
+    times = [
+        _as_utc(t)
+        for (t,) in db.query(pm.measured_at)
+        .filter(
+            pm.user_id == user_id,
+            pm.measurement_type == "heart_rate",
+            pm.ingestion_status == "accepted",
+            pm.measured_at >= start,
+            pm.measured_at < end,
+        )
+        .order_by(pm.measured_at.asc())
+        .limit(5000)
+        .all()
+        if t is not None
+    ]
+    last_dt = _as_utc(datetime.fromisoformat(latest_at)) if latest_at else None
+    minutes_since = int((now - last_dt).total_seconds() // 60) if last_dt else None
+    if last_dt is None:
+        state = "never"
+    elif minutes_since <= 30:
+        state = "receiving"
+    elif minutes_since <= 24 * 60:
+        state = "quiet"
+    else:
+        state = "stale"
+    longest_gap = 0
+    marks = [start] + times + [min(now, end)] if times else []
+    for a, b in zip(marks, marks[1:]):
+        longest_gap = max(longest_gap, int((b - a).total_seconds() // 60))
+    # coverage of the last 7 local days from the daily rollups
+    since = now - timedelta(days=7)
+    rollups = (
+        db.query(models.PhysiologicalMeasurementRollup.sample_count)
+        .filter(
+            models.PhysiologicalMeasurementRollup.user_id == user_id,
+            models.PhysiologicalMeasurementRollup.measurement_type == "heart_rate",
+            models.PhysiologicalMeasurementRollup.bucket_kind == "daily",
+            models.PhysiologicalMeasurementRollup.bucket_start >= since,
+        )
+        .all()
+    )
+    days_with = [int(c or 0) for (c,) in rollups if (c or 0) > 0]
+    return {
+        "state": state,
+        "minutes_since_last": minutes_since,
+        "today": {
+            "count": len(times),
+            "first_at": times[0].astimezone(zone).strftime("%H:%M") if times else None,
+            "last_at": times[-1].astimezone(zone).strftime("%H:%M") if times else None,
+            "longest_gap_minutes": longest_gap if times else None,
+        },
+        "week": {
+            "days_with_data": len(days_with),
+            "avg_per_day": round(sum(days_with) / len(days_with)) if days_with else 0,
+        },
+    }
+
+
 def build_lifestyle_hr_projection(
     db: Session, user_id: int, *, range_key: str = "7d"
 ) -> dict[str, Any]:
@@ -113,6 +209,9 @@ def build_lifestyle_hr_projection(
             {
                 "bucket_start": bs.isoformat() if bs else None,
                 "avg": float(r.avg_value),
+                "min": float(r.min_value) if r.min_value is not None else None,
+                "max": float(r.max_value) if r.max_value is not None else None,
+                "count": int(r.sample_count or 0),
             }
         )
 
@@ -120,6 +219,9 @@ def build_lifestyle_hr_projection(
     available_to = points[-1]["bucket_start"] if points else latest_at
 
     return {
+        "summary": _summary(points),
+        "trend": _trend(points),
+        "data_status": _data_status(db, int(user_id), now, latest_at),
         "hr_status": hr_status,
         "hr_status_source": hr_status_source,
         "hr_status_observed_at": hr_status_observed_at,

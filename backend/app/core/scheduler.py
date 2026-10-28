@@ -1089,6 +1089,34 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] I10 care action producer wiring failed: {e}")
 
+        try:
+            from backend.app.database import get_db as _hr_gap_get_db
+            from backend.app.services.i10.hr_data_gap_producer import run_hr_data_gap_scan
+            from backend.app.services.section10.feature_flags import i10_hr_data_gap_enabled
+
+            def _i10_hr_data_gap_tick():
+                with next(_hr_gap_get_db()) as db:
+                    summary = run_hr_data_gap_scan(db, limit=100)
+                print(f"[Sedi Scheduler] i10_hr_data_gap summary={summary}", flush=True)
+
+            scheduler.add_job(
+                _i10_hr_data_gap_tick,
+                "interval",
+                minutes=60,
+                id="i10_hr_data_gap",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=600,
+            )
+            print(
+                "[Sedi Scheduler] I10 HR data gap registered "
+                f"enabled={i10_hr_data_gap_enabled()} flag=SEDI_I10_HR_DATA_GAP_ENABLED",
+                flush=True,
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] I10 HR data gap wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:
