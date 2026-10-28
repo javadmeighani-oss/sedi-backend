@@ -76,7 +76,7 @@ def test_nothing_changes_without_sedis_question_or_when_old_or_not_a_time(db):
     u = _user(db, "+17770051002", tz="Asia/Tehran")
     msg = "میخوام تست کنم حدود ۵ دقیقه دیگه"
     assert orch._continue_reminder_clarification(_Ctx, u.id, msg, "fa") == msg  # no previous turn
-    _turn(db, u, response="سلام جواد جان! امروز حالت چطوره؟")
+    _turn(db, u, response="سلام جواد جان! امروز حالت چطوره؟", text="سلام صدی")  # an unrelated previous turn
     assert orch._continue_reminder_clarification(_Ctx, u.id, msg, "fa") == msg  # previous turn was not a question
 
     v = _user(db, "+17770051003", tz="Asia/Tehran")

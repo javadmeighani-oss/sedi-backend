@@ -47,7 +47,9 @@ _RECURRENCE = re.compile(
 )
 
 _REMINDER_WORDS = re.compile(
-    r"remind|یاد\s*آور[یی]?|یادم\s*(?:بنداز|بیار|بیاور)|خبرم\s*کن|ذ[كک]رن[يی]|تذ[كک][يی]ر",
+    r"remind|notif\w*|یاد\s*آور[یی]?|یادم\s*(?:بنداز|بیار|بیاور)|خبرم\s*کن|ذ[كک]رن[يی]|تذ[كک][يی]ر|"
+    # asking Sedi to SEND a notification is a reminder request too («برام یه نوتیف ارسال کنی ساعت ۹»)
+    r"نوتیف(?:یکیشن)?|اعلان|[اإ]شعار|تنبیه",
     re.IGNORECASE,
 )
 
@@ -254,10 +256,19 @@ _CLARIFICATION_OPENINGS = (
 _ANSWER_PREFIX = {"fa": "یادم بنداز ", "ar": "ذكرني ", "en": "remind me "}
 
 
+_DIACRITICS = re.compile(r"[\u064b-\u065f\u0670\u200c\u200e\u200f]")
+
+
+def _plain(text: str) -> str:
+    """Letters only: no Arabic diacritics (کِی = کی), no ZWNJ/direction marks, one Yeh/Kaf, collapsed spaces."""
+    t = _DIACRITICS.sub("", text or "").replace("ي", "ی").replace("ك", "ک")
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def is_reminder_clarification(sedi_text: Optional[str]) -> bool:
     """True when [sedi_text] is one of Sedi's own reminder questions (so the user's next message is the answer)."""
-    t = (sedi_text or "").strip()
-    return any(op in t for op in _CLARIFICATION_OPENINGS)
+    t = _plain(sedi_text or "")
+    return any(_plain(op) in t for op in _CLARIFICATION_OPENINGS)
 
 
 def answer_as_reminder_request(answer: str, language: str) -> str:
