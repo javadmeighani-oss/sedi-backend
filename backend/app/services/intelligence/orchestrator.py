@@ -469,6 +469,32 @@ class IntelligenceOrchestrator:
         except Exception:
             return message
 
+    def _continue_specialist_offer(self, ctx, user_id: int, message: str, lang: str) -> str:
+        """R-033: Sedi offered «اگه دوست داری، یه متخصص مناسب برات پیدا کنم؟» and the user answers «آره» - that answer IS the
+        find-a-specialist request. Returns the explicit request (which the care-navigation directory flow understands) or
+        the message unchanged. Deterministic, fail-open, only within 30 minutes of Sedi's offer."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return message
+            from datetime import datetime, timedelta
+
+            from backend.app import models
+            from backend.app.services.intelligence.specialist_offer import specialist_request_for_reply
+
+            last = (
+                self._db.query(models.Memory)
+                .filter(models.Memory.user_id == user_id)
+                .order_by(models.Memory.created_at.desc())
+                .first()
+            )
+            if last is None or last.created_at is None:
+                return message
+            if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
+                return message
+            return specialist_request_for_reply(getattr(last, "sedi_response", None), message, lang) or message
+        except Exception:
+            return message
+
     def _reminder_timezone(self, ctx, user_id: int) -> Optional[str]:
         """Device/profile timezone, else the same canonical fallback the scheduler uses (profile -> memory -> default).
 
@@ -854,6 +880,8 @@ class IntelligenceOrchestrator:
 
             # D-130: an answer to Sedi's own reminder question continues that reminder.
             message = self._continue_reminder_clarification(ctx, authenticated_user_id, message, lang)
+            # R-033: «آره» to Sedi's offer to find a specialist is the find-a-specialist request.
+            message = self._continue_specialist_offer(ctx, authenticated_user_id, message, lang)
 
             # 7–9) I3 stages
             if rollout_mode != "structured":
