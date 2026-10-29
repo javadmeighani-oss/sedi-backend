@@ -547,6 +547,23 @@ def resolve_intent(
             rule_id=winner.rule_id,
         )
 
+    # R-026 v3: «بهم نوتیف بدی / خبرم کن / پیام بده / صدام کن … فردا ساعت ۱۰» is a reminder request by CONCEPT,
+    # not by keyword: a notify-me verb plus a stated day / time wins over a general or topical reading.
+    if raw.intent_id is not IntentId.REMINDER:
+        try:
+            from backend.app.services.intelligence.reminder_event_readiness import looks_like_notify_request
+
+            if looks_like_notify_request(message, language):
+                raw = IntentResult(
+                    registry_version=REGISTRY_VERSION,
+                    intent_id=IntentId.REMINDER,
+                    request_kind=RequestKind.ACTION,
+                    confidence_band=IntentConfidenceBand.HIGH,
+                    rule_id="i3.rule.reminder.concept.v3",
+                )
+        except Exception:  # fail-open: the keyword rules above stay in force
+            pass
+
     return _apply_relationship_discovery_disposition(
         raw, relationship_discovery_disposition
     )

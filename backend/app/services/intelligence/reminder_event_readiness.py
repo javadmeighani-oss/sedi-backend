@@ -162,6 +162,108 @@ _TIME_SUFFIX = re.compile(
     re.IGNORECASE,
 )
 
+# ---------------------------------------------------------------------------------------------------------------------
+# R-026 v3 (Javad 2026-10-29): understand the CONCEPT "tell me at that day / time", not a list of keywords.
+# «میخوام فردا ساعت ۱۰ بهم نوتیف بدی برای صحبت در مورد شنبه» = a notification at 10 tomorrow; «شنبه» is the TOPIC.
+# ---------------------------------------------------------------------------------------------------------------------
+_WHEN_TOKENS = (
+    _DAY_AFTER_TOMORROW,
+    _DAY_TOMORROW,
+    _DAY_TONIGHT,
+    _DAY_TODAY,
+    _IN_N_DAYS,
+    _NEXT_WEEK,
+    _NOW,
+    _NUMERIC_DATE,
+    _JALALI_DATE,
+    _RELATIVE,
+    _TIME_AFTER_WORD,
+    _TIME_H_AND_MIN,
+    _TIME_COLON,
+    _TIME_SUFFIX,
+)
+_PAST_REFERENCE = re.compile(
+    r"دیروز|پریروز|قبلاً|قبلا|\byesterday\b|\bago\b|last\s+(?:night|week)|أمس|البارحة|منذ",
+    re.IGNORECASE,
+)
+# "give / send / ring / message / tell / wake me" in the three languages - the user wants Sedi to reach out.
+_NOTIFY_CONCEPT = re.compile(
+    r"(?:نوتیف(?:یکیشن)?|اعلان|پیام|پیغام|خبر|زنگ|تماس|یادآور[یی]?|[اإ]شعار|تنبیه)\s*(?:بهم\s*|برام\s*|به\s*من\s*|برای\s*من\s*)?(?:بد[هیو]?|بدید|بزن[یم]?|بفرست[یم]?|بفرستید|ارسال|کن[یم]?|بکن[یم]?)"
+    r"|صدا(?:م)?\s*(?:کن|بزن)|بهم\s*(?:بگ[وی]|خبر(?:\s*بد[هی])?|زنگ(?:\s*بزن[یم]?)?|سر\s*بزن[یم]?|پیام(?:\s*بد[هیو]?)?|اطلاع(?:\s*بد[هی])?)|خبرم\s*کن|اطلاع(?:م)?\s*بد[هی]"
+    r"|متوجهم\s*کن|بیدارم\s*کن|حالم\s*رو\s*بپرس|یادم\s*(?:بنداز|باشه|بده)|به\s*یادم\s*بیار"
+    r"|\b(?:ping|text|message|notify|alert|nudge|wake|call|tell|buzz|ring)\s+me\b"
+    r"|\b(?:send|give)\s+me\s+(?:a\s+)?(?:message|note|alert|notification|notice|reminder|ping)\b"
+    r"|let\s+me\s+know|check\s+in\s+with\s+me|talk\s+to\s+me"
+    r"|(?:أرسل|ارسل|ابعث|أرسل[يی]|ارسل[يی]|ابعث[يی])\s+ل[يی]|نب[ّ]?هن[يی]|ذ[كک]رن[يی]|أخبرن[يی]|اخبرن[يی]|أعلمن[يی]|أشعرن[يی]"
+    r"|[كک]لمن[يی]|اتصل\s+ب[يی]|إشعار|اشعار",
+    re.IGNORECASE,
+)
+_TOPIC_MARKERS = {
+    "fa": re.compile(r"(?:درباره\s*(?:ی|ء)?|در\s*مورد|راجع\s*به|راجب|پیرامون)\s+(?P<t>.+?)\s*$"),
+    "en": re.compile(r"(?:about|regarding|concerning)\s+(?P<t>.+?)\s*$", re.IGNORECASE),
+    "ar": re.compile(r"(?:عن|حول|بخصوص|بشأن)\s+(?P<t>.+?)\s*$"),
+}
+_TALK_WORDS = {
+    "fa": re.compile(r"صحبت|حرف|گفتگو|گپ|چت"),
+    "en": re.compile(r"\b(?:talk|chat|speak|discuss|conversation)\b", re.IGNORECASE),
+    "ar": re.compile(r"الحديث|التحدث|نتحدث|نتكلم|الكلام|محادثة"),
+}
+_SCHEDULED_WEEKDAY = re.compile(
+    r"(?:(?<![\w])(?:on|next|this|every|each|هر|روز|این|يوم|ي[وو]م|كل)\s+)(?:"
+    + "|".join(re.escape(tok) for tok in _WEEKDAY_TOKENS)
+    + r")(?![\w])",
+    re.IGNORECASE,
+)
+_TALK_TAIL = {
+    "fa": re.compile(r"\s*(?:حرف\s*بزن\w*|صحبت\s*کن\w*|صحبت\s*کنیم|بحث\s*کن\w*|گپ\s*بزن\w*|گفتگو\s*کن\w*)\s*$"),
+    "en": re.compile(r"\s*(?:to\s+)?(?:talk|chat|speak|discuss)(?:\s+about\s+it)?\s*$", re.IGNORECASE),
+    "ar": re.compile(r"\s*(?:نتحدث|نتكلم|نناقش)\s*$"),
+}
+_TALK_TITLE = {"fa": "صحبت درباره‌ی {t}", "en": "talk about {t}", "ar": "الحديث عن {t}"}
+
+
+def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
+    """«… برای صحبت در مورد شنبه» -> («صحبت درباره‌ی شنبه», «… »): the topic phrase is NOT a date or time."""
+    marker = _TOPIC_MARKERS.get(lang)
+    if marker is None:
+        return None, text
+    m = marker.search(text)
+    if m is None:
+        return None, text
+    topic = m.group("t")
+    cut = len(topic)
+    # the topic ends where a date, a time, «on Saturday» / «every Monday» or «بهم خبر بده» begins
+    for rx in _WHEN_TOKENS + (_NOTIFY_CONCEPT, _RECURRENCE, _SCHEDULED_WEEKDAY):
+        hit = rx.search(topic)
+        if hit is not None:
+            cut = min(cut, hit.start())
+    after = topic[cut:]
+    topic = re.sub(r"[.,،؛:!?؟\-_/()\"'«»]+", " ", topic[:cut])
+    topic = re.sub(r"\s+", " ", topic).strip()
+    if len(topic) < 2:
+        return None, text
+    tail = _TALK_TAIL[lang].search(topic)
+    if tail is not None:
+        topic = topic[: tail.start()].strip()
+    lead = text[: m.start()]
+    talks = tail is not None or _TALK_WORDS[lang].search(lead) is not None
+    if not talks or len(topic) < 2:
+        return None, text  # «remind me about my meeting on Saturday»: the words stay in the scheduling text
+    return _TALK_TITLE[lang].format(t=topic)[:120], f"{lead} {after}".strip()
+
+
+def looks_like_notify_request(message: str, language: str) -> bool:
+    """True when the user asks Sedi to reach out at a stated time/day - whatever words they use for it."""
+    text = _normalize(message or "")
+    if not text or _PAST_REFERENCE.search(text):
+        return False
+    lang = language if language in ("fa", "ar", "en") else _guess_language(text, None)
+    _topic, rest = _split_topic(text, lang)
+    if not _NOTIFY_CONCEPT.search(text):
+        return False
+    return any(rx.search(rest) for rx in _WHEN_TOKENS)
+
+
 _EVENT_HINTS = (
     (re.compile(r"آزمایش\s*خون|lab\s*test|تحل[يی]ل\s*دم|آزمایش", re.I), "lab_test", "medical"),
     (re.compile(r"نوبت\s*(?:دکتر|پزشک|دندانپزشک|دندان\s*پزشک)|doctor\s*(?:visit|appointment)|موعد\s*(?:ال)?(?:طب[يی]ب|د[كک]تور)|دکتر|پزشک", re.I), "doctor_visit", "medical"),
@@ -298,7 +400,9 @@ def _parse_offsets(text: str) -> tuple[bool, tuple[int, ...], bool]:
     An explicit offset ("1 hour before", "نیم ساعت قبل") is honoured for any value up to 7 days.
     """
     t = _normalize(text)
-    requested = bool(_REMINDER_WORDS.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t))
+    requested = bool(
+        _REMINDER_WORDS.search(t) or _NOTIFY_CONCEPT.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t)
+    )
     if not requested:
         return False, (), False
     if _AT_EVENT_TIME.search(t):
@@ -481,6 +585,7 @@ def _resolve_event_meta(text: str, lang: str) -> tuple[str, str, str]:
 
 _TITLE_NOISE = (
     _RECURRENCE,
+    _NOTIFY_CONCEPT,
     _REMINDER_WORDS,
     _OFFSET,
     _AT_EVENT_TIME,
@@ -536,6 +641,8 @@ def parse_reminder_event_draft(
     if not raw:
         return None, "title"
     text = _normalize(raw)
+    lang = _guess_language(raw, language)
+    topic_title, text = _split_topic(text, lang)  # the topic («شنبه» in «درباره‌ی شنبه») is never a date
 
     if _EVERY_N.search(text):
         return None, "recurrence"  # sub-daily repetition is not supported
@@ -555,7 +662,6 @@ def parse_reminder_event_draft(
     if effective.tzinfo is None:
         effective = effective.replace(tzinfo=timezone.utc)
     local_now = effective.astimezone(tz)
-    lang = _guess_language(raw, language)
 
     if recurring and (_resolve_relative(text, local_now) is not None or _NOW.search(text)):
         return None, "recurrence"  # "every 2 hours" is not a supported pattern
@@ -586,7 +692,7 @@ def parse_reminder_event_draft(
     else:
         day = _resolve_date(text, local_now)
         time_hm = _resolve_time(text)
-        implicit_day = day is None and time_hm is not None and bool(_REMINDER_WORDS.search(text))
+        implicit_day = day is None and time_hm is not None and bool(_REMINDER_WORDS.search(text) or _NOTIFY_CONCEPT.search(text))
         if implicit_day:
             day = local_now  # «تا ۲۱:۲۰ یادم بنداز»: no day said -> the next time that clock shows
         if day is None or time_hm is None:
@@ -599,6 +705,8 @@ def parse_reminder_event_draft(
             starts_local += timedelta(days=1)
 
     title, domain, etype = _resolve_event_meta(text, lang)
+    if topic_title:
+        title = topic_title
     if not title.strip():
         return None, "title"
 
