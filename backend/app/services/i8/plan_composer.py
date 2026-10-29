@@ -49,6 +49,16 @@ _LOW_BUDGET = ("کم", "ضعیف", "تنگ", "tight", "low", "limited", "محد�
 _HIGH_BUDGET = ("راحت", "خوب", "comfortable", "high", "good", "مريحة", "جيدة")
 _QUICK = ("سریع", "ساده", "کم", "quick", "simple", "little", "سريع", "بسيطة", "قليل")
 _BAND = ("کش", "band", "حبل", "مطاطي")
+_WEEKDAY_NAME = {
+    "fa": ("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"),
+    "en": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+    "ar": ("الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"),
+}
+_REMINDER_TAIL = {
+    "fa": "سر ساعت هر مورد برات یادآوری می‌فرستم و {day}‌ها ساعت {time} با هم مرور می‌کنیم هفته چطور گذشت. روز و ساعتش رو هر وقت خواستی از صفحه‌ی برنامه عوض کن.",
+    "en": "I will remind you at each item's time, and on {day}s at {time} we will look back at how the week went. You can change the days and times on the plan page any time.",
+    "ar": "سأذكّرك في موعد كل بند، ونراجع كيف مضى الأسبوع يوم {day} الساعة {time}. يمكنك تغيير الأيام والأوقات من صفحة الخطة في أي وقت.",
+}
 _PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
@@ -504,4 +514,16 @@ def try_compose_for_chat(
     except Exception:
         db.rollback()
         return None
-    return res if res.status == "ACTION_PERSISTED" and res.action_id is not None else None
+    if res.status != "ACTION_PERSISTED" or res.action_id is None:
+        return None
+    if res.created:
+        try:  # tell the user, in her words, when reminders and the weekly review come (and where to change them)
+            from backend.app.services.i8 import plan_settings as _ps
+
+            s = _ps.get_plan_settings(db, user_id, domain, language)
+            lang = _lang(language)
+            day = _WEEKDAY_NAME[lang][s["review_weekday"] - 1]
+            res.user_message = f"{res.user_message}\n\n{_REMINDER_TAIL[lang].format(day=day, time=s['review_time'])}"
+        except Exception:
+            pass
+    return res

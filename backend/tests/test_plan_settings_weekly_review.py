@@ -237,3 +237,44 @@ def test_worker_respects_lead_and_off_days():
     assert _composer_item_due(_A({"on": True, "lead": 15}), due - timedelta(minutes=15)) is True
     assert _composer_item_due(_A({"on": True, "lead": 0}), due - timedelta(minutes=15)) is False
     assert _composer_item_due(_A({"on": False, "lead": 0}), due) is False
+
+
+# ---------- weekly review notification ----------
+def test_review_notification_fires_on_the_chosen_day_once_and_only_when_enabled(db):
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    from backend.app.services.i10.weekly_review_notifier import process_weekly_reviews
+
+    u = _user(db, "+17770009311", tz="Asia/Tehran")
+    u.preferred_language = "fa"
+    db.commit()
+    _seed_consent(db, u.id)
+    pb.build_plan(db, u.id, "nutrition", {"no_allergies": True}, "fa")
+    proj = build_lifestyle_weekly_plan_projection(db, u.id)
+    for a in proj["days"][0]["nutrition"][:3]:
+        ar.record_review(db, actor_user_id=u.id, action_id=a["id"], outcome="done")
+
+    tz = ZoneInfo("Asia/Tehran")
+    today = datetime.fromisoformat(proj["today_local"]).replace(tzinfo=tz)
+    ps.save_plan_settings(db, u.id, "nutrition", {"review_weekday": today.isoweekday(), "review_time": "09:00"}, "fa")
+    at = today.replace(hour=9, minute=30).astimezone(ZoneInfo("UTC"))
+
+    assert process_weekly_reviews(db, now_utc=at) == 0  # flag OFF
+    # the gate4 policy is outside this unit: it must not suppress the send
+    from unittest.mock import patch
+
+    with patch("backend.app.services.gate4.policy_resolver.evaluate_enqueue_with_gate4_policy", return_value=(True, {})):
+        assert process_weekly_reviews(db, now_utc=at, force=True) == 1
+        assert process_weekly_reviews(db, now_utc=at + timedelta(minutes=5), force=True) == 0  # same local day: deduped
+        assert process_weekly_reviews(db, now_utc=at - timedelta(hours=5), force=True) == 0  # before the chosen time
+    n = db.query(models.Notification).filter(models.Notification.user_id == u.id).all()
+    assert any("مرور" in (x.title or "") for x in n)
+
+
+def test_chat_tail_names_the_review_day_in_each_language():
+    for lang, friday_or_sunday in (("fa", "جمعه"), ("en", "Sunday"), ("ar", "الأحد")):
+        wd = ps.default_review_weekday(lang)
+        day = pc._WEEKDAY_NAME[lang][wd - 1]
+        assert day == friday_or_sunday
+        assert day in pc._REMINDER_TAIL[lang].format(day=day, time="20:00")
