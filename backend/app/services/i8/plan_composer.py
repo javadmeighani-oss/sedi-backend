@@ -86,6 +86,7 @@ class Constraints:
     exercise_time: str = _DEFAULT_EXERCISE_TIME
     minutes_cap: Optional[int] = None
     has_condition: bool = False
+    workout_weekdays: Optional[set] = None  # ISO weekdays the user chose to train on (None = Sedi's own spread)
 
     @property
     def conservative(self) -> bool:
@@ -240,9 +241,11 @@ def _exercise_candidates(c: Constraints) -> list[dict]:
     return out
 
 
-def select_exercise_week(c: Constraints, seed: str) -> list[list[dict]]:
+def select_exercise_week(c: Constraints, seed: str, start_weekday: int = 1) -> list[list[dict]]:
     rnd = random.Random(seed)
     active = {1, 3, 5, 6} if c.conservative else {1, 2, 4, 5, 6}
+    if c.workout_weekdays:  # the user's own days (ISO weekday of cycle day i = start_weekday + i)
+        active = {i + 1 for i in range(7) if ((start_weekday - 1 + i) % 7) + 1 in c.workout_weekdays}
     pool = _exercise_candidates(c)
     breathing = [it for it in pool if it["type"] == "breathing"]
     movers = [it for it in pool if it["type"] != "breathing"] or pool
@@ -363,7 +366,13 @@ def compose_week_plan(
         if last is not None and last < LOW_ADHERENCE_PERCENT:
             constraints.light_only = True  # the previous week was too hard to keep up: go lighter
     seed = f"{user_id}:{domain}:{cycle_start.isoformat()}"
-    week = select_nutrition_week(constraints, seed) if domain == "nutrition" else select_exercise_week(constraints, seed)
+    if domain == "exercise":
+        constraints.workout_weekdays = _chosen_workout_days(db, user_id)
+    week = (
+        select_nutrition_week(constraints, seed)
+        if domain == "nutrition"
+        else select_exercise_week(constraints, seed, cycle_start.isoweekday())
+    )
     voiced: dict = {}
     try:
         from backend.app.services.i8 import plan_voice
@@ -453,6 +462,19 @@ def compose_week_plan(
     except ValueError:
         result.knowledge_refs = []
     return result
+
+
+def _chosen_workout_days(db: Session, user_id: int) -> Optional[set]:
+    """The weekdays the user picked for training (plan settings), or None when she has not chosen (or chose all seven)."""
+    try:
+        from backend.app.services.i8 import plan_settings as _ps
+
+        if not _ps.has_saved_settings(db, user_id, "exercise"):
+            return None
+        chosen = set(_ps.get_plan_settings(db, user_id, "exercise")["days"])
+    except Exception:
+        return None
+    return chosen if 0 < len(chosen) < 7 else None
 
 
 def _today_message(domain: str, lang: str, lines: list) -> str:

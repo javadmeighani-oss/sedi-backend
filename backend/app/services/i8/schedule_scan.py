@@ -330,4 +330,16 @@ def run_i8_proactive_schedule_scan_job_with_coaching(
                     logger.info("i8_weekly_reviews_sent count=%s", count)
         except Exception:
             logger.exception("i8_weekly_review_tick_failed")
+    from backend.app.services.i10.motivation_notifier import motivation_enabled, process_motivation
+
+    if motivation_enabled():  # pilot V1 screen 7: Sedi's motivation for the exercise plan rides the same tick
+        from backend.app.database import get_db
+
+        try:
+            with next(get_db()) as db:
+                count = process_motivation(db)
+                if count:
+                    logger.info("i8_motivation_sent count=%s", count)
+        except Exception:
+            logger.exception("i8_motivation_tick_failed")
     return stats

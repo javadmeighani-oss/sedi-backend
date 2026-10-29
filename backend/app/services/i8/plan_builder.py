@@ -127,7 +127,55 @@ def _adjust_existing(db: Session, user_id: int, domain: str, constraints: pc.Con
                 except ae.ActionEditError:
                     pass
     db.commit()
-    return {"moved": moved, "swapped": swapped}
+    changed_days = _adjust_exercise_days(db, user_id, constraints) if domain == "exercise" else 0
+    return {"moved": moved, "swapped": swapped, "days_changed": changed_days}
+
+
+def _adjust_exercise_days(db: Session, user_id: int, constraints: pc.Constraints) -> int:
+    """The user chose other workout weekdays: take workouts off the days she dropped, put one on the days she added.
+    Only open, future-or-today items; reviewed or user-edited items are never touched."""
+    import json
+    from datetime import date
+
+    from backend.app.services.i8 import action_edit as ae
+    from backend.app.services.i8.action_review import review_of
+
+    chosen = constraints.workout_weekdays
+    if not chosen:
+        return 0
+    changed = 0
+    from backend.app.services.i8.local_day import local_today_for_user
+
+    _tz, today = local_today_for_user(db, int(user_id))
+    for row in _cycle_items(db, user_id, "exercise"):
+        pres = json.loads(row.presentation_json)
+        edit = pres.get("user_edit") if isinstance(pres.get("user_edit"), dict) else {}
+        try:
+            local = date.fromisoformat(str(pres.get("local_date")))
+        except ValueError:
+            continue
+        if local < today or review_of(row) or edit:
+            continue
+        is_rest = pres.get("activity_type") == "rest"
+        wanted = local.isoweekday() in chosen
+        try:
+            if wanted and is_rest:
+                alts = ae.list_alternatives(db, actor_user_id=int(user_id), action_id=int(row.id), limit=1)
+                if not alts:
+                    continue
+                ae.replace_action_item(db, actor_user_id=int(user_id), action_id=int(row.id), item_id=alts[0]["item_id"])
+                db.refresh(row)
+                pres = json.loads(row.presentation_json)
+                pres["local_time"] = constraints.exercise_time
+                row.presentation_json = json.dumps(pres, ensure_ascii=False, separators=(",", ":"))
+                db.commit()
+                changed += 1
+            elif not wanted and not is_rest:
+                ae.remove_action(db, actor_user_id=int(user_id), action_id=int(row.id))
+                changed += 1
+        except ae.ActionEditError:
+            continue
+    return changed
 
 
 def build_plan(db: Session, user_id: int, domain: str, setup: dict, language: Optional[str] = None) -> dict[str, Any]:
@@ -164,6 +212,8 @@ def build_plan(db: Session, user_id: int, domain: str, setup: dict, language: Op
 
     answers, has_condition = pc.read_answers(db, user_id)
     constraints = pc.constraints_from_answers(answers, has_condition=has_condition)
+    if domain == "exercise":
+        constraints.workout_weekdays = pc._chosen_workout_days(db, user_id)
     existing = bool(_cycle_items(db, user_id, domain))
     adjusted = _adjust_existing(db, user_id, domain, constraints) if existing else {"moved": 0, "swapped": 0}
     result = pc.compose_week_plan(db, user_id=user_id, domain=domain, language=lang, constraints=constraints)
@@ -177,3 +227,45 @@ def build_plan(db: Session, user_id: int, domain: str, setup: dict, language: Op
         "settings": settings,
         "today": [{"slot": s, "local_time": t, "title": title, "detail": d} for s, t, title, d in result.today],
     }
+
+
+def _minutes(hhmm: str) -> int:
+    h, m = hhmm.split(":")
+    return int(h) * 60 + int(m)
+
+
+def free_exercise_time(meal_times: dict, preferred: Optional[str] = None) -> str:
+    """A workout time at least an hour away from every meal, so the two plans do not collide."""
+    meals = [_minutes(v) for v in meal_times.values() if _HHMM.match(str(v))]
+    candidates = [c for c in ([preferred] if preferred else []) + ["17:00", "18:00", "19:00", "07:00", "06:30", "18:30"] if c and _HHMM.match(c)]
+    for cand in candidates:
+        if all(abs(_minutes(cand) - m) >= 60 for m in meals):
+            return cand
+    return candidates[0] if candidates else "17:00"
+
+
+def build_pro(db: Session, user_id: int, setup: dict, language: Optional[str] = None) -> dict[str, Any]:
+    """The professional plan: nutrition AND exercise from one set of answers - same goal, same reminder lead and review
+    day, a workout time that does not collide with a meal. Allergies come first (nutrition NEEDS_INFO stops both)."""
+    meal_times = dict(pc.parse_meal_times(_meal_times_text(setup.get("meal_times") or {})) if setup.get("meal_times") else pc._DEFAULT_MEAL_TIMES)
+    nutrition = build_plan(db, user_id, "nutrition", dict(setup), language)
+    if nutrition["status"] in ("NEEDS_INFO", "CONSENT_REQUIRED"):
+        return {**nutrition, "mode": "pro"}
+    settings = dict(setup.get("settings") or {})
+    exercise_days = setup.get("exercise_days")
+    ex_settings = {k: v for k, v in settings.items() if k != "days"}
+    if exercise_days:
+        ex_settings["days"] = exercise_days
+    exercise = build_plan(
+        db,
+        user_id,
+        "exercise",
+        {
+            "goal": setup.get("goal"),
+            "exercise_time": free_exercise_time(meal_times, setup.get("exercise_time")),
+            "settings": ex_settings,
+        },
+        language,
+    )
+    ok = nutrition["status"] in ("BUILT", "UPDATED") and exercise["status"] in ("BUILT", "UPDATED")
+    return {"status": "BUILT" if ok else exercise["status"], "mode": "pro", "nutrition": nutrition, "exercise": exercise, "created": nutrition.get("created", 0) + exercise.get("created", 0)}

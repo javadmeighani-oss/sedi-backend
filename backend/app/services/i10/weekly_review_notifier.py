@@ -88,7 +88,7 @@ def process_weekly_reviews(db: Session, *, now_utc: Optional[datetime] = None, f
                 review = build_weekly_review(db, uid, domain, language=lang, now_utc=when)
                 if review.get("state") not in ("ready", "active", "review_due") or not review.get("total"):
                     continue
-                key = f"i10:self:weekly_review:{uid}:{domain}:{local_today.isoformat()}"
+                key = f"i10:self:weekly_review:{uid}:{local_today.isoformat()}"  # one review a day, even with both plans
                 payload = NotificationPayload(
                     user_id=uid,
                     type="connection_ping",

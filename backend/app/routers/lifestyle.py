@@ -153,6 +153,8 @@ class PlanBuildRequest(BaseModel):
     meal_times: Optional[Dict[str, str]] = Field(None, description="breakfast|lunch|dinner|snack -> HH:MM")
     exercise_time: Optional[str] = Field(None, min_length=5, max_length=5)
     settings: Optional[PlanSettingsRequest] = None
+    mode: str = Field("simple", description="simple (one plan) | pro (nutrition + exercise from one set of answers)")
+    exercise_days: Optional[List[int]] = Field(None, description="pro mode: the workout weekdays (ISO 1..7)")
 
 
 @router.post("/plan/build", response_model=APIResponse)
@@ -162,14 +164,16 @@ def lifestyle_plan_build(
     db: Session = Depends(get_db),
 ):
     """Build (or adjust) this week's plan right from the setup sheet, with the same composer chat uses."""
-    from backend.app.services.i8.plan_builder import PlanBuildError, build_plan
+    from backend.app.services.i8.plan_builder import PlanBuildError, build_plan, build_pro
     from backend.app.services.i8.plan_settings import PlanSettingsError
 
     _plan_domain(payload.domain)
-    setup = payload.model_dump(exclude_unset=True, exclude={"domain", "settings"})
+    if payload.mode not in ("simple", "pro"):
+        raise HTTPException(status_code=422, detail="MODE_INVALID")
+    setup = payload.model_dump(exclude_unset=True, exclude={"domain", "settings", "mode"})
     setup["settings"] = payload.settings.model_dump(exclude_unset=True) if payload.settings else {}
     try:
-        data = build_plan(db, auth_user.id, payload.domain, setup)
+        data = build_pro(db, auth_user.id, setup) if payload.mode == "pro" else build_plan(db, auth_user.id, payload.domain, setup)
     except (PlanBuildError, PlanSettingsError) as exc:
         raise HTTPException(status_code=422, detail=exc.code)
     except ConsentDenied:
@@ -190,6 +194,19 @@ def lifestyle_weekly_review(
 
     lang = (getattr(auth_user, "preferred_language", None) or "fa")
     return APIResponse(ok=True, data=build_weekly_review(db, auth_user.id, _plan_domain(domain), language=lang))
+
+
+@router.get("/plan-progress", response_model=APIResponse)
+def lifestyle_plan_progress(
+    domain: str = Query("exercise", description="nutrition|exercise"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The motivation panel: this week's sessions, the week strip, streak weeks, total and best, and Sedi's line (read-only)."""
+    from backend.app.services.i8.plan_stats import build_progress
+
+    lang = (getattr(auth_user, "preferred_language", None) or "fa")
+    return APIResponse(ok=True, data=build_progress(db, auth_user.id, _plan_domain(domain), language=lang))
 
 
 class ActionEditRequest(BaseModel):
