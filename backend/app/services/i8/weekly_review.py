@@ -53,6 +53,8 @@ def _counts(items: list[dict], *, up_to: Optional[date]) -> dict:
     reasons: dict[str, int] = {}
     per_weekday: dict[int, int] = {}
     for it in items:
+        if not it.get("local_time"):
+            continue  # rest-day placeholders carry no time and are not sessions
         local = str(it.get("local_date") or "")
         if up_to is not None and local and local > up_to.isoformat():
             continue
