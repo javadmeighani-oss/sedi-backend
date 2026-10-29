@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from backend.app import models
 
 # Bounded dislike reasons (I10 interaction vocabulary) and what each one asks the digest to do (R-023: ADAPT, never stop).
-SHIFT_TIME_REASONS = frozenset({"wrong_timing", "too_frequent"})  # send at another time of day
+SHIFT_TIME_REASONS = frozenset({"wrong_timing", "too_frequent", "busy_now", "rest_time", "not_in_mood"})  # send at another time of day
 SKIP_ON_REASONS = SHIFT_TIME_REASONS  # kept for importers
 AVOID_GENERIC_ON_REASONS = frozenset({"irrelevant", "not_helpful"})  # a more practical text instead of the hello
 SIMPLE_ON_REASONS = frozenset({"unclear"})  # the plainest, shortest text

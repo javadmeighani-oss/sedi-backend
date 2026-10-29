@@ -567,15 +567,15 @@ def test_c11a_14_15_interaction_and_source_id(db):
         actions_json=LEGACY_ACTIONS,
         source_notification_id=notif.id,
     )
-    assert "LIKE" in merged.get("actions", "")
+    assert "LIKE" in merged.get("actions", "")  # legacy stored actions_json; the tray reads gate4_actions (R-039: no Like button there)
     assert "DISLIKE" in merged.get("actions", "")
     assert "OPEN_CHAT" in merged.get("actions", "")
     gate4_actions = json.loads(merged.get("gate4_actions") or "[]")
     action_ids = {a["action_id"] for a in gate4_actions}
-    # Real FCM enrich path: Gate4 mobile metadata = like/dislike/open_chat (not ACK/NOT_NOW).
-    assert action_ids == {"like", "dislike", "open_chat"}
+    # Real FCM enrich path: Gate4 mobile metadata = dislike/open_chat (R-039; not ACK/NOT_NOW).
+    assert action_ids == {"dislike", "open_chat"}
     labels = {a["action_id"]: a["label"] for a in gate4_actions}
-    assert labels["like"] and labels["dislike"] and labels["open_chat"]
+    assert labels["dislike"] and labels["open_chat"]
     for lang in ("fa", "ar"):
         merged_l, _ = enrich_notification_fcm_data(
             legacy_data=legacy,
@@ -591,7 +591,7 @@ def test_c11a_14_15_interaction_and_source_id(db):
             source_notification_id=notif.id,
         )
         acts = json.loads(merged_l.get("gate4_actions") or "[]")
-        assert {a["action_id"] for a in acts} == {"like", "dislike", "open_chat"}
+        assert {a["action_id"] for a in acts} == {"dislike", "open_chat"}  # R-039
         assert all(a.get("label") for a in acts)
     assert merged.get("source_notification_id") == str(notif.id)
     assert "sedi://chat" in (merged.get("deeplink_url") or "")

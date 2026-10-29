@@ -19,6 +19,10 @@ BOUNDED_DISLIKE_REASONS = frozenset(
         "unclear",
         "not_helpful",
         "wrong_timing",
+        # tray "why?" answers (R-039): the user is busy / it is rest time / no mood - all mean "not now"
+        "busy_now",
+        "rest_time",
+        "not_in_mood",
     }
 )
 

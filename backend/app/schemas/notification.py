@@ -141,7 +141,9 @@ class NotificationFeedbackRequest(BaseModel):
 # -------------------- V1: Feedback (contract + legacy, normalized event_type) --------------------
 
 FeedbackReactionContract = Literal["seen", "interact", "dismiss", "like", "dislike"]
-FeedbackReasonV1 = Literal["too_frequent", "irrelevant", "unclear", "not_helpful", "wrong_timing"]
+FeedbackReasonV1 = Literal[
+    "too_frequent", "irrelevant", "unclear", "not_helpful", "wrong_timing", "busy_now", "rest_time", "not_in_mood"
+]
 
 
 class FeedbackRequestV1(BaseModel):

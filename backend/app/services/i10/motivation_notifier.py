@@ -61,7 +61,7 @@ def kind_reaction_state(db: Session, user_id: int, kind: str, now: datetime) -> 
     for fb, notif in rows:
         if notif.template_key != f"plan_motivation_{kind}":
             continue
-        if fb.action == "like":
+        if fb.action in ("like", "open_chat"):  # talking to Sedi is the positive reaction (R-039: no Like button)
             likes += 1
         elif fb.action in ("dislike", "dismissed"):
             dislikes += 1
