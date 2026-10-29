@@ -41,7 +41,8 @@ CHANNEL_ENGAGEMENT_V2 = "engagement_v2"
 CHANNEL_HEALTH_ALERT_V2 = "health_alert_v2"
 
 # Mobile interaction actions exposed on push metadata (FA/EN/AR labels via contract).
-MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("like", "dislike", "open_chat")
+# R-039: no Like button - talking to Sedi is the positive reaction; Dislike opens the "why?" question in the same notification.
+MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("open_chat", "dislike")
 
 # P8: nutrition / exercise plan follow-ups ask "did you do it?" with these three tray buttons instead.
 PLAN_FOLLOWUP_ACTIONS: tuple[str, ...] = ("done", "plan_not_done", "later")

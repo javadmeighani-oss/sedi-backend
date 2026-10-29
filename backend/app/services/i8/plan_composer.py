@@ -49,6 +49,16 @@ _LOW_BUDGET = ("کم", "ضعیف", "تنگ", "tight", "low", "limited", "محد�
 _HIGH_BUDGET = ("راحت", "خوب", "comfortable", "high", "good", "مريحة", "جيدة")
 _QUICK = ("سریع", "ساده", "کم", "quick", "simple", "little", "سريع", "بسيطة", "قليل")
 _BAND = ("کش", "band", "حبل", "مطاطي")
+_WEEKDAY_NAME = {
+    "fa": ("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"),
+    "en": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+    "ar": ("الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"),
+}
+_REMINDER_TAIL = {
+    "fa": "سر ساعت هر مورد برات یادآوری می‌فرستم و {day}‌ها ساعت {time} با هم مرور می‌کنیم هفته چطور گذشت. روز و ساعتش رو هر وقت خواستی از صفحه‌ی برنامه عوض کن.",
+    "en": "I will remind you at each item's time, and on {day}s at {time} we will look back at how the week went. You can change the days and times on the plan page any time.",
+    "ar": "سأذكّرك في موعد كل بند، ونراجع كيف مضى الأسبوع يوم {day} الساعة {time}. يمكنك تغيير الأيام والأوقات من صفحة الخطة في أي وقت.",
+}
 _PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
@@ -76,6 +86,7 @@ class Constraints:
     exercise_time: str = _DEFAULT_EXERCISE_TIME
     minutes_cap: Optional[int] = None
     has_condition: bool = False
+    workout_weekdays: Optional[set] = None  # ISO weekdays the user chose to train on (None = Sedi's own spread)
 
     @property
     def conservative(self) -> bool:
@@ -230,9 +241,11 @@ def _exercise_candidates(c: Constraints) -> list[dict]:
     return out
 
 
-def select_exercise_week(c: Constraints, seed: str) -> list[list[dict]]:
+def select_exercise_week(c: Constraints, seed: str, start_weekday: int = 1) -> list[list[dict]]:
     rnd = random.Random(seed)
     active = {1, 3, 5, 6} if c.conservative else {1, 2, 4, 5, 6}
+    if c.workout_weekdays:  # the user's own days (ISO weekday of cycle day i = start_weekday + i)
+        active = {i + 1 for i in range(7) if ((start_weekday - 1 + i) % 7) + 1 in c.workout_weekdays}
     pool = _exercise_candidates(c)
     breathing = [it for it in pool if it["type"] == "breathing"]
     movers = [it for it in pool if it["type"] != "breathing"] or pool
@@ -353,7 +366,13 @@ def compose_week_plan(
         if last is not None and last < LOW_ADHERENCE_PERCENT:
             constraints.light_only = True  # the previous week was too hard to keep up: go lighter
     seed = f"{user_id}:{domain}:{cycle_start.isoformat()}"
-    week = select_nutrition_week(constraints, seed) if domain == "nutrition" else select_exercise_week(constraints, seed)
+    if domain == "exercise":
+        constraints.workout_weekdays = _chosen_workout_days(db, user_id)
+    week = (
+        select_nutrition_week(constraints, seed)
+        if domain == "nutrition"
+        else select_exercise_week(constraints, seed, cycle_start.isoweekday())
+    )
     voiced: dict = {}
     try:
         from backend.app.services.i8 import plan_voice
@@ -430,12 +449,32 @@ def compose_week_plan(
             result.today = lines
     if persist:
         db.commit()
+        try:  # the user's reminder settings (days / lead) follow every newly composed week, from chat or from the sheet
+            from backend.app.services.i8 import plan_settings as _ps
+
+            if result.created and _ps.has_saved_settings(db, user_id, domain):
+                _ps.apply_settings_to_actions(db, user_id, domain, _ps.get_plan_settings(db, user_id, domain, lang))
+        except Exception:
+            db.rollback()
     result.user_message = _today_message(domain, lang, result.today)
     try:
         result.knowledge_refs = json.loads(knowledge_refs_json or "[]")
     except ValueError:
         result.knowledge_refs = []
     return result
+
+
+def _chosen_workout_days(db: Session, user_id: int) -> Optional[set]:
+    """The weekdays the user picked for training (plan settings), or None when she has not chosen (or chose all seven)."""
+    try:
+        from backend.app.services.i8 import plan_settings as _ps
+
+        if not _ps.has_saved_settings(db, user_id, "exercise"):
+            return None
+        chosen = set(_ps.get_plan_settings(db, user_id, "exercise")["days"])
+    except Exception:
+        return None
+    return chosen if 0 < len(chosen) < 7 else None
 
 
 def _today_message(domain: str, lang: str, lines: list) -> str:
@@ -497,4 +536,16 @@ def try_compose_for_chat(
     except Exception:
         db.rollback()
         return None
-    return res if res.status == "ACTION_PERSISTED" and res.action_id is not None else None
+    if res.status != "ACTION_PERSISTED" or res.action_id is None:
+        return None
+    if res.created:
+        try:  # tell the user, in her words, when reminders and the weekly review come (and where to change them)
+            from backend.app.services.i8 import plan_settings as _ps
+
+            s = _ps.get_plan_settings(db, user_id, domain, language)
+            lang = _lang(language)
+            day = _WEEKDAY_NAME[lang][s["review_weekday"] - 1]
+            res.user_message = f"{res.user_message}\n\n{_REMINDER_TAIL[lang].format(day=day, time=s['review_time'])}"
+        except Exception:
+            pass
+    return res

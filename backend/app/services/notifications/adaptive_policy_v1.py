@@ -28,8 +28,8 @@ each widened by one hour -> at most 9 of the 24 hours of the day are ever skippe
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-SKIP_REASONS = frozenset({"too_frequent", "wrong_timing"})  # frequency / timing reasons (R-023: adapt, never pause)
-TIMING_REASONS = frozenset({"wrong_timing"})
+SKIP_REASONS = frozenset({"too_frequent", "wrong_timing", "busy_now", "rest_time", "not_in_mood"})  # frequency / timing reasons (R-023: adapt, never pause)
+TIMING_REASONS = frozenset({"wrong_timing", "busy_now", "rest_time", "not_in_mood"})  # "not now": another time of day
 FREQUENCY_REASONS = frozenset({"too_frequent"})
 TOPIC_AVOID_REASONS = frozenset({"irrelevant", "not_helpful"})
 SIMPLE_REASONS = frozenset({"unclear"})

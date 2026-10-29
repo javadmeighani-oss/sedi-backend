@@ -692,6 +692,8 @@ class IntelligenceOrchestrator:
             duration_ms=(time.perf_counter() - t0) * 1000.0,
         )
         terminal_safety = requires_terminal_safety_response(assessment)
+        # I7 records the user's own words, even when a later stage rewrites `message` (reminder/specialist continuation).
+        original_user_message = message
         skip_generator = False
         safety_message: Optional[str] = None
         clarification_message: Optional[str] = None
@@ -1968,6 +1970,28 @@ class IntelligenceOrchestrator:
                         except Exception:
                             pass
                     extra_reason_codes.append("I7_RAW_FINALIZATION_FAILED")
+
+        # Javad 2026-10-29: «صدی در I7 باید توانایی ثبت تمام چت‌ها را داشته باشد». A turn answered WITHOUT the generator
+        # (clarification, directory / plan reply, reminder confirmation, terminal safety) never reached the brain, so it
+        # was never stored: missing from My History, the same-day recap and the reminder continuation. Record it here
+        # (consent-gated by the governed raw write, idempotent, fail-open - chat must never break).
+        if skip_generator and self._db is not None and out_message and out_message.strip():
+            try:
+                from backend.app.core.conversation.memory import ConversationMemory
+
+                ConversationMemory(self._db).save_conversation(
+                    authenticated_user_id,
+                    original_user_message,
+                    out_message.strip(),
+                    out_language,
+                    actor_user_id=authenticated_user_id,
+                )
+            except Exception:
+                try:
+                    self._db.rollback()
+                except Exception:
+                    pass
+                extra_reason_codes.append("I7_RAW_RECORD_FAILED")
 
         # complete
         t0 = time.perf_counter()

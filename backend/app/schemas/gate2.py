@@ -6,6 +6,29 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+_RECURRENCE_DAYS = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
+
+
+def normalize_recurrence_rule(value: Optional[str]) -> Optional[str]:
+    """The only repeat shapes Sedi's reminder scheduler understands (chat and the My Schedule sheet write these):
+
+    ``FREQ=DAILY`` | ``FREQ=WEEKLY`` | ``FREQ=WEEKLY;BYDAY=MO,WE,SA`` (the SAME time on those weekdays).
+    Empty means "no repeat". Anything else is rejected instead of being stored and silently never firing.
+    """
+    if value is None:
+        return None
+    text = str(value).strip().upper()
+    if not text:
+        return None
+    if text in ("FREQ=DAILY", "FREQ=WEEKLY"):
+        return text
+    if text.startswith("FREQ=WEEKLY;BYDAY="):
+        codes = [c.strip() for c in text[len("FREQ=WEEKLY;BYDAY="):].split(",")]
+        if codes and all(c in _RECURRENCE_DAYS for c in codes) and len(set(codes)) == len(codes):
+            ordered = sorted(codes, key=_RECURRENCE_DAYS.index)
+            return "FREQ=WEEKLY;BYDAY=" + ",".join(ordered)
+    raise ValueError("recurrence_rule must be FREQ=DAILY, FREQ=WEEKLY or FREQ=WEEKLY;BYDAY=MO,WE,...")
+
 GATE2_SOURCES = frozenset({"manual", "conversation", "system", "caregiver"})
 HABIT_STATUSES = frozenset({"active", "paused", "completed", "inactive"})
 GOAL_CATEGORIES = frozenset({"health", "fitness", "lifestyle", "motivation", "other"})
@@ -134,6 +157,11 @@ class EventCreateIn(BaseModel):
     source: Literal["manual", "conversation", "system", "caregiver"] = "manual"
     notes: Optional[str] = None
 
+    @field_validator("recurrence_rule")
+    @classmethod
+    def _bounded_recurrence(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_recurrence_rule(v)
+
 
 class EventUpdateIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -156,6 +184,11 @@ class EventUpdateIn(BaseModel):
     reminder_offsets: Optional[List[int]] = None
     recurrence_rule: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator("recurrence_rule")
+    @classmethod
+    def _bounded_recurrence(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_recurrence_rule(v)
 
 
 class LifestyleEventCreateIn(BaseModel):

@@ -244,7 +244,7 @@ def test_a4_closure_enrich_fcm_uses_like_dislike_open_chat():
         )
         actions = json.loads(merged.get("gate4_actions") or "[]")
         ids = {a["action_id"] for a in actions}
-        assert ids == {"like", "dislike", "open_chat"}
+        assert ids == {"dislike", "open_chat"}  # R-039
         assert "ACK_THANKS" not in ids
         assert "NOT_NOW" not in ids
         assert all(a.get("label") for a in actions)

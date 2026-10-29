@@ -62,6 +62,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "follow_up_preference",
         "listen_before_advice",
         "proactive_checkin_preference",
+        # Pilot V1 screen 6: per-plan reminder days / lead and the weekly-review day (JSON per domain).
+        "plan_settings",
     ],
     "intake": [
         "goal",
@@ -193,6 +195,7 @@ I6_CONTEXT_EXCLUDED_KEYS = frozenset({
     ("preferences", "timezone"),
     ("preferences", "quiet_hours"),
     ("preferences", "language_preference"),
+    ("preferences", "plan_settings"),  # machine settings (reminder days / review day), not something to tell the model
 })
 I6_CONTEXT_EXCLUDED_DOMAINS = frozenset({"medical", "vitals", "goals"})
 

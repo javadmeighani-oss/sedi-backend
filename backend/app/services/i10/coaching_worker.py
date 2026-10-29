@@ -98,7 +98,17 @@ def _composer_item_due(action: models.I8OperationalPlanAction, now_utc: datetime
         hh, mm = (int(x) for x in lt.split(":")[:2])
     except ValueError:
         return False
-    due = vf + timedelta(hours=hh, minutes=mm)
+    # Pilot V1 screen 6: the user's own reminder setting (days / lead) stamped on the item by plan_settings.
+    remind = pres.get("remind")
+    lead = 0
+    if isinstance(remind, dict):
+        if remind.get("on") is False:
+            return False
+        try:
+            lead = max(0, min(60, int(remind.get("lead") or 0)))
+        except (TypeError, ValueError):
+            lead = 0
+    due = vf + timedelta(hours=hh, minutes=mm) - timedelta(minutes=lead)
     return due <= now_utc <= due + timedelta(hours=3)
 
 

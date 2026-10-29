@@ -45,7 +45,7 @@ def test_plan_followups_carry_done_not_done_later_buttons_and_others_keep_like_d
     assert [a["action_id"] for a in _actions_of(_fcm("exercise_plan_follow_up", "en"))] == ["done", "plan_not_done", "later"]
     assert [a["label"] for a in _actions_of(_fcm("exercise_plan_follow_up", "ar"))] == ["تم", "لم يتم", "لاحقًا"]
     other = _actions_of(_fcm("daily_smart_touchpoint"))
-    assert [a["action_id"] for a in other] == ["like", "dislike", "open_chat"]
+    assert [a["action_id"] for a in other] == ["open_chat", "dislike"]  # R-039: no Like; Talk first
 
 
 def test_user_moves_a_plan_item_and_the_reminder_follows_the_new_time(client, db):
