@@ -173,7 +173,12 @@ def lifestyle_plan_build(
     setup = payload.model_dump(exclude_unset=True, exclude={"domain", "settings", "mode"})
     setup["settings"] = payload.settings.model_dump(exclude_unset=True) if payload.settings else {}
     try:
-        data = build_pro(db, auth_user.id, setup) if payload.mode == "pro" else build_plan(db, auth_user.id, payload.domain, setup)
+        language = getattr(auth_user, "preferred_language", None)
+        data = (
+            build_pro(db, auth_user.id, setup, language)
+            if payload.mode == "pro"
+            else build_plan(db, auth_user.id, payload.domain, setup, language)
+        )
     except (PlanBuildError, PlanSettingsError) as exc:
         raise HTTPException(status_code=422, detail=exc.code)
     except ConsentDenied:

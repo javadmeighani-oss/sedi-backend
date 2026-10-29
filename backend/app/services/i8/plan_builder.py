@@ -100,10 +100,26 @@ def _adjust_existing(db: Session, user_id: int, domain: str, constraints: pc.Con
 
     from backend.app.services.i8 import action_edit as ae
 
-    moved = swapped = 0
+    moved = swapped = unsafe_fixed = 0
     for row in _cycle_items(db, user_id, domain):
         pres = json.loads(row.presentation_json)
         edit = pres.get("user_edit") if isinstance(pres.get("user_edit"), dict) else {}
+        # SAFETY FIRST (R-008): a meal that holds an allergen the user has told us about is replaced by an eligible
+        # alternative - or taken out when there is none - even when the user edited it earlier.
+        if domain == "nutrition" and constraints.allergens:
+            entry = next((m for m in pc.catalog()["meals"] if m["id"] == str(pres.get("item_id") or "")), None)
+            if entry and set(entry.get("allergens") or []) & constraints.allergens:
+                db.commit()
+                try:
+                    alts = ae.list_alternatives(db, actor_user_id=int(user_id), action_id=int(row.id), limit=1)
+                    if alts:
+                        ae.replace_action_item(db, actor_user_id=int(user_id), action_id=int(row.id), item_id=alts[0]["item_id"])
+                    else:
+                        ae.remove_action(db, actor_user_id=int(user_id), action_id=int(row.id))
+                    unsafe_fixed += 1
+                except ae.ActionEditError:
+                    pass
+                continue
         want = (
             constraints.meal_times.get(str(pres.get("meal_slot") or ""))
             if domain == "nutrition"
@@ -128,7 +144,7 @@ def _adjust_existing(db: Session, user_id: int, domain: str, constraints: pc.Con
                     pass
     db.commit()
     changed_days = _adjust_exercise_days(db, user_id, constraints) if domain == "exercise" else 0
-    return {"moved": moved, "swapped": swapped, "days_changed": changed_days}
+    return {"moved": moved, "swapped": swapped, "days_changed": changed_days, "unsafe_fixed": unsafe_fixed}
 
 
 def _adjust_exercise_days(db: Session, user_id: int, constraints: pc.Constraints) -> int:
@@ -144,9 +160,32 @@ def _adjust_exercise_days(db: Session, user_id: int, constraints: pc.Constraints
     if not chosen:
         return 0
     changed = 0
+    from datetime import datetime, timezone
+
     from backend.app.services.i8.local_day import local_today_for_user
 
     _tz, today = local_today_for_user(db, int(user_id))
+    # a workout this adjustment took off a day earlier comes back when the user chooses that day again
+    for row in (
+        db.query(models.I8OperationalPlanAction)
+        .filter(
+            models.I8OperationalPlanAction.user_id == int(user_id),
+            models.I8OperationalPlanAction.action_domain == "exercise",
+            models.I8OperationalPlanAction.status == "CANCELLED",
+        )
+        .all()
+    ):
+        try:
+            back = json.loads(row.presentation_json or "{}")
+            local = date.fromisoformat(str(back.get("local_date")))
+        except (TypeError, ValueError):
+            continue
+        if back.get("source") == pc.SOURCE_TAG and back.get("auto_removed") == "days" and local >= today and local.isoweekday() in chosen:
+            back.pop("auto_removed", None)
+            row.presentation_json = json.dumps(back, ensure_ascii=False, separators=(",", ":"))
+            row.status = "ACTIVE"
+            changed += 1
+    db.commit()
     for row in _cycle_items(db, user_id, "exercise"):
         pres = json.loads(row.presentation_json)
         edit = pres.get("user_edit") if isinstance(pres.get("user_edit"), dict) else {}
@@ -171,7 +210,11 @@ def _adjust_exercise_days(db: Session, user_id: int, constraints: pc.Constraints
                 db.commit()
                 changed += 1
             elif not wanted and not is_rest:
-                ae.remove_action(db, actor_user_id=int(user_id), action_id=int(row.id))
+                pres["auto_removed"] = "days"  # marked so that choosing the day again restores it
+                row.presentation_json = json.dumps(pres, ensure_ascii=False, separators=(",", ":"))
+                row.status = "CANCELLED"
+                row.updated_at = datetime.now(timezone.utc)
+                db.commit()
                 changed += 1
         except ae.ActionEditError:
             continue
