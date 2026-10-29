@@ -6492,6 +6492,185 @@
         "title": "PhoneChangeVerifyIn",
         "type": "object"
       },
+      "PlanBuildRequest": {
+        "additionalProperties": false,
+        "description": "The setup sheet: the same fields Sedi asks in chat. Everything is optional; the allergy answer is required for meals.",
+        "properties": {
+          "allergies": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergies"
+          },
+          "avoid": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "foods to avoid (free text)",
+            "title": "Avoid"
+          },
+          "domain": {
+            "default": "nutrition",
+            "title": "Domain",
+            "type": "string"
+          },
+          "exercise_days": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "pro mode: the workout weekdays (ISO 1..7)",
+            "title": "Exercise Days"
+          },
+          "exercise_time": {
+            "anyOf": [
+              {
+                "maxLength": 5,
+                "minLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exercise Time"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "meal_times": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "breakfast|lunch|dinner|snack -> HH:MM",
+            "title": "Meal Times"
+          },
+          "mode": {
+            "default": "simple",
+            "description": "simple (one plan) | pro (nutrition + exercise from one set of answers)",
+            "title": "Mode",
+            "type": "string"
+          },
+          "no_allergies": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "No Allergies"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanSettingsRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PlanBuildRequest",
+        "type": "object"
+      },
+      "PlanSettingsRequest": {
+        "additionalProperties": false,
+        "description": "Any subset of the reminder / weekly-review settings of one plan (ISO weekdays 1=Mon..7=Sun; lead = minutes before).",
+        "properties": {
+          "days": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "lead": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null = reminders off; 0 | 15 | 30",
+            "title": "Lead"
+          },
+          "review_time": {
+            "anyOf": [
+              {
+                "maxLength": 5,
+                "minLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "HH:MM",
+            "title": "Review Time"
+          },
+          "review_weekday": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Weekday"
+          }
+        },
+        "title": "PlanSettingsRequest",
+        "type": "object"
+      },
       "ProfileFactCreateIn": {
         "additionalProperties": false,
         "properties": {
@@ -15012,6 +15191,213 @@
         ]
       }
     },
+    "/lifestyle/plan-progress": {
+      "get": {
+        "description": "The motivation panel: this week's sessions, the week strip, streak weeks, total and best, and Sedi's line (read-only).",
+        "operationId": "lifestyle_plan_progress_lifestyle_plan_progress_get",
+        "parameters": [
+          {
+            "description": "nutrition|exercise",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "default": "exercise",
+              "description": "nutrition|exercise",
+              "title": "Domain",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Plan Progress",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/plan-settings": {
+      "get": {
+        "operationId": "lifestyle_plan_settings_lifestyle_plan_settings_get",
+        "parameters": [
+          {
+            "description": "nutrition|exercise",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "default": "nutrition",
+              "description": "nutrition|exercise",
+              "title": "Domain",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Plan Settings",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      },
+      "put": {
+        "description": "Reminder days / lead and the weekly-review day of one plan (stored in I6, applied to the plan's items).",
+        "operationId": "lifestyle_plan_settings_save_lifestyle_plan_settings_put",
+        "parameters": [
+          {
+            "description": "nutrition|exercise",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "default": "nutrition",
+              "description": "nutrition|exercise",
+              "title": "Domain",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Plan Settings Save",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/plan/build": {
+      "post": {
+        "description": "Build (or adjust) this week's plan right from the setup sheet, with the same composer chat uses.",
+        "operationId": "lifestyle_plan_build_lifestyle_plan_build_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Plan Build",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
     "/lifestyle/schedule-actions": {
       "get": {
         "description": "Compact I8 active actions for My Schedule (distinct from UserEvent).",
@@ -15175,6 +15561,57 @@
           }
         ],
         "summary": "Lifestyle Weekly Plan",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/weekly-review": {
+      "get": {
+        "description": "How the current week went, from what the user marked (read-only).",
+        "operationId": "lifestyle_weekly_review_lifestyle_weekly_review_get",
+        "parameters": [
+          {
+            "description": "nutrition|exercise",
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "default": "nutrition",
+              "description": "nutrition|exercise",
+              "title": "Domain",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Weekly Review",
         "tags": [
           "Lifestyle Data"
         ]
