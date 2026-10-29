@@ -430,6 +430,13 @@ def compose_week_plan(
             result.today = lines
     if persist:
         db.commit()
+        try:  # the user's reminder settings (days / lead) follow every newly composed week, from chat or from the sheet
+            from backend.app.services.i8 import plan_settings as _ps
+
+            if result.created and _ps.has_saved_settings(db, user_id, domain):
+                _ps.apply_settings_to_actions(db, user_id, domain, _ps.get_plan_settings(db, user_id, domain, lang))
+        except Exception:
+            db.rollback()
     result.user_message = _today_message(domain, lang, result.today)
     try:
         result.knowledge_refs = json.loads(knowledge_refs_json or "[]")

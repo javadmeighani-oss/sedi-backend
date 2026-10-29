@@ -91,6 +91,107 @@ def lifestyle_action_review(
     return APIResponse(ok=True, data=data)
 
 
+def _plan_domain(domain: str) -> str:
+    if domain not in ("nutrition", "exercise"):
+        raise HTTPException(status_code=422, detail="DOMAIN_INVALID")
+    return domain
+
+
+class PlanSettingsRequest(BaseModel):
+    """Any subset of the reminder / weekly-review settings of one plan (ISO weekdays 1=Mon..7=Sun; lead = minutes before)."""
+
+    model_config = ConfigDict(extra="forbid")
+    days: Optional[List[int]] = None
+    lead: Optional[int] = Field(None, description="null = reminders off; 0 | 15 | 30")
+    review_weekday: Optional[int] = None
+    review_time: Optional[str] = Field(None, min_length=5, max_length=5, description="HH:MM")
+
+
+@router.get("/plan-settings", response_model=APIResponse)
+def lifestyle_plan_settings(
+    domain: str = Query("nutrition", description="nutrition|exercise"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i8.plan_settings import get_plan_settings
+
+    return APIResponse(ok=True, data={"domain": _plan_domain(domain), "settings": get_plan_settings(db, auth_user.id, domain)})
+
+
+@router.put("/plan-settings", response_model=APIResponse)
+def lifestyle_plan_settings_save(
+    payload: PlanSettingsRequest,
+    domain: str = Query("nutrition", description="nutrition|exercise"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reminder days / lead and the weekly-review day of one plan (stored in I6, applied to the plan's items)."""
+    from backend.app.services.i8.plan_settings import PlanSettingsError, save_plan_settings
+
+    _plan_domain(domain)
+    patch = payload.model_dump(exclude_unset=True)
+    try:
+        settings = save_plan_settings(db, auth_user.id, domain, patch)
+    except PlanSettingsError as exc:
+        raise HTTPException(status_code=422, detail=exc.code)
+    except ConsentDenied:
+        return APIResponse(ok=False, error=ErrorInfo(code="CONSENT_DENIED", message="Memory consent required."))
+    except MemoryWriteError as exc:
+        return APIResponse(ok=False, error=ErrorInfo(code="MEMORY_WRITE_ERROR", message=str(exc)))
+    return APIResponse(ok=True, data={"domain": domain, "settings": settings})
+
+
+class PlanBuildRequest(BaseModel):
+    """The setup sheet: the same fields Sedi asks in chat. Everything is optional; the allergy answer is required for meals."""
+
+    model_config = ConfigDict(extra="forbid")
+    domain: str = "nutrition"
+    goal: Optional[str] = Field(None, max_length=120)
+    avoid: Optional[str] = Field(None, max_length=240, description="foods to avoid (free text)")
+    allergies: Optional[str] = Field(None, max_length=240)
+    no_allergies: Optional[bool] = None
+    meal_times: Optional[Dict[str, str]] = Field(None, description="breakfast|lunch|dinner|snack -> HH:MM")
+    exercise_time: Optional[str] = Field(None, min_length=5, max_length=5)
+    settings: Optional[PlanSettingsRequest] = None
+
+
+@router.post("/plan/build", response_model=APIResponse)
+def lifestyle_plan_build(
+    payload: PlanBuildRequest,
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Build (or adjust) this week's plan right from the setup sheet, with the same composer chat uses."""
+    from backend.app.services.i8.plan_builder import PlanBuildError, build_plan
+    from backend.app.services.i8.plan_settings import PlanSettingsError
+
+    _plan_domain(payload.domain)
+    setup = payload.model_dump(exclude_unset=True, exclude={"domain", "settings"})
+    setup["settings"] = payload.settings.model_dump(exclude_unset=True) if payload.settings else {}
+    try:
+        data = build_plan(db, auth_user.id, payload.domain, setup)
+    except (PlanBuildError, PlanSettingsError) as exc:
+        raise HTTPException(status_code=422, detail=exc.code)
+    except ConsentDenied:
+        return APIResponse(ok=False, error=ErrorInfo(code="CONSENT_DENIED", message="Memory consent required."))
+    except MemoryWriteError as exc:
+        return APIResponse(ok=False, error=ErrorInfo(code="MEMORY_WRITE_ERROR", message=str(exc)))
+    return APIResponse(ok=True, data=data)
+
+
+@router.get("/weekly-review", response_model=APIResponse)
+def lifestyle_weekly_review(
+    domain: str = Query("nutrition", description="nutrition|exercise"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """How the current week went, from what the user marked (read-only)."""
+    from backend.app.services.i8.weekly_review import build_weekly_review
+
+    lang = (getattr(auth_user, "preferred_language", None) or "fa")
+    return APIResponse(ok=True, data=build_weekly_review(db, auth_user.id, _plan_domain(domain), language=lang))
+
+
 class ActionEditRequest(BaseModel):
     """The user's own correction of one plan item: any subset of time, title, note, duration (exercise)."""
 
