@@ -208,6 +208,12 @@ _TALK_WORDS = {
     "en": re.compile(r"\b(?:talk|chat|speak|discuss|conversation)\b", re.IGNORECASE),
     "ar": re.compile(r"الحديث|التحدث|نتحدث|نتكلم|الكلام|محادثة"),
 }
+_SCHEDULED_WEEKDAY = re.compile(
+    r"(?:(?<![\w])(?:on|next|this|every|each|هر|روز|این|يوم|ي[وو]م|كل)\s+)(?:"
+    + "|".join(re.escape(tok) for tok in _WEEKDAY_TOKENS)
+    + r")(?![\w])",
+    re.IGNORECASE,
+)
 _TALK_TAIL = {
     "fa": re.compile(r"\s*(?:حرف\s*بزن\w*|صحبت\s*کن\w*|صحبت\s*کنیم|بحث\s*کن\w*|گپ\s*بزن\w*|گفتگو\s*کن\w*)\s*$"),
     "en": re.compile(r"\s*(?:to\s+)?(?:talk|chat|speak|discuss)(?:\s+about\s+it)?\s*$", re.IGNORECASE),
@@ -226,7 +232,8 @@ def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
         return None, text
     topic = m.group("t")
     cut = len(topic)
-    for rx in _WHEN_TOKENS + (_NOTIFY_CONCEPT,):  # the topic ends where a date, a time or «بهم خبر بده» begins
+    # the topic ends where a date, a time, «on Saturday» / «every Monday» or «بهم خبر بده» begins
+    for rx in _WHEN_TOKENS + (_NOTIFY_CONCEPT, _RECURRENCE, _SCHEDULED_WEEKDAY):
         hit = rx.search(topic)
         if hit is not None:
             cut = min(cut, hit.start())
@@ -240,8 +247,9 @@ def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
         topic = topic[: tail.start()].strip()
     lead = text[: m.start()]
     talks = tail is not None or _TALK_WORDS[lang].search(lead) is not None
-    title = _TALK_TITLE[lang].format(t=topic) if talks else topic
-    return title[:120], f"{lead} {after}".strip()
+    if not talks or len(topic) < 2:
+        return None, text  # «remind me about my meeting on Saturday»: the words stay in the scheduling text
+    return _TALK_TITLE[lang].format(t=topic)[:120], f"{lead} {after}".strip()
 
 
 def looks_like_notify_request(message: str, language: str) -> bool:
@@ -392,7 +400,9 @@ def _parse_offsets(text: str) -> tuple[bool, tuple[int, ...], bool]:
     An explicit offset ("1 hour before", "نیم ساعت قبل") is honoured for any value up to 7 days.
     """
     t = _normalize(text)
-    requested = bool(_REMINDER_WORDS.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t))
+    requested = bool(
+        _REMINDER_WORDS.search(t) or _NOTIFY_CONCEPT.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t)
+    )
     if not requested:
         return False, (), False
     if _AT_EVENT_TIME.search(t):

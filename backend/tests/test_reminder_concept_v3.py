@@ -87,3 +87,24 @@ def test_existing_keyword_reminders_are_unchanged():
     draft, missing = _draft("فردا ساعت ۱۰ صبح یادم بنداز آزمایش خون بدم", "fa")
     assert missing is None and draft.event_type == "lab_test"
     assert resolve_intent(message="یادم بنداز فردا ساعت ۹ دارو بخورم", language="fa").intent_id is IntentId.REMINDER
+
+
+def test_codex_125_a_notification_request_fires_at_the_stated_time_not_an_hour_before():
+    for lang, message in (("en", "let me know at 6pm"), ("en", "ping me tomorrow at 10 to talk about Saturday"), ("fa", "فردا ساعت ۱۰ بهم نوتیف بدی برای صحبت در مورد شنبه")):
+        draft, missing = _draft(message, lang)
+        assert missing is None and draft.reminder_offsets == (0,), message
+
+
+def test_codex_125_scheduling_words_after_a_non_talk_topic_are_kept():
+    saturday, _ = _draft("remind me about my meeting on Saturday at 10", "en")
+    assert (saturday.starts_at_local.month, saturday.starts_at_local.day) == (10, 31)  # next Saturday, as before
+    weekly, _ = _draft("remind me about my meeting every Monday at 10", "en")
+    assert weekly.recurrence_rule == "FREQ=WEEKLY;BYDAY=MO"
+    persian, _ = _draft("یادم بنداز در مورد جلسه شنبه ساعت ۱۰", "fa")
+    assert persian.starts_at_local.day == 31  # «شنبه» stays the day when it is not a talk topic
+
+
+def test_codex_125_a_talk_topic_followed_by_a_weekday_keeps_the_weekday_as_the_day():
+    draft, missing = _draft("ping me to talk about Saturday on Monday at 10", "en")
+    assert missing is None and draft.title == "talk about Saturday"
+    assert draft.starts_at_local.weekday() == 0  # Monday
