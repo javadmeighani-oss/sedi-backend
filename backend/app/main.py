@@ -33,6 +33,7 @@ from backend.app.routers import (
     i8_actions,
 )
 from backend.app.routers import memory_attachments, ops, schedule_done
+from backend.app.core import api_surface
 from backend.app.core.process_role import should_start_scheduler
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -45,12 +46,13 @@ app = FastAPI(
         "and integrates GPT-powered intelligence, adaptive memory, and emotional engagement."
     ),
     version="2.0.1",
+    # Pilot hardening: the API documentation is off unless SEDI_EXPOSE_DOCS is true (app.openapi() still works).
+    **api_surface.docs_urls(os.environ),
 )
 
 # ------------------ CORS Configuration ------------------
-origins = [
-    "*",  # Should be restricted in production environment
-]
+# Pilot hardening: the native app needs no CORS; browsers only for origins listed in CORS_ALLOW_ORIGINS.
+origins = api_surface.cors_origins(os.environ)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +61,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """nosniff / frame deny / no referrer / no-store on every response; HSTS only over real HTTPS."""
+    response = await call_next(request)
+    https = api_surface.request_is_https(request.url.scheme, request.headers.get("x-forwarded-proto"))
+    for name, value in api_surface.security_headers(https=https).items():
+        response.headers.setdefault(name, value)
+    return response
 
 
 @app.middleware("http")
