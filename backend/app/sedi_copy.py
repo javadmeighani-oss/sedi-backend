@@ -280,7 +280,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             ),
             (
                 'یه قدم کوچیک برای امروز',
-                'امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه قدم قدم\u200cزدن. اگه خواستی با هم برنامه\u200cاش رو بچینیم.',
+                'امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه کم قدم\u200cزدن. اگه خواستی با هم برنامه\u200cاش رو بچینیم.',
             ),
             (
                 'صدی اینجاست',
@@ -406,7 +406,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'digest.i9_stale.bodies': {
         'fa': (
             'دادهٔ مشاهده\u200cشده هست اما از حد انتظار امروز قدیمی\u200cتر است. برای چک\u200cاین کوتاه صدی را باز کن.',
-            'آخرین رول\u200cآپ قدیمی\u200cتر از معمول است. هر وقت آماده بودی در صدی ادامه بده.',
+            'آخرین خلاصه\u200cی دستگاه قدیمی\u200cتر از معمول است. هر وقت آماده بودی در صدی ادامه بده.',
         ),
         'ar': (
             'توجد بيانات مرصودة لكنها أقدم مما هو متوقع لليوم. افتح صدی لتفقد قصير.',
@@ -414,7 +414,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         ),
         'en': (
             'Observed data exists but is older than expected for today. Open Sedi for a short check-in.',
-            'The latest rollup is older than usual. Continue in Sedi when ready.',
+            'The latest device summary is older than usual. Continue in Sedi when ready.',
         ),
     },
     'digest.i8.bodies': {
@@ -850,29 +850,29 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'Device Disconnected',
     },
     'engine.default_body.health_alert': {
-        'fa': 'هشدار سلامت ثبت شد. لطفاً وضعیت خود را بررسی کنید.',
+        'fa': 'هشدار سلامت ثبت شد. بهتره وضعیتت رو بررسی کنی.',
         'ar': 'تم اكتشاف تنبيه صحي. يرجى التحقق من قراءاتك.',
         'en': 'Health alert detected. Please review your readings.',
     },
     'engine.default_body.device_disconnected': {
-        'fa': 'اتصال دستگاه قطع شده. لطفاً دستگاه را دوباره وصل کنید.',
+        'fa': 'اتصال دستگاه قطع شده. دوباره وصلش کن.',
         'ar': 'فُقد اتصال الجهاز. يرجى إعادة توصيل جهازك.',
         'en': 'Device connection lost. Please reconnect your device.',
     },
     'engine.default_body.morning_brief': {
-        'fa': 'صبح بخیر. روز خوبی داشته باشید.',
+        'fa': 'صبح بخیر. روز خوبی داشته باشی.',
         'ar': 'صباح الخير. أتمنى لك يوماً سعيداً.',
         'en': 'Good morning. Have a wonderful day.',
     },
     'engine.default_body.connection_ping': {
-        'fa': 'سلام. امیدوارم حالتون خوب باشه.',
+        'fa': 'سلام. امیدوارم حالت خوب باشه.',
         'ar': 'مرحباً. أتمنى أن تكون بخير.',
         'en': "Hello. Hope you're doing well.",
     },
     'engine.default_body.companion_ping': {
-        'fa': 'سلام؛ دلم برات تنگ شده. اگر دوست داری بگو امروز چطوره؟ 🌿',
-        'ar': 'مرحباً؛ كنت أفكر بك. إذا أحببت، أخبرني كيف يومك؟ 🌿',
-        'en': "Hi; I was thinking of you. If you'd like, tell me how today's going? 🌿",
+        'fa': 'سلام، دلم برات تنگ شده. اگه دوست داری، بگو امروز چطوری 🌿',
+        'ar': 'مرحباً، كنت أفكر بك. إذا أحببت، أخبرني كيف يومك 🌿',
+        'en': "Hi, I was thinking of you. If you'd like, tell me how today is going 🌿",
     },
     'recap.aspect.prevention': {
         'fa': 'پیشگیری از {l}',
@@ -975,7 +975,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     },
     'address.initiative': {
         'fa': '{name} جان، ',
-        'ar': '{name}, ',
+        'ar': '{name}، ',
         'en': '{name}, ',
     },
 
@@ -1075,7 +1075,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': "how is your day? I wanted to check in on you. Whenever you feel like it, let's talk",
     },
     'fallback.health.base': {
-        'fa': 'سلام {name}، یه نکته مهم',
+        'fa': 'سلام {name}، یه نکته\u200cی مهم',
         'ar': 'مرحباً {name}، ملاحظة مهمة',
         'en': 'Hello {name}, an important note',
     },
@@ -1107,7 +1107,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'fallback.health.check': {
         'fa': 'بهتره بررسی کنی',
         'ar': 'من الأفضل أن تتحقق',
-        'en': 'you should check',
+        'en': 'You should check',
     },
     'fallback.health.check_status': {
         'fa': 'بهتره وضعیت سلامتت رو بررسی کنی',
@@ -1157,7 +1157,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'template.companion_breathing_break_v1': {
         'fa': {
             'title': 'وقت نفس',
-            'message': 'یه دقیقه نفس عمیق بکش؛ آروم میشی. 🌬',
+            'message': 'یه دقیقه نفس عمیق بکش؛ آروم می\u200cشی. 🌬',
         },
         'ar': {
             'title': 'استراحة تنفس',
@@ -1210,7 +1210,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': '{prefix}Ready for your daily Sedi check-in?',
     },
     'session.origin_generic': {
-        'fa': '{prefix}از اعلان صدی آمدی. می\u200cخواهی از همین\u200cجا ادامه بدهیم؟',
+        'fa': '{prefix}از اعلان صدی اومدی. می\u200cخوای از همین\u200cجا ادامه بدیم؟',
         'ar': '{prefix}فتحت هذا من إشعار صدی. كيف تريد المتابعة؟',
         'en': '{prefix}You opened this from a Sedi notification. How would you like to continue?',
     },
@@ -1267,12 +1267,12 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'That time has already passed today. Which other time or day should I use?',
     },
     'reminder.clarify.timezone': {
-        'fa': 'برای زمان\u200cبندی به منطقهٔ زمانی شما نیاز دارم. لطفاً آن را در پروفایل تنظیم کنید.',
+        'fa': 'برای زمان\u200cبندی باید منطقه\u200cی زمانی\u200cات رو بدونم. می\u200cتونی توی پروفایل تنظیمش کنی.',
         'ar': 'أحتاج إلى منطقتك الزمنية قبل الجدولة. يرجى ضبطها في الملف الشخصي.',
         'en': 'I need your timezone before I can schedule this. Please set your timezone in Profile.',
     },
     'reminder.clarify.recurrence': {
-        'fa': 'می\u200cتونم یادآور رو هر روز یا هر هفته تکرار کنم، مثلاً «هر روز ساعت ۸ یادم بنداز آب بخورم». کدومشو بذارم؟',
+        'fa': 'می\u200cتونم یادآوری رو هر روز یا هر هفته تکرار کنم، مثلاً «هر روز ساعت ۸ یادم بنداز آب بخورم». کدومشو بذارم؟',
         'ar': 'يمكنني تكرار التذكير كل يوم أو كل أسبوع، مثل «كل يوم الساعة 8 ذكّرني بشرب الماء». أيهما تريد؟',
         'en': 'I can repeat a reminder every day or every week, like “every day at 8 remind me to drink water”. Which one would you like?',
     },
