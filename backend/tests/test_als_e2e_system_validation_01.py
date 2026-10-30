@@ -1059,10 +1059,12 @@ def test_m_n_negatives_and_frontend_contract(client, db, gate_patches):
     forged = _chat(client, spouse, "x", source_notification_id=99999999)
     assert forged.status_code in (403, 404)
 
-    # Route presence via OpenAPI (mounted prefixes included)
-    spec = client.get("/openapi.json")
-    assert spec.status_code == 200
-    oa_paths = spec.json().get("paths", {})
+    # Route presence via OpenAPI (mounted prefixes included). The public /openapi.json is off in production
+    # (pilot hardening, SEDI_EXPOSE_DOCS); the schema itself is read from the app.
+    from backend.app.main import app as _app
+
+    assert client.get("/openapi.json").status_code == 404
+    oa_paths = _app.openapi().get("paths", {})
     assert any("medication/confirm-taken" in p for p in oa_paths)
     assert any(p.rstrip("/").endswith("/interact/chat") for p in oa_paths)
 
