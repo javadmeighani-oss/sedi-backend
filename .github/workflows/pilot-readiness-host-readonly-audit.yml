@@ -1,0 +1,132 @@
+# Read-only PILOT READINESS host audit. workflow_dispatch only.
+# NO deploy, restart, file write on the host, DB write, flag change, FCM send or SMS send.
+# Prints only booleans, counts, ages, sizes and configuration LINES that carry no secret. Never prints an env value,
+# a token, a phone number or user content.
+name: Pilot Readiness Host Readonly Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-audit:
+    name: Production host + database read-only readiness snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only host audit
+        env:
+          SEDI_PORT: ${{ secrets.SEDI_PORT }}
+          SEDI_HOST: ${{ secrets.SEDI_HOST }}
+          SEDI_USER: ${{ secrets.SEDI_USER }}
+          SEDI_DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+        run: |
+          set -uo pipefail
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${SEDI_PORT}" \
+            "${SEDI_USER}@${SEDI_HOST}" \
+            "SEDI_DEPLOY_PATH='${SEDI_DEPLOY_PATH}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          cd "${SEDI_DEPLOY_PATH}" 2>/dev/null || true
+          sec() { echo; echo "=== $1 ==="; }
+
+          sec "GATE"
+          echo "GATE=SEDI-V1-PILOT-READINESS-HOST-READONLY-AUDIT-01"
+          echo "MODE=READ_ONLY"
+          date -u +"NOW_UTC=%Y-%m-%dT%H:%M:%SZ"
+
+          sec "OS"
+          (lsb_release -ds 2>/dev/null || grep PRETTY_NAME /etc/os-release) | head -1
+          echo "KERNEL=$(uname -r)"
+          uptime -p 2>/dev/null || true
+          echo "REBOOT_REQUIRED=$([ -f /var/run/reboot-required ] && echo YES || echo NO)"
+          echo "UPGRADABLE_PACKAGES=$(apt list --upgradable 2>/dev/null | grep -vc '^Listing' || echo unknown)"
+          echo "UPGRADABLE_SECURITY=$(apt list --upgradable 2>/dev/null | grep -ci security || echo 0)"
+          echo "UNATTENDED_UPGRADES_ENABLED=$(systemctl is-enabled unattended-upgrades 2>/dev/null || echo unknown)"
+
+          sec "SSH HARDENING (effective sshd config)"
+          (sudo -n sshd -T 2>/dev/null || sshd -T 2>/dev/null) | grep -E '^(port|passwordauthentication|permitrootlogin|pubkeyauthentication|kbdinteractiveauthentication|maxauthtries|logingracetime|allowusers|allowgroups) ' || echo "SSHD_CONFIG=not_readable_without_sudo"
+          echo "FAIL2BAN_ACTIVE=$(systemctl is-active fail2ban 2>/dev/null || echo not_installed)"
+          echo "UFW_STATUS=$( (sudo -n ufw status 2>/dev/null || ufw status 2>/dev/null) | head -1 || echo unknown)"
+
+          sec "RESOURCES"
+          echo "LOAD_AVG=$(cut -d' ' -f1-3 /proc/loadavg)"
+          free -m | awk 'NR==1||NR==2||NR==3'
+          df -h / "${SEDI_DEPLOY_PATH}" 2>/dev/null | awk 'NR==1||!seen[$1]++'
+          echo "CPU_CORES=$(nproc)"
+
+          sec "DOCKER (names, restart policy, limits, log rotation, published ports)"
+          docker ps --format 'NAME={{.Names}} STATUS={{.Status}} IMAGE={{.Image}}' | sed -E 's#(ghcr.io/[^:]+):([0-9a-f]{8})[0-9a-f]*#\1:\2…#'
+          for c in $(docker ps --format '{{.Names}}'); do
+            docker inspect "$c" --format 'CONTAINER={{.Name}} RESTART_POLICY={{.HostConfig.RestartPolicy.Name}} RESTARTS={{.RestartCount}} MEM_LIMIT={{.HostConfig.Memory}} LOG_DRIVER={{.HostConfig.LogConfig.Type}} LOG_OPTS={{json .HostConfig.LogConfig.Config}} USER={{.Config.User}} HEALTHCHECK={{if .Config.Healthcheck}}yes{{else}}no{{end}}'
+            echo "PORTS[$c]=$(docker port "$c" 2>/dev/null | tr '\n' ' ')"
+          done
+          echo "DOCKER_DISK_USAGE:"; docker system df 2>/dev/null | head -6
+
+          sec "BACKUPS ON THE HOST (names, sizes, ages only)"
+          BK="${SEDI_DEPLOY_PATH}/backups/postgres"
+          if [ -d "$BK" ]; then
+            echo "BACKUP_DIR_PRESENT=YES"
+            echo "BACKUP_COUNT=$(ls -1 "$BK" 2>/dev/null | wc -l)"
+            echo "BACKUP_TOTAL_SIZE=$(du -sh "$BK" 2>/dev/null | cut -f1)"
+            ls -lt --time-style=long-iso "$BK" 2>/dev/null | awk 'NR>1 && NR<=6 {print "LATEST_BACKUP " $6 " " $7 " size=" $5 " " $8}'
+            NEWEST=$(ls -t "$BK" 2>/dev/null | head -1)
+            if [ -n "${NEWEST:-}" ]; then
+              AGE_H=$(( ( $(date +%s) - $(stat -c %Y "$BK/$NEWEST") ) / 3600 ))
+              echo "NEWEST_BACKUP_AGE_HOURS=${AGE_H}"
+            fi
+          else
+            echo "BACKUP_DIR_PRESENT=NO"
+          fi
+          echo "SCHEDULED_BACKUP_JOBS=$( (crontab -l 2>/dev/null; cat /etc/cron.d/* 2>/dev/null; systemctl list-timers --all 2>/dev/null) | grep -ciE 'pg_dump|backup' || true)"
+
+          sec "TLS CERTIFICATE RENEWAL"
+          echo "CERTBOT_TIMER=$(systemctl is-active certbot.timer 2>/dev/null || echo unknown)"
+          (sudo -n certbot certificates 2>/dev/null || certbot certificates 2>/dev/null) | grep -E 'Domains:|Expiry Date:|VALID' | head -4 || echo "CERTBOT=not_readable_without_sudo"
+
+          sec "NGINX (effective lines without secrets)"
+          (sudo -n nginx -T 2>/dev/null || nginx -T 2>/dev/null) | grep -E '^\s*(server_tokens|client_max_body_size|limit_req|limit_conn|ssl_protocols|ssl_ciphers|add_header|proxy_read_timeout|listen|server_name)\b' | sed -E 's/^\s+//' | sort | uniq -c | sort -rn | head -24 || echo "NGINX_CONFIG=not_readable_without_sudo"
+
+          sec "APP ENVIRONMENT (booleans / lengths only - NEVER values)"
+          docker exec -i sedi-backend python - <<'PY'
+          import os
+          def b(name): return "YES" if (os.environ.get(name) or "").strip() else "NO"
+          sk = os.environ.get("SECRET_KEY") or os.environ.get("JWT_SECRET") or ""
+          print(f"SECRET_KEY_SET={'YES' if sk else 'NO'} SECRET_KEY_LENGTH_AT_LEAST_32={'YES' if len(sk.encode())>=32 else 'NO'} SECRET_KEY_IS_DEV_FALLBACK={'YES' if sk == 'x'*64 else 'NO'}")
+          print(f"ENV={os.environ.get('ENV','UNSET')} DEBUG={os.environ.get('DEBUG','UNSET')}")
+          print(f"SMS_DISABLED={os.environ.get('SMS_DISABLED','UNSET')} SMS_PROVIDER_SET={b('SMS_PROVIDER')} MEDIANA_API_KEY_SET={b('MEDIANA_API_KEY')}")
+          print(f"ADMIN_TOKEN_SET={b('ADMIN_TOKEN')} OPENAI_API_KEY_SET={b('OPENAI_API_KEY')}")
+          print(f"OTP_RATE_LIMIT_COUNT={os.environ.get('OTP_RATE_LIMIT_COUNT','default')} OTP_RATE_LIMIT_WINDOW_MINUTES={os.environ.get('OTP_RATE_LIMIT_WINDOW_MINUTES','default')}")
+          print(f"SEDI_EXPOSE_DOCS={os.environ.get('SEDI_EXPOSE_DOCS','UNSET')} CORS_ALLOW_ORIGINS_SET={b('CORS_ALLOW_ORIGINS')}")
+          PY
+
+          sec "DATABASE (read-only session; aggregate numbers only)"
+          docker exec -i sedi-postgres sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -X -A -t' <<'SQL' 2>&1 | grep -vE '^(SET|[[:space:]]*)$' | head -20
+          SET default_transaction_read_only = on;
+          SELECT 'PG_VERSION=' || split_part(version(), ' ', 2);
+          SELECT 'DB_SIZE=' || pg_size_pretty(pg_database_size(current_database()));
+          SELECT 'CONNECTIONS_NOW=' || count(*) || ' MAX=' || current_setting('max_connections') FROM pg_stat_activity;
+          SELECT 'SSL=' || current_setting('ssl');
+          SELECT 'TABLES=' || count(*) FROM information_schema.tables WHERE table_schema = 'public';
+          SELECT 'USERS_TOTAL=' || count(*) FROM users;
+          SELECT 'ARCHIVE_MODE=' || current_setting('archive_mode');
+          SELECT 'TOP_TABLE=' || relname || ':' || pg_size_pretty(pg_total_relation_size(relid)) FROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 6;
+          SQL
+
+          sec "APPLICATION LOG LEVEL (is the request timing line emitted?)"
+          echo "CAPACITY_LOG_LINES_LAST_1H=$(docker logs --since 1h sedi-backend 2>&1 | grep -c 'capacity event=http_request' || true)"
+          echo "ERROR_LINES_LAST_24H=$(docker logs --since 24h sedi-backend 2>&1 | grep -ciE ' (error|critical|traceback)' || true)"
+          echo "HTTP_5XX_LAST_24H=$(docker logs --since 24h sedi-backend 2>&1 | grep -cE '\" 5[0-9][0-9] ' || true)"
+          REMOTE
