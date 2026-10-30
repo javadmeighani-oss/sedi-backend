@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Final, Mapping, Optional, Sequence
+from backend.app import sedi_copy
 
 GATE4_CONTRACT_VERSION: Final[str] = "4b.1"
 
@@ -98,60 +99,7 @@ V1_DEFAULT_ACTIONS: Final[tuple[str, ...]] = (
 SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset(lang.value for lang in SmartNotificationLanguage)
 DEFAULT_LANGUAGE: Final[str] = SmartNotificationLanguage.EN.value
 
-ACTION_LABELS: Final[Mapping[str, Mapping[str, str]]] = {
-    SmartNotificationAction.ACK_THANKS.value: {
-        SmartNotificationLanguage.FA.value: "متوجه شدم، ممنون",
-        SmartNotificationLanguage.EN.value: "Got it, thanks",
-        SmartNotificationLanguage.AR.value: "فهمت، شكرًا",
-    },
-    SmartNotificationAction.NOT_NOW.value: {
-        SmartNotificationLanguage.FA.value: "الان نیازی نیست",
-        SmartNotificationLanguage.EN.value: "Not now",
-        SmartNotificationLanguage.AR.value: "ليس الآن",
-    },
-    SmartNotificationAction.TALK_LATER.value: {
-        SmartNotificationLanguage.FA.value: "بعداً صحبت می‌کنیم",
-        SmartNotificationLanguage.EN.value: "Let's talk later",
-        SmartNotificationLanguage.AR.value: "نتحدث لاحقًا",
-    },
-    SmartNotificationAction.OPEN_CHAT.value: {
-        SmartNotificationLanguage.FA.value: "صحبت کنیم",
-        SmartNotificationLanguage.EN.value: "Let's talk",
-        SmartNotificationLanguage.AR.value: "لنتحدث",
-    },
-    # Mobile content reactions — independent of ACK_THANKS / NOT_NOW timing policy.
-    "like": {
-        SmartNotificationLanguage.FA.value: "پسندیدم",
-        SmartNotificationLanguage.EN.value: "Like",
-        SmartNotificationLanguage.AR.value: "أعجبني",
-    },
-    "dislike": {
-        SmartNotificationLanguage.FA.value: "نپسندیدم",
-        SmartNotificationLanguage.EN.value: "Dislike",
-        SmartNotificationLanguage.AR.value: "لم يعجبني",
-    },
-    "open_chat": {
-        SmartNotificationLanguage.FA.value: "صحبت کنیم",
-        SmartNotificationLanguage.EN.value: "Talk to Sedi",
-        SmartNotificationLanguage.AR.value: "لنتحدث مع صدی",
-    },
-    # P8: plan follow-up buttons ("did you do it?") for nutrition / exercise reminders.
-    "done": {
-        SmartNotificationLanguage.FA.value: "آره، انجام شد",
-        SmartNotificationLanguage.EN.value: "Done",
-        SmartNotificationLanguage.AR.value: "تم",
-    },
-    "plan_not_done": {
-        SmartNotificationLanguage.FA.value: "نشد",
-        SmartNotificationLanguage.EN.value: "Not done",
-        SmartNotificationLanguage.AR.value: "لم يتم",
-    },
-    "later": {
-        SmartNotificationLanguage.FA.value: "بعداً",
-        SmartNotificationLanguage.EN.value: "Later",
-        SmartNotificationLanguage.AR.value: "لاحقًا",
-    },
-}
+ACTION_LABELS: Final[Mapping[str, Mapping[str, str]]] = sedi_copy.nested_by_lang("action.label")
 
 # Legacy aliases for open/dismiss only. LIKE/DISLIKE must NOT collapse into timing/ack policy.
 LEGACY_ACTION_MAP: Final[Mapping[str, str]] = {

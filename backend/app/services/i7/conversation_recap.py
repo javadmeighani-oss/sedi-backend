@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from backend.app import sedi_copy
 
 _LIMIT = 12
 
@@ -41,15 +42,15 @@ _CATEGORIES = (
 # R-014: a disease topic is recapped with its aspect ("پیشگیری از دیابت"), so the opener proves Sedi followed the thread.
 _ASPECTS = (
     ("prevention", ("پیشگیری", "prevent", "الوقاية", "وقاية"),
-     {"fa": "پیشگیری از {l}", "en": "preventing {l}", "ar": "الوقاية من {l}"}),
+     sedi_copy.by_lang("recap.aspect.prevention")),
     ("diet", ("رژیم", "غذا", "تغذیه", "diet", "food", "حمية", "غذاء", "تغذية"),
-     {"fa": "تغذیه‌ی مناسب برای {l}", "en": "eating well with {l}", "ar": "التغذية المناسبة مع {l}"}),
+     sedi_copy.by_lang("recap.aspect.diet")),
     ("exercise", ("ورزش", "تمرین", "پیاده", "exercise", "workout", "رياضة", "تمرين"),
-     {"fa": "ورزش برای {l}", "en": "exercise with {l}", "ar": "الرياضة مع {l}"}),
+     sedi_copy.by_lang("recap.aspect.exercise")),
     ("medication", ("دارو", "قرص", "medicine", "medication", "دواء"),
-     {"fa": "داروهای {l}", "en": "medication for {l}", "ar": "أدوية {l}"}),
+     sedi_copy.by_lang("recap.aspect.medication")),
     ("symptoms", ("علائم", "نشانه", "symptom", "أعراض"),
-     {"fa": "علائم {l}", "en": "the symptoms of {l}", "ar": "أعراض {l}"}),
+     sedi_copy.by_lang("recap.aspect.symptoms")),
 )
 
 
@@ -79,31 +80,9 @@ def _topic_by_token(text: str) -> Optional[str]:
     return None
 
 
-_PHRASE_IN_APP = {
-    "nutrition": {"fa": "برنامه‌ی غذایی و تغذیه‌ات", "en": "your eating and meal plan", "ar": "تغذيتك وخطتك الغذائية"},
-    "exercise": {"fa": "ورزش و تحرکت", "en": "exercise and staying active", "ar": "الرياضة والحركة"},
-    "sleep": {"fa": "خوابت", "en": "your sleep", "ar": "نومك"},
-    "work": {"fa": "کار و دغدغه‌هات", "en": "work and what's on your plate", "ar": "العمل وما يشغلك"},
-    "family": {"fa": "خانواده‌ات", "en": "your family", "ar": "عائلتك"},
-    "hair": {"fa": "مراقبت از موهات", "en": "taking care of your hair", "ar": "العناية بشعرك"},
-    "skin": {"fa": "مراقبت از پوستت", "en": "taking care of your skin", "ar": "العناية ببشرتك"},
-    "weight": {"fa": "وزن و تناسب اندامت", "en": "your weight and fitness", "ar": "وزنك ولياقتك"},
-    "feelings": {"fa": "حال و روحیه‌ات", "en": "how you've been feeling", "ar": "مزاجك وحالك"},
-    "reminders": {"fa": "یادآورها و اعلان‌هات", "en": "your reminders and notifications", "ar": "تذكيراتك وإشعاراتك"},
-    "tone": {"fa": "لحن و سبک حرف زدنمون", "en": "how we talk to each other", "ar": "أسلوب حديثنا"},
-    "disease_generic": {"fa": "موضوع سلامتت", "en": "a health topic of yours", "ar": "موضوع صحي يهمك"},
-}
+_PHRASE_IN_APP = sedi_copy.nested_by_lang("recap.phrase_in_app")
 # Lock-screen copy: only coarse, non-revealing topics (feelings / family give no topic at all).
-_PHRASE_LOCK = {
-    "nutrition": _PHRASE_IN_APP["nutrition"],
-    "exercise": _PHRASE_IN_APP["exercise"],
-    "sleep": _PHRASE_IN_APP["sleep"],
-    "work": _PHRASE_IN_APP["work"],
-    "hair": _PHRASE_IN_APP["hair"],
-    "skin": _PHRASE_IN_APP["skin"],
-    "reminders": _PHRASE_IN_APP["reminders"],
-    "disease": _PHRASE_IN_APP["disease_generic"],
-}
+_PHRASE_LOCK = sedi_copy.nested_by_lang("recap.phrase_lock")
 
 
 def _lang(language: Optional[str]) -> str:

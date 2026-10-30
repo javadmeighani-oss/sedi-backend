@@ -29,6 +29,7 @@ from backend.app.services.gate4.notification_context import (
 from backend.app.services.i10.policy_types import I10SemanticFamily
 from backend.app.services.i10.self_producer_adapter import enqueue_self_scheduler_notification
 from backend.app.services.section10.feature_flags import _env_flag_enabled
+from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,7 @@ ALERT_CODE = "i8_motivation"
 DEFAULT_LOCAL_TIME = "09:00"
 SHIFTED_LOCAL_TIME = "17:30"
 WINDOW_HOURS = 3
-_TITLE = {
-    "fa": {"workout_day": "امروز روز حرکته", "comeback": "من اینجام", "milestone": "آفرین!"},
-    "en": {"workout_day": "Today is a move day", "comeback": "I am here", "milestone": "Well done!"},
-    "ar": {"workout_day": "اليوم يوم حركة", "comeback": "أنا هنا", "milestone": "أحسنت!"},
-}
+_TITLE = sedi_copy.by_lang("motivation.title")
 
 
 def motivation_enabled() -> bool:

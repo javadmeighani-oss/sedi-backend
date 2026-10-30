@@ -34,6 +34,7 @@ from backend.app.utils.jalali_calendar import (
     jalali_month_length,
     jalali_to_gregorian,
 )
+from backend.app import sedi_copy
 
 _DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
@@ -219,7 +220,7 @@ _TALK_TAIL = {
     "en": re.compile(r"\s*(?:to\s+)?(?:talk|chat|speak|discuss)(?:\s+about\s+it)?\s*$", re.IGNORECASE),
     "ar": re.compile(r"\s*(?:نتحدث|نتكلم|نناقش)\s*$"),
 }
-_TALK_TITLE = {"fa": "صحبت درباره‌ی {t}", "en": "talk about {t}", "ar": "الحديث عن {t}"}
+_TALK_TITLE = sedi_copy.by_lang("reminder.talk_title")
 
 
 def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
@@ -272,14 +273,7 @@ _EVENT_HINTS = (
     (re.compile(r"deadline|مهلت", re.I), "deadline", "work"),
 )
 
-_TITLE_DEFAULTS = {
-    "lab_test": {"fa": "آزمایش خون", "ar": "تحليل الدم", "en": "Lab test"},
-    "doctor_visit": {"fa": "نوبت دکتر", "ar": "موعد الطبيب", "en": "Doctor visit"},
-    "exam": {"fa": "امتحان", "ar": "اختبار", "en": "Exam"},
-    "work_meeting": {"fa": "جلسه", "ar": "اجتماع", "en": "Meeting"},
-    "deadline": {"fa": "مهلت کار", "ar": "موعد التسليم", "en": "Deadline"},
-    "other": {"fa": "یادآوری", "ar": "تذكير", "en": "Reminder"},
-}
+_TITLE_DEFAULTS = sedi_copy.nested_by_lang("reminder.title_default")
 
 
 @dataclass(frozen=True)
@@ -307,31 +301,11 @@ def _clarification(
     language: LanguageCode,
 ) -> ClarificationResult:
     messages = {
-        "tpl.reminder.datetime.v1": {
-            "en": "When should I remind you? Please tell me the date and time, like “tomorrow at 10 am”.",
-            "fa": "کِی یادت بندازم؟ روز و ساعتش رو بگو، مثلاً «فردا ساعت ۱۰ صبح».",
-            "ar": "متى أذكّرك؟ أخبرني باليوم والساعة، مثل «غداً الساعة 10 صباحاً».",
-        },
-        "tpl.reminder.past.v1": {
-            "en": "That time has already passed today. Which other time or day should I use?",
-            "fa": "این ساعت امروز گذشته. چه ساعت یا روز دیگه‌ای بذارم؟",
-            "ar": "هذا الوقت مضى اليوم. أي وقت أو يوم آخر أضع؟",
-        },
-        "tpl.reminder.timezone.v1": {
-            "en": "I need your timezone before I can schedule this. Please set your timezone in Profile.",
-            "fa": "برای زمان‌بندی به منطقهٔ زمانی شما نیاز دارم. لطفاً آن را در پروفایل تنظیم کنید.",
-            "ar": "أحتاج إلى منطقتك الزمنية قبل الجدولة. يرجى ضبطها في الملف الشخصي.",
-        },
-        "tpl.reminder.recurrence.v1": {
-            "en": "I can repeat a reminder every day or every week, like “every day at 8 remind me to drink water”. Which one would you like?",
-            "fa": "می‌تونم یادآور رو هر روز یا هر هفته تکرار کنم، مثلاً «هر روز ساعت ۸ یادم بنداز آب بخورم». کدومشو بذارم؟",
-            "ar": "يمكنني تكرار التذكير كل يوم أو كل أسبوع، مثل «كل يوم الساعة 8 ذكّرني بشرب الماء». أيهما تريد؟",
-        },
-        "tpl.reminder.title.v1": {
-            "en": "What should I put on your schedule?",
-            "fa": "چه چیزی را در برنامهٔ شما ثبت کنم؟",
-            "ar": "ماذا أضع في جدولك؟",
-        },
+        "tpl.reminder.datetime.v1": sedi_copy.by_lang("reminder.clarify.datetime"),
+        "tpl.reminder.past.v1": sedi_copy.by_lang("reminder.clarify.past"),
+        "tpl.reminder.timezone.v1": sedi_copy.by_lang("reminder.clarify.timezone"),
+        "tpl.reminder.recurrence.v1": sedi_copy.by_lang("reminder.clarify.recurrence"),
+        "tpl.reminder.title.v1": sedi_copy.by_lang("reminder.clarify.title"),
     }
     block = messages.get(template_id, messages["tpl.reminder.datetime.v1"])
     return ClarificationResult(
@@ -343,19 +317,13 @@ def _clarification(
 
 
 # D-130: the first words of Sedi's own "when should I remind you?" questions (datetime / past / title), fa + ar + en.
-_CLARIFICATION_OPENINGS = (
-    "When should I remind you?",
-    "That time has already passed today.",
-    "What should I put on your schedule?",
-    "کِی یادت بندازم؟",
-    "این ساعت امروز گذشته.",
-    "چه چیزی را در برنامهٔ شما ثبت کنم؟",
-    "متى أذكّرك؟",
-    "هذا الوقت مضى اليوم.",
-    "ماذا أضع في جدولك؟",
+_CLARIFICATION_OPENINGS = tuple(
+    sedi_copy.by_lang(f"reminder.clarify_opening.{which}")[lang]
+    for lang in ("en", "fa", "ar")
+    for which in ("datetime", "past", "title")
 )
 
-_ANSWER_PREFIX = {"fa": "یادم بنداز ", "ar": "ذكرني ", "en": "remind me "}
+_ANSWER_PREFIX = sedi_copy.by_lang("reminder.answer_prefix")
 
 
 _DIACRITICS = re.compile(r"[\u064b-\u065f\u0670\u200c\u200e\u200f]")

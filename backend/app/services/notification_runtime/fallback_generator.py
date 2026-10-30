@@ -12,6 +12,7 @@ from datetime import datetime
 
 from backend.app.services.memory.memory_context import MemoryContext
 from backend.app.schemas.notification import NotificationPayload
+from backend.app import sedi_copy
 
 SupportedLanguage = Literal["en", "fa", "ar"]
 
@@ -66,87 +67,39 @@ def generate_fallback_text(
         return "Hello."
 
 
+def _lang3(language: str) -> str:
+    return language if language in ("fa", "ar") else "en"
+
+
 def _generate_morning_brief(
     greeting_name: str,
     language: SupportedLanguage,
     memory_context: Optional[MemoryContext]
 ) -> str:
     """Generate morning brief notification text in specified language"""
-    
-    if language == "fa":
-        base = f"صبح بخیر {greeting_name}"
-        hints = []
-        
-        if memory_context:
-            if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
-                if memory_context.sleep_duration_hours < 6:
-                    hints.append("امشب بیشتر استراحت کن")
-                elif memory_context.sleep_duration_hours >= 7:
-                    hints.append("خواب خوبی داشتی")
-            
-            if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
-                if memory_context.hydration_ml < 1500:
-                    hints.append("یادت نره آب بخوری")
-            
-            if memory_context.has_activity_data():
-                if memory_context.steps_count and memory_context.steps_count > 5000:
-                    hints.append("فعالیت خوبی داشتی")
-        
-        if hints:
-            hint_text = "، ".join(hints[:2])
-            return f"{base} {hint_text}."
-        else:
-            return f"{base} روز خوبی داشته باشی."
-    
-    elif language == "ar":
-        base = f"صباح الخير {greeting_name}"
-        hints = []
-        
-        if memory_context:
-            if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
-                if memory_context.sleep_duration_hours < 6:
-                    hints.append("احصل على مزيد من الراحة الليلة")
-                elif memory_context.sleep_duration_hours >= 7:
-                    hints.append("كان نومك جيداً")
-            
-            if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
-                if memory_context.hydration_ml < 1500:
-                    hints.append("لا تنس شرب الماء")
-            
-            if memory_context.has_activity_data():
-                if memory_context.steps_count and memory_context.steps_count > 5000:
-                    hints.append("كان نشاطك جيداً")
-        
-        if hints:
-            hint_text = "، ".join(hints[:2])
-            return f"{base} {hint_text}."
-        else:
-            return f"{base} أتمنى لك يوماً جميلاً."
-    
-    else:  # en
-        base = f"Good morning {greeting_name}"
-        hints = []
-        
-        if memory_context:
-            if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
-                if memory_context.sleep_duration_hours < 6:
-                    hints.append("try to get more rest tonight")
-                elif memory_context.sleep_duration_hours >= 7:
-                    hints.append("you had good sleep")
-            
-            if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
-                if memory_context.hydration_ml < 1500:
-                    hints.append("remember to drink water")
-            
-            if memory_context.has_activity_data():
-                if memory_context.steps_count and memory_context.steps_count > 5000:
-                    hints.append("you had good activity")
-        
-        if hints:
-            hint_text = ", ".join(hints[:2])
-            return f"{base} {hint_text}."
-        else:
-            return f"{base} Have a wonderful day."
+    lang = _lang3(language)
+    base = sedi_copy.t("fallback.morning.base", lang, name=greeting_name)
+    hints = []
+
+    if memory_context:
+        if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
+            if memory_context.sleep_duration_hours < 6:
+                hints.append(sedi_copy.t("fallback.hint.sleep_low", lang))
+            elif memory_context.sleep_duration_hours >= 7:
+                hints.append(sedi_copy.t("fallback.hint.sleep_ok", lang))
+
+        if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
+            if memory_context.hydration_ml < 1500:
+                hints.append(sedi_copy.t("fallback.hint.water", lang))
+
+        if memory_context.has_activity_data():
+            if memory_context.steps_count and memory_context.steps_count > 5000:
+                hints.append(sedi_copy.t("fallback.hint.activity", lang))
+
+    if hints:
+        hint_text = sedi_copy.t("fallback.joiner", lang).join(hints[:2])
+        return f"{base} {hint_text}."
+    return f"{base} {sedi_copy.t('fallback.morning.cta', lang)}"
 
 
 def _generate_connection_ping(
@@ -155,32 +108,15 @@ def _generate_connection_ping(
     memory_context: Optional[MemoryContext]
 ) -> str:
     """Generate connection ping notification text in specified language"""
+    lang = _lang3(language)
     name = (greeting_name or "").strip()
-
-    if language == "fa":
-        prefix = f"{name} جان، " if name else ""
-        if memory_context and memory_context.has_activity_data():
-            check_in = "حالت چطوره؟ یه کم حرکت هم حالت رو بهتر می‌کنه؛ اگه خواستی با هم برنامه‌اش رو بچینیم"
-        else:
-            check_in = "امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم"
-        return f"{prefix}{check_in}."
-
-    elif language == "ar":
-        prefix = f"يا {name}، " if name else ""
-        if memory_context and memory_context.has_activity_data():
-            check_in = "كيف حالك؟ القليل من الحركة يحسّن مزاجك؛ إن شئت نخطط لذلك معاً"
-        else:
-            check_in = "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً"
-        return f"{prefix}{check_in}."
-
-    else:  # en
-        prefix = f"{name}, " if name else ""
-        if memory_context and memory_context.has_activity_data():
-            check_in = "how are you? A little movement can lift your mood; want to plan it together"
-        else:
-            check_in = "how is your day? I wanted to check in on you. Whenever you feel like it, let's talk"
-        body = f"{prefix}{check_in}."
-        return body[:1].upper() + body[1:]
+    prefix = sedi_copy.t("address.companion", lang, name=name) if name else ""
+    if memory_context and memory_context.has_activity_data():
+        check_in = sedi_copy.t("fallback.ping.activity", lang)
+    else:
+        check_in = sedi_copy.t("fallback.ping.plain", lang)
+    body = f"{prefix}{check_in}."
+    return body[:1].upper() + body[1:] if lang == "en" else body
 
 
 def _generate_health_alert(
@@ -189,77 +125,27 @@ def _generate_health_alert(
     metadata: Optional[Dict[str, Any]]
 ) -> str:
     """Generate health alert notification text in specified language"""
-    
+    lang = _lang3(language)
+
     # Extract alert reason from metadata
     alert_code = None
     alert_reason = None
-    
+
     if metadata:
         alert_code = metadata.get("alert_code")
         alert_reason = metadata.get("alert_reason")
-    
-    if language == "fa":
-        base = f"سلام {greeting_name}، یه نکته مهم"
-        
-        if alert_reason:
-            return f"{base}: {alert_reason}"
-        elif alert_code:
-            alert_messages = {
-                "heart_rate_high": "ضربان قلبت بالاست",
-                "heart_rate_low": "ضربان قلبت پایینه",
-                "low_spo2": "اکسیژن خونت پایینه",
-                "temperature_high": "دمای بدنت بالاست",
-                "irregular": "یه تغییر در وضعیت سلامتت دیده شده"
-            }
-            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
-            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
-            alert_messages["high_temperature"] = alert_messages["temperature_high"]
-            reason = alert_messages.get(alert_code, "یه تغییر در وضعیت سلامتت دیده شده")
-            return f"{base}: {reason}. بهتره بررسی کنی"
-        else:
-            return f"{base}: بهتره وضعیت سلامتت رو بررسی کنی"
-    
-    elif language == "ar":
-        base = f"مرحباً {greeting_name}، ملاحظة مهمة"
-        
-        if alert_reason:
-            return f"{base}: {alert_reason}"
-        elif alert_code:
-            alert_messages = {
-                "heart_rate_high": "نبضك مرتفع",
-                "heart_rate_low": "نبضك منخفض",
-                "low_spo2": "الأكسجين في دمك منخفض",
-                "temperature_high": "درجة حرارتك مرتفعة",
-                "irregular": "تم ملاحظة تغيير في حالتك الصحية"
-            }
-            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
-            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
-            alert_messages["high_temperature"] = alert_messages["temperature_high"]
-            reason = alert_messages.get(alert_code, "تم ملاحظة تغيير في حالتك الصحية")
-            return f"{base}: {reason}. من الأفضل أن تتحقق"
-        else:
-            return f"{base}: من الأفضل أن تتحقق من حالتك الصحية"
-    
-    else:  # en
-        base = f"Hello {greeting_name}, an important note"
-        
-        if alert_reason:
-            return f"{base}: {alert_reason}"
-        elif alert_code:
-            alert_messages = {
-                "heart_rate_high": "your heart rate is elevated",
-                "heart_rate_low": "your heart rate is low",
-                "low_spo2": "your blood oxygen is low",
-                "temperature_high": "your temperature is elevated",
-                "irregular": "a change in your health status was detected"
-            }
-            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
-            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
-            alert_messages["high_temperature"] = alert_messages["temperature_high"]
-            reason = alert_messages.get(alert_code, "a change in your health status was detected")
-            return f"{base}: {reason}. you should check"
-        else:
-            return f"{base}: you should check your health status"
+
+    base = sedi_copy.t("fallback.health.base", lang, name=greeting_name)
+    if alert_reason:
+        return f"{base}: {alert_reason}"
+    if alert_code:
+        aliases = {"high_heart_rate": "heart_rate_high", "low_heart_rate": "heart_rate_low", "high_temperature": "temperature_high"}
+        code = aliases.get(alert_code, alert_code)
+        reason_key = f"fallback.health.reason.{code}"
+        if not sedi_copy.has(reason_key):
+            reason_key = "fallback.health.reason.irregular"
+        return f"{base}: {sedi_copy.t(reason_key, lang)}. {sedi_copy.t('fallback.health.check', lang)}"
+    return f"{base}: {sedi_copy.t('fallback.health.check_status', lang)}"
 
 
 def _generate_device_disconnected(
@@ -269,19 +155,9 @@ def _generate_device_disconnected(
 ) -> str:
     """Generate device disconnected notification text in specified language"""
     device_id = (metadata or {}).get("device_id", "device")
-    if language == "fa":
-        return f"سلام {greeting_name}، اتصال دستگاه ({device_id}) قطع شده. وقتی می‌تونی دوباره وصلش کن"
-    elif language == "ar":
-        return f"مرحباً {greeting_name}، انقطع اتصال الجهاز ({device_id}). أعد الاتصال عندما تستطيع"
-    else:  # en
-        return f"Hello {greeting_name}, your device ({device_id}) has been disconnected. Reconnect when you can"
+    return sedi_copy.t("fallback.device.disconnected", _lang3(language), name=greeting_name, device=device_id)
 
 
 def _get_fallback_greeting(greeting_name: str, language: SupportedLanguage) -> str:
     """Get fallback greeting for unknown notification types"""
-    if language == "fa":
-        return f"سلام {greeting_name}، امیدوارم حالت خوب باشه"
-    elif language == "ar":
-        return f"مرحباً {greeting_name}، أتمنى أن تكون بخير"
-    else:  # en
-        return f"Hello {greeting_name}, I hope you're doing well"
+    return sedi_copy.t("fallback.greeting", _lang3(language), name=greeting_name)

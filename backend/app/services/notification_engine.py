@@ -33,6 +33,7 @@ from backend.app.services.notifications.adaptive_policy_v1 import (
     is_companion_send_allowed,
 )
 from backend.app.services.notifications.send_guard_v1 import can_send_v1
+from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +153,10 @@ def _build_render_inputs(
     """Build inputs dict for notification_runtime.render (Stage 16.6.4)."""
     inputs: Dict[str, Any] = {"user_display_name": user_name}
     lang = language if language in ("en", "fa", "ar") else "en"
-    _sleep_low = {"en": "Try to get more rest tonight", "fa": "امشب بیشتر استراحت کن", "ar": "احصل على مزيد من الراحة الليلة"}
-    _sleep_ok = {"en": "You had good sleep", "fa": "خواب خوبی داشتی", "ar": "كان نومك جيداً"}
-    _water = {"en": "Remember to drink water", "fa": "یادت نره آب بخوری", "ar": "لا تنس شرب الماء"}
-    _activity = {"en": "You had good activity", "fa": "فعالیت خوبی داشتی", "ar": "كان نشاطك جيداً"}
+    _sleep_low = sedi_copy.by_lang("engine.hint.sleep_low")
+    _sleep_ok = sedi_copy.by_lang("engine.hint.sleep_ok")
+    _water = sedi_copy.by_lang("engine.hint.water")
+    _activity = sedi_copy.by_lang("engine.hint.activity")
     if memory_context:
         if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
             if memory_context.sleep_duration_hours < 6:
@@ -186,28 +187,7 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
     Returns:
         Title string in the specified language
     """
-    titles = {
-        "morning_brief": {
-            "en": "Good Morning",
-            "fa": "صبح بخیر",
-            "ar": "صباح الخير"
-        },
-        "connection_ping": {
-            "en": "Hello",
-            "fa": "سلام",
-            "ar": "مرحباً"
-        },
-        "health_alert": {
-            "en": "Health Alert",
-            "fa": "هشدار سلامت",
-            "ar": "تنبيه صحي"
-        },
-        "device_disconnected": {
-            "en": "Device Disconnected",
-            "fa": "قطع اتصال دستگاه",
-            "ar": "انقطع الاتصال بالجهاز"
-        }
-    }
+    titles = sedi_copy.nested_by_lang("engine.title")
     
     type_titles = titles.get(notification_type, {})
     return type_titles.get(language, type_titles.get("en", "Notification"))
@@ -236,33 +216,7 @@ def _default_body_for_type(
     language = "en"
     if metadata and metadata.get("language") in ("en", "fa", "ar"):
         language = metadata["language"]
-    defaults = {
-        "health_alert": {
-            "en": "Health alert detected. Please review your readings.",
-            "fa": "هشدار سلامت ثبت شد. لطفاً وضعیت خود را بررسی کنید.",
-            "ar": "تم اكتشاف تنبيه صحي. يرجى التحقق من قراءاتك.",
-        },
-        "device_disconnected": {
-            "en": "Device connection lost. Please reconnect your device.",
-            "fa": "اتصال دستگاه قطع شده. لطفاً دستگاه را دوباره وصل کنید.",
-            "ar": "فُقد اتصال الجهاز. يرجى إعادة توصيل جهازك.",
-        },
-        "morning_brief": {
-            "en": "Good morning. Have a wonderful day.",
-            "fa": "صبح بخیر. روز خوبی داشته باشید.",
-            "ar": "صباح الخير. أتمنى لك يوماً سعيداً.",
-        },
-        "connection_ping": {
-            "en": "Hello. Hope you're doing well.",
-            "fa": "سلام. امیدوارم حالتون خوب باشه.",
-            "ar": "مرحباً. أتمنى أن تكون بخير.",
-        },
-        "companion_ping": {
-            "en": "Hi; I was thinking of you. If you'd like, tell me how today's going? 🌿",
-            "fa": "سلام؛ دلم برات تنگ شده. اگر دوست داری بگو امروز چطوره؟ 🌿",
-            "ar": "مرحباً؛ كنت أفكر بك. إذا أحببت، أخبرني كيف يومك؟ 🌿",
-        },
-    }
+    defaults = sedi_copy.nested_by_lang("engine.default_body")
     type_defaults = defaults.get(notification_type, defaults["health_alert"])
     return type_defaults.get(language, type_defaults["en"])
 
@@ -2039,11 +1993,11 @@ def persist_health_alert_d1(
     I10-B19: routes through canonical I10 intake (no direct builder bypass).
     """
     if not body or not body.strip():
-        body = "هشدار سلامت ثبت شد."
+        body = sedi_copy.t("engine.health_alert.fallback_body", "fa")
     payload = NotificationPayload(
         user_id=user_id,
         type="health_alert",
-        title=(title or "هشدار سلامت").strip(),
+        title=(title or sedi_copy.t("engine.health_alert.fallback_title", "fa")).strip(),
         body=body.strip(),
         priority=priority,
         scheduled_for=None,

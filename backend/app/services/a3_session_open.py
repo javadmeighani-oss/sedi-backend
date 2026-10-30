@@ -11,55 +11,21 @@ from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
+from backend.app import sedi_copy
 
 _OPENER_COOLDOWN = timedelta(hours=12)
 # P9: the app was closed and opened again. Any reopen counts; this only absorbs a crash/restart loop.
 _REOPEN_GUARD = timedelta(minutes=2)
 
-_INTRO: Dict[str, str] = {
-    "en": (
-        "Hello{name_part}. I'm Sedi, your personal health companion. "
-        "I listen and remember what matters under your privacy settings, "
-        "and I'm here to help you stay on track. "
-        "What feels most important or helpful to focus on right now?"
-    ),
-    "fa": (
-        "سلام{name_part}، من صدی‌ام؛ همراه سلامتت. "
-        "با رعایت حریم خصوصی‌ات گوش می‌دم، چیزهای مهم رو یادم می‌مونه "
-        "و کنارتم تا کمکت کنم. "
-        "الان چی برات مهم‌تره که روش تمرکز کنیم؟"
-    ),
-    "ar": (
-        "مرحبًا{name_part}. أنا صدی، مرافقتك الصحية. "
-        "أستمع وأحتفظ بما يهمك وفق إعدادات خصوصيتك، "
-        "وأنا هنا لأساعدك على المتابعة. "
-        "ما الأمر الأهم أو الأكثر فائدة للتركيز عليه الآن؟"
-    ),
-}
+_INTRO: Dict[str, str] = sedi_copy.by_lang("session.intro")
 
-_OPENERS: Dict[str, list[str]] = {
-    "en": [
-        "{hello} How is your day going? Whatever is on your mind, I'm listening.",
-        "{hello} I wanted to check in on you. What's new today?",
-    ],
-    "fa": [
-        "{hello} امروز حالت چطوره؟ هر چی تو ذهنته بگو، من گوش می‌دم.",
-        "{hello} دلم می‌خواست احوالت رو بپرسم؛ امروز چه خبر؟",
-    ],
-    "ar": [
-        "{hello} كيف حالك اليوم؟ مهما كان في بالك، أنا أُصغي إليك.",
-        "{hello} أحببت أن أطمئن عليك. ما الجديد اليوم؟",
-    ],
-}
+_OPENERS: Dict[str, list[str]] = sedi_copy.by_lang("session.openers")
 
 
 def _hello(lang: str, name_part: str) -> str:
     """Friendly greeting without the stiff «خوش برگشتی»; «جان» only when there is a name."""
-    if lang == "fa":
-        return f"سلام{name_part} جان!" if name_part else "سلام!"
-    if lang == "ar":
-        return f"أهلاً{name_part}!"
-    return f"Hi{name_part}!"
+    key = "session.hello" if name_part else "session.hello_noname"
+    return sedi_copy.t(key, lang, name_part=name_part)
 
 
 def _lang(user: models.User) -> str:
@@ -71,11 +37,7 @@ def _name_part_from(name: Optional[str], lang: str) -> str:
     cleaned = (name or "").strip()
     if not cleaned:
         return ""
-    if lang == "fa":
-        return f" {cleaned}"
-    if lang == "ar":
-        return f" {cleaned}"
-    return f", {cleaned}"
+    return sedi_copy.t("session.name_part", lang, name=cleaned)
 
 
 def _name_part(user: models.User, lang: str) -> str:
@@ -141,11 +103,7 @@ def authorized_last_eligible_turn(db: Session, user_id: int) -> Optional[models.
 
 def _continuity_opener(lang: str, topic: str, name_part: str) -> str:
     """One sentence recap of the last topic + an invitation to continue or to start something else (R-011)."""
-    templates = {
-        "en": "{hello} Last time we talked about {topic}. Want to pick that up again, or is something else on your mind today?",
-        "fa": "{hello} آخرین بار درباره‌ی {topic} حرف می‌زدیم. می‌خوای همون رو ادامه بدیم، یا امروز یه موضوع دیگه تو ذهنته؟",
-        "ar": "{hello} آخر مرة تحدثنا عن {topic}. هل تحب أن نكمل، أم عندك موضوع آخر اليوم؟",
-    }
+    templates = sedi_copy.by_lang("session.continuity")
     template = templates.get(lang, templates["en"])
     return template.format(hello=_hello(lang, name_part), topic=topic)
 
@@ -219,9 +177,7 @@ def _notification_name_prefix(name: Optional[str], lang: str) -> str:
     cleaned = (name or "").strip()
     if not cleaned:
         return ""
-    if lang in ("fa", "ar"):
-        return f"{cleaned}، "
-    return f"{cleaned}, "
+    return sedi_copy.t("address.plain", lang if lang in ("fa", "ar") else "en", name=cleaned)
 
 
 def _presence_continuation_opener(
@@ -232,63 +188,29 @@ def _presence_continuation_opener(
 ) -> str:
     prefix = _notification_name_prefix(name, lang)
     if topic_phrase:
-        templates = {
-            "en": (
-                "{prefix}last time we talked about {topic}. "
-                "Want to pick that up again, or is something else on your mind?"
-            ),
-            "fa": (
-                "{prefix}آخرین بار درباره‌ی {topic} حرف می‌زدیم. "
-                "می‌خوای همون رو ادامه بدیم، یا یه موضوع دیگه تو ذهنته؟"
-            ),
-            "ar": (
-                "{prefix}آخر مرة تحدثنا عن {topic}. "
-                "هل تحب أن نكمل، أم عندك موضوع آخر؟"
-            ),
-        }
+        templates = sedi_copy.by_lang("session.presence_continuation")
         body = templates.get(lang, templates["en"]).format(prefix=prefix, topic=topic_phrase)
         return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
-    generics = {
-        "en": f"{prefix}how are you? We can pick up where we left off, or talk about something new.".strip(),
-        "fa": f"{prefix}حالت چطوره؟ می‌تونیم از همون‌جا که موندیم ادامه بدیم یا درباره‌ی یه چیز تازه حرف بزنیم.".strip(),
-        "ar": f"{prefix}كيف حالك؟ يمكننا أن نتابع من حيث توقفنا أو نتحدث عن شيء جديد.".strip(),
-    }
-    body = generics.get(lang, generics["en"])
+    body = sedi_copy.t("session.presence_generic", lang, prefix=prefix).strip()
     return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
 
 
 def _daily_digest_opener(*, lang: str, name: Optional[str]) -> str:
     """Calm family-specific opener for DAILY_WELLNESS_DIGEST (no raw body)."""
     prefix = _notification_name_prefix(name, lang)
-    templates = {
-        "en": f"{prefix}Ready for your daily Sedi check-in?".strip(),
-        "fa": f"{prefix}برای پیگیری روزانه صدی آماده‌ای؟".strip(),
-        "ar": f"{prefix}هل أنت مستعد للمتابعة اليومية مع صدی؟".strip(),
-    }
-    return templates.get(lang, templates["en"])
+    return sedi_copy.t("session.daily_digest", lang, prefix=prefix).strip()
 
 
 def _generic_notification_origin_opener(*, lang: str, name: Optional[str]) -> str:
     prefix = _notification_name_prefix(name, lang)
-    templates = {
-        "en": f"{prefix}You opened this from a Sedi notification. How would you like to continue?".strip(),
-        "fa": f"{prefix}از اعلان صدی آمدی. می‌خواهی از همین‌جا ادامه بدهیم؟".strip(),
-        "ar": f"{prefix}فتحت هذا من إشعار صدی. كيف تريد المتابعة؟".strip(),
-    }
-    return templates.get(lang, templates["en"])
+    return sedi_copy.t("session.origin_generic", lang, prefix=prefix).strip()
 
 
 def _care_checkin_opener(*, lang: str, name: Optional[str]) -> str:
     """R-019: the user tapped Sedi's caring check-in. Warm, no event named (chat context carries it privately)."""
     cleaned = (name or "").strip()
-    if lang == "fa":
-        who = f"{cleaned} جان، " if cleaned else ""
-        return f"{who}خوشحالم که اومدی. دلم می‌خواست بدونم این روزها چطوری؛ هرچی تو دلته بگو، من گوش می‌دم."
-    if lang == "ar":
-        who = f"{cleaned}، " if cleaned else ""
-        return f"{who}سعيدة أنك جئت. أردت أن أعرف كيف حالك هذه الأيام؛ قل ما في قلبك، أنا أُصغي."
-    who = f"{cleaned}, " if cleaned else ""
-    return f"{who}I'm glad you came. I wanted to know how you've been these days; tell me whatever is on your heart, I'm listening."
+    who = sedi_copy.t("address.followup", lang, name=cleaned) if cleaned else ""
+    return sedi_copy.t("session.care_checkin", lang, who=who)
 
 
 def build_notification_origin_opener(
