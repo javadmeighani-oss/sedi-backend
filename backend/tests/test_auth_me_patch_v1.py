@@ -108,3 +108,48 @@ def test_patch_auth_me_get_reflects_both_updates(client: TestClient, db, monkeyp
     assert me_data.get("display_name") == "Sara"
     assert me_data.get("phone") == phone
     assert "user_id" in me_data
+
+
+def test_patch_auth_me_language_mirrors_knowledge_and_core_copies(client: TestClient, db, monkeypatch):
+    """The account language is also stored in UserProfileKnowledge and UserProfileCore; they must follow it."""
+    from backend.app import models
+    from backend.app.services.user_context.user_context_service import UserContextService
+
+    phone = "+989125555555"
+    token = _access_token_for_phone(client, db, monkeypatch, phone)
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    assert user is not None
+    db.add(models.UserProfileKnowledge(user_id=user.id, display_name="Sara", language="fa"))
+    db.add(models.UserProfileCore(user_id=user.id, language="fa"))
+    db.commit()
+
+    r = client.patch(
+        "/auth/me",
+        json={"preferred_language": "en"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200, r.text
+
+    db.expire_all()
+    knowledge = db.query(models.UserProfileKnowledge).filter_by(user_id=user.id).first()
+    core = db.query(models.UserProfileCore).filter_by(user_id=user.id).first()
+    assert knowledge.language == "en"
+    assert core.language == "en"
+    assert UserContextService(db).get_user_context(user.id).language == "en"
+
+
+def test_patch_auth_me_language_without_copies_creates_nothing(client: TestClient, db, monkeypatch):
+    from backend.app import models
+
+    phone = "+989126666666"
+    token = _access_token_for_phone(client, db, monkeypatch, phone)
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    before = db.query(models.UserProfileKnowledge).filter_by(user_id=user.id).count()
+
+    r = client.patch(
+        "/auth/me",
+        json={"preferred_language": "ar"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200, r.text
+    assert db.query(models.UserProfileKnowledge).filter_by(user_id=user.id).count() == before
