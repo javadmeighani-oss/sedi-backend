@@ -43,6 +43,32 @@ def build_me_response(db: Session, user: models.User) -> dict:
     ).model_dump()
 
 
+def _mirror_language_copies(db: Session, user_id: int, language: str) -> None:
+    """Keep the two stored copies of the account language equal to users.preferred_language.
+
+    UserContextService reads UserProfileKnowledge.language first and UserProfileCore.language
+    next, so a stale copy would keep the chat context and the session opener in the old language.
+    Existing rows only; nothing is created here.
+    """
+    now = datetime.utcnow()
+    knowledge = (
+        db.query(models.UserProfileKnowledge)
+        .filter(models.UserProfileKnowledge.user_id == user_id)
+        .first()
+    )
+    if knowledge is not None:
+        knowledge.language = language
+        knowledge.updated_at = now
+    core = (
+        db.query(models.UserProfileCore)
+        .filter(models.UserProfileCore.user_id == user_id)
+        .first()
+    )
+    if core is not None:
+        core.language = language
+        core.updated_at = now
+
+
 def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> models.User:
     """Apply PATCH fields to User and UserProfileCore (lazy-create core row)."""
     profile: Optional[models.UserProfileCore] = None
@@ -76,6 +102,7 @@ def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> mo
 
     if body.preferred_language is not None:
         user.preferred_language = body.preferred_language
+        _mirror_language_copies(db, user.id, body.preferred_language)
 
     if core_fields_set:
         profile = ensure_profile_core(db, user.id)
