@@ -36,6 +36,7 @@ from backend.app.services.i9.i8_projection_service import (
     get_i8_governed_context_projection,
     projection_context_refs,
 )
+from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
@@ -84,40 +85,11 @@ class DailyWellnessDigestFacts:
     style: str = "default"
 
 
-_DIGEST_TITLES = {
-    "en": ("Daily wellness check-in", "Your daily Sedi check-in", "Today with Sedi"),
-    "fa": ("چک‌این روزانه سلامتی", "پیگیری روزانه صدی", "امروز با صدی"),
-    "ar": ("متابعة الصحة اليومية", "تفقدك اليومي مع صدی", "اليوم مع صدی"),
-}
+_DIGEST_TITLES = sedi_copy.by_lang("digest.titles")
 
 # R-011 (2026-10-20): GENERAL_CHECKIN speaks in Sedi's warm, human, friend-like voice. Still deterministic and
 # code-owned (no free-form AI rewrite), but rotates over (title, body) pairs so adjacent days never repeat.
-_GENERAL_CHECKIN_PAIRS = {
-    "fa": (
-        ("صبح بخیر از صدی", "امروز چطوری عزیزم؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم."),
-        ("یه سر زدم", "فقط اومدم بگم کنارتم. امروز چه خبر؟ اگه دلت خواست، برام تعریف کن."),
-        ("حال و روزت چطوره؟", "یادم افتاد ازت بپرسم امروز حالت چطوره. هر چی تو دلته بگو، من گوش می‌دم."),
-        ("یه قدم کوچیک برای امروز", "امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه قدم قدم‌زدن. اگه خواستی با هم برنامه‌اش رو بچینیم."),
-        ("صدی اینجاست", "هر وقت دلت خواست حرف بزنی یا فقط یکی گوش بده، من اینجام. امروز چطور گذشت؟"),
-        ("مراقب خودت باش", "امیدوارم امروز بهت خوش بگذره. اگه چیزی ناراحتت کرده یا خسته‌ای، بگو تا با هم ببینیم چی کمکت می‌کنه."),
-    ),
-    "en": (
-        ("Good morning from Sedi", "How is your day going? I wanted to check in on you. Whenever you feel like it, let's talk."),
-        ("Just dropping by", "I only wanted to say I'm right here with you. Tell me about your day if you like."),
-        ("How are you really?", "I wondered how you're feeling today. Tell me whatever is on your heart, I'm listening."),
-        ("One small step today", "Do one small thing for yourself today: a glass of water, a few deep breaths or a short walk. Want to plan it together?"),
-        ("Sedi is here", "Whenever you want to talk, or just have someone listen, I'm here. How did today go?"),
-        ("Take care of you", "I hope today is kind to you. If something is bothering you or you're tired, tell me and let's see what helps."),
-    ),
-    "ar": (
-        ("صباح الخير من صدی", "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً."),
-        ("مررتُ لأطمئن", "أردت فقط أن أقول إني بجانبك. احكِ لي كيف كان يومك إن شئت."),
-        ("كيف حالك فعلاً؟", "تساءلتُ كيف تشعر اليوم. قل لي ما في قلبك، أنا أُصغي."),
-        ("خطوة صغيرة اليوم", "افعل شيئاً صغيراً لنفسك اليوم: كوب ماء أو بعض الأنفاس العميقة أو مشياً قصيراً. هل نخطط لذلك معاً؟"),
-        ("صدی هنا", "متى أردت أن تتحدث أو تجد من يُصغي، أنا هنا. كيف مرّ يومك؟"),
-        ("اعتنِ بنفسك", "أتمنى أن يكون يومك لطيفاً. إن كان شيء يضايقك أو كنت متعباً، أخبرني لنرى ما يساعدك."),
-    ),
-}
+_GENERAL_CHECKIN_PAIRS = sedi_copy.by_lang("digest.general_checkin.pairs")
 
 # Backwards-compatible single-string views (first pair) for importers that expect one canonical string.
 _GENERAL_CHECKIN_TITLES = {lang: pairs[0][0] for lang, pairs in _GENERAL_CHECKIN_PAIRS.items()}
@@ -130,131 +102,21 @@ _GENERAL_BODIES = {
     "ar": (_GENERAL_CHECKIN_BODIES["ar"],),
 }
 
-_NO_DATA_BODIES = {
-    "en": (
-        "No fresh readings from your device yet today. That's okay. Whenever you like, let's just talk.",
-        "I don't have enough data for a full picture of today yet, but I'm here whenever you want to talk.",
-        "Today's picture isn't complete yet. Whenever you feel like it, I'm here for a gentle check-in.",
-    ),
-    "fa": (
-        "امروز هنوز خبر تازه‌ای از دستگاهت نرسیده. اشکالی نداره؛ هر وقت دوست داشتی بیا با هم حرف بزنیم.",
-        "هنوز داده‌ی کافی برای یه جمع‌بندی کامل از امروزت ندارم. ولی من اینجام، اگه خواستی حرف بزنیم.",
-        "تصویر امروز هنوز کامل نیست. هر وقت دلت خواست، یه چک‌این آرام کنارتم.",
-    ),
-    "ar": (
-        "لم تصلني قراءات جديدة من جهازك اليوم. لا بأس، متى أحببت لنتحدث.",
-        "لا أملك بيانات كافية لصورة كاملة عن يومك بعد، لكني هنا متى أردت أن نتحدث.",
-        "صورة اليوم لم تكتمل بعد. متى شئت أنا بجانبك لتفقد لطيف.",
-    ),
-}
+_NO_DATA_BODIES = sedi_copy.by_lang("digest.no_data.bodies")
 
-_SAFETY_BODIES = {
-    "en": (
-        "There is a safety-related update waiting for you. Open Sedi to review it calmly.",
-        "Sedi has a safety check-in for you today. Tap to continue in chat.",
-    ),
-    "fa": (
-        "یه موضوع مربوط به سلامتت هست که می‌خوام آروم باهات مرورش کنم. بیا با هم ببینیم.",
-        "امروز یه چک‌این ایمنی برات دارم؛ نگران نباش، فقط می‌خوام مطمئن بشم حالت خوبه. بیا حرف بزنیم.",
-    ),
-    "ar": (
-        "هناك تحديث متعلق بالسلامة بانتظارك. افتح صدی لمراجعته بهدوء.",
-        "لدى صدی تفقد سلامة لك اليوم. اضغط للمتابعة في المحادثة.",
-    ),
-}
+_SAFETY_BODIES = sedi_copy.by_lang("digest.safety.bodies")
 
-_I9_SUFFICIENT_BODIES = {
-    "en": (
-        "Observed device data was received for today's window. Open Sedi for a short factual check-in.",
-        "Your recent device observations are available. Continue in Sedi for a bounded daily review.",
-    ),
-    "fa": (
-        "دادهٔ مشاهده‌شدهٔ دستگاه برای بازهٔ امروز دریافت شد. برای چک‌این کوتاه صدی را باز کن.",
-        "مشاهدات اخیر دستگاه در دسترس است. برای مرور محدود روزانه در صدی ادامه بده.",
-    ),
-    "ar": (
-        "تم استلام بيانات الجهاز المرصودة لنافذة اليوم. افتح صدی لتفقد واقعي قصير.",
-        "ملاحظات جهازك الأخيرة متاحة. تابع في صدی لمراجعة يومية محدودة.",
-    ),
-}
+_I9_SUFFICIENT_BODIES = sedi_copy.by_lang("digest.i9_sufficient.bodies")
 
-_I9_PARTIAL_BODIES = {
-    "en": (
-        "Today's available data is incomplete, so a full comparison is not available. Open Sedi to continue.",
-        "Observed coverage is partial for today. Sedi can help with a gentle check-in.",
-    ),
-    "fa": (
-        "دادهٔ امروز ناقص است؛ مقایسهٔ کامل ممکن نیست. برای ادامه صدی را باز کن.",
-        "پوشش مشاهده‌شده برای امروز جزئی است. صدی می‌تواند یک چک‌این آرام کمک کند.",
-    ),
-    "ar": (
-        "بيانات اليوم غير مكتملة، لذا المقارنة الكاملة غير متاحة. افتح صدی للمتابعة.",
-        "التغطية المرصودة جزئية لليوم. يمكن لصدی المساعدة بتفقد لطيف.",
-    ),
-}
+_I9_PARTIAL_BODIES = sedi_copy.by_lang("digest.i9_partial.bodies")
 
-_I9_STALE_BODIES = {
-    "en": (
-        "Observed data exists but is older than expected for today. Open Sedi for a short check-in.",
-        "The latest rollup is older than usual. Continue in Sedi when ready.",
-    ),
-    "fa": (
-        "دادهٔ مشاهده‌شده هست اما از حد انتظار امروز قدیمی‌تر است. برای چک‌این کوتاه صدی را باز کن.",
-        "آخرین رول‌آپ قدیمی‌تر از معمول است. هر وقت آماده بودی در صدی ادامه بده.",
-    ),
-    "ar": (
-        "توجد بيانات مرصودة لكنها أقدم مما هو متوقع لليوم. افتح صدی لتفقد قصير.",
-        "أحدث ملخص أقدم من المعتاد. تابع في صدی عندما تكون مستعدًا.",
-    ),
-}
+_I9_STALE_BODIES = sedi_copy.by_lang("digest.i9_stale.bodies")
 
-_I8_BODIES = {
-    "en": (
-        "You have an active plan item for today. Open Sedi to continue with it.",
-        "A current action from your plan is waiting. Continue in Sedi when ready.",
-    ),
-    "fa": (
-        "یه کار از برنامه‌ات برای امروز مونده. هر وقت آماده بودی، بیا با هم ادامه‌اش بدیم.",
-        "یکی از قدم‌های برنامه‌ات منتظرته. من کنارتم؛ هر وقت خواستی شروع کنیم.",
-    ),
-    "ar": (
-        "لديك عنصر خطة نشط لليوم. افتح صدی للمتابعة.",
-        "إجراء حالي من خطتك بانتظارك. تابع في صدی عندما تكون مستعدًا.",
-    ),
-}
+_I8_BODIES = sedi_copy.by_lang("digest.i8.bodies")
 
-_I6_I7_BODIES = {
-    "en": (
-        "A short lifestyle or goal note is ready for a gentle daily check-in. Open Sedi to continue.",
-        "Your permitted daily context suggests a light follow-up. Continue in Sedi.",
-    ),
-    "fa": (
-        "یادم نرفته دنبال چی هستی. بیا امروز یه قدم کوچیک بهش نزدیک‌تر بشیم.",
-        "یه فکر کوچیک برای امروزت دارم. هر وقت خواستی، بیا با هم ببینیمش.",
-    ),
-    "ar": (
-        "ملاحظة قصيرة عن نمط الحياة أو الهدف جاهزة لتفقد يومي لطيف. افتح صدی للمتابعة.",
-        "سياقك اليومي المسموح يقترح متابعة خفيفة. تابع في صدی.",
-    ),
-}
+_I6_I7_BODIES = sedi_copy.by_lang("digest.i6_i7.bodies")
 
-_GENERAL_BODIES = {
-    "en": (
-        "Good morning — a gentle daily check-in from Sedi is ready when you are.",
-        "Sedi is here for a short daily hello. Open chat whenever you like.",
-        "One calm touchpoint for today. Continue with Sedi when ready.",
-    ),
-    "fa": (
-        "صبح بخیر — یک چک‌این روزانهٔ آرام از صدی هر وقت بخواهی آماده است.",
-        "صدی برای یک سلام کوتاه روزانه اینجاست. هر وقت خواستی گفتگو را باز کن.",
-        "یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده.",
-    ),
-    "ar": (
-        "صباح الخير — تفقد يومي لطيف من صدی جاهز متى شئت.",
-        "صدی هنا لسلام يومي قصير. افتح المحادثة متى أحببت.",
-        "لمسة هادئة واحدة لليوم. تابع مع صدی عندما تكون مستعدًا.",
-    ),
-}
+_GENERAL_BODIES = sedi_copy.by_lang("digest.general.bodies")
 
 # English fact strings retained for assemble_* compatibility / tests (payload uses localized render).
 _EN_ALERT_NONE = "No qualifying alert was recorded during the period."
@@ -602,28 +464,17 @@ def assemble_daily_wellness_digest_facts(
     )
 
 
-_PLAN_TITLES = {
-    "morning": {"fa": "برنامه‌ی امروزت", "en": "Your plan for today", "ar": "خطتك لليوم"},
-    "evening": {"fa": "مرور برنامه‌ی امروز", "en": "Today's plan review", "ar": "مراجعة خطة اليوم"},
-}
+_PLAN_TITLES = sedi_copy.nested_by_lang("digest.plan_title")
 
 
 def _plan_progress_body(p: dict, mode: str, lang: str) -> str:
     """Deterministic, factual copy from the user's own plan counts (no health claims)."""
     done, total, skipped = p["done"], p["total"], p.get("skipped", 0)
-    nxt = "؛ ".join(p.get("next", [])) if lang != "en" else "; ".join(p.get("next", []))
+    nxt = sedi_copy.t("digest.plan.joiner", lang).join(p.get("next", []))
     if mode == "evening":
-        return {
-            "fa": f"امروز {done} از {total} مورد برنامه‌ات انجام شد. بقیه چطور پیش رفت؟ اگه انجام ندادی بگو چرا تا برنامه‌ی فردا رو متناسب‌تر کنم.",
-            "en": f"Today {done} of {total} plan items were done. How did the rest go? If you skipped any, tell me why so I can fit tomorrow better.",
-            "ar": f"اليوم أُنجز {done} من {total} من خطتك. كيف سار الباقي؟ إن تركت شيئاً فأخبرني لماذا لأناسب الغد.",
-        }[lang]
-    tail = {"fa": f" اولین‌ها: {nxt}." if nxt else "", "en": f" Up next: {nxt}." if nxt else "", "ar": f" التالي: {nxt}." if nxt else ""}[lang]
-    return {
-        "fa": f"امروز {total} مورد توی برنامه‌ات داری.{tail} بعد از هر کدوم بگو «انجام شد».",
-        "en": f"You have {total} plan items today.{tail} Tell me \"done\" after each one.",
-        "ar": f"لديك {total} عناصر في خطتك اليوم.{tail} قل لي «تم» بعد كل واحد.",
-    }[lang]
+        return sedi_copy.t("digest.plan.evening", lang, done=done, total=total)
+    tail = sedi_copy.t("digest.plan.tail", lang, next=nxt) if nxt else ""
+    return sedi_copy.t("digest.plan.morning", lang, total=total, tail=tail)
 
 
 def _general_checkin_pair(facts: DailyWellnessDigestFacts, lang: str) -> tuple[str, str]:

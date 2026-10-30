@@ -22,14 +22,12 @@ from backend.app.services.gate4.notification_context import (
 from backend.app.services.i10.policy_types import I10SemanticFamily
 from backend.app.services.i10.self_producer_adapter import enqueue_self_scheduler_notification
 from backend.app.services.section10.feature_flags import _env_flag_enabled
+from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
 WINDOW_HOURS = 3
-_TITLE = {
-    "nutrition": {"fa": "مرور هفته‌ی برنامه‌ی غذایی", "en": "Your meal-plan week", "ar": "مراجعة أسبوع الخطة الغذائية"},
-    "exercise": {"fa": "مرور هفته‌ی ورزشت", "en": "Your exercise week", "ar": "مراجعة أسبوع التمرين"},
-}
+_TITLE = sedi_copy.nested_by_lang("weekly_review.title")
 _FAMILY = {
     "nutrition": I10SemanticFamily.NUTRITION_PLAN_FOLLOW_UP,
     "exercise": I10SemanticFamily.EXERCISE_PLAN_FOLLOW_UP,

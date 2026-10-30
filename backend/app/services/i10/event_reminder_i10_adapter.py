@@ -27,6 +27,7 @@ from backend.app.services.i10.policy_types import (
     I10SemanticFamily,
 )
 from backend.app.services.i10.self_producer_adapter import resolve_or_ensure_self_health_subject_id
+from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +103,7 @@ def resolve_event_semantic_family(event_type: str, *, medical: bool = True) -> I
 
 
 REMINDER_EXPIRY_GRACE_MINUTES = 30
-_TITLES = {
-    "fa": "یادآوری از صدی",
-    "ar": "تذكير من صدی",
-    "en": "Reminder from Sedi",
-}
+_TITLES = sedi_copy.by_lang("reminder.event.title")
 
 
 def event_starts_utc(event: models.UserEvent) -> Optional[datetime]:
@@ -134,34 +131,25 @@ def _user_language(db: Optional[Session], user_id: int) -> str:
     return lang if lang in ("fa", "ar", "en") else "en"
 
 
+_FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+
+
 def _lead_phrase(offset_min: int, lang: str) -> str:
     """How far ahead the event is: "الان" / "یه ساعت دیگه" / "in 15 minutes"."""
     if offset_min <= 0:
-        return {"fa": "الان", "ar": "الآن", "en": "Now"}[lang]
-    if lang == "fa":
-        digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
-        if offset_min % 1440 == 0:
-            n = offset_min // 1440
-            return "فردا" if n == 1 else f"{n} روز دیگه".translate(digits)
-        if offset_min % 60 == 0:
-            n = offset_min // 60
-            return "یه ساعت دیگه" if n == 1 else f"{n} ساعت دیگه".translate(digits)
-        return f"{offset_min} دقیقه دیگه".translate(digits)
-    if lang == "ar":
-        if offset_min % 1440 == 0:
-            n = offset_min // 1440
-            return "غداً" if n == 1 else f"بعد {n} أيام"
-        if offset_min % 60 == 0:
-            n = offset_min // 60
-            return "بعد ساعة" if n == 1 else f"بعد {n} ساعات"
-        return f"بعد {offset_min} دقيقة"
+        return sedi_copy.by_lang("reminder.lead.now")[lang]
+
+    def put(key: str, n: Optional[int] = None) -> str:
+        text = sedi_copy.t(key, lang, **({} if n is None else {"n": n}))
+        return text.translate(_FA_DIGITS) if lang == "fa" else text
+
     if offset_min % 1440 == 0:
         n = offset_min // 1440
-        return "Tomorrow" if n == 1 else f"In {n} days"
+        return put("reminder.lead.tomorrow") if n == 1 else put("reminder.lead.days", n)
     if offset_min % 60 == 0:
         n = offset_min // 60
-        return "In 1 hour" if n == 1 else f"In {n} hours"
-    return f"In {offset_min} minutes"
+        return put("reminder.lead.one_hour") if n == 1 else put("reminder.lead.hours", n)
+    return put("reminder.lead.minutes", offset_min)
 
 
 def _reminder_copy(
@@ -181,35 +169,15 @@ def _reminder_copy(
     lead = _lead_phrase(offset_min, lang)
     if not medical:
         label = (event.title or "").strip()
-        if lang == "fa":
-            body = f"{lead} وقتِ «{label}»ه 🌿" if label else f"{lead} وقت یادآوری‌ته 🌿"
-        elif lang == "ar":
-            body = f"{lead} موعد «{label}» 🌿" if label else f"{lead} موعد تذكيرك 🌿"
-        else:
-            body = f"{lead}: {label} 🌿" if label else f"{lead} it's time for your reminder 🌿"
-        return title, body, "generic_event_reminder"
+        key = "reminder.event.generic" if label else "reminder.event.generic_nolabel"
+        return title, sedi_copy.t(key, lang, lead=lead, label=label), "generic_event_reminder"
     if event.event_type == DOCTOR_EVENT_TYPE:
-        template_key = "doctor_appointment_reminder"
-        body = {
-            "fa": f"{lead} وقت نوبت دکترته 🌿",
-            "ar": f"{lead} موعد زيارة طبيبك 🌿",
-            "en": f"{lead}: your doctor visit 🌿",
-        }[lang]
+        template_key, copy_key = "doctor_appointment_reminder", "reminder.event.doctor"
     elif event.event_type == LAB_EVENT_TYPE:
-        template_key = "lab_appointment_reminder"
-        body = {
-            "fa": f"{lead} وقت آزمایشته 🌿",
-            "ar": f"{lead} موعد تحليلك 🌿",
-            "en": f"{lead}: your lab test 🌿",
-        }[lang]
+        template_key, copy_key = "lab_appointment_reminder", "reminder.event.lab"
     else:
-        template_key = "medical_event_reminder"
-        body = {
-            "fa": f"{lead} یه برنامه‌ی پزشکی داری 🌿",
-            "ar": f"{lead} لديك موعد طبي 🌿",
-            "en": f"{lead}: you have a medical event 🌿",
-        }[lang]
-    return title, body, template_key
+        template_key, copy_key = "medical_event_reminder", "reminder.event.medical"
+    return title, sedi_copy.t(copy_key, lang, lead=lead), template_key
 
 
 def build_event_reminder_payload(

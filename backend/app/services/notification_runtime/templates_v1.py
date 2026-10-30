@@ -8,6 +8,8 @@ Dedup key format: {template_key}:{user_id}:{YYYY-MM-DD}.
 
 from typing import Any, Dict, List, Optional
 
+from backend.app import sedi_copy
+
 # Backend payload type (NotificationPayload); contract uses type + priority
 BACKEND_TYPE_COMPANION = "connection_ping"
 BACKEND_TYPE_HEALTH = "health_alert"
@@ -21,20 +23,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "channel": "companion",
         "type": BACKEND_TYPE_COMPANION,
         "priority": "normal",
-        "texts": {
-            "fa": {
-                "title": "سلام از صدی",
-                "message": "امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم.",
-            },
-            "en": {
-                "title": "Hello from Sedi",
-                "message": "How is your day going? I wanted to check in on you. Whenever you feel like it, let's talk.",
-            },
-            "ar": {
-                "title": "تحية من صدی",
-                "message": "كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً.",
-            },
-        },
+        "texts": sedi_copy.by_lang("template.companion_daily_checkin_v1"),
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "companion_daily_checkin_v1"},
     },
@@ -44,20 +33,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "channel": "companion",
         "type": BACKEND_TYPE_COMPANION,
         "priority": "normal",
-        "texts": {
-            "fa": {
-                "title": "تحرک",
-                "message": "یه قدم کوچیک بردار؛ بدنت ازت ممنون می‌شه. اگه خواستی من کنارتم.",
-            },
-            "en": {
-                "title": "Move a little",
-                "message": "Take a small step when you can.",
-            },
-            "ar": {
-                "title": "تحرك قليلاً",
-                "message": "خذ خطوة صغيرة عندما تستطيع.",
-            },
-        },
+        "texts": sedi_copy.by_lang("template.companion_encourage_move_v1"),
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "companion_encourage_move_v1"},
     },
@@ -67,20 +43,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "channel": "companion",
         "type": BACKEND_TYPE_COMPANION,
         "priority": "normal",
-        "texts": {
-            "fa": {
-                "title": "وقت نفس",
-                "message": "یه دقیقه نفس عمیق بکش؛ آروم میشی. 🌬",
-            },
-            "en": {
-                "title": "Breathing break",
-                "message": "Take a minute to breathe deeply; you'll feel calmer. 🌬",
-            },
-            "ar": {
-                "title": "استراحة تنفس",
-                "message": "خذ دقيقة للتنفس بعمق؛ ستشعر بالهدوء. 🌬",
-            },
-        },
+        "texts": sedi_copy.by_lang("template.companion_breathing_break_v1"),
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "companion_breathing_break_v1"},
     },
@@ -90,20 +53,7 @@ TEMPLATES_V1: List[Dict[str, Any]] = [
         "channel": "health_alert",
         "type": BACKEND_TYPE_HEALTH,
         "priority": "high",
-        "texts": {
-            "fa": {
-                "title": "هشدار سلامت",
-                "message": "یک قرائت غیرمعمول ثبت شد. برای بررسی، صدی رو باز کن.",
-            },
-            "en": {
-                "title": "Health Alert",
-                "message": "An unusual reading was detected. Open Sedi to review.",
-            },
-            "ar": {
-                "title": "تنبيه صحي",
-                "message": "تم تسجيل قراءة غير معتادة. افتح صدی للمراجعة.",
-            },
-        },
+        "texts": sedi_copy.by_lang("template.health_alert_generic_v1"),
         "actions_json": DEFAULT_ACTIONS_JSON,
         "meta": {"tone_version": 1, "template_key": "health_alert_generic_v1"},
     },

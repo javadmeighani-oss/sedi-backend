@@ -18,6 +18,7 @@ from backend.app.services.intelligence.reminder_event_readiness import (
     describe_when,
     parse_reminder_event_draft,
 )
+from backend.app import sedi_copy
 
 
 def find_duplicate_conversation_event(
@@ -109,23 +110,15 @@ def dispatch_reminder_user_event(
 
 
 def _lead_text(offset_min: int, lang: str) -> str:
-    if lang == "fa":
-        if offset_min % 1440 == 0:
-            return "یه روز" if offset_min == 1440 else f"{offset_min // 1440} روز"
-        if offset_min % 60 == 0:
-            return "یه ساعت" if offset_min == 60 else f"{offset_min // 60} ساعت"
-        return f"{offset_min} دقیقه"
-    if lang == "ar":
-        if offset_min % 1440 == 0:
-            return "يوم" if offset_min == 1440 else f"{offset_min // 1440} أيام"
-        if offset_min % 60 == 0:
-            return "ساعة" if offset_min == 60 else f"{offset_min // 60} ساعات"
-        return f"{offset_min} دقيقة"
     if offset_min % 1440 == 0:
-        return "a day" if offset_min == 1440 else f"{offset_min // 1440} days"
+        if offset_min == 1440:
+            return sedi_copy.t("reminder.lead_text.day_one", lang)
+        return sedi_copy.t("reminder.lead_text.days", lang, n=offset_min // 1440)
     if offset_min % 60 == 0:
-        return "an hour" if offset_min == 60 else f"{offset_min // 60} hours"
-    return f"{offset_min} minutes"
+        if offset_min == 60:
+            return sedi_copy.t("reminder.lead_text.hour_one", lang)
+        return sedi_copy.t("reminder.lead_text.hours", lang, n=offset_min // 60)
+    return sedi_copy.t("reminder.lead_text.minutes", lang, n=offset_min)
 
 
 def confirmation_message(dispatched: dict[str, Any], lang: str) -> str:
@@ -133,14 +126,7 @@ def confirmation_message(dispatched: dict[str, Any], lang: str) -> str:
     when = dispatched.get("when") or ""
     title = dispatched.get("title") or ""
     offset = dispatched.get("offset_min")
-    if lang == "fa":
-        if offset:
-            return f"حله، «{title}» برای {when} ثبت شد و {_lead_text(int(offset), 'fa')} قبلش یادت می‌ندازم 🌿 توی «برنامه‌ی من» هم می‌بینیش."
-        return f"حله، {when} یادت می‌ندازم: «{title}» 🌿 توی «برنامه‌ی من» هم می‌بینیش."
-    if lang == "ar":
-        if offset:
-            return f"تم، سجّلتُ «{title}» لـ{when} وسأذكّرك قبله بـ{_lead_text(int(offset), 'ar')} 🌿 وستجده في «جدولي»."
-        return f"تم، سأذكّرك {when}: «{title}» 🌿 وستجده في «جدولي»."
+    lang3 = lang if lang in ("fa", "ar") else "en"
     if offset:
-        return f"Done - “{title}” is set for {when} and I'll remind you {_lead_text(int(offset), 'en')} before 🌿 You'll see it in My Schedule."
-    return f"Done - I'll remind you {when}: “{title}” 🌿 You'll see it in My Schedule."
+        return sedi_copy.t("reminder.confirm.with_lead", lang3, title=title, when=when, lead=_lead_text(int(offset), lang3))
+    return sedi_copy.t("reminder.confirm.at_time", lang3, title=title, when=when)

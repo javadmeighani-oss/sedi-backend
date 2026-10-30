@@ -12,6 +12,7 @@ from datetime import date
 from typing import Dict, Any, Optional, Literal
 
 from backend.app.services.notification_runtime.i18n_resolver import resolve_text_by_user_language
+from backend.app import sedi_copy
 
 SupportedLanguage = Literal["en", "fa", "ar"]
 
@@ -98,12 +99,7 @@ def _personalize_title(title: str, lang: str, name: Optional[str]) -> str:
     """Prepend name to title gently for companion (short)."""
     if not name or not name.strip():
         return title
-    n = name.strip()
-    if lang == "fa":
-        return f"{n} جان"
-    if lang == "ar":
-        return f"يا {n}"
-    return n
+    return sedi_copy.t("address.title_only", lang, name=name.strip())
 
 
 def _personalize_text(
@@ -122,12 +118,7 @@ def _personalize_text(
     name = (preferred_name or (user_ctx.get("preferred_name") or "").strip()) or None
     out = text
     if name and out and not _text_starts_with_name(out, name):
-        if lang == "fa":
-            out = f"{name} جان، {out}"
-        elif lang == "ar":
-            out = f"يا {name}، {out}"
-        else:
-            out = f"Hey {name}, {out}"
+        out = sedi_copy.t("address.companion_text", lang, name=name) + out
     hint = _one_goals_lifestyle_hint(lang, user_ctx)
     if hint and out:
         out = f"{out} {hint}"
@@ -142,11 +133,7 @@ def _one_goals_lifestyle_hint(lang: str, user_ctx: Dict[str, Any]) -> str:
         return ""
     if goals:
         first = str(goals[0])[:30]
-        if lang == "fa":
-            return f"یادم نرفته دنبال «{first}» هستی؛ قدم‌های کوچیک هم حساب می‌شه."
-        if lang == "ar":
-            return f"لم أنسَ أنك تسعى إلى «{first}»؛ الخطوات الصغيرة تُحسب أيضاً."
-        return f"I haven't forgotten you're working on {first}; small steps count too."
+        return sedi_copy.t("companion.goals_hint", lang, goal=first)
     return ""
 
 
@@ -175,74 +162,34 @@ def _render_morning(lang: str, name: Optional[str], inputs: Dict[str, Any]) -> t
 
 
 def _morning_title(lang: str) -> str:
-    return {"fa": "صبح بخیر", "ar": "صباح الخير", "en": "Good Morning"}.get(lang, "Good Morning")
+    return sedi_copy.by_lang("notification.morning.title").get(lang, "Good Morning")
 
 
 def _morning_greeting(lang: str, name: Optional[str]) -> str:
     """Calm morning greeting — no default pet-name, no decorative emoji."""
-    n = (name or "").strip()
-    if lang == "fa":
-        return f"صبح بخیر {n}".strip()
-    if lang == "ar":
-        return f"صباح الخير {n}".strip()
-    return f"Good morning {n}".strip() if n else "Good morning"
+    return sedi_copy.t("notification.morning.greeting", lang, name=(name or "").strip()).strip()
 
 
 def _morning_cta(lang: str) -> str:
-    return {
-        "fa": " روز خوبی داشته باشی.",
-        "ar": " أتمنى لك يوماً جميلاً.",
-        "en": " Have a good day.",
-    }.get(lang, " Have a good day.")
+    return sedi_copy.by_lang("notification.morning.cta").get(lang, " Have a good day.")
 
 
 # R-011 (2026-10-20): the A4 tone contract changed to a warm, human, friend-like voice. Copy is still
 # deterministic and code-owned (no free-form AI rewrite), but rotates so the same words never repeat two days
 # in a row. Pairs are (title, body); "{p}" is the optional "<name> جان، " / "<name>, " prefix.
-_ENGAGEMENT_PAIRS: Dict[str, tuple] = {
-    "fa": (
-        ("سلام از صدی", "{p}امروز چطوری؟ دلم می‌خواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم."),
-        ("یه سر زدم", "{p}فقط اومدم بگم کنارتم. اگه دلت می‌خواد، برام تعریف کن امروز چه خبر."),
-        ("حالت چطوره؟", "{p}حس کردم یه مدتیه ازت خبر ندارم. همه‌چیز خوبه؟ من همین‌جام."),
-        ("صدی کنارته", "{p}هر وقت دلت خواست درد و دل کنی یا فقط یکی گوش بده، من اینجام."),
-    ),
-    "ar": (
-        ("تحية من صدی", "{p}كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً."),
-        ("مررتُ لأطمئن", "{p}أردت فقط أن أقول إني بجانبك. إن شئت، احكِ لي كيف كان يومك."),
-        ("كيف حالك؟", "{p}شعرتُ أنني لم أسمع منك منذ فترة. هل كل شيء بخير؟ أنا هنا."),
-        ("صدی بجانبك", "{p}متى أردت أن تفضفض أو تجد من يُصغي، أنا هنا."),
-    ),
-    "en": (
-        ("Hello from Sedi", "{p}how is your day going? I wanted to check in on you. Whenever you feel like it, let's talk."),
-        ("Just dropping by", "{p}I only wanted to say I'm right here with you. Tell me about your day if you like."),
-        ("How are you?", "{p}it's been a little while since I heard from you. Is everything okay? I'm here."),
-        ("Sedi is with you", "{p}whenever you want to talk it out, or just have someone listen, I'm here."),
-    ),
-}
+_ENGAGEMENT_PAIRS: Dict[str, tuple] = sedi_copy.by_lang("companion.engagement.pairs")
 
 # Used instead of the rotating pairs when the user's recent days looked low (I7 derived, consent-gated).
-_ENGAGEMENT_LOW_PAIRS: Dict[str, tuple] = {
-    "fa": (("فکرم پیشته", "{p}این روزها شاید کمی سخت می‌گذره. اگه دوست داری درباره‌اش حرف بزنیم، من گوش می‌دم و کنارتم."),),
-    "ar": (("أفكر بك", "{p}ربما تمرّ عليك أيام ثقيلة. إن أحببت أن نتحدث عنها، أنا أُصغي وبجانبك."),),
-    "en": (("Thinking of you", "{p}these days may be a bit heavy. If you'd like to talk about it, I'm listening and I'm with you."),),
-}
+_ENGAGEMENT_LOW_PAIRS: Dict[str, tuple] = sedi_copy.by_lang("companion.engagement_low.pairs")
 
-_ENGAGEMENT_TOPIC_BODY: Dict[str, str] = {
-    "fa": "{p}آخرین بار درباره‌ی {t} حرف می‌زدیم و فکرم پیشت بود. می‌خوای همون رو ادامه بدیم، یا یه موضوع دیگه تو ذهنته؟",
-    "ar": "{p}آخر مرة تحدثنا عن {t} وكنتُ أفكر بك. هل تحب أن نكمل، أم عندك موضوع آخر؟",
-    "en": "{p}last time we talked about {t} and you stayed on my mind. Want to pick it up again, or is something else on your mind?",
-}
+_ENGAGEMENT_TOPIC_BODY: Dict[str, str] = sedi_copy.by_lang("companion.engagement_topic.body")
 
 
 def _engagement_prefix(lang: str, name: Optional[str]) -> str:
     n = (name or "").strip()
     if not n:
         return ""
-    if lang == "fa":
-        return f"{n} جان، "
-    if lang == "ar":
-        return f"يا {n}، "
-    return f"{n}, "
+    return sedi_copy.t("address.companion", lang, name=n)
 
 
 def _rotation_index(n_variants: int, name: Optional[str], salt: str) -> int:
@@ -291,7 +238,7 @@ def _engagement_with_topic(lang: str, name: Optional[str], topic: str) -> str:
 
 def _render_health_alert(lang: str, name: Optional[str], inputs: Dict[str, Any], priority: str) -> tuple:
     """Conservative phrasing: unusual reading, no diagnosis. CTA to open Sedi. Critical adds emergency disclaimer."""
-    title = {"fa": "هشدار سلامت", "ar": "تنبيه صحي", "en": "Health Alert"}.get(lang, "Health Alert")
+    title = sedi_copy.by_lang("notification.health_alert.title").get(lang, "Health Alert")
     reason = (inputs.get("last_vitals_summary") or inputs.get("alert_reason") or "").strip()
     if reason and len(reason) < 100:
         base = _health_unusual(lang)
@@ -305,24 +252,12 @@ def _render_health_alert(lang: str, name: Optional[str], inputs: Dict[str, Any],
 
 
 def _health_unusual(lang: str) -> str:
-    return {
-        "fa": "یک قرائت غیرمعمول ثبت شد.",
-        "ar": "تم تسجيل قراءة غير عادية.",
-        "en": "An unusual reading was detected.",
-    }.get(lang, "An unusual reading was detected.")
+    return sedi_copy.by_lang("notification.health_alert.unusual").get(lang, "An unusual reading was detected.")
 
 
 def _health_cta(lang: str) -> str:
-    return {
-        "fa": "برای بررسی، صدی رو باز کن.",
-        "ar": "افتح التطبيق للمراجعة.",
-        "en": "Open Sedi to review.",
-    }.get(lang, "Open Sedi to review.")
+    return sedi_copy.by_lang("notification.health_alert.cta").get(lang, "Open Sedi to review.")
 
 
 def _health_emergency_disclaimer(lang: str) -> str:
-    return {
-        "fa": "اگر وضعیت جدی است، به پزشک مراجعه کنید.",
-        "ar": "إذا كان الأمر عاجلاً، استشر طبيباً.",
-        "en": "If urgent, seek professional care.",
-    }.get(lang, "If urgent, seek professional care.")
+    return sedi_copy.by_lang("notification.health_alert.emergency").get(lang, "If urgent, seek professional care.")
