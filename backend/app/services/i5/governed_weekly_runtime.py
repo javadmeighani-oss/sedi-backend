@@ -1394,6 +1394,11 @@ def run_weekly_scheduled_job(
         )
         if owns_session:
             session.commit()
+        if candidates is None:
+            # R-044 step 5: one read-only growth report line per production run (fail-open).
+            from backend.app.services.i5.weekly_growth_report import log_weekly_growth_report
+
+            log_weekly_growth_report(session, loaded_models)
         return outcome
     except Exception:
         if owns_session:

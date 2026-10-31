@@ -1,6 +1,6 @@
 # DEBT-021 — Read-only production probe for I5 / structured chat, kept on main. workflow_dispatch only.
 # Reads the pinned image, Alembic revision, feature-flag state, knowledge counts and error counters from
-# the running container. It writes nothing (no env, flag, DB or container change). No secrets printed.
+# the running container (and the I5 weekly growth report). It writes nothing (no env, flag, DB or container change). No secrets printed.
 name: I5 Production Read-only Probe
 
 on:
@@ -86,6 +86,8 @@ jobs:
           finally:
               db.close()
           PY
+          # R-044 step 5: weekly knowledge-growth report (read-only; rollback, no writes). Optional on older images.
+          docker exec sedi-backend python -m backend.app.services.i5.weekly_growth_report 2>/dev/null | grep '^PROBE|growth_report|' | cut -c1-60000 || s growth_report UNAVAILABLE
           s phase_probe PASS
           REMOTE
           grep -Eq 'PROBE\|phase_probe\|PASS' /tmp/probe.log
