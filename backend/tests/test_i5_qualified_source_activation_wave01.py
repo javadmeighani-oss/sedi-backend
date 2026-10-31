@@ -38,7 +38,7 @@ def test_allowlist_wave01_qualified_activation_version_and_count():
     assert str(data["allowlist_version"]).startswith("i5-multisource-v1")
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 21
+    assert len(rows) == 22  # + openstax_psychology_2e (R-044 library)
     assert AUTHORIZED_NEW.issubset(keys)
     assert COVERAGE_CLOSURE.issubset(keys)
     assert not (keys & WHO_INACTIVE)
@@ -140,7 +140,10 @@ def test_breadth_sources_are_governed_and_every_url_is_served_by_its_authority()
         assert governed_low_risk_eligible(key) is True
 
     for key, row in rows.items():
-        assert row["rights_terms_state"] in {"OGL", "PUBLIC_DOMAIN"}
+        # R-044 library: an open-licence book is APPROVED only with an explicit CC BY 4.0 note (no NC/ND licences).
+        assert row["rights_terms_state"] in {"OGL", "PUBLIC_DOMAIN"} or (
+            row["rights_terms_state"] == "APPROVED" and "CC BY 4.0" in str(row.get("license_notes"))
+        ), key
         assert row["robots_access_state"] == "ALLOWED"
         patterns = [re.compile(p) for p in row["allowed_url_patterns"]]
         urls = [row["exact_url"], *(row.get("additional_urls") or [])]

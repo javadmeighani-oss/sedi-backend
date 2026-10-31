@@ -78,12 +78,20 @@ def _governance_evidence(row: dict[str, Any]) -> dict[str, Any]:
     rights = str(row.get("rights_terms_state") or "UNKNOWN").upper()
     if rights not in {"OGL", "PUBLIC_DOMAIN", "APPROVED", "ACCEPTABLE"}:
         raise GovernedWeeklyRuntimeError("ALLOWLIST_RIGHTS_FAIL_CLOSED", rights)
+    # Optional explicit evidence (e.g. a university textbook); rows without it keep the historical defaults.
+    tier = str(row.get("authority_tier") or AuthorityTier.OFFICIAL_NATIONAL.value).strip().lower()
+    if tier not in {t.value for t in AuthorityTier}:
+        raise GovernedWeeklyRuntimeError("ALLOWLIST_AUTHORITY_TIER_INVALID", tier)
+    domain = str(row.get("allowed_domain"))
+    country = str(row.get("jurisdiction_country_code") or "").strip().upper() or (
+        "US" if "nih" in domain or "cdc" in domain or "medlineplus" in domain else "GB"
+    )
     return {
         "publisher_authority_identity": str(row.get("publisher") or ""),
         "source_class": SourceClass.KNOWLEDGE_DOCUMENT.value,
-        "authority_evidence_tier": AuthorityTier.OFFICIAL_NATIONAL.value,
+        "authority_evidence_tier": tier,
         "jurisdiction_scope": ClinicalJurisdictionScope.COUNTRY.value,
-        "jurisdiction_country_code": "US" if "nih" in str(row.get("allowed_domain")) or "cdc" in str(row.get("allowed_domain")) or "medlineplus" in str(row.get("allowed_domain")) else "GB",
+        "jurisdiction_country_code": country,
         "jurisdiction_subdivision_code": None,
         "jurisdiction_organization_id": None,
         "primary_language": "en",

@@ -625,6 +625,8 @@ D23 = SpecializedEntitySpec(
         "medlineplus.gov/seasonalaffectivedisorder.html",
         "medlineplus.gov/stress.html",
         "medlineplus.gov/teenmentalhealth.html",
+        # R-044 open-licence library: OpenStax Psychology 2e (CC BY 4.0) chapters.
+        "openstax.org/books/psychology-2e/pages/",
     ),
     clinical_tokens=(
         "mental health",

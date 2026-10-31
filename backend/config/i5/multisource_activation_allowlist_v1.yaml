@@ -754,3 +754,57 @@ sources:
     governed_low_risk_eligibility: YES
     eligibility_evidence_strength: LOW
     license_notes: "NIH/NCCIH public domain — attribute NCCIH; evidence summary on meditation and mindfulness (wellbeing)"
+
+  # R-044 open-licence library, first book: OpenStax Psychology 2e (Rice University), CC BY 4.0 - commercial use and
+  # adaptation allowed with attribution (openstax.org/license). robots.txt allows our crawler (only GPTBot, a model-
+  # training crawler, is kept out of /books/; Sedi does not train models, it serves short attributed passages).
+  # Everything goes through the D23 fail-closed lane (medicine / crisis passages never served).
+  - source_key: openstax_psychology_2e
+    publisher: OpenStax (Rice University) - Psychology 2e
+    publisher_family: openstax.org
+    authority_class: OPEN_TEXTBOOK_PEER_REVIEWED
+    authority_tier: university
+    jurisdiction_country_code: US
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://openstax.org/books/psychology-2e/pages/14-1-what-is-stress
+    additional_urls:
+      - https://openstax.org/books/psychology-2e/pages/4-1-what-is-consciousness
+      - https://openstax.org/books/psychology-2e/pages/4-2-sleep-and-why-we-sleep
+      - https://openstax.org/books/psychology-2e/pages/4-3-stages-of-sleep
+      - https://openstax.org/books/psychology-2e/pages/4-4-sleep-problems-and-disorders
+      - https://openstax.org/books/psychology-2e/pages/4-6-other-states-of-consciousness
+      - https://openstax.org/books/psychology-2e/pages/6-1-what-is-learning
+      - https://openstax.org/books/psychology-2e/pages/8-1-how-memory-functions
+      - https://openstax.org/books/psychology-2e/pages/8-4-ways-to-enhance-memory
+      - https://openstax.org/books/psychology-2e/pages/9-1-what-is-lifespan-development
+      - https://openstax.org/books/psychology-2e/pages/9-3-stages-of-development
+      - https://openstax.org/books/psychology-2e/pages/9-4-death-and-dying
+      - https://openstax.org/books/psychology-2e/pages/10-1-motivation
+      - https://openstax.org/books/psychology-2e/pages/10-2-hunger-and-eating
+      - https://openstax.org/books/psychology-2e/pages/10-4-emotion
+      - https://openstax.org/books/psychology-2e/pages/11-1-what-is-personality
+      - https://openstax.org/books/psychology-2e/pages/12-1-what-is-social-psychology
+      - https://openstax.org/books/psychology-2e/pages/12-6-aggression
+      - https://openstax.org/books/psychology-2e/pages/12-7-prosocial-behavior
+      - https://openstax.org/books/psychology-2e/pages/13-3-organizational-psychology-the-social-dimension-of-work
+      - https://openstax.org/books/psychology-2e/pages/14-2-stressors
+      - https://openstax.org/books/psychology-2e/pages/14-3-stress-and-illness
+      - https://openstax.org/books/psychology-2e/pages/14-4-regulation-of-stress
+      - https://openstax.org/books/psychology-2e/pages/14-5-the-pursuit-of-happiness
+      - https://openstax.org/books/psychology-2e/pages/15-4-anxiety-disorders
+      - https://openstax.org/books/psychology-2e/pages/15-5-obsessive-compulsive-and-related-disorders
+      - https://openstax.org/books/psychology-2e/pages/16-2-types-of-treatment
+      - https://openstax.org/books/psychology-2e/pages/16-3-treatment-modalities
+    allowed_domain: openstax.org
+    allowed_url_patterns:
+      - "^https://openstax\\.org/books/psychology-2e/pages/.*"
+    rights_terms_state: APPROVED
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_28_urls"
+    entity_coverage: [D23]
+    knowledge_domains: [mental_health_psychology]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D23]
+    license_notes: "CC BY 4.0 - Spielman et al., Psychology 2e, OpenStax (Rice University), openstax.org/details/books/psychology-2e; attribution required; adapted text, not endorsed by OpenStax"
