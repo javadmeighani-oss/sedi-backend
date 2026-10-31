@@ -291,6 +291,7 @@ def _models():
 def test_run_link_discovery_stores_admitted_urls_and_a_summary(monkeypatch):
     row = _row()
     monkeypatch.setattr(ld, "active_manifest_rows", lambda: [row])
+    monkeypatch.setattr(ld, "_governed_profile_eligible", lambda db, models, key: True)
     ks = SimpleNamespace(
         slug="nhs_uk_mental_health",
         source_fetch_enabled=True,
@@ -323,11 +324,35 @@ def test_inactive_source_is_reported_and_untouched(monkeypatch):
     assert ks.crawl_policy_json == "{}"
 
 
+def test_a_suspended_governed_profile_is_not_discovered(monkeypatch):
+    row = _row()
+    monkeypatch.setattr(ld, "active_manifest_rows", lambda: [row])
+    monkeypatch.setattr(ld, "_governed_profile_eligible", lambda db, models, key: False)
+    ks = SimpleNamespace(slug="nhs_uk_mental_health", source_fetch_enabled=True, crawl_policy_json="{}")
+    fetch = _fetch({})
+    report = ld.run_link_discovery(_Db({"nhs_uk_mental_health": ks}), _models(), fetch_page=fetch, load_robots=lambda h: _robots())
+    assert report.sources[0]["status"] == "SOURCE_NOT_ACTIVE" and fetch.calls == [] and ks.crawl_policy_json == "{}"
+
+
+def test_both_activation_flags_gate_discovery_before_any_network(monkeypatch):
+    monkeypatch.setenv(ld.LINK_DISCOVERY_ENV, "true")
+    monkeypatch.setenv("SEDI_I5_MULTISOURCE_ENABLED", "true")
+    called = []
+    monkeypatch.setattr(ld, "run_link_discovery", lambda *a, **k: called.append(1))
+    for weekly, activation in (("", ""), ("true", ""), ("", "true")):
+        monkeypatch.setenv("SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED", weekly)
+        monkeypatch.setenv("SEDI_I5_SOURCE_ACTIVATION_ENABLED", activation)
+        assert ld.maybe_run_link_discovery(object(), object()) is None
+    assert called == []
+
+
 def test_weekly_hook_is_off_by_default_and_never_raises(monkeypatch):
     monkeypatch.delenv(ld.LINK_DISCOVERY_ENV, raising=False)
     assert ld.maybe_run_link_discovery(object(), object()) is None
     monkeypatch.setenv(ld.LINK_DISCOVERY_ENV, "true")
     monkeypatch.setenv("SEDI_I5_MULTISOURCE_ENABLED", "true")
+    monkeypatch.setenv("SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED", "true")
+    monkeypatch.setenv("SEDI_I5_SOURCE_ACTIVATION_ENABLED", "true")
 
     def boom(*a, **k):
         raise RuntimeError("network down")

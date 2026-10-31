@@ -369,6 +369,19 @@ def discover_for_row(
     return result
 
 
+def _governed_profile_eligible(db: Any, models: Any, key: str) -> bool:
+    """Same source gate the weekly candidate loader applies before any fetch (suspended source = no discovery)."""
+    from backend.app.services.governance import kb_b2_source_profile_persistence as gsp_persist
+
+    gsp = db.query(models.GovernedSourceProfile).filter(models.GovernedSourceProfile.canonical_key == key).one_or_none()
+    if gsp is None or gsp.block_reason or gsp.registry_state != "ACTIVE" or gsp.runtime_eligibility != "ELIGIBLE":
+        return False
+    if gsp.current_profile_version_id is None or not gsp_persist.profile_is_fetch_eligible(gsp):
+        return False
+    version = gsp_persist.get_current_profile_version(db, profile_id=int(gsp.id))
+    return version is not None and (version.license_status or "") == "explicit_grant"
+
+
 def _load_policy(raw: Optional[str]) -> dict[str, Any]:
     try:
         policy = json.loads(raw or "{}")
@@ -451,7 +464,7 @@ def run_link_discovery(
             continue
         key = str(row["source_key"])
         ks = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.slug == key).one_or_none()
-        if ks is None or not bool(ks.source_fetch_enabled):
+        if ks is None or not bool(ks.source_fetch_enabled) or not _governed_profile_eligible(db, models, key):
             report.sources.append(SourceDiscovery(key, "SOURCE_NOT_ACTIVE").summary())
             continue
         policy = _load_policy(ks.crawl_policy_json)
@@ -480,8 +493,13 @@ def run_link_discovery(
 
 def maybe_run_link_discovery(db: Any, models: Any, *, http_get: Any = None) -> Optional[LinkDiscoveryReport]:
     """Weekly-tick hook: runs only with multisource + discovery flags ON; never breaks the weekly run."""
+    from backend.app.services.i5.weekly_orchestrator import source_activation_enabled, weekly_orchestrator_enabled
+
     multisource = os.environ.get("SEDI_I5_MULTISOURCE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
     if not (multisource and link_discovery_enabled()) or db is None or models is None:
+        return None
+    # The existing two-flag activation ladder keeps its no-network contract: one flag alone never reaches a socket.
+    if not (weekly_orchestrator_enabled() and source_activation_enabled()):
         return None
     nested = None
     try:
