@@ -25,6 +25,10 @@ from backend.app.services.i5.governed_weekly_runtime import (
     CONFIG_VERSION,
     GovernedWeeklyRuntimeError,
 )
+from backend.app.services.i5.link_discovery import (
+    discovered_urls_for_cycle,
+    merge_discovery_state,
+)
 from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
     map_gsp_row_to_descriptor,
@@ -174,12 +178,16 @@ def activate_multisource_allowlist(db: Any, models: Any) -> MultisourceActivatio
             ks.robots_allowed = True
             ks.license_notes = str(row.get("license_notes") or "")[:2000]
             ks.metadata_json = json.dumps(meta, sort_keys=True)
+            # Link discoveries (R-044 step 1) survive a re-activation; they are re-checked when loaded.
             ks.crawl_policy_json = json.dumps(
-                {
-                    "controlled_urls": controlled_urls,
-                    "max_urls_per_cycle": len(controlled_urls),
-                    "forbid_sitewide_crawl": True,
-                },
+                merge_discovery_state(
+                    {
+                        "controlled_urls": controlled_urls,
+                        "max_urls_per_cycle": len(controlled_urls),
+                        "forbid_sitewide_crawl": True,
+                    },
+                    ks.crawl_policy_json,
+                ),
                 sort_keys=True,
             )
             db.flush()
@@ -278,6 +286,8 @@ def load_multisource_weekly_candidates(db: Any, models: Any) -> list[SourceCandi
         urls = list(policy.get("controlled_urls") or [])
         if not urls:
             urls = [str(row["exact_url"])]
+        # Controlled link discovery (flag-gated, re-validated against today's manifest and safety lanes).
+        urls += [u for u in discovered_urls_for_cycle(row, policy) if u not in urls]
         rights = str(row.get("rights_terms_state") or "UNKNOWN")
         robots = str(row.get("robots_access_state") or "UNKNOWN")
         for url in urls:
