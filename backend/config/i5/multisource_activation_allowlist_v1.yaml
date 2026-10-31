@@ -674,6 +674,19 @@ sources:
     governed_low_risk_eligibility: NO
     # D23 mental-health education boundary applies (medication/crisis content fails closed; I4 owns crisis)
     specialized_serving_eligibility: [D23]
+    # R-044 step 1: controlled link discovery (flag SEDI_I5_LINK_DISCOVERY_ENABLED, default OFF). Depth 1 from these hubs
+    # only; a found page is kept only inside this source's URL patterns AND the D23 lane, never a crisis / medication /
+    # psychosis / eating-disorder page (fixed deny list in link_discovery.py). Everyday-wellbeing hubs come first.
+    link_discovery:
+      hub_urls:
+        - https://www.nhs.uk/every-mind-matters/lifes-challenges/
+        - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/
+        - https://www.nhs.uk/every-mind-matters/mental-health-issues/
+        - https://www.nhs.uk/every-mind-matters/supporting-others/
+        - https://www.nhs.uk/every-mind-matters/
+        - https://www.nhs.uk/mental-health/conditions/
+      max_new_urls_per_cycle: 12
+      max_discovered_urls: 60
     license_notes: "OGL v3.0 — attribution required; educational mental-health information, not diagnosis or treatment selection"
 
   - source_key: cdc_chronic_disease

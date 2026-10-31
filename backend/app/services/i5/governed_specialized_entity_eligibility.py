@@ -11,6 +11,7 @@ import json
 import re
 from dataclasses import dataclass
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from backend.app.services.i5.enums import (
     ConflictState,
@@ -1065,6 +1066,36 @@ _R044_GROWTH_URL_MARKERS: tuple[str, ...] = (
     "cdc.gov/emotional-well-being",
     "cdc.gov/mental-health/living-with",
 )
+# D23 pages that were ELIGIBLE before R-044 (exact pages, compared without query/fragment/trailing slash). Every OTHER
+# D23 page - the R-044 growth pages and anything controlled link discovery finds later - gets the crisis-route check.
+_D23_PRE_R044_PAGES: frozenset[str] = frozenset(
+    {
+        "www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+        "www.nimh.nih.gov/health/topics/depression",
+        "www.nimh.nih.gov/health/topics/anxiety-disorders",
+        "www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+        "www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder-gad",
+        "www.nhs.uk/mental-health/conditions/depression-in-adults",
+        "www.nhs.uk/mental-health/conditions/panic-disorder",
+        "www.nhs.uk/mental-health/conditions/obsessive-compulsive-disorder-ocd",
+        "www.nhs.uk/mental-health/conditions/ptsd-post-traumatic-stress-disorder",
+        "www.nhs.uk/mental-health/conditions/bipolar-disorder",
+        "www.nhs.uk/mental-health/conditions/phobias",
+        "www.nhs.uk/mental-health/conditions/seasonal-affective-disorder-sad",
+        "www.nhs.uk/mental-health/conditions/postnatal-depression",
+        "www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/stress",
+        "www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt",
+        "www.cdc.gov/mental-health/about/index.html",
+    }
+)
+
+
+def _d23_route_check_applies(url: str) -> bool:
+    parsed = urlparse(url)
+    page = f"{(parsed.hostname or '').lower()}{(parsed.path or '/').rstrip('/').lower()}"
+    if any(m in url for m in _R044_GROWTH_URL_MARKERS):
+        return True
+    return page not in _D23_PRE_R044_PAGES
 
 
 def _d23_mh_edu_content_blocked(
@@ -1081,7 +1112,7 @@ def _d23_mh_edu_content_blocked(
     low = statement.casefold()
     if any(p in low for p in _D23_MH_EDU_BLOCKED_PHRASES):
         return True, "MH_EDU_BOUNDARY_BLOCK"
-    if url and any(m in url for m in _R044_GROWTH_URL_MARKERS) and any(p in low for p in _D23_UK_ROUTE_PHRASES):
+    if url and _d23_route_check_applies(url) and any(p in low for p in _D23_UK_ROUTE_PHRASES):
         return True, "MH_EDU_UK_CRISIS_ROUTE_BLOCK"
     if "anxiety-disorders" in url or "topics/anxiety" in url:
         if any(

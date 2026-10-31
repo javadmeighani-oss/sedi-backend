@@ -1374,8 +1374,11 @@ def run_weekly_scheduled_job(
             resolved = list(candidates)
         else:
             # Multisource when SEDI_I5_MULTISOURCE_ENABLED; else historical NHS-only path.
+            from backend.app.services.i5.link_discovery import maybe_run_link_discovery
             from backend.app.services.i5.multisource_activation import resolve_weekly_candidates
 
+            # R-044 step 1: controlled link discovery first (flag-gated, never breaks the run).
+            maybe_run_link_discovery(session, loaded_models, http_get=live_http_get)
             resolved = resolve_weekly_candidates(session, loaded_models)
         run_key, start, end, cfg_hash = build_scheduled_logical_identity(
             candidates=resolved, now=now
