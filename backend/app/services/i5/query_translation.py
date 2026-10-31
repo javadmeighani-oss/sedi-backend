@@ -62,6 +62,12 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
     if text in _CACHE:
         _CACHE.move_to_end(text)
         return list(_CACHE[text])
+    # R-044: clear psychology / wellbeing questions are bridged instantly and exactly (no model call, no 2-4 s wait).
+    from backend.app.services.i5.psychology_query_bridge import bridge_alternatives
+
+    bridged = bridge_alternatives(text)
+    if bridged:
+        return bridged
     try:
         if client is None:
             from openai import OpenAI
