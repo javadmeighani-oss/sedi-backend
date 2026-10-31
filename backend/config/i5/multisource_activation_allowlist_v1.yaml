@@ -763,6 +763,8 @@ sources:
     publisher: OpenStax (Rice University) - Psychology 2e
     publisher_family: openstax.org
     authority_class: OPEN_TEXTBOOK_PEER_REVIEWED
+    authority_tier: university
+    jurisdiction_country_code: US
     adapter: PUBLIC_WEB_FETCH
     exact_url: https://openstax.org/books/psychology-2e/pages/14-1-what-is-stress
     additional_urls:

@@ -39,6 +39,7 @@ def test_the_book_is_an_active_open_licence_source_with_attribution():
     assert str(row["governed_low_risk_eligibility"]).upper() in {"NO", "FALSE"}
     assert "OpenStax" in manifest_attribution(KEY)["required_text"]
     evidence = _governance_evidence(row)
+    assert evidence["authority_evidence_tier"] == "university" and evidence["jurisdiction_country_code"] == "US"
     assert len(evidence["specialty_domain"]) <= 128 and len(evidence["permitted_use_restriction"]) <= 240
 
 
@@ -53,6 +54,13 @@ def test_every_chapter_is_inside_the_d23_lane_and_the_source_patterns():
         assert any(re.match(p, url) for p in _row()["allowed_url_patterns"])
         spec = resolve_specialized_entity_from_url(url)
         assert spec is not None and spec.entity_id == "D23", url
+
+
+def test_existing_sources_keep_their_historical_authority_evidence():
+    nhs = _governance_evidence(manifest_row_for_key("nhs_uk_mental_health"))
+    mp = _governance_evidence(manifest_row_for_key("medlineplus_consumer_health"))
+    assert (nhs["authority_evidence_tier"], nhs["jurisdiction_country_code"]) == ("official_national", "GB")
+    assert (mp["authority_evidence_tier"], mp["jurisdiction_country_code"]) == ("official_national", "US")
 
 
 def test_another_publishers_page_is_not_served_by_the_book():
