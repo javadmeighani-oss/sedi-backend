@@ -329,10 +329,13 @@ def test_d18_d19_regression_unchanged():
     )
 
 
-def test_medlineplus_not_granted_nimh_d23():
+def test_medlineplus_d23_is_limited_to_its_own_reviewed_pages():
+    # R-044 step 2: MedlinePlus holds D23 for its reviewed "Mental Health and Behavior" pages only.
     load_trusted_source_manifest.cache_clear()
     mp = specialized_allowed_entities_for_source(SPECIALIZED_SOURCE_KEY)
-    assert "D23" not in mp
+    assert "D23" in mp
+    d23_mp = [n for n in resolve_specialized_entity_from_url("https://medlineplus.gov/stress.html").url_needles if "medlineplus" in n]
+    assert d23_mp and all(n.startswith("medlineplus.gov/") and n.endswith(".html") for n in d23_mp)
     row = manifest_row_for_key("nimh_nih_mental_health")
     assert row is not None
     nimh = {str(e).strip().upper() for e in (row.get("specialized_serving_eligibility") or [])}

@@ -215,7 +215,8 @@ def test_d23_requires_nimh_source():
         source_key=SPECIALIZED_SOURCE_KEY, ku=ku, canonical_url=URL_SELF_CARE
     )
     assert allowed is False
-    assert reason == "ENTITY_NOT_AUTHORIZED_FOR_SOURCE"
+    # R-044 step 2: MedlinePlus holds D23 for its own pages; it still cannot serve an NIMH page.
+    assert reason == "URL_NOT_IN_SOURCE_DOMAIN"
 
 
 def test_content_quality_pass_required():
@@ -240,6 +241,6 @@ def test_medlineplus_b2a_regression_sample():
     load_trusted_source_manifest.cache_clear()
     mp = specialized_allowed_entities_for_source(SPECIALIZED_SOURCE_KEY)
     assert "D18" in mp and "D19" in mp and "D01" in mp and "D20" in mp
-    assert "D23" not in mp
+    assert "D23" in mp  # R-044 step 2: reviewed MedlinePlus mental-health pages only
     row = manifest_row_for_key("nimh_nih_mental_health")
     assert "D23" in (row.get("specialized_serving_eligibility") or [])
