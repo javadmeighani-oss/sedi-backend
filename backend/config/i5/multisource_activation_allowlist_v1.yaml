@@ -235,13 +235,15 @@ sources:
       - https://www.nimh.nih.gov/health/topics/depression
       - https://www.nimh.nih.gov/health/topics/anxiety-disorders
       - https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health
+      # R-044: coping after traumatic events (verified live 2026-10-31)
+      - https://www.nimh.nih.gov/health/topics/coping-with-traumatic-events
     allowed_domain: nimh.nih.gov
     allowed_url_patterns:
       - "^https://www\\.nimh\\.nih\\.gov/health/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_4_urls"
+    rate_limit: "weekly_controlled_max_5_urls"
     entity_coverage: []
     knowledge_domains: [mental_health_psychology]
     activation: YES
@@ -633,15 +635,39 @@ sources:
       - https://www.nhs.uk/mental-health/conditions/postnatal-depression/
       - https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/stress/
       - https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/
+      # R-044: grief, anger and low mood were missing (verified live 2026-10-31). The D23 boundary below still applies:
+      # any medication/crisis passage fails closed and I4 owns crisis.
+      - https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/grief-bereavement-loss/
+      - https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/anger/
+      - https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/low-mood-sadness-depression/
+      # R-044: everyday emotional-support self-help (self-esteem, loneliness, work stress/burnout, anxiety, stress, low
+      # mood, mindfulness, CBT self-help, sleep, change, talking about mental health, being active). They go through the
+      # D23 fail-closed boundary (NOT the low-risk path, which has no crisis/medication phrase check).
+      - https://www.nhs.uk/mental-health/self-help/tips-and-support/raise-low-self-esteem/
+      - https://www.nhs.uk/every-mind-matters/lifes-challenges/loneliness/
+      - https://www.nhs.uk/every-mind-matters/lifes-challenges/work-related-stress/
+      - https://www.nhs.uk/every-mind-matters/mental-health-issues/anxiety/
+      - https://www.nhs.uk/every-mind-matters/mental-health-issues/stress/
+      - https://www.nhs.uk/every-mind-matters/mental-health-issues/low-mood/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/self-help-cbt-techniques/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/what-is-mindfulness/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-meditate-for-beginners/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/top-tips-to-improve-your-mental-wellbeing/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-fall-asleep-faster-and-sleep-better/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-deal-with-change/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-talk-about-your-mental-health/
+      - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/be-active-for-your-mental-health/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/mental-health/conditions/.*"
       - "^https://www\\.nhs\\.uk/mental-health/feelings-symptoms-behaviours/.*"
+      - "^https://www\\.nhs\\.uk/mental-health/self-help/tips-and-support/.*"
+      - "^https://www\\.nhs\\.uk/every-mind-matters/.*"
       - "^https://www\\.nhs\\.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_11_urls"
+    rate_limit: "weekly_controlled_max_28_urls"
     entity_coverage: [D23]
     knowledge_domains: [mental_health_psychology]
     activation: YES
@@ -666,13 +692,17 @@ sources:
       - https://www.cdc.gov/sleep/about/index.html
       - https://www.cdc.gov/mental-health/about/index.html
       - https://www.cdc.gov/womens-health/about/index.html
+      # R-044: everyday emotions (anxiety, anger, sadness, fear, loneliness, grief) and managing stress (CDC redesign paths)
+      - https://www.cdc.gov/emotional-well-being/managing-difficult-emotions/index.html
+      - https://www.cdc.gov/emotional-well-being/improve-your-emotional-well-being/index.html
+      - https://www.cdc.gov/mental-health/living-with/index.html
     allowed_domain: cdc.gov
     allowed_url_patterns:
-      - "^https://www\\.cdc\\.gov/(als|epilepsy|stroke|alzheimers-dementia|heart-disease|high-blood-pressure|diabetes|sleep|mental-health|womens-health)(/.*)?$"
+      - "^https://www\\.cdc\\.gov/(als|epilepsy|stroke|alzheimers-dementia|heart-disease|high-blood-pressure|diabetes|sleep|mental-health|emotional-well-being|womens-health)(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_10_urls"
+    rate_limit: "weekly_controlled_max_13_urls"
     entity_coverage: [D10, D18, D21, D22, D23, D24, D25]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, mental_health_psychology]
     activation: YES

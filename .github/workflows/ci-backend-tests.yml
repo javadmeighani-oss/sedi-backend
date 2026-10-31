@@ -100,6 +100,7 @@ jobs:
             backend/tests/test_gate1_caregivers_v1.py \
             backend/tests/test_user_medications_v1.py \
             backend/tests/test_gate3_safety_care_v1.py \
+            backend/tests/test_i5_r044_psychology_growth_scope.py \
             backend/tests/test_gate5a_hub_sensor_status.py \
             backend/tests/contracts/test_v1_openapi_snapshot.py \
             -q

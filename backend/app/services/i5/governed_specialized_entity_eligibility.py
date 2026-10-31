@@ -600,6 +600,11 @@ D23 = SpecializedEntitySpec(
         "nhs.uk/mental-health/feelings-symptoms-behaviours/",
         "nhs.uk/tests-and-treatments/cognitive-behavioural-therapy",
         "cdc.gov/mental-health",
+        # R-044 psychology growth: everyday emotional-support pages (all behind the D23 fail-closed boundary below).
+        "nhs.uk/every-mind-matters/",
+        "nhs.uk/mental-health/self-help/tips-and-support/",
+        "nimh.nih.gov/health/topics/coping-with-traumatic-events",
+        "cdc.gov/emotional-well-being",
     ),
     clinical_tokens=(
         "mental health",
@@ -616,6 +621,18 @@ D23 = SpecializedEntitySpec(
         "depression",
         "low mood",
         "panic",
+        # R-044: everyday emotional-support topics (relevance only; the blocked-phrase boundary below is unchanged)
+        "loneliness",
+        "lonely",
+        "grief",
+        "bereavement",
+        "anger",
+        "self-esteem",
+        "confidence",
+        "burnout",
+        "mindfulness",
+        "meditation",
+        "sleep",
     ),
     disease_label="mental health education",
 )
@@ -1023,6 +1040,32 @@ _D23_MH_EDU_BLOCKED_PHRASES: tuple[str, ...] = (
     "taking part in clinical research",
 )
 
+# R-044: UK-only crisis / emergency routes. The sources are British; Sedi's users are not, and I4 owns crisis. A passage
+# that sends the reader to these services fails closed. Applied ONLY to the R-044 growth pages (below) so units that are
+# already ELIGIBLE are not silently re-judged by this change.
+_D23_UK_ROUTE_PHRASES: tuple[str, ...] = (
+    "samaritans",
+    "116 123",
+    "85258",
+    "call 999",
+    "dial 999",
+    "phone 999",
+    "go to a&e",
+    "nhs 111",
+    "call 111",
+    "111 online",
+)
+_R044_GROWTH_URL_MARKERS: tuple[str, ...] = (
+    "nhs.uk/every-mind-matters/",
+    "nhs.uk/mental-health/self-help/tips-and-support/",
+    "grief-bereavement-loss",
+    "feelings-and-symptoms/anger",
+    "low-mood-sadness-depression",
+    "nimh.nih.gov/health/topics/coping-with-traumatic-events",
+    "cdc.gov/emotional-well-being",
+    "cdc.gov/mental-health/living-with",
+)
+
 
 def _d23_mh_edu_content_blocked(
     statement: str,
@@ -1038,6 +1081,8 @@ def _d23_mh_edu_content_blocked(
     low = statement.casefold()
     if any(p in low for p in _D23_MH_EDU_BLOCKED_PHRASES):
         return True, "MH_EDU_BOUNDARY_BLOCK"
+    if url and any(m in url for m in _R044_GROWTH_URL_MARKERS) and any(p in low for p in _D23_UK_ROUTE_PHRASES):
+        return True, "MH_EDU_UK_CRISIS_ROUTE_BLOCK"
     if "anxiety-disorders" in url or "topics/anxiety" in url:
         if any(
             p in low
