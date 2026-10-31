@@ -38,7 +38,7 @@ def test_allowlist_wave01_qualified_activation_version_and_count():
     assert str(data["allowlist_version"]).startswith("i5-multisource-v1")
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 22  # + openstax_psychology_2e (R-044 library)
+    assert len(rows) == 24  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov (R-044 library)
     assert AUTHORIZED_NEW.issubset(keys)
     assert COVERAGE_CLOSURE.issubset(keys)
     assert not (keys & WHO_INACTIVE)

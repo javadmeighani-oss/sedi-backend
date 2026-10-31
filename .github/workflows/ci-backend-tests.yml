@@ -105,6 +105,7 @@ jobs:
             backend/tests/test_i5_link_discovery.py \
             backend/tests/test_i5_medlineplus_psych_feed.py \
             backend/tests/test_i5_open_library.py \
+            backend/tests/test_i5_open_library_lifestyle.py \
             backend/tests/test_gate5a_hub_sensor_status.py \
             backend/tests/test_i5_serving_text_guard.py \
             backend/tests/test_i5_psychology_query_bridge.py \

@@ -808,3 +808,105 @@ sources:
     governed_low_risk_eligibility: NO
     specialized_serving_eligibility: [D23]
     license_notes: "CC BY 4.0 - Spielman et al., Psychology 2e, OpenStax (Rice University), openstax.org/details/books/psychology-2e; attribution required; adapted text, not endorsed by OpenStax"
+
+  # R-044 open-licence library (nutrition, exercise, lifestyle): MedlinePlus topic summaries by NIH / NLM, public domain
+  # (medlineplus.gov/about/using/usingcontent). Low-risk path like the NHS live-well pages; lists of outside resources
+  # ("... (Mayo Foundation) Also in Spanish") are rejected by the reject_resource_lists guard. Clinical topics
+  # (cholesterol medicines, eating disorders, supplements, herbal medicine) are deliberately NOT here.
+  - source_key: medlineplus_wellness
+    publisher: NIH/NLM MedlinePlus - nutrition, exercise and healthy living
+    publisher_family: medlineplus.gov/wellness
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://medlineplus.gov/antioxidants.html
+    additional_urls:
+      - https://medlineplus.gov/bvitamins.html
+      - https://medlineplus.gov/bodyweight.html
+      - https://medlineplus.gov/caffeine.html
+      - https://medlineplus.gov/calcium.html
+      - https://medlineplus.gov/carbohydrates.html
+      - https://medlineplus.gov/dasheatingplan.html
+      - https://medlineplus.gov/dietaryfats.html
+      - https://medlineplus.gov/dietaryfiber.html
+      - https://medlineplus.gov/dietaryproteins.html
+      - https://medlineplus.gov/diets.html
+      - https://medlineplus.gov/drinkingwater.html
+      - https://medlineplus.gov/foodlabeling.html
+      - https://medlineplus.gov/foodsafety.html
+      - https://medlineplus.gov/folicacid.html
+      - https://medlineplus.gov/iron.html
+      - https://medlineplus.gov/minerals.html
+      - https://medlineplus.gov/nutritionforolderadults.html
+      - https://medlineplus.gov/potassium.html
+      - https://medlineplus.gov/sodium.html
+      - https://medlineplus.gov/vegetariandiet.html
+      - https://medlineplus.gov/vitamina.html
+      - https://medlineplus.gov/vitaminc.html
+      - https://medlineplus.gov/vitamind.html
+      - https://medlineplus.gov/vitamine.html
+      - https://medlineplus.gov/vitamink.html
+      - https://medlineplus.gov/vitamins.html
+      - https://medlineplus.gov/weightcontrol.html
+      - https://medlineplus.gov/benefitsofexercise.html
+      - https://medlineplus.gov/exerciseandphysicalfitness.html
+      - https://medlineplus.gov/exerciseforchildren.html
+      - https://medlineplus.gov/exerciseforolderadults.html
+      - https://medlineplus.gov/healthrisksofaninactivelifestyle.html
+      - https://medlineplus.gov/howmuchexercisedoineed.html
+      - https://medlineplus.gov/sportsfitness.html
+      - https://medlineplus.gov/ergonomics.html
+      - https://medlineplus.gov/healthyaging.html
+    allowed_domain: medlineplus.gov
+    allowed_url_patterns:
+      - "^https://medlineplus\\.gov/(antioxidants|bvitamins|bodyweight|caffeine|calcium|carbohydrates|dasheatingplan|dietaryfats|dietaryfiber|dietaryproteins|diets|drinkingwater|foodlabeling|foodsafety|folicacid|iron|minerals|nutritionforolderadults|potassium|sodium|vegetariandiet|vitamina|vitaminc|vitamind|vitamine|vitamink|vitamins|weightcontrol|benefitsofexercise|exerciseandphysicalfitness|exerciseforchildren|exerciseforolderadults|healthrisksofaninactivelifestyle|howmuchexercisedoineed|sportsfitness|ergonomics|healthyaging)\\.html$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_37_urls"
+    entity_coverage: [D12, D15]
+    knowledge_domains: [nutrition, physical_activity_exercise, lifestyle_prevention_routines]
+    activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
+    reject_resource_lists: true
+    reject_medicine_talk: true
+    license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
+
+  # R-044 open-licence library: US Department of Health and Human Services, Office of Disease Prevention and Health
+  # Promotion - Physical Activity Guidelines for Americans, Dietary Guidelines for Americans, Move Your Way. US federal
+  # government works are public domain (17 U.S.C. 105). robots.txt allows crawling.
+  - source_key: odphp_health_gov
+    publisher: US HHS Office of Disease Prevention and Health Promotion (ODPHP)
+    publisher_family: odphp.health.gov
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://odphp.health.gov/moveyourway/adults
+    additional_urls:
+      - https://odphp.health.gov/moveyourway/parents
+      - https://odphp.health.gov/moveyourway/tips
+      - https://odphp.health.gov/moveyourway/get-kids-active
+      - https://odphp.health.gov/moveyourway/activity-planner
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines/current-guidelines
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines/about-physical-activity-guidelines/questions-answers
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines/current-guidelines/midcourse-report/10-things-know
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/dietary-guidelines
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/dietary-guidelines/current-dietary-guidelines
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/dietary-guidelines/healthy-eating-resources
+      - https://odphp.health.gov/our-work/nutrition-physical-activity/dietary-guidelines/dietary-reference-intakes
+    allowed_domain: odphp.health.gov
+    allowed_url_patterns:
+      - "^https://odphp\\.health\\.gov/(moveyourway|our-work/nutrition-physical-activity)/.*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_13_urls"
+    entity_coverage: [D12, D15]
+    knowledge_domains: [nutrition, physical_activity_exercise, lifestyle_prevention_routines]
+    activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
+    authority_tier: official_national
+    jurisdiction_country_code: US
+    reject_medicine_talk: true
+    license_notes: "US federal government work, public domain; attribution to HHS/ODPHP (health.gov); not endorsed by HHS"
