@@ -22,6 +22,7 @@ from backend.app.services.scis.embedding.providers import (
     resolve_product_governed_embedding,
 )
 from backend.app.services.scis.retrieval import retrieve
+from backend.app.services.scis.serving_text_guard import pick_servable_statement
 
 # Bounded serving context (chars per evidence statement).
 MAX_SERVING_CONTEXT_CHARS = 600
@@ -172,9 +173,14 @@ def _map_evidence_to_items(
         canon = str(ku.canonical_unit_id)
         if canon in seen_canon:
             continue
-        seen_canon.add(canon)
 
-        statement = (ev.content or str(ku.normalized_statement) or "").strip()
+        # R-044: serve only text that is knowledge (not an extraction tag, a link list or a bare heading).
+        # Prefer the retrieved chunk, else the unit's own statement; skip the evidence (keeping the slot for real
+        # content) when neither is fit. Filter only - nothing is deleted and no gate is relaxed.
+        statement = pick_servable_statement(ev.content, str(ku.normalized_statement or ""))
+        if statement is None:
+            continue
+        seen_canon.add(canon)
         if len(statement) > MAX_SERVING_CONTEXT_CHARS:
             statement = statement[: MAX_SERVING_CONTEXT_CHARS - 1].rstrip() + "…"
 
