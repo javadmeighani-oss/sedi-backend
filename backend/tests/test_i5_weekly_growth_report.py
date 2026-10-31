@@ -40,6 +40,12 @@ def _assemble(**over):
         discovery=[{"source_key": "nhs_uk_mental_health", "discovered": 12, "last": {"admitted": 12}}],
         gaps_total=0,
         gaps_created=0,
+        baseline_counts=[
+            ("mental_health_psychology", "en", "ELIGIBLE", 92),
+            ("wellbeing", "en", "ELIGIBLE", 42),
+            ("neurology", "en", "ELIGIBLE", 101),
+        ],
+        attempt_counters={"new_knowledge_count": 3, "updated_knowledge_count": 1, "superseded_knowledge_count": 1, "rejected_knowledge_count": 2, "error_count": 1},
     )
     base.update(over)
     return wgr.assemble_report(**base)
@@ -52,6 +58,8 @@ def test_growth_is_shown_per_domain_and_language_with_before_and_after():
     assert report["knowledge"]["eligible_by_domain_language"]["mental_health_psychology|en"] == 95
     assert report["growth"]["eligible_created"] == 3
     assert report["growth"]["eligible_before"] == 235
+    assert report["growth"]["eligible_net"] == 3
+    assert report["growth"]["eligible_net_by_domain_language"] == {"mental_health_psychology|en": 3}
     assert report["growth"]["eligible_created_by_domain_language"] == {"mental_health_psychology|en": 3}
     assert report["growth"]["created_by_eligibility"] == {"ELIGIBLE": 3, "REVIEW_REQUIRED": 1}
 
@@ -67,17 +75,47 @@ def test_sources_are_summarised_per_source_and_failure_code():
     sources = _assemble()["sources"]
     assert sources["checked"] == 3
     assert sources["by_result"] == {"EXTRACTED": 1, "FAILED": 1, "SKIPPED": 1}
-    assert (sources["new"], sources["updated"], sources["rejected"], sources["errors"]) == (3, 1, 2, 1)
+    # aggregate outcomes come from the attempt ledger, not from the (always zero) source-result rows
+    assert (sources["new"], sources["updated"], sources["superseded"], sources["rejected"], sources["errors"]) == (3, 1, 1, 2, 1)
     assert sources["failure_codes"] == {"NO_MATERIAL_CHANGE": 1, "TIMEOUT": 1}
     nhs = next(s for s in sources["per_source"] if s["source_key"] == "nhs_uk_mental_health")
-    assert nhs["urls"] == 2 and nhs["new"] == 3 and nhs["by_result"] == {"EXTRACTED": 1, "SKIPPED": 1}
+    assert nhs["urls"] == 2 and nhs["by_result"] == {"EXTRACTED": 1, "SKIPPED": 1} and "new" not in nhs
 
 
-def test_verdicts_for_no_growth():
-    assert _assemble(created_counts=[])["verdict"] == "NO_NEW_UNITS"
-    blocked = _assemble(created_counts=[("wellbeing", "en", "NOT_ELIGIBLE", 4)])
-    assert blocked["verdict"] == "NEW_UNITS_NOT_ELIGIBLE"
-    assert blocked["growth"]["eligible_before"] == blocked["knowledge"]["eligible_total"]
+def test_a_replaced_unit_is_not_growth():
+    # one of 100 eligible units is replaced by a new version: the old one turns NOT_ELIGIBLE, the new one is ELIGIBLE
+    report = _assemble(
+        unit_counts=[("wellbeing", "en", "ELIGIBLE", 100), ("wellbeing", "en", "NOT_ELIGIBLE", 1)],
+        created_counts=[("wellbeing", "en", "ELIGIBLE", 1)],
+        baseline_counts=[("wellbeing", "en", "ELIGIBLE", 100)],
+    )
+    assert report["growth"]["eligible_before"] == 100 and report["growth"]["eligible_net"] == 0
+    assert report["verdict"] == "NO_NET_GROWTH"
+
+
+def test_a_retirement_sweep_shows_as_decline():
+    report = _assemble(
+        unit_counts=[("wellbeing", "en", "ELIGIBLE", 90)],
+        created_counts=[("wellbeing", "en", "ELIGIBLE", 1)],
+        baseline_counts=[("wellbeing", "en", "ELIGIBLE", 100)],
+    )
+    assert report["verdict"] == "DECLINED" and report["growth"]["eligible_net"] == -10
+    assert report["growth"]["eligible_net_by_domain_language"] == {"wellbeing|en": -10}
+
+
+def test_without_a_baseline_no_before_or_net_claim_is_made():
+    report = _assemble(baseline_counts=None)
+    assert report["verdict"] == "NO_BASELINE"
+    assert report["growth"]["eligible_before"] is None and report["growth"]["eligible_net"] is None
+    assert _assemble(baseline_counts=None, created_counts=[])["verdict"] == "NO_NEW_UNITS"
+
+
+def test_the_baseline_helper_is_fail_open():
+    class Broken:
+        def query(self, *a, **k):
+            raise RuntimeError("db gone")
+
+    assert wgr.capture_eligible_baseline(Broken(), models) is None
 
 
 def test_discovery_numbers_and_flag_state(monkeypatch):
@@ -133,11 +171,13 @@ def _ku(db, *, domain, eligibility, created_at, tag):
 
 def test_build_report_reads_the_database_without_writing(db):
     now = datetime.utcnow()
+    baseline = wgr.capture_eligible_baseline(db, models)
     before = wgr.build_weekly_growth_report(db, models, now=now)
     _ku(db, domain="mental_health_psychology", eligibility="ELIGIBLE", created_at=now - timedelta(days=30), tag="old")
     _ku(db, domain="mental_health_psychology", eligibility="ELIGIBLE", created_at=now - timedelta(hours=1), tag="new")
     _ku(db, domain="wellbeing", eligibility="NOT_ELIGIBLE", created_at=now - timedelta(hours=1), tag="blocked")
-    after = wgr.build_weekly_growth_report(db, models, now=now)
+    after = wgr.build_weekly_growth_report(db, models, now=now, baseline_counts=baseline)
+    assert after["growth"]["eligible_net"] == 2 and after["verdict"] == "GREW"
     assert after["knowledge"]["eligible_total"] - before["knowledge"]["eligible_total"] == 2
     assert after["growth"]["eligible_created"] - before["growth"]["eligible_created"] == 1
     assert after["psychology"]["eligible_created"] - before["psychology"]["eligible_created"] == 1

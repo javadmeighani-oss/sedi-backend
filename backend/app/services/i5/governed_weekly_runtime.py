@@ -1380,6 +1380,11 @@ def run_weekly_scheduled_job(
         run_key, start, end, cfg_hash = build_scheduled_logical_identity(
             candidates=resolved, now=now
         )
+        baseline = None
+        if candidates is None:
+            from backend.app.services.i5.weekly_growth_report import capture_eligible_baseline
+
+            baseline = capture_eligible_baseline(session, loaded_models)  # R-044 step 5, before any mutation
         outcome = run_dormant_scheduled_tick(
             session,
             loaded_models,
@@ -1398,7 +1403,7 @@ def run_weekly_scheduled_job(
             # R-044 step 5: one read-only growth report line per production run (fail-open).
             from backend.app.services.i5.weekly_growth_report import log_weekly_growth_report
 
-            log_weekly_growth_report(session, loaded_models)
+            log_weekly_growth_report(session, loaded_models, baseline_counts=baseline)
         return outcome
     except Exception:
         if owns_session:
