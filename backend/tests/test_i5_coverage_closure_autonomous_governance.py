@@ -66,7 +66,7 @@ def test_coverage_closure_allowlist_activates_only_gap_set():
     assert data["allowlist_version"] == "i5-multisource-v1-knowledge-breadth-01"
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 22  # + openstax_psychology_2e (R-044 library)
+    assert len(rows) == 24  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov (R-044 library)
     assert GAP_KEYS.keys() <= keys
     assert "who_fact_sheets" not in keys
     for key, entity in GAP_KEYS.items():

@@ -124,6 +124,32 @@ def apply_governed_low_risk_fields(
     return True
 
 
+def _is_resource_list_for_source(ku: Any, source_key: str, canonical_url: Optional[str]) -> bool:
+    """R-044 per-source guards, switched on in the manifest row; every other source is untouched.
+
+    ``reject_resource_lists: true``  - a list of outside resources is links, not knowledge.
+    ``reject_medicine_talk: true``   - the low-risk path has no medication check, and medicines are never Sedi's to
+                                       choose (R-014), so a passage about medicines is not made eligible here.
+    """
+    row = manifest_row_for_key(source_key) or {}
+
+    def _on(name: str) -> bool:
+        return str(row.get(name)).strip().lower() in {"true", "yes", "1"}
+
+    statement = str(getattr(ku, "normalized_statement", "") or "")
+    if _on("reject_resource_lists"):
+        from backend.app.services.i5.governed_specialized_entity_eligibility import _resource_link_list
+
+        if _resource_link_list(statement, canonical_url or ""):
+            return True
+    if _on("reject_medicine_talk"):
+        from backend.app.services.i5.governed_specialized_entity_eligibility import _D23_MEDICINE_PATTERN
+
+        if _D23_MEDICINE_PATTERN.search(statement.casefold()):
+            return True
+    return False
+
+
 def finalize_governed_runtime_eligibility(
     ku: Union[Any, dict],
     *,
@@ -136,6 +162,9 @@ def finalize_governed_runtime_eligibility(
         prov_complete = bool(ku.get("provenance_complete"))
     else:
         prov_complete = bool(getattr(ku, "provenance_complete", False))
+        if _is_resource_list_for_source(ku, source_key, canonical_url):
+            # R-044: a list of outside resources is links, not knowledge - never made eligible by the low-risk path.
+            return evaluate_knowledge_unit_eligibility(ku)
 
     if can_apply_governed_low_risk(
         source_key=source_key,

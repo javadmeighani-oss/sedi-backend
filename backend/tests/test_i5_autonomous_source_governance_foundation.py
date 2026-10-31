@@ -123,7 +123,7 @@ def test_monitor_offline_emits_findings():
 def test_active_allowlist_coverage_closure_and_registry_no_activation():
     load_trusted_source_manifest.cache_clear()
     load_candidate_qualification_registry.cache_clear()
-    assert len(active_manifest_rows()) == 22  # + openstax_psychology_2e (R-044 library)
+    assert len(active_manifest_rows()) == 24  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov (R-044 library)
     assert_no_auto_activation_except(allowed_active_keys=set())
     counts = status_counts(candidate_rows())
     assert counts["NEEDS_REVIEW"] >= 1
