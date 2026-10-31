@@ -92,11 +92,11 @@ def test_new_pages_are_in_the_right_existing_sources_and_match_their_patterns():
 
 def test_no_new_source_and_the_low_risk_source_is_untouched():
     rows = _rows()
-    assert len(rows) == 21
+    assert len(rows) == 22  # + openstax_psychology_2e (R-044 library)
     live_well = rows["nhs_uk_live_well"]
     assert len([live_well["exact_url"], *live_well["additional_urls"]]) == 23
     assert not any("every-mind-matters" in u for u in live_well["additional_urls"])
-    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189
+    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189 + 28  # + OpenStax Psychology 2e
 
 
 def test_rate_limit_labels_of_the_changed_sources_match_their_url_counts():
