@@ -101,6 +101,9 @@ jobs:
             backend/tests/test_user_medications_v1.py \
             backend/tests/test_gate3_safety_care_v1.py \
             backend/tests/test_gate5a_hub_sensor_status.py \
+            backend/tests/test_i5_serving_text_guard.py \
+            backend/tests/test_i5_psychology_query_bridge.py \
+            backend/tests/test_i5_query_translation.py \
             backend/tests/contracts/test_v1_openapi_snapshot.py \
             -q
 
