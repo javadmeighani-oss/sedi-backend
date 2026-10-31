@@ -11,6 +11,7 @@ import json
 import re
 from dataclasses import dataclass
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from backend.app.services.i5.enums import (
     ConflictState,
@@ -605,6 +606,25 @@ D23 = SpecializedEntitySpec(
         "nhs.uk/mental-health/self-help/tips-and-support/",
         "nimh.nih.gov/health/topics/coping-with-traumatic-events",
         "cdc.gov/emotional-well-being",
+        # R-044 step 2: MedlinePlus "Mental Health and Behavior" topics reviewed for everyday emotional support (public
+        # domain NLM summaries). Crisis, medication, psychosis, eating-disorder and personality topics are NOT here.
+        "medlineplus.gov/anxiety.html",
+        "medlineplus.gov/bereavement.html",
+        "medlineplus.gov/childmentalhealth.html",
+        "medlineplus.gov/copingwithchronicillness.html",
+        "medlineplus.gov/copingwithdisasters.html",
+        "medlineplus.gov/depression.html",
+        "medlineplus.gov/howtoimprovementalhealth.html",
+        "medlineplus.gov/mentalhealth.html",
+        "medlineplus.gov/obsessivecompulsivedisorder.html",
+        "medlineplus.gov/olderadultmentalhealth.html",
+        "medlineplus.gov/panicdisorder.html",
+        "medlineplus.gov/phobias.html",
+        "medlineplus.gov/posttraumaticstressdisorder.html",
+        "medlineplus.gov/postpartumdepression.html",
+        "medlineplus.gov/seasonalaffectivedisorder.html",
+        "medlineplus.gov/stress.html",
+        "medlineplus.gov/teenmentalhealth.html",
     ),
     clinical_tokens=(
         "mental health",
@@ -1055,6 +1075,48 @@ _D23_UK_ROUTE_PHRASES: tuple[str, ...] = (
     "call 111",
     "111 online",
 )
+# R-044 step 2: the same rule for US-only routes (MedlinePlus / NIMH / CDC pages).
+_D23_US_ROUTE_PHRASES: tuple[str, ...] = (
+    "988",
+    "call 911",
+    "dial 911",
+    "741741",
+    "crisis text line",
+)
+# Medicines are never Sedi's to choose (R-014): on new D23 pages a section that talks about them fails closed.
+_D23_MEDICINE_PATTERN = re.compile(r"\b(?:medicines?|medications?|antidepressants?|ssris?|snris?|doses?|dosage)\b")
+# MedlinePlus topic pages end with lists of outside resources ("Feeling Stressed? ... (National Institutes of Health)
+# Also in Spanish ..."). They are links, not knowledge; the section extractor keeps them because the publisher names
+# sit outside the <a> tags.
+_MEDLINEPLUS_RESOURCE_HEADINGS: frozenset[str] = frozenset(
+    {
+        "start here",
+        "diagnosis and tests",
+        "treatments and therapies",
+        "living with",
+        "related issues",
+        "specifics",
+        "genetics",
+        "videos and tutorials",
+        "clinical trials",
+        "journal articles",
+        "find an expert",
+        "children",
+        "teenagers",
+        "women",
+        "men",
+        "older adults",
+        "patient handouts",
+        "statistics and research",
+        "prevention and risk factors",
+        "learn more",
+        "resources",
+        "research",
+        "reference desk",
+    }
+)
+_PUBLISHER_IN_PARENS = re.compile(r"\([A-Z][^()]{2,120}\)")
+_STATEMENT_HEADING = re.compile(r"^[^:—]{1,160} — ([^:]{1,120}):")
 _R044_GROWTH_URL_MARKERS: tuple[str, ...] = (
     "nhs.uk/every-mind-matters/",
     "nhs.uk/mental-health/self-help/tips-and-support/",
@@ -1065,6 +1127,49 @@ _R044_GROWTH_URL_MARKERS: tuple[str, ...] = (
     "cdc.gov/emotional-well-being",
     "cdc.gov/mental-health/living-with",
 )
+# D23 pages that were ELIGIBLE before R-044 (exact pages, compared without query/fragment/trailing slash). Every OTHER
+# D23 page - the R-044 growth pages and anything controlled link discovery finds later - gets the crisis-route check.
+_D23_PRE_R044_PAGES: frozenset[str] = frozenset(
+    {
+        "www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+        "www.nimh.nih.gov/health/topics/depression",
+        "www.nimh.nih.gov/health/topics/anxiety-disorders",
+        "www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+        "www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder-gad",
+        "www.nhs.uk/mental-health/conditions/depression-in-adults",
+        "www.nhs.uk/mental-health/conditions/panic-disorder",
+        "www.nhs.uk/mental-health/conditions/obsessive-compulsive-disorder-ocd",
+        "www.nhs.uk/mental-health/conditions/ptsd-post-traumatic-stress-disorder",
+        "www.nhs.uk/mental-health/conditions/bipolar-disorder",
+        "www.nhs.uk/mental-health/conditions/phobias",
+        "www.nhs.uk/mental-health/conditions/seasonal-affective-disorder-sad",
+        "www.nhs.uk/mental-health/conditions/postnatal-depression",
+        "www.nhs.uk/mental-health/feelings-symptoms-behaviours/feelings-and-symptoms/stress",
+        "www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt",
+        "www.cdc.gov/mental-health/about/index.html",
+    }
+)
+
+
+def _d23_route_check_applies(url: str) -> bool:
+    parsed = urlparse(url)
+    page = f"{(parsed.hostname or '').lower()}{(parsed.path or '/').rstrip('/').lower()}"
+    if any(m in url for m in _R044_GROWTH_URL_MARKERS):
+        return True
+    return page not in _D23_PRE_R044_PAGES
+
+
+def _resource_link_list(statement: str, url: str) -> bool:
+    """True for a list of outside resources (publisher names in brackets, "Also in Spanish"), not narrative text."""
+    heading = _STATEMENT_HEADING.match(statement)
+    if "medlineplus.gov/" in url and heading and heading.group(1).strip().casefold() in _MEDLINEPLUS_RESOURCE_HEADINGS:
+        return True
+    low = statement.casefold()
+    if "also in spanish" in low:
+        return True
+    publishers = len(_PUBLISHER_IN_PARENS.findall(statement))
+    sentences = len(re.findall(r"[.!?](?:\s|$)", statement))
+    return publishers >= 2 and publishers >= sentences
 
 
 def _d23_mh_edu_content_blocked(
@@ -1081,8 +1186,15 @@ def _d23_mh_edu_content_blocked(
     low = statement.casefold()
     if any(p in low for p in _D23_MH_EDU_BLOCKED_PHRASES):
         return True, "MH_EDU_BOUNDARY_BLOCK"
-    if url and any(m in url for m in _R044_GROWTH_URL_MARKERS) and any(p in low for p in _D23_UK_ROUTE_PHRASES):
-        return True, "MH_EDU_UK_CRISIS_ROUTE_BLOCK"
+    if url and _d23_route_check_applies(url):
+        if any(p in low for p in _D23_UK_ROUTE_PHRASES):
+            return True, "MH_EDU_UK_CRISIS_ROUTE_BLOCK"
+        if any(p in low for p in _D23_US_ROUTE_PHRASES):
+            return True, "MH_EDU_US_CRISIS_ROUTE_BLOCK"
+        if _D23_MEDICINE_PATTERN.search(low):
+            return True, "MH_EDU_MEDICATION_BLOCK"
+        if _resource_link_list(statement, url):
+            return True, "MH_EDU_RESOURCE_LIST_BLOCK"
     if "anxiety-disorders" in url or "topics/anxiety" in url:
         if any(
             p in low
@@ -1146,6 +1258,13 @@ def infer_specialized_spec_for_ku(
     return None
 
 
+def _url_on_source_domain(url: str, source_key: str) -> bool:
+    row = manifest_row_for_key(source_key) or {}
+    domain = str(row.get("allowed_domain") or "").strip().lower().lstrip(".")
+    host = (urlparse(url).hostname or "").lower()
+    return bool(domain) and (host == domain or host.endswith("." + domain))
+
+
 def specialized_source_authorized(source_key: str) -> bool:
     return bool(specialized_allowed_entities_for_source(source_key))
 
@@ -1171,6 +1290,9 @@ def can_apply_specialized_entity_eligibility(
         return False, "ENTITY_IDENTITY_MISSING", None
     if spec.entity_id not in allowed_entities:
         return False, "ENTITY_NOT_AUTHORIZED_FOR_SOURCE", None
+    if spec.entity_id == "D23" and canonical_url and not _url_on_source_domain(canonical_url, source_key):
+        # Several sources hold D23 (NIMH, NHS, CDC, MedlinePlus); each serves only its own publisher's pages.
+        return False, "URL_NOT_IN_SOURCE_DOMAIN", None
     url = (canonical_url or "").casefold()
     if url and not any(n in url for n in spec.url_needles):
         return False, "URL_NOT_IN_ENTITY_SCOPE", None

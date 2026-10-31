@@ -130,11 +130,21 @@ sources:
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
     rate_limit: "weekly_controlled_max_22_urls"
-    entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19]
-    knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
+    entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19, D23]
+    knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]  # specialty_domain is varchar(128): D23 comes from specialized_serving_eligibility
     activation: YES
     governed_low_risk_eligibility: NO
+    # R-044 step 2 (MedlinePlus psychology feed): robots.txt disallows /xml/, /feeds/topics/ and /groupfeeds/, and the
+    # Web Service host has no robots.txt (the Gate3 robots check fails closed on it), so the governed feed is the
+    # "Mental Health and Behavior" group page itself, read by controlled link discovery (flag-gated). A topic is kept
+    # only when it is one of the reviewed D23 MedlinePlus pages; crisis / medication / psychosis topics never.
+    link_discovery:
+      hub_urls:
+        - https://medlineplus.gov/mentalhealthandbehavior.html
+      max_new_urls_per_cycle: 12
+      max_discovered_urls: 30
     # Controlled specialized serving only (NOT global low-risk). D12 omitted (no canonical MP spec).
+    # D23 = reviewed MedlinePlus mental-health education pages only (URL lane in governed_specialized_entity_eligibility).
     specialized_serving_eligibility:
       - D01
       - D02
@@ -158,6 +168,7 @@ sources:
       - D22
       - D24
       - D25
+      - D23
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
 
   - source_key: cdc_health_lifestyle
@@ -674,6 +685,19 @@ sources:
     governed_low_risk_eligibility: NO
     # D23 mental-health education boundary applies (medication/crisis content fails closed; I4 owns crisis)
     specialized_serving_eligibility: [D23]
+    # R-044 step 1: controlled link discovery (flag SEDI_I5_LINK_DISCOVERY_ENABLED, default OFF). Depth 1 from these hubs
+    # only; a found page is kept only inside this source's URL patterns AND the D23 lane, never a crisis / medication /
+    # psychosis / eating-disorder page (fixed deny list in link_discovery.py). Everyday-wellbeing hubs come first.
+    link_discovery:
+      hub_urls:
+        - https://www.nhs.uk/every-mind-matters/lifes-challenges/
+        - https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/
+        - https://www.nhs.uk/every-mind-matters/mental-health-issues/
+        - https://www.nhs.uk/every-mind-matters/supporting-others/
+        - https://www.nhs.uk/every-mind-matters/
+        - https://www.nhs.uk/mental-health/conditions/
+      max_new_urls_per_cycle: 12
+      max_discovered_urls: 60
     license_notes: "OGL v3.0 — attribution required; educational mental-health information, not diagnosis or treatment selection"
 
   - source_key: cdc_chronic_disease
