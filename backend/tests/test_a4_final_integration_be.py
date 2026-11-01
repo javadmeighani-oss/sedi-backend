@@ -199,7 +199,8 @@ def test_a3_daily_opener_safe_no_raw_body(db):
     opener = build_notification_origin_opener(
         db, user, notif, language="fa", preferred_name=None
     )
-    assert "پیگیری روزانه صدی" in opener or "آماده‌ای" in opener
+    # R-047: one open question that continues the push (not the old bare yes/no «آماده‌ای؟»)
+    assert opener.count("؟") == 1 and "آماده‌ای" not in opener
     assert "RAW BODY" not in opener
     assert "no-inject" not in opener
     assert "عزیزم" not in opener
