@@ -1205,14 +1205,39 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': '{prefix}how are you? We can pick up where we left off, or talk about something new.',
     },
     'session.daily_digest': {
-        'fa': '{prefix}برای پیگیری روزانه صدی آماده\u200cای؟',
-        'ar': '{prefix}هل أنت مستعد للمتابعة اليومية مع صدی؟',
-        'en': '{prefix}Ready for your daily Sedi check-in?',
+        'fa': '{prefix}امروز چطوری؟ از حال و خوابت بگو یا از هر چیزی که دوست داری.',
+        'ar': '{prefix}كيف حالك اليوم؟ حدثني عن حالك ونومك أو عن أي شيء تحب.',
+        'en': "{prefix}How are you today? Tell me about your mood and sleep, or anything you like.",
+    },
+    'session.digest.general_checkin': {
+        'fa': '{prefix}ممنون که اومدی. امروز حال بدن و حال دلت چطور بود؟',
+        'ar': '{prefix}شكراً لأنك جئت. كيف كان جسدك وقلبك اليوم؟',
+        'en': '{prefix}Thanks for coming. How were your body and your mood today?',
+    },
+    'session.digest.i8_action': {
+        'fa': '{prefix}خوب شد اومدی. برنامه‌ی امروزت رو با هم مرور کنیم؟ بگو کدوم کار انجام شد.',
+        'ar': '{prefix}جميل أنك جئت. هل نراجع خطة اليوم معاً؟ أخبرني أي بند أُنجز.',
+        'en': "{prefix}Good that you came. Shall we go over today's plan? Tell me which items are done.",
+    },
+    'session.digest.i6_i7_context': {
+        'fa': '{prefix}خوشحالم که اومدی. از همون جایی که صحبتمون مونده ادامه بدیم یا امروز درباره‌ی چیز دیگه‌ای حرف بزنیم؟',
+        'ar': '{prefix}سعيدة أنك جئت. نكمل من حيث توقفنا أم نتحدث اليوم عن شيء آخر؟',
+        'en': "{prefix}I'm glad you came. Shall we continue where we left off, or talk about something else today?",
+    },
+    'session.digest.safety': {
+        'fa': '{prefix}ممنون که اومدی. الان حالت چطوره؟ من همین‌جا کنارتم.',
+        'ar': '{prefix}شكراً لأنك جئت. كيف حالك الآن؟ أنا هنا بجانبك.',
+        'en': "{prefix}Thanks for coming. How are you feeling right now? I'm right here with you.",
+    },
+    'session.digest.i9_observation': {
+        'fa': '{prefix}ممنون که اومدی. امروز چه حسی داری و بدنت چطوره؟',
+        'ar': '{prefix}شكراً لأنك جئت. كيف تشعر اليوم وكيف جسدك؟',
+        'en': '{prefix}Thanks for coming. How do you feel today, and how is your body?',
     },
     'session.origin_generic': {
-        'fa': '{prefix}از اعلان صدی اومدی. می\u200cخوای از همین\u200cجا ادامه بدیم؟',
-        'ar': '{prefix}فتحت هذا من إشعار صدی. كيف تريد المتابعة؟',
-        'en': '{prefix}You opened this from a Sedi notification. How would you like to continue?',
+        'fa': '{prefix}ممنون که از پیام صدی اومدی. می‌خوای همون موضوع رو ادامه بدیم یا درباره‌ی چیز دیگه‌ای حرف بزنیم؟',
+        'ar': '{prefix}شكراً لأنك جئت من رسالة صدی. هل نكمل الموضوع نفسه أم نتحدث عن شيء آخر؟',
+        'en': '{prefix}Thanks for coming from my message. Shall we continue that topic, or talk about something else?',
     },
     'session.care_checkin': {
         'fa': '{who}خوشحالم که اومدی. دلم می\u200cخواست بدونم این روزها چطوری؛ هرچی تو دلته بگو، من گوش می\u200cدم.',
@@ -1327,5 +1352,10 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': 'هشدار سلامت ثبت شد.',
         'ar': 'تم تسجيل تنبيه صحي.',
         'en': 'A health alert was recorded.',
+    },
+    'about.sedi': {
+        'fa': 'من صدی‌ام؛ همراه و مراقب سلامت تو. اول از همه حافظه‌ی همراهت می‌شم: حال تن و دلت، خواب، غذا، ورزش و زندگی‌ات رو به مرور از گفتگو و سؤال‌های خودم می‌شناسم و ثبت می‌کنم.\nبعد با همین شناخت کنارتم، مثل یه مشاور و مراقب: پیشگیری، همراهی در درمان، برنامه‌ی غذایی و ورزشی، آرامش ذهن و خواب بهتر.\nیادآور و نوتیف هم می‌فرستم؛ فقط بگو «فردا ساعت ۱۰ یادم بنداز …» تا همون وقت بهت پیام بدم. اگه خواستی متخصص مناسب هم برات پیدا می‌کنم.\nهدفم اینه که سالم، شاد و طولانی زندگی کنی. از کجا شروع کنیم؟',
+        'ar': 'أنا صدی، رفيقتك ومرافقتك الصحية. أولاً أكون ذاكرتك المرافقة: أتعرف تدريجياً على حال جسدك وقلبك ونومك وغذائك ورياضتك وحياتك من حديثنا ومن أسئلتي، وأسجّلها.\nثم بهذه المعرفة أكون بجانبك كمستشارة ومرافقة: للوقاية ومرافقة العلاج وخطة الغذاء والرياضة وهدوء الذهن ونوم أفضل.\nوأرسل لك تذكيرات وإشعارات أيضاً؛ قل لي «ذكّرني غداً الساعة ١٠ …» وأراسلك في الوقت نفسه. وإن أحببت أجد لك المختص المناسب.\nهدفي أن تعيش صحيحاً وسعيداً وطويلاً. من أين نبدأ؟',
+        'en': "I'm Sedi, your health companion and caretaker. First I become your companion memory: little by little, from our chats and my own questions, I get to know and record how your body and mind are, your sleep, food, exercise and daily life.\nThen, with that knowledge, I'm beside you as an adviser and caretaker: prevention, support through treatment, meal and exercise plans, a calmer mind and better sleep.\nI send reminders and notifications too; just say \"remind me tomorrow at 10 …\" and I'll message you right then. And if you like, I can find a suitable specialist for you.\nMy goal is a healthy, happy, long life for you. Where shall we start?",
     },
 }

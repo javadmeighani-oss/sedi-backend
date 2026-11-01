@@ -73,6 +73,8 @@ ALLOWED_CONTEXT_JSON_KEYS: Final[frozenset[str]] = frozenset(
         "source_summary_key",
         "dedupe_hint",
         "recurrence_hint",
+        # Which kind of daily message this was (enum value only); lets the chat opener continue its subject.
+        "content_family",
     }
 )
 

@@ -143,8 +143,8 @@ def test_session_open_other_family_ack_opener(client, db):
     msg = body.get("message") or ""
     assert body.get("continued_from_notification") is True
     assert body.get("source_notification_id") == n.id
-    # A4: DAILY_WELLNESS_DIGEST gets calm family-specific opener (no raw body).
-    assert "daily" in msg.lower() and "sedi" in msg.lower()
+    # R-047: the digest opener is ONE open question that continues the push (never a bare yes/no; no raw body).
+    assert msg.count("?") == 1 and "ready" not in msg.lower()
     assert "DIGEST_RAW_SHOULD_NOT_LEAK" not in msg
 
 

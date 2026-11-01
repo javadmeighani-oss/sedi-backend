@@ -1480,6 +1480,28 @@ class IntelligenceOrchestrator:
             skip_generator = True
             clarification_message = None
 
+        # R-047: "who are you / what can you do / can you send notifications" -> Sedi's locked identity + real abilities.
+        about_message: Optional[str] = None
+        if (
+            not terminal_safety
+            and not discovery_reply_active
+            and not care_nav_handled
+            and not skip_generator
+        ):
+            try:
+                from backend.app.services.intelligence.about_sedi import (
+                    about_sedi_message,
+                    is_about_sedi_question,
+                )
+
+                if is_about_sedi_question(message):
+                    about_message = about_sedi_message(lang)
+                    extra_reason_codes.append("R047_ABOUT_SEDI_IDENTITY")
+                    skip_generator = True
+                    clarification_message = None
+            except Exception:
+                about_message = None
+
         # CR-03.2: discovery marker already classified/consumed above (before I5/I8/reminder).
 
         # CR-01/CR-02 NBQ: select directive on normal structured path.
@@ -1687,6 +1709,7 @@ class IntelligenceOrchestrator:
                 or nutrition_message
                 or exercise_message
                 or reminder_message
+                or about_message
                 or clarification_message
                 or ""
             )
@@ -1724,6 +1747,7 @@ class IntelligenceOrchestrator:
                 or nutrition_message is not None
                 or exercise_message is not None
                 or reminder_message is not None
+                or about_message is not None
             ):
                 ctx.append_stage(
                     StageName.VALIDATE_GENERATION_RESULT,
