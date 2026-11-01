@@ -614,6 +614,20 @@ sources:
       - https://www.nhs.uk/conditions/erection-problems-erectile-dysfunction/
       - https://www.nhs.uk/conditions/testicular-cancer/
       - https://www.nhs.uk/conditions/male-menopause/
+      # R-044 library: more Health A-Z pages inside the lanes this source already holds (D21, D22, D05, D02, D25, D10)
+      - https://www.nhs.uk/conditions/atrial-fibrillation/
+      - https://www.nhs.uk/conditions/high-cholesterol/
+      - https://www.nhs.uk/conditions/angina/
+      - https://www.nhs.uk/conditions/cardiovascular-disease/
+      - https://www.nhs.uk/conditions/gestational-diabetes/
+      - https://www.nhs.uk/conditions/osteoarthritis/
+      - https://www.nhs.uk/conditions/rheumatoid-arthritis/
+      - https://www.nhs.uk/conditions/gout/
+      - https://www.nhs.uk/conditions/chronic-obstructive-pulmonary-disease-copd/
+      - https://www.nhs.uk/conditions/obstructive-sleep-apnoea/
+      - https://www.nhs.uk/conditions/endometriosis/
+      - https://www.nhs.uk/conditions/polycystic-ovary-syndrome-pcos/
+      - https://www.nhs.uk/conditions/periods/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/conditions/.*"
@@ -621,7 +635,7 @@ sources:
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_38_urls"
+    rate_limit: "weekly_controlled_max_51_urls"
     entity_coverage: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25, D26, D27]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic]
     activation: YES
