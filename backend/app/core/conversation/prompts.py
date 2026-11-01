@@ -19,6 +19,7 @@ RESPONSIBILITY:
 
 from typing import Dict, Optional
 from openai import OpenAI
+from backend.app import sedi_copy
 from backend.app.core.conversation.stages import ConversationStage
 from backend.app.core.conversation.name_database import is_likely_name, detect_language
 from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
@@ -332,7 +333,7 @@ class ConversationPrompts:
         self.onboarding_prompts = {
             "en": {
                 "first_launch": "Hello, I'm Sedi. I'm really glad to meet you. What's your name?",
-                "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
+                "name_pending": sedi_copy.t("identity.intro", "en") + "\n\nThank you for starting this connection. Could you please tell me your name?",
                 "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
                 "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
                 "name_refusal_with_question": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Please, could you tell me your name now?",
@@ -356,8 +357,8 @@ class ConversationPrompts:
             },
             "fa": {
                 "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
-                "greeting_response": "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خیلی خوشحالم از آشنایی با شما. برای شروع، لطفاً اسمتون را به من بگین؟",
-                "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
+                "greeting_response": sedi_copy.t("identity.intro", "fa") + "\n\nبرای شروع، لطفاً اسمتون را به من بگین؟",
+                "name_pending": sedi_copy.t("identity.intro", "fa") + "\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
                 "name_refusal_with_question": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. ممنون میشم حالا اسم خودت رو بگی؟",
@@ -374,16 +375,16 @@ class ConversationPrompts:
                 # FIRST REAL INTERACTION - After onboarding complete (password confirmed)
                 "first_real_interaction": "{user_name} عزیز از این لحظه به بعد من تماما در خدمت تو هستم تا یک مراقبت پیوسته و یکپارچه برای ارتقا کیفیت زندگی تو داشته باشیم.\n\nحالا دوست داری یکم از خودت بگی یا من بیشتر از خودم بگم. فقط بگو با کدوم شروع کنیم؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
-                "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
+                "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nبیا اول کمی درباره شرایطت صحبت کنیم.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
                 "user_delegates": "کاملاً مشکلی نیست،\nمن خیلی آروم شروع می‌کنم.\n\nمن اینجا هستم تا مراقب وضعیت سلامتت باشم،\nکمک کنم از شرایط بدنت آگاه باشی\nو راحت‌تر از خودت مراقبت کنی.\n\nبرای شروع،\nامروز وضعیت سلامتت رو چطور توصیف می‌کنی؟\nخوبه، معمولیه، یا کمی سخت؟",
                 "unrelated_question": "سؤال خوبیه.\n\nنقش من اینه که مراقب وضعیت سلامتت باشم،\nکمک کنم از شرایطت آگاه‌تر باشی\nو راحت‌تر از خودت مراقبت کنی.\n\nاگه موافقی،\nمی‌تونیم از یک موضوع ساده درباره سلامت امروزت شروع کنیم.",
-                "early_medical_question": "می‌تونم بهت کمک کنم موضوعات مربوط به سلامت رو بهتر بفهمی\nو مراقب وضعیتت باشی،\nاما تشخیص یا تصمیم درمانی قطعی\nحتماً باید توسط پزشک انجام بشه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره علائم یا نگرانی‌هات صحبت کنیم."
+                "early_medical_question": "می‌تونم بهت کمک کنم موضوعات مربوط به سلامت رو بهتر بفهمی\nو مراقب وضعیتت باشی،\nاما تشخیص یا تصمیم درمانی قطعی\nحتماً باید توسط پزشک انجام بشه.\n\nبیا اول کمی درباره علائم یا نگرانی‌هات صحبت کنیم."
             },
             "ar": {
                 "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
-                "greeting_response": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. سعيد جداً بلقائك. للبدء، هل يمكنك إخباري باسمك من فضلك؟",
-                "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
+                "greeting_response": sedi_copy.t("identity.intro", "ar") + "\n\nللبدء، هل يمكنك إخباري باسمك من فضلك؟",
+                "name_pending": sedi_copy.t("identity.intro", "ar") + "\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
                 "name_refusal_with_question": "أنا سأكون مساعدك للعناية بالصحة وأحتاج أن أعرف اسمك الحقيقي حتى أتمكن من تبادل المعلومات الصحيحة والدقيقة مع الأطباء أو المؤسسات الصحية. من فضلك، هل يمكنك إخباري باسمك الآن؟",
@@ -399,11 +400,11 @@ class ConversationPrompts:
                 # FIRST REAL INTERACTION - After onboarding complete
                 "first_real_interaction": "عزيزي {user_name}، من اليوم أنا معك إلى الأبد.\n\nهل تريد أن تخبرني قليلاً عن نفسك؟ أم تريدني أن أخبرك عن قدراتي، ما يمكنني فعله من أجلك، والغرض من وجودي؟",
                 "unclear_response": "لا بأس بذلك تماماً.\nيمكننا أن نبدأ من أي مكان تشعر أنه أسهل لك.\n\nعلى سبيل المثال:\n– الدعم الصحي\n– المتابعة اليومية\n– بناء روتين بسيط\n– أو مجرد الحديث\n\nأنت تختار، وأنا معك.",
-                "medical_question": "يمكنني مساعدتك على فهم الأمور بشكل أفضل\nوالوقوف إلى جانبك،\nلكن التشخيص أو القرارات الطبية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أن نبدأ بالحديث قليلاً عن وضعك.",
+                "medical_question": "يمكنني مساعدتك على فهم الأمور بشكل أفضل\nوالوقوف إلى جانبك،\nلكن التشخيص أو القرارات الطبية\nيجب أن تتم دائماً مع طبيب مختص.\n\nلنبدأ بالحديث قليلاً عن وضعك.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
                 "user_delegates": "لا مشكلة في ذلك أبداً،\nسأبدأ بهدوء.\n\nأنا هنا لمتابعة وضعك الصحي،\nومساعدتك على أن تكون على دراية بحالتك\nوتعتني بصحتك بشكل أفضل.\n\nللبداية،\nكيف تصف حالتك الصحية اليوم؟\nهل هي جيدة، طبيعية، أم متعبة قليلاً؟",
-                "unrelated_question": "سؤال جيد.\n\nدوري هو متابعة حالتك الصحية،\nومساعدتك على فهم وضعك بشكل أفضل\nوالاعتناء بصحتك بطريقة واعية.\n\nإذا أحببت،\nيمكننا أن نبدأ بسؤال بسيط عن صحتك اليوم.",
-                "early_medical_question": "يمكنني مساعدتك في فهم الأمور الصحية\nومتابعة حالتك،\nلكن التشخيص أو القرارات العلاجية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أولاً التحدث قليلاً عن الأعراض أو ما يقلقك."
+                "unrelated_question": "سؤال جيد.\n\nدوري هو متابعة حالتك الصحية،\nومساعدتك على فهم وضعك بشكل أفضل\nوالاعتناء بصحتك بطريقة واعية.\n\nلنبدأ بسؤال بسيط عن صحتك اليوم.",
+                "early_medical_question": "يمكنني مساعدتك في فهم الأمور الصحية\nومتابعة حالتك،\nلكن التشخيص أو القرارات العلاجية\nيجب أن تتم دائماً مع طبيب مختص.\n\nلنتحدث أولاً قليلاً عن الأعراض أو ما يقلقك."
             }
         }
     

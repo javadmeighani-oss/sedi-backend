@@ -58,11 +58,11 @@ def test_legacy_non_gate4_keeps_notification_envelope():
     assert msg["android"]["priority"] == "normal"
 
 
-def test_a3_session_open_arabic_brand_is_sedi_fa_form():
+def test_a3_session_open_arabic_brand_is_arabic_spelling():  # R-048 (was the Persian-Yeh form)
     from backend.app.models import User
     from backend.app.services.a3_session_open import build_first_intro_message
 
     u = User(name="Ali", secret_key="t", preferred_language="ar")
     msg = build_first_intro_message(u)
-    assert "صدی" in msg
-    assert "صدي" not in msg
+    assert "صدي" in msg
+    assert "صدی" not in msg

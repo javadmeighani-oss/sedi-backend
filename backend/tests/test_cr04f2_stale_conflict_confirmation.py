@@ -725,11 +725,9 @@ def test_cr04f2_cr04f1_missing_tier_a_unchanged():
     )
     assert d is not None
     assert d.target_key == "preferences.interests"
-    # The invitation must stay visibly optional; a natural cue replaces the stiff "Optional:" label.
-    assert any(
-        cue in d.localized_question
-        for cue in ("Optional", "اختیاری", "If you feel like", "دوست داری", "اگه")
-    )
+    # R-049: Sedi asks directly (a permanent companion does not hedge with "if you feel like").
+    assert "Sedi" in d.localized_question
+    assert "if you" not in d.localized_question.lower()
 
 
 # ---- CR-04F.2.1 confirmation evidence under saturation ----

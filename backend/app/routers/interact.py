@@ -778,7 +778,7 @@ def setup_onboarding(
             if greeting_lang == "fa":
                 initial_message = "سلام! من صدی‌ام و خیلی خوشحالم که اینجایی. کنارت هستم؛ امروز چطوره؟"
             elif greeting_lang == "ar":
-                initial_message = "أهلاً! أنا صدی وسعيدة جداً بوجودك. أنا بجانبك؛ كيف يومك؟"
+                initial_message = "أهلاً! أنا صدي وسعيدة جداً بوجودك. أنا بجانبك؛ كيف يومك؟"
             else:
                 initial_message = "Hi! I'm Sedi, and I'm really glad you're here. I'm by your side. How is your day going?"
             print(f"[ONBOARDING] ✅ Using fallback greeting")

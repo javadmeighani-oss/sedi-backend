@@ -5,6 +5,8 @@ Server authority only. No Flutter local storage as intro authority.
 
 from __future__ import annotations
 
+import json
+
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
@@ -195,10 +197,32 @@ def _presence_continuation_opener(
     return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
 
 
-def _daily_digest_opener(*, lang: str, name: Optional[str]) -> str:
-    """Calm family-specific opener for DAILY_WELLNESS_DIGEST (no raw body)."""
+_DIGEST_OPENER_FAMILIES = ("general_checkin", "i8_action", "i6_i7_context", "safety", "i9_observation")
+
+
+def _digest_content_family(notification: Any) -> Optional[str]:
+    """The digest's content family (written by I10 into context_json); None when unknown. Never the body."""
+    raw = getattr(notification, "context_json", None)
+    if not raw:
+        return None
+    try:
+        loaded = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    family = str(loaded.get("content_family") or "").split(":", 1)[0].strip().lower()
+    return family if family in _DIGEST_OPENER_FAMILIES else None
+
+
+def _daily_digest_opener(*, lang: str, name: Optional[str], content_family: Optional[str] = None) -> str:
+    """Opener for DAILY_WELLNESS_DIGEST: ONE open question that continues what the push was about (no raw body).
+
+    A bare yes/no («آماده‌ای؟») made Sedi look unable to talk once the user opened the chat (Javad 2026-11-01).
+    """
     prefix = _notification_name_prefix(name, lang)
-    return sedi_copy.t("session.daily_digest", lang, prefix=prefix).strip()
+    key = f"session.digest.{content_family}" if content_family else "session.daily_digest"
+    return sedi_copy.t(key, lang, prefix=prefix).strip()
 
 
 def _generic_notification_origin_opener(*, lang: str, name: Optional[str]) -> str:
@@ -234,7 +258,7 @@ def build_notification_origin_opener(
     family = (notification.semantic_family or "").strip()
 
     if family == I10SemanticFamily.DAILY_WELLNESS_DIGEST.value:
-        return _daily_digest_opener(lang=lang, name=name)
+        return _daily_digest_opener(lang=lang, name=name, content_family=_digest_content_family(notification))
 
     if (getattr(notification, "template_key", None) or "") in ("care_checkin", "daily_initiative"):
         return _care_checkin_opener(lang=lang, name=name)

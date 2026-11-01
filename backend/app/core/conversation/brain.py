@@ -27,6 +27,15 @@ from backend.app.models import User
 _USER_KNOWLEDGE_MAX_CHARS = 1200
 _NOTIFICATION_CONTEXT_MAX_CHARS = 2000
 
+# R-049: the governed knowledge below is Sedi's OWN professional knowledge, there to make her a reliable adviser.
+_KNOWLEDGE_VOICE = (
+    "[HOW TO USE THE KNOWLEDGE BELOW] This is your own professional expertise as the user's permanent companion and "
+    "adviser - not a document to quote. Speak from it with calm certainty, in your own warm words, adapted to this "
+    "person's known situation; give a clear recommendation and one concrete next step. Do not hedge with "
+    "'if you like / if you want', do not say 'according to sources', and do not end with a menu of offers. "
+    "Stay inside the facts below; if something is not covered, say what you do know and ask the one thing you need."
+)
+
 
 def _format_notification_context_block(notification_context: Optional[Mapping[str, Any]]) -> Optional[str]:
     """Format safe notification context for internal GPT system prompt injection."""
@@ -252,7 +261,7 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
                 lines.append(
                     "No safe governed knowledge available; do not invent medical content."
                 )
-        block = "\n".join(lines)[:5200]
+        block = _KNOWLEDGE_VOICE + "\n" + "\n".join(lines)[:5200]
         messages.append({"role": "system", "content": block})
     except Exception as e:
         print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
@@ -341,7 +350,7 @@ def _maybe_append_structured_governed_knowledge(
         )
         block = format_care_context_block(grounded, max_chars=4400)
         if block and str(block).strip():
-            messages.append({"role": "system", "content": str(block).strip()[:4800]})
+            messages.append({"role": "system", "content": _KNOWLEDGE_VOICE + "\n" + str(block).strip()[:4800]})
     except Exception as e:
         # Clear the aborted transaction so later Brain/I6 writes still proceed.
         # Do not retrieve again and do not supply invented evidence.
@@ -812,6 +821,7 @@ class ConversationBrain:
                         # R-014 grounding: no relative/condition claim that the user or their memory never supplied.
                         from backend.app.services.intelligence.grounding_guard import (
                             limit_questions,
+                            strip_hedging_offers,
                             strip_self_limit_disclaimers,
                             strip_unsupported_personal_claims,
                         )
@@ -824,6 +834,8 @@ class ConversationBrain:
                         sedi_response = strip_unsupported_personal_claims(sedi_response, _supported, lang)
                         # R-033: Sedi never talks about her own limits («روانشناس انسانی نیستم و تشخیص نمی‌دم»).
                         sedi_response = strip_self_limit_disclaimers(sedi_response, lang)
+                        # R-049: a permanent companion and professional adviser speaks with certainty - no «اگه دوست داری».
+                        sedi_response = strip_hedging_offers(sedi_response, lang)
                         sedi_response = limit_questions(sedi_response, 1)
                     except Exception as _guard_err:
                         print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
@@ -1006,7 +1018,7 @@ class ConversationBrain:
 
 This is your very first message to this person right after they joined Sedi.
 - Greet them warmly{" by name" if display_name != "friend" else ""}, like a caring friend who is happy to meet them.
-- Say briefly who you are (Sedi) and that you will be by their side for their health, lifestyle and mood: listening, helping them care for themselves, and cheering them on.
+- Say briefly who you are (Sedi): their health companion and their memory - you keep the picture of their body and mind over the short, medium and long term from your talks and your own questions (and their vital signs as their Sedi gadgets connect) - and, with that, their adviser and caretaker for prevention, treatment follow-up and a healthy, long life, always by their side.
 - Invite them to talk to you about anything, in their own way.
 - End with ONE gentle opening question (for example how their day is going).
 - 3 to 4 short, natural sentences, plain text. Reply in the language of the persona prompt above.
@@ -1070,7 +1082,7 @@ This is your very first message to this person right after they joined Sedi.
             fallback = {
                 "en": f"Hi {display_name}! I'm Sedi. I'm really glad you're here. I'll be by your side for your health, your lifestyle and your mood, to listen and to help you take good care of yourself. How is your day going?",
                 "fa": f"سلام {display_name}! من صدی‌ام و خیلی خوشحالم که اینجایی. کنارت هستم تا برای سلامتی، سبک زندگی و حال و روحیه‌ات گوش بدم و کمکت کنم از خودت خوب مراقبت کنی. امروز چطوره؟",
-                "ar": f"أهلاً {display_name}! أنا صدی، وسعيدة جداً بوجودك هنا. سأكون بجانبك في صحتك ونمط حياتك ومزاجك، لأصغي إليك وأساعدك على العناية بنفسك. كيف يومك؟",
+                "ar": f"أهلاً {display_name}! أنا صدي، وسعيدة جداً بوجودك هنا. سأكون بجانبك في صحتك ونمط حياتك ومزاجك، لأصغي إليك وأساعدك على العناية بنفسك. كيف يومك؟",
             }
             return fallback.get(lang_code, fallback["en"])
     

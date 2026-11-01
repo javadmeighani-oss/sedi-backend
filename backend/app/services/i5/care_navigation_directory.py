@@ -449,11 +449,11 @@ def _serialize_hits_message(
         }[k])
     lines.append({
         "fa": "این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی؛ قبل از رفتن بهتره با خود مرکز هماهنگ کنی. "
-              "اگه خواستی بگم این اطلاعات از کجاست و بیمارها چه نظری دارن، بپرس.",
+              "بپرس تا بگم این اطلاعات از کجاست و بیمارها چه نظری دارن.",
         "ar": "هذه معلومات فقط وليست توصية أو ترتيباً؛ يُفضّل الاتصال بالمركز قبل الذهاب. "
               "إن أردت أخبرتك بمصدر المعلومات ورأي المرضى.",
         "en": "This is information only, not a recommendation or ranking; please confirm with the provider "
-              "before going. Ask me if you'd like to know where it comes from and what patients say.",
+              "before going. Ask me and I'll tell you where it comes from and what patients say.",
     }[k])
     return "\n".join(lines)
 

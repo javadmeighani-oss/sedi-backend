@@ -1,0 +1,255 @@
+"""R-047: Sedi's locked identity/capabilities, honest notification claims and notification-origin openers."""
+
+from __future__ import annotations
+
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from backend.app import sedi_copy
+from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
+from backend.app.services.a3_session_open import (
+    _daily_digest_opener,
+    _digest_content_family,
+)
+from backend.app.services.gate4.notification_context import sanitize_notification_context
+from backend.app.services.intelligence.about_sedi import about_sedi_message, is_about_sedi_question
+from backend.app.services.intelligence.grounding_guard import strip_self_limit_disclaimers
+
+_FAMILIES = ("general_checkin", "i8_action", "i6_i7_context", "safety", "i9_observation")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "تو کی هستی؟",
+        "چه کارهایی می‌تونی انجام بدی؟",
+        "می‌تونی برام نوتیف بفرستی؟",
+        "قابلیت‌هات چیه",
+        "what can you do?",
+        "who are you",
+        "can you send me a reminder",
+    ],
+)
+def test_about_question_detected(text):
+    assert is_about_sedi_question(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "فردا ساعت ۱۰ یادم بنداز دکتر",
+        "من دیابت دارم چه کار کنم",
+        "remind me tomorrow at 10 to take my pills",
+        "",
+    ],
+)
+def test_other_messages_not_about_question(text):
+    assert not is_about_sedi_question(text)
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_about_message_states_identity_and_abilities(lang):
+    msg = about_sedi_message(lang)
+    assert msg.count("؟") + msg.count("?") <= 1
+    if lang == "fa":
+        for word in ("صدی", "یادآور", "نوتیف", "ورزش"):
+            assert word in msg
+        assert "سدی" not in msg
+    elif lang == "en":
+        for word in ("memory", "reminders", "notifications", "specialist"):
+            assert word in msg
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_persona_declares_she_can_send_reminders(lang):
+    prompt = PersonaPolicyV1.system_prompt(lang)
+    marker = {"fa": "می‌توانی»", "ar": "تستطيعين»", "en": "you CAN"}[lang]
+    assert marker in prompt
+
+
+def test_false_cannot_send_notification_claim_is_removed():
+    out = strip_self_limit_disclaimers("نمی‌تونم برات نوتیف بفرستم. ولی امشب زودتر بخواب تا فردا سرحال باشی.", "fa")
+    assert "نوتیف" not in out
+    assert "زودتر بخواب" in out
+    en = strip_self_limit_disclaimers("I can't send you notifications. Try a short walk after dinner.", "en")
+    assert "notification" not in en and "short walk" in en
+
+
+def test_content_family_survives_context_sanitizer():
+    cleaned = sanitize_notification_context(
+        {"template_key": "daily_wellness_digest", "content_family": "i8_action", "dosage": "5mg"}
+    )
+    assert cleaned and cleaned["content_family"] == "i8_action" and "dosage" not in cleaned
+
+
+def test_digest_family_read_from_context_json():
+    note = SimpleNamespace(context_json=json.dumps({"content_family": "i8_action:pair"}))
+    assert _digest_content_family(note) == "i8_action"
+    assert _digest_content_family(SimpleNamespace(context_json=None)) is None
+    assert _digest_content_family(SimpleNamespace(context_json="{bad")) is None
+    assert _digest_content_family(SimpleNamespace(context_json=json.dumps({"content_family": "zzz"}))) is None
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_digest_openers_are_open_single_questions_not_yes_no(lang):
+    seen = set()
+    for fam in (None,) + _FAMILIES:
+        text = _daily_digest_opener(lang=lang, name="جواد", content_family=fam)
+        assert text.strip()
+        assert text.count("؟") + text.count("?") <= 1
+        seen.add(text)
+    # every family continues its own subject: the texts differ
+    assert len(seen) >= 5
+    if lang == "fa":
+        assert "آماده‌ای" not in "".join(seen)
+
+
+def test_catalog_keys_exist_for_every_family():
+    for fam in _FAMILIES:
+        for lang in ("fa", "ar", "en"):
+            assert sedi_copy.t(f"session.digest.{fam}", lang, prefix="")
+
+
+# ---- R-048: ONE locked identity everywhere, Arabic brand spelling -------------------------------------------------
+
+_TIERS = {"fa": ("کوتاه‌مدت", "میان‌مدت", "بلندمدت"), "en": ("short-term", "medium-term", "long-term")}
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_every_persona_prompt_opens_with_the_locked_identity(lang):
+    prompt = PersonaPolicyV1.system_prompt(lang)
+    assert prompt.startswith(sedi_copy.t("identity.core", lang))
+
+
+def test_identity_names_memory_tiers_adviser_and_gadgets():
+    en = sedi_copy.t("identity.core", "en")
+    for word in ("short-term", "medium-term", "long-term", "vital signs", "adviser", "treatment"):
+        assert word in en
+    fa = sedi_copy.t("identity.core", "fa")
+    for word in _TIERS["fa"] + ("گجت",):
+        assert word in fa.replace("‌", "‌")
+    ar = sedi_copy.t("identity.core", "ar")
+    for word in ("قصيرة المدى", "طويلة المدى", "الحيوية"):
+        assert word in ar
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_intro_and_about_share_the_identity(lang):
+    intro = sedi_copy.t("identity.intro", lang)
+    about = about_sedi_message(lang)
+    assert intro.strip() and about.strip()
+
+
+def test_arabic_brand_uses_arabic_yeh_everywhere_in_the_catalog():
+    persian = "صدی"
+    arabic = "صدي"
+    for key, lang, text in sedi_copy.iter_strings():
+        if lang == "ar":
+            assert persian not in text, key
+    assert arabic in sedi_copy.t("about.sedi", "ar")
+    assert persian in sedi_copy.t("about.sedi", "fa") and arabic not in sedi_copy.t("about.sedi", "fa")
+
+
+def test_legacy_intro_templates_use_the_identity():
+    from backend.app.core.conversation.prompts import ConversationPrompts  # noqa: F401  (import must work)
+    from backend.app.core.conversation import sedi_knowledge_base as kb
+
+    for lang in ("en", "fa", "ar"):
+        ident = kb.SEDI_IDENTITY[lang]
+        assert "assistant" not in ident["type"].lower() or lang != "en"
+    assert "memory" in kb.SEDI_IDENTITY["en"]["type"].lower()
+
+
+# ---- R-049: a permanent companion and professional adviser does not hedge ---------------------------------------------
+
+import re as _re
+
+from backend.app.services.intelligence.grounding_guard import strip_hedging_offers
+
+_HEDGE_RE = _re.compile(
+    "اگه (?:دوست داری|خواستی)|اگر دوست داری|if you(?:'d)? (?:like|want)|إن (?:أحببت|رغبت|شئت)|إذا أحببت|متى (?:ما )?(?:رغبت|شئت)",
+    _re.I,
+)
+
+
+def test_no_catalog_text_hedges_with_if_you_like():
+    bad = [(k, lang) for k, lang, t in sedi_copy.iter_strings() if not k.startswith("identity.") and _HEDGE_RE.search(t)]
+    assert not bad, bad
+
+
+def test_persona_voice_forbids_hedging_and_offer_menus():
+    for lang in ("fa", "ar", "en"):
+        prompt = PersonaPolicyV1.system_prompt(lang)
+        assert sedi_copy.t("identity.voice", lang) in prompt
+    assert "Never soften" in sedi_copy.t("identity.voice", "en")
+
+
+@pytest.mark.parametrize(
+    "text,lang,must_have,must_not",
+    [
+        ("امشب زودتر بخواب و صبح نور بگیر. اگه دوست داری برنامه‌ی خواب هم بچینیم؟", "fa", "زودتر بخواب", "اگه دوست داری"),
+        ("این غذاها برای دیابتت خوبه. اگه خواستی بیشتر توضیح می‌دم.", "fa", "خوبه", "اگه خواستی"),
+        ("یه قدم کوچیک بردار، اگه خواستی.", "fa", "قدم کوچیک", "اگه خواستی"),
+        ("Walk after dinner. If you like, I can build a plan. Would you like me to continue?", "en", "Walk after dinner", "If you like"),
+        ("نفس عميق. إن أحببت نضع خطة. هل تريد المزيد؟", "ar", "نفس عميق", "إن أحببت"),
+    ],
+)
+def test_guard_removes_hedging_and_offer_menus(text, lang, must_have, must_not):
+    out = strip_hedging_offers(text, lang)
+    assert must_have in out and must_not not in out
+    assert out.strip()
+
+
+def test_guard_keeps_the_specialist_offer_and_never_empties():
+    keep = "این تمرین رو انجام بده. یه متخصص مناسب برات پیدا کنم؟"
+    assert strip_hedging_offers(keep, "fa") == keep
+    only = "اگه دوست داری بگو."
+    assert strip_hedging_offers(only, "fa").strip()
+
+
+def test_governed_knowledge_is_framed_as_her_own_expertise():
+    from backend.app.core.conversation import brain
+
+    assert "own professional expertise" in brain._KNOWLEDGE_VOICE
+    assert "if you like" in brain._KNOWLEDGE_VOICE  # named as the thing NOT to do
+
+
+# ---- Codex review fixes (PR #139) ------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "ماذا يمكنك أن تفعلي؟",
+        "ما هي قدراتك؟",
+        "عرفي بنفسك",
+        "هل تستطيعين أن ترسلي لي إشعاراً؟",
+        "ماذا تستطيعين أن تفعلي لي",
+    ],
+)
+def test_arabic_capability_questions_are_detected(text):
+    assert is_about_sedi_question(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "can you send me a reminder tomorrow at 10",
+        "هل تستطيعين أن ترسلي لي إشعاراً غداً الساعة ١٠",
+        "می‌تونی فردا ساعت ۱۰ برام نوتیف بفرستی؟",
+        "what happened today",
+    ],
+)
+def test_a_real_scheduling_request_is_not_an_about_question(text):
+    assert not is_about_sedi_question(text)
+
+
+def test_capability_answer_wins_over_the_reminder_clarification_only():
+    import pathlib
+
+    src = pathlib.Path("backend/app/services/intelligence/orchestrator.py").read_text(encoding="utf-8")
+    block = src[src.index("R-047: \"who are you"):src.index("CR-03.2: discovery marker already")]
+    assert "clarification_message is not None" in block
+    assert "reminder_message is None" in block  # never over a reminder that was created

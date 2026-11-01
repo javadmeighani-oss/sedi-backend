@@ -90,6 +90,10 @@ _SELF_LIMIT = re.compile(
     r"(?:نمی ?تونم|نمیتونم|نمی ?توانم|نمیتوانم)(?: که)? (?:بیماری |اختلال )?تشخیص|"
     r"تشخیص (?:نمی ?دم|نمیدم|نمی ?دهم|نمیدهم)|"
     r"توانایی (?:تشخیص|درمان) ندارم|"
+    # R-047: false "I cannot send notifications/reminders" (she CAN; the system delivers them).
+    r"(?:نمی ?تونم|نمیتونم|نمی ?توانم|نمیتوانم)(?: که)? (?:برات |برایت |بهت |بهتون )?(?:نوتیف|اعلان|یادآور|یادآوری|پیام)(?: ?ی)? ?(?:بفرستم|بدم|بدهم|ارسال)|"
+    r"\bi (?:cannot|can't|can not) (?:send|give) (?:you )?(?:any )?(?:notification|reminder|alert)s?\b|"
+    r"لا أستطيع (?:أن )?(?:أرسل|إرسال) (?:لك )?(?:أي )?(?:إشعار|اشعار|تذكير)|"
     r"فقط (?:یه|یک) (?:هوش مصنوعی|برنامه|دستیار)|"
     r"جایگزین (?:پزشک|روان ?شناس|متخصص)(?: نیستم| نمی ?شم| نمی ?شوم)|"
     r"\bi(?:'m| am) not (?:a |an )?(?:human )?(?:psychologist|therapist|doctor|physician|counsel+or)\b|"
@@ -152,3 +156,87 @@ def limit_questions(reply: str, max_questions: int = 1) -> str:
     if not kept or len(kept) == len(parts):
         return text
     return " ".join(kept)
+
+
+# R-049 (Javad 2026-11-01): Sedi is a permanent companion and a professional adviser - she speaks with certainty and
+# gives her recommendation; she does not hedge every sentence with «اگه دوست داری / اگه خواستی / if you like» and does
+# not close with an offer menu. The persona prompt says so; this guard removes what the model still produces.
+_ZW = "\u200c"
+_HEDGE_FA = (
+    r"(?:اگه|اگر|اگ)\s+(?:دوست\s+داری|دوست\s+داشتی|خواستی|بخوای|بخواهی|می" + _ZW + r"?\s*خوای|می" + _ZW + r"?\s*خواهی|مایلی|مایل\s+باشی|تمایل\s+داری|حوصله\s+داشتی)"
+)
+_HEDGE_AR = r"(?:إن|إذا|لو)\s+(?:أحببت|احببت|رغبت|شئت|أردت|اردت|تحب|ترغب)|متى\s+(?:ما\s+)?(?:رغبت|شئت|أحببت)"
+_HEDGE_EN = r"(?:if\s+you(?:'d|\s+would)?\s+(?:like|want|wish|prefer|feel\s+like)(?:\s+to)?|whenever\s+you(?:'re|\s+are)\s+ready|feel\s+free\s+to)"
+_HEDGE_ANY = "(?:" + _HEDGE_FA + "|" + _HEDGE_AR + "|" + _HEDGE_EN + ")"
+_HEDGE_PREFIX = re.compile(r"^\s*" + _HEDGE_ANY + r"\s*[,،:]?\s*", re.I)
+_HEDGE_SUFFIX = re.compile(r"\s*[,،؛;]?\s*" + _HEDGE_ANY + r"\s*(?=[.!?؟…]*\s*$)", re.I)
+_OFFER_Q = re.compile(
+    r"^\s*(?:"
+    r"(?:می" + _ZW + r"?\s*خوای|دوست\s+داری|می" + _ZW + r"?\s*خواهی|مایلی|بخوام|بگم|بدم)\b.*|"
+    r"(?:would\s+you\s+like|do\s+you\s+want|shall\s+i|should\s+i|want\s+me\s+to|would\s+you\s+want)\b.*|"
+    r"(?:هل\s+(?:تريد|تحب|ترغب|تود)|أتريد|هل\s+تحب)\b.*"
+    r")$",
+    re.I,
+)
+_PROTECT = re.compile(r"(?:متخصص|پزشک|دکتر|روانشناس|روان" + _ZW + r"شناس|specialist|doctor|psychologist|therapist|مختص|طبيب|أخصائي)", re.I)
+_FIND_WORDS = re.compile(r"(?:پیدا|find|أجد|ابحث|أبحث)", re.I)
+
+
+_FIRST_PERSON_OFFER = re.compile(
+    r"(?:(?:می" + _ZW + r"?\s*تونم|می" + _ZW + r"?\s*دم|می" + _ZW + r"?\s*گم|می" + _ZW + r"?\s*نویسم|می" + _ZW + r"?\s*سازم|می" + _ZW + r"?\s*چینم)\b.*"
+    r"|(?:بگم|بدم|بسازم|بنویسم|بفرستم|بچینم|توضیح\s+بدم)\s*$"
+    r"|^(?:i\s+can|i'll|i\s+will|let\s+me|i\s+could)\b.*"
+    r"|(?:يمكنني|أستطيع|سأ\w+)\b.*)",
+    re.I,
+)
+
+
+def _is_protected_offer(sentence: str) -> bool:
+    """The R-033 specialist offer («یه متخصص مناسب برات پیدا کنم؟») is kept - it is the consent question."""
+    return bool(_PROTECT.search(sentence) and _FIND_WORDS.search(sentence))
+
+
+def strip_hedging_offers(reply: str, language: str = "fa") -> str:
+    """R-049: remove «اگه دوست داری / if you like / إن أحببت» softeners and trailing offer-menu questions
+    («می‌خوای بیشتر بگم؟»). Statements and recommendations stay; the R-033 specialist offer stays; never empties a reply."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    if not parts:
+        return text
+    out: list[str] = []
+    changed = False
+    for idx, p in enumerate(parts):
+        s = p.strip()
+        if _is_protected_offer(s):
+            out.append(s)
+            continue
+        is_q = s.endswith(("؟", "?"))
+        has_other = len(parts) > 1
+        core = s.rstrip(" ؟?.!…")
+        hedged = bool(_HEDGE_PREFIX.match(core)) or bool(_OFFER_Q.match(core))
+        if is_q and hedged and has_other and idx > 0:
+            changed = True  # an offer-menu question closing the reply: drop it
+            continue
+        new = s
+        m = _HEDGE_PREFIX.match(new)
+        if m:
+            rest = new[m.end():].strip()
+            if rest and has_other and idx > 0 and _FIRST_PERSON_OFFER.search(rest.rstrip(" .!…")):
+                changed = True  # «اگه خواستی بیشتر توضیح می‌دم» is an offer menu, not content
+                continue
+            if rest:
+                new = rest[:1].upper() + rest[1:] if rest[:1].isascii() else rest
+        new2 = _HEDGE_SUFFIX.sub("", new).strip()
+        if new2 and new2 != new:
+            tail = s.rstrip()[-1:]
+            if tail in ".!?؟…" and not new2.endswith(tuple(".!?؟…")):
+                new2 += tail
+            new = new2
+        if new != s:
+            changed = True
+        out.append(new)
+    if not changed or not out:
+        return text
+    return " ".join(out)

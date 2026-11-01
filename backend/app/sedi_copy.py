@@ -124,7 +124,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     # ---- reminder --------------------------------------------------------------
     'reminder.event.title': {
         'fa': 'یادآوری از صدی',
-        'ar': 'تذكير من صدی',
+        'ar': 'تذكير من صدي',
         'en': 'Reminder from Sedi',
     },
     'reminder.plan.nutrition': {
@@ -188,9 +188,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': '{who}how did that suggestion of mine go? I would love to know.',
     },
     'followup.initiative.health': {
-        'fa': '{who}یه سر زدم ببینم امروز بدن و حالت چطوره؛ اگه خواستی با هم یه کار کوچیک برای مراقبت از خودت انجام بدیم.',
+        'fa': '{who}یه سر زدم ببینم امروز بدن و حالت چطوره؛ بیا با هم یه کار کوچیک برای مراقبت از خودت انجام بدیم.',
         'ar': '{who}مررت لأطمئن على جسدك ومزاجك اليوم؛ إن أردت نقوم بشيء صغير للعناية بك.',
-        'en': '{who}I stopped by to see how your body and mood are today; if you like, let us do one small thing to look after you.',
+        'en': '{who}I stopped by to see how your body and mood are today; let us do one small thing to look after you together.',
     },
     # followup.general: item 0 = continue with the topic; item 1 = fa/ar: gentle wording without the topic (P7),
     # en: wording for a manually created general follow-up.
@@ -210,9 +210,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     },
 
     'followup.post_event': {
-        'fa': '{who}موعدت چطور پیش رفت؟ اگه خواستی درباره\u200cاش حرف بزنیم.',
+        'fa': '{who}موعدت چطور پیش رفت؟ برام تعریف کن.',
         'ar': '{who}كيف سار موعدك؟ إن أردت نتحدث عنه.',
-        'en': "{who}how did your appointment go? If you'd like, we can talk about it.",
+        'en': "{who}how did your appointment go? Tell me about it.",
     },
 
     # ---- weekly_review ---------------------------------------------------------
@@ -255,8 +255,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         ),
         'ar': (
             'متابعة الصحة اليومية',
-            'تفقدك اليومي مع صدی',
-            'اليوم مع صدی',
+            'تفقدك اليومي مع صدي',
+            'اليوم مع صدي',
         ),
         'en': (
             'Daily wellness check-in',
@@ -280,7 +280,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             ),
             (
                 'یه قدم کوچیک برای امروز',
-                'امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه کم قدم\u200cزدن. اگه خواستی با هم برنامه\u200cاش رو بچینیم.',
+                'امروز یه کار کوچیک برای خودت بکن؛ یه لیوان آب، چند نفس عمیق یا یه کم قدم\u200cزدن. بیا با هم برنامه\u200cاش رو بچینیم.',
             ),
             (
                 'صدی اینجاست',
@@ -293,12 +293,12 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         ),
         'ar': (
             (
-                'صباح الخير من صدی',
-                'كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً.',
+                'صباح الخير من صدي',
+                'كيف حالك اليوم؟ أحببت أن أطمئن عليك. لنتحدث معاً.',
             ),
             (
                 'مررتُ لأطمئن',
-                'أردت فقط أن أقول إني بجانبك. احكِ لي كيف كان يومك إن شئت.',
+                'أردت فقط أن أقول إني بجانبك. احكِ لي كيف كان يومك.',
             ),
             (
                 'كيف حالك فعلاً؟',
@@ -309,7 +309,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
                 'افعل شيئاً صغيراً لنفسك اليوم: كوب ماء أو بعض الأنفاس العميقة أو مشياً قصيراً. هل نخطط لذلك معاً؟',
             ),
             (
-                'صدی هنا',
+                'صدي هنا',
                 'متى أردت أن تتحدث أو تجد من يُصغي، أنا هنا. كيف مرّ يومك؟',
             ),
             (
@@ -324,7 +324,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             ),
             (
                 'Just dropping by',
-                "I only wanted to say I'm right here with you. Tell me about your day if you like.",
+                "I only wanted to say I'm right here with you. Tell me about your day.",
             ),
             (
                 'How are you really?',
@@ -347,13 +347,13 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'digest.no_data.bodies': {
         'fa': (
             'امروز هنوز خبر تازه\u200cای از دستگاهت نرسیده. اشکالی نداره؛ هر وقت دوست داشتی بیا با هم حرف بزنیم.',
-            'هنوز داده\u200cی کافی برای یه جمع\u200cبندی کامل از امروزت ندارم. ولی من اینجام، اگه خواستی حرف بزنیم.',
+            'هنوز داده\u200cی کافی برای یه جمع\u200cبندی کامل از امروزت ندارم. ولی من اینجام؛ بیا حرف بزنیم.',
             'تصویر امروز هنوز کامل نیست. هر وقت دلت خواست، یه چک\u200cاین آرام کنارتم.',
         ),
         'ar': (
             'لم تصلني قراءات جديدة من جهازك اليوم. لا بأس، متى أحببت لنتحدث.',
             'لا أملك بيانات كافية لصورة كاملة عن يومك بعد، لكني هنا متى أردت أن نتحدث.',
-            'صورة اليوم لم تكتمل بعد. متى شئت أنا بجانبك لتفقد لطيف.',
+            'صورة اليوم لم تكتمل بعد. أنا بجانبك لتفقد لطيف.',
         ),
         'en': (
             "No fresh readings from your device yet today. That's okay. Whenever you like, let's just talk.",
@@ -367,8 +367,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'امروز یه چک\u200cاین ایمنی برات دارم؛ نگران نباش، فقط می\u200cخوام مطمئن بشم حالت خوبه. بیا حرف بزنیم.',
         ),
         'ar': (
-            'هناك تحديث متعلق بالسلامة بانتظارك. افتح صدی لمراجعته بهدوء.',
-            'لدى صدی تفقد سلامة لك اليوم. اضغط للمتابعة في المحادثة.',
+            'هناك تحديث متعلق بالسلامة بانتظارك. افتح صدي لمراجعته بهدوء.',
+            'لدى صدي تفقد سلامة لك اليوم. اضغط للمتابعة في المحادثة.',
         ),
         'en': (
             'There is a safety-related update waiting for you. Open Sedi to review it calmly.',
@@ -381,8 +381,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'مشاهدات اخیر دستگاه در دسترس است. برای مرور محدود روزانه در صدی ادامه بده.',
         ),
         'ar': (
-            'تم استلام بيانات الجهاز المرصودة لنافذة اليوم. افتح صدی لتفقد واقعي قصير.',
-            'ملاحظات جهازك الأخيرة متاحة. تابع في صدی لمراجعة يومية محدودة.',
+            'تم استلام بيانات الجهاز المرصودة لنافذة اليوم. افتح صدي لتفقد واقعي قصير.',
+            'ملاحظات جهازك الأخيرة متاحة. تابع في صدي لمراجعة يومية محدودة.',
         ),
         'en': (
             "Observed device data was received for today's window. Open Sedi for a short factual check-in.",
@@ -395,8 +395,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'پوشش مشاهده\u200cشده برای امروز جزئی است. صدی می\u200cتواند یک چک\u200cاین آرام کمک کند.',
         ),
         'ar': (
-            'بيانات اليوم غير مكتملة، لذا المقارنة الكاملة غير متاحة. افتح صدی للمتابعة.',
-            'التغطية المرصودة جزئية لليوم. يمكن لصدی المساعدة بتفقد لطيف.',
+            'بيانات اليوم غير مكتملة، لذا المقارنة الكاملة غير متاحة. افتح صدي للمتابعة.',
+            'التغطية المرصودة جزئية لليوم. يمكن لصدي المساعدة بتفقد لطيف.',
         ),
         'en': (
             "Today's available data is incomplete, so a full comparison is not available. Open Sedi to continue.",
@@ -409,8 +409,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'آخرین خلاصه\u200cی دستگاه قدیمی\u200cتر از معمول است. هر وقت آماده بودی در صدی ادامه بده.',
         ),
         'ar': (
-            'توجد بيانات مرصودة لكنها أقدم مما هو متوقع لليوم. افتح صدی لتفقد قصير.',
-            'أحدث ملخص أقدم من المعتاد. تابع في صدی عندما تكون مستعدًا.',
+            'توجد بيانات مرصودة لكنها أقدم مما هو متوقع لليوم. افتح صدي لتفقد قصير.',
+            'أحدث ملخص أقدم من المعتاد. تابع في صدي عندما تكون مستعدًا.',
         ),
         'en': (
             'Observed data exists but is older than expected for today. Open Sedi for a short check-in.',
@@ -423,8 +423,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'یکی از قدم\u200cهای برنامه\u200cات منتظرته. من کنارتم؛ هر وقت خواستی شروع کنیم.',
         ),
         'ar': (
-            'لديك عنصر خطة نشط لليوم. افتح صدی للمتابعة.',
-            'إجراء حالي من خطتك بانتظارك. تابع في صدی عندما تكون مستعدًا.',
+            'لديك عنصر خطة نشط لليوم. افتح صدي للمتابعة.',
+            'إجراء حالي من خطتك بانتظارك. تابع في صدي عندما تكون مستعدًا.',
         ),
         'en': (
             'You have an active plan item for today. Open Sedi to continue with it.',
@@ -437,8 +437,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'یه فکر کوچیک برای امروزت دارم. هر وقت خواستی، بیا با هم ببینیمش.',
         ),
         'ar': (
-            'ملاحظة قصيرة عن نمط الحياة أو الهدف جاهزة لتفقد يومي لطيف. افتح صدی للمتابعة.',
-            'سياقك اليومي المسموح يقترح متابعة خفيفة. تابع في صدی.',
+            'ملاحظة قصيرة عن نمط الحياة أو الهدف جاهزة لتفقد يومي لطيف. افتح صدي للمتابعة.',
+            'سياقك اليومي المسموح يقترح متابعة خفيفة. تابع في صدي.',
         ),
         'en': (
             'A short lifestyle or goal note is ready for a gentle daily check-in. Open Sedi to continue.',
@@ -452,9 +452,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'یک لمس آرام برای امروز. هر وقت آماده بودی با صدی ادامه بده.',
         ),
         'ar': (
-            'صباح الخير — تفقد يومي لطيف من صدی جاهز متى شئت.',
-            'صدی هنا لسلام يومي قصير. افتح المحادثة متى أحببت.',
-            'لمسة هادئة واحدة لليوم. تابع مع صدی عندما تكون مستعدًا.',
+            'صباح الخير — تفقد يومي لطيف من صدي بانتظارك.',
+            'صدي هنا لسلام يومي قصير. افتح المحادثة متى أحببت.',
+            'لمسة هادئة واحدة لليوم. تابع مع صدي عندما تكون مستعدًا.',
         ),
         'en': (
             'Good morning — a gentle daily check-in from Sedi is ready when you are.',
@@ -495,19 +495,19 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         ),
         'ar': (
             (
-                'تحية من صدی',
-                '{p}كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً.',
+                'تحية من صدي',
+                '{p}كيف حالك اليوم؟ أحببت أن أطمئن عليك. لنتحدث معاً.',
             ),
             (
                 'مررتُ لأطمئن',
-                '{p}أردت فقط أن أقول إني بجانبك. إن شئت، احكِ لي كيف كان يومك.',
+                '{p}أردت فقط أن أقول إني بجانبك. احكِ لي كيف كان يومك.',
             ),
             (
                 'كيف حالك؟',
                 '{p}شعرتُ أنني لم أسمع منك منذ فترة. هل كل شيء بخير؟ أنا هنا.',
             ),
             (
-                'صدی بجانبك',
+                'صدي بجانبك',
                 '{p}متى أردت أن تفضفض أو تجد من يُصغي، أنا هنا.',
             ),
         ),
@@ -518,7 +518,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             ),
             (
                 'Just dropping by',
-                "{p}I only wanted to say I'm right here with you. Tell me about your day if you like.",
+                "{p}I only wanted to say I'm right here with you. Tell me about your day.",
             ),
             (
                 'How are you?',
@@ -534,19 +534,19 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': (
             (
                 'فکرم پیشته',
-                '{p}این روزها شاید کمی سخت می\u200cگذره. اگه دوست داری درباره\u200cاش حرف بزنیم، من گوش می\u200cدم و کنارتم.',
+                '{p}این روزها شاید کمی سخت می\u200cگذره. بیا درباره\u200cاش حرف بزنیم؛ من گوش می\u200cدم و کنارتم.',
             ),
         ),
         'ar': (
             (
                 'أفكر بك',
-                '{p}ربما تمرّ عليك أيام ثقيلة. إن أحببت أن نتحدث عنها، أنا أُصغي وبجانبك.',
+                '{p}ربما تمرّ عليك أيام ثقيلة. لنتحدث عنها؛ أنا أُصغي وبجانبك.',
             ),
         ),
         'en': (
             (
                 'Thinking of you',
-                "{p}these days may be a bit heavy. If you'd like to talk about it, I'm listening and I'm with you.",
+                "{p}these days may be a bit heavy. Let's talk about it; I'm listening and I'm with you.",
             ),
         ),
     },
@@ -589,7 +589,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     },
     'action.label.open_chat': {
         'fa': 'صحبت کنیم',
-        'ar': 'لنتحدث مع صدی',
+        'ar': 'لنتحدث مع صدي',
         'en': 'Talk to Sedi',
     },
     'action.label.done': {
@@ -755,7 +755,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     # ---- session ---------------------------------------------------------------
     'session.intro': {
         'fa': 'سلام{name_part}، من صدی\u200cام؛ همراه سلامتت. با رعایت حریم خصوصی\u200cات گوش می\u200cدم، چیزهای مهم رو یادم می\u200cمونه و کنارتم تا کمکت کنم. الان چی برات مهم\u200cتره که روش تمرکز کنیم؟',
-        'ar': 'مرحبًا{name_part}. أنا صدی، مرافقتك الصحية. أستمع وأحتفظ بما يهمك وفق إعدادات خصوصيتك، وأنا هنا لأساعدك على المتابعة. ما الأمر الأهم أو الأكثر فائدة للتركيز عليه الآن؟',
+        'ar': 'مرحبًا{name_part}. أنا صدي، مرافقتك الصحية. أستمع وأحتفظ بما يهمك وفق إعدادات خصوصيتك، وأنا هنا لأساعدك على المتابعة. ما الأمر الأهم أو الأكثر فائدة للتركيز عليه الآن؟',
         'en': "Hello{name_part}. I'm Sedi, your personal health companion. I listen and remember what matters under your privacy settings, and I'm here to help you stay on track. What feels most important or helpful to focus on right now?",
     },
     'session.openers': {
@@ -870,9 +870,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': "Hello. Hope you're doing well.",
     },
     'engine.default_body.companion_ping': {
-        'fa': 'سلام، دلم برات تنگ شده. اگه دوست داری، بگو امروز چطوری 🌿',
-        'ar': 'مرحباً، كنت أفكر بك. إذا أحببت، أخبرني كيف يومك 🌿',
-        'en': "Hi, I was thinking of you. If you'd like, tell me how today is going 🌿",
+        'fa': 'سلام، دلم برات تنگ شده. بگو امروز چطوری 🌿',
+        'ar': 'مرحباً، كنت أفكر بك. أخبرني كيف يومك 🌿',
+        'en': "Hi, I was thinking of you. Tell me how today is going 🌿",
     },
     'recap.aspect.prevention': {
         'fa': 'پیشگیری از {l}',
@@ -982,17 +982,17 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     # ---- follow-up wording -------------------------------------------------
     'followup.title.brand': {
         'fa': 'صدی',
-        'ar': 'صدی',
+        'ar': 'صدي',
         'en': 'Sedi',
     },
     'followup.title.post_event': {
         'fa': 'صدی',
-        'ar': 'صدی',
+        'ar': 'صدي',
         'en': 'Follow-up on your appointment',
     },
     'followup.title.general': {
         'fa': 'صدی',
-        'ar': 'صدی',
+        'ar': 'صدي',
         'en': 'Continuing our conversation',
     },
     'followup.care_checkin.body': {
@@ -1065,13 +1065,13 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'you had good activity',
     },
     'fallback.ping.activity': {
-        'fa': 'حالت چطوره؟ یه کم حرکت هم حالت رو بهتر می\u200cکنه؛ اگه خواستی با هم برنامه\u200cاش رو بچینیم',
-        'ar': 'كيف حالك؟ القليل من الحركة يحسّن مزاجك؛ إن شئت نخطط لذلك معاً',
+        'fa': 'حالت چطوره؟ یه کم حرکت هم حالت رو بهتر می\u200cکنه؛ بیا با هم برنامه\u200cاش رو بچینیم',
+        'ar': 'كيف حالك؟ القليل من الحركة يحسّن مزاجك؛ لنخطط لذلك معاً',
         'en': 'how are you? A little movement can lift your mood; want to plan it together',
     },
     'fallback.ping.plain': {
         'fa': 'امروز چطوری؟ دلم می\u200cخواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم',
-        'ar': 'كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً',
+        'ar': 'كيف حالك اليوم؟ أحببت أن أطمئن عليك. لنتحدث معاً',
         'en': "how is your day? I wanted to check in on you. Whenever you feel like it, let's talk",
     },
     'fallback.health.base': {
@@ -1132,8 +1132,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
             'message': 'امروز چطوری؟ دلم می\u200cخواست یه احوالی ازت بپرسم. هر وقت حال داشتی، با هم حرف بزنیم.',
         },
         'ar': {
-            'title': 'تحية من صدی',
-            'message': 'كيف حالك اليوم؟ أحببت أن أطمئن عليك. متى ما رغبت، لنتحدث معاً.',
+            'title': 'تحية من صدي',
+            'message': 'كيف حالك اليوم؟ أحببت أن أطمئن عليك. لنتحدث معاً.',
         },
         'en': {
             'title': 'Hello from Sedi',
@@ -1143,7 +1143,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'template.companion_encourage_move_v1': {
         'fa': {
             'title': 'تحرک',
-            'message': 'یه قدم کوچیک بردار؛ بدنت ازت ممنون می\u200cشه. اگه خواستی من کنارتم.',
+            'message': 'یه قدم کوچیک بردار؛ بدنت ازت ممنون می\u200cشه. من کنارتم.',
         },
         'ar': {
             'title': 'تحرك قليلاً',
@@ -1175,7 +1175,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         },
         'ar': {
             'title': 'تنبيه صحي',
-            'message': 'تم تسجيل قراءة غير معتادة. افتح صدی للمراجعة.',
+            'message': 'تم تسجيل قراءة غير معتادة. افتح صدي للمراجعة.',
         },
         'en': {
             'title': 'Health Alert',
@@ -1205,14 +1205,39 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': '{prefix}how are you? We can pick up where we left off, or talk about something new.',
     },
     'session.daily_digest': {
-        'fa': '{prefix}برای پیگیری روزانه صدی آماده\u200cای؟',
-        'ar': '{prefix}هل أنت مستعد للمتابعة اليومية مع صدی؟',
-        'en': '{prefix}Ready for your daily Sedi check-in?',
+        'fa': '{prefix}امروز چطوری؟ از حال و خوابت بگو یا از هر چیزی که دوست داری.',
+        'ar': '{prefix}كيف حالك اليوم؟ حدثني عن حالك ونومك أو عن أي شيء تحب.',
+        'en': "{prefix}How are you today? Tell me about your mood and sleep, or anything you like.",
+    },
+    'session.digest.general_checkin': {
+        'fa': '{prefix}ممنون که اومدی. امروز حال بدن و حال دلت چطور بود؟',
+        'ar': '{prefix}شكراً لأنك جئت. كيف كان جسدك وقلبك اليوم؟',
+        'en': '{prefix}Thanks for coming. How were your body and your mood today?',
+    },
+    'session.digest.i8_action': {
+        'fa': '{prefix}خوب شد اومدی. برنامه‌ی امروزت رو با هم مرور کنیم؟ بگو کدوم کار انجام شد.',
+        'ar': '{prefix}جميل أنك جئت. هل نراجع خطة اليوم معاً؟ أخبرني أي بند أُنجز.',
+        'en': "{prefix}Good that you came. Shall we go over today's plan? Tell me which items are done.",
+    },
+    'session.digest.i6_i7_context': {
+        'fa': '{prefix}خوشحالم که اومدی. از همون جایی که صحبتمون مونده ادامه بدیم یا امروز درباره‌ی چیز دیگه‌ای حرف بزنیم؟',
+        'ar': '{prefix}سعيدة أنك جئت. نكمل من حيث توقفنا أم نتحدث اليوم عن شيء آخر؟',
+        'en': "{prefix}I'm glad you came. Shall we continue where we left off, or talk about something else today?",
+    },
+    'session.digest.safety': {
+        'fa': '{prefix}ممنون که اومدی. الان حالت چطوره؟ من همین‌جا کنارتم.',
+        'ar': '{prefix}شكراً لأنك جئت. كيف حالك الآن؟ أنا هنا بجانبك.',
+        'en': "{prefix}Thanks for coming. How are you feeling right now? I'm right here with you.",
+    },
+    'session.digest.i9_observation': {
+        'fa': '{prefix}ممنون که اومدی. امروز چه حسی داری و بدنت چطوره؟',
+        'ar': '{prefix}شكراً لأنك جئت. كيف تشعر اليوم وكيف جسدك؟',
+        'en': '{prefix}Thanks for coming. How do you feel today, and how is your body?',
     },
     'session.origin_generic': {
-        'fa': '{prefix}از اعلان صدی اومدی. می\u200cخوای از همین\u200cجا ادامه بدیم؟',
-        'ar': '{prefix}فتحت هذا من إشعار صدی. كيف تريد المتابعة؟',
-        'en': '{prefix}You opened this from a Sedi notification. How would you like to continue?',
+        'fa': '{prefix}ممنون که از پیام صدی اومدی. می‌خوای همون موضوع رو ادامه بدیم یا درباره‌ی چیز دیگه‌ای حرف بزنیم؟',
+        'ar': '{prefix}شكراً لأنك جئت من رسالة صدي. هل نكمل الموضوع نفسه أم نتحدث عن شيء آخر؟',
+        'en': '{prefix}Thanks for coming from my message. Shall we continue that topic, or talk about something else?',
     },
     'session.care_checkin': {
         'fa': '{who}خوشحالم که اومدی. دلم می\u200cخواست بدونم این روزها چطوری؛ هرچی تو دلته بگو، من گوش می\u200cدم.',
@@ -1327,5 +1352,25 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': 'هشدار سلامت ثبت شد.',
         'ar': 'تم تسجيل تنبيه صحي.',
         'en': 'A health alert was recorded.',
+    },
+    'about.sedi': {
+        'fa': 'من صدی\u200cام؛ حافظه و همراه سلامت تو. اول از همه تصویر جسم و روانت رو در کوتاه\u200cمدت، میان\u200cمدت و بلندمدت از گفتگوهامون و پرسش\u200cهای خودم نگه می\u200cدارم، و وقتی گجت\u200cهای صدی\u200cات وصل بشن، علائم حیاتی\u200cات رو هم پیوسته ثبت می\u200cکنم.\nبعد با همین شناخت، مشاور و مراقب تو هستم: پیشگیری، همراهی و پیگیری درمان، برنامه\u200cی غذایی و ورزشی، آرامش ذهن و خواب بهتر.\nیادآور و نوتیف هم می\u200cفرستم؛ فقط بگو «فردا ساعت ۱۰ یادم بنداز …» تا همون وقت بهت پیام بدم. یه متخصص مناسب هم برات پیدا می\u200cکنم؛ کافیه بگی.\nهدفم اینه که سالم، شاد و طولانی زندگی کنی. از کجا شروع کنیم؟',
+        'ar': 'أنا صدي، ذاكرتك ورفيقتك الصحية. أولاً أحفظ صورة جسدك ونفسك على المدى القصير والمتوسط والطويل من أحاديثنا ومن أسئلتي، وحين تتصل أجهزة صدي الذكية أسجّل علاماتك الحيوية باستمرار.\nثم بهذه المعرفة أكون مستشارتك ومرافقتك: الوقاية ومرافقة العلاج ومتابعته وخطة الغذاء والرياضة وهدوء الذهن ونوم أفضل.\nوأرسل لك تذكيرات وإشعارات أيضاً؛ قل لي «ذكّرني غداً الساعة ١٠ …» وأراسلك في الوقت نفسه. وأستطيع أن أجد لك المختص المناسب.\nهدفي أن تعيش صحيحاً وسعيداً وطويلاً. من أين نبدأ؟',
+        'en': "I'm Sedi, your memory and health companion. First, from our chats and my own questions, I keep the picture of your body and mind over the short, medium and long term, and, as your Sedi gadgets connect, your vital signs continuously.\nThen, with that knowledge, I'm your adviser and caretaker: prevention, support and follow-up through treatment, meal and exercise plans, a calmer mind and better sleep.\nI send reminders and notifications too; just say \"remind me tomorrow at 10 …\" and I'll message you right then. I can also find a suitable specialist for you; just say so.\nMy goal is a healthy, happy, long life for you. Where shall we start?",
+    },
+    'identity.core': {
+        'fa': 'هویت تو (قفل‌شده و همه‌جا یکسان): تو صدی هستی. اول از همه حافظه‌ی زنده‌ی کاربری: تصویر کامل جسم و روان او را در طول زمان جمع می‌کنی و نگه می‌داری؛ کوتاه‌مدت (امروز و این هفته)، میان‌مدت (ماه‌ها: الگوها، عادت‌ها، روند خلق و خواب) و بلندمدت (سال‌ها: سابقه، بیماری‌ها، رویدادهای زندگی)؛ از راه گفتگوی دوطرفه و پرسش‌های دلسوزانه‌ی خودت، و هر چه گجت‌های هوشمند صدی او وصل شوند، علائم حیاتی‌اش (ضربان قلب، دما، اکسیژن) را هم پیوسته. بعد، با همین حافظه، مشاور و همراه او در مراقبت از سلامتی هستی: به پیشگیری از بیماری، همراهی و پیگیری درمان، بهتر شدن سبک زندگی و روحیه کمک می‌کنی و پیوسته کنارش می‌مانی، به‌ویژه وقتی جسم یا روحش ناپایدار است. هدف تو زندگی سالم، شاد و طولانی اوست.',
+        'ar': 'هويتك (ثابتة في كل مكان): أنتِ صدي. أولاً أنتِ ذاكرة المستخدم الحيّة: تجمعين وتحفظين عبر الزمن صورة جسده ونفسه الكاملة؛ قصيرة المدى (اليوم وهذا الأسبوع)، ومتوسطة المدى (أشهر: الأنماط والعادات واتجاهات المزاج والنوم)، وطويلة المدى (سنوات: التاريخ والأمراض وأحداث الحياة)؛ من خلال حوار متبادل وأسئلتك الحانية، وكلما اتصلت أجهزة صدي الذكية به تسجّلين علاماته الحيوية (نبض القلب والحرارة والأكسجين) باستمرار. ثم بهذه الذاكرة تكونين مستشارته ورفيقته في رعاية الصحة: تساعدين على الوقاية من المرض ومرافقة العلاج ومتابعته وتحسين نمط الحياة والمزاج، وتبقين بجانبه باستمرار، خاصة حين يضطرب جسده أو نفسه. غايتك له حياة صحية سعيدة طويلة.',
+        'en': "Who you are (locked, the same everywhere): you are Sedi. FIRST you are the user's living memory: over time you gather and keep the whole picture of their body and mind - short-term (today and this week), medium-term (months: patterns, habits, mood and sleep trends) and long-term (years: history, conditions, life events) - through two-way conversation and your own caring questions, and, as their Sedi smart gadgets connect, their vital signs (heart rate, temperature, oxygen) continuously. THEN, with that memory, you are their adviser and companion in health care: you help prevent illness, support their treatment and follow it up, improve their lifestyle and mood, and stay beside them continuously, above all when their body or mind is unstable. Your purpose is a healthy, happy, long life for them.",
+    },
+    'identity.intro': {
+        'fa': 'من صدی\u200cام؛ همراه سلامت تو و حافظه\u200cات: تصویر جسم و روانت رو در کوتاه\u200cمدت، میان\u200cمدت و بلندمدت از گفتگوهامون نگه می\u200cدارم و وقتی گجت\u200cهای صدی\u200cات وصل بشن، علائم حیاتی\u200cات رو هم. با همین شناخت، مشاور و مراقب تو هستم برای پیشگیری، پیگیری درمان و یه زندگی سالم و طولانی، و همیشه کنارتم.',
+        'ar': 'أنا صدي، رفيقتك الصحية وذاكرتك: أحفظ من أحاديثنا صورة جسدك ونفسك على المدى القصير والمتوسط والطويل، وحين تتصل أجهزة صدي الذكية أسجّل علاماتك الحيوية أيضاً. وبهذه المعرفة أكون مستشارتك ومرافقتك في الوقاية ومتابعة العلاج وحياة صحية طويلة، وأنا بجانبك دائماً.',
+        'en': "I'm Sedi, your health companion and your memory: from our talks I keep the picture of your body and mind over the short, medium and long term, and, as your Sedi gadgets connect, your vital signs too. With that I'm your adviser and caretaker for prevention, treatment follow-up and a healthy, long life, always beside you.",
+    },
+    'identity.voice': {
+        'fa': 'صدای تو (همراه همیشگی و مشاور حرفه‌ای): با آرامش، اطمینان و گرمی حرف می‌زنی، مثل کسی که این آدم و سلامتش را خوب می‌شناسد. توصیه‌ات را صریح بگو و یک قدم مشخص بعدی بده. هرگز با «اگه دوست داری / اگه خواستی / هر وقت خواستی / راحت باش» حرفت را نرم نکن و پاسخ را با فهرست پیشنهادها («می‌خوای بیشتر بگم؟») تمام نکن. فقط وقتی واقعاً برای مراقبت بهتر به اطلاعاتی از کاربر نیاز داری سؤال بپرس؛ حداکثر یکی و مستقیم. دانشی که داری تخصص خودِ توست و برای این است که راهنمای مطمئنی باشی؛ با اعتمادبه‌نفس و متناسب با همین آدم از آن استفاده کن.',
+        'ar': 'صوتك (رفيقة دائمة ومستشارة مهنية): تتحدثين بهدوء وثقة ودفء، كمن تعرف هذا الإنسان وصحته جيداً. قولي توصيتك بوضوح وأعطي خطوة تالية واحدة محددة. لا تلطّفي كلامك أبداً بعبارات مثل «إن أحببت / إن شئت / متى ما رغبت»، ولا تنهي الرد بقائمة عروض («هل تريد أن أزيدك؟»). اسألي فقط حين تحتاجين فعلاً معلومة عن المستخدم لتعتني به أفضل؛ سؤالاً واحداً على الأكثر وبشكل مباشر. المعرفة التي لديك هي خبرتك أنتِ، وغايتها أن تكوني مرشدة موثوقة؛ استعمليها بثقة وبما يناسب هذا الشخص.',
+        'en': 'Your voice (a permanent companion and professional adviser): you speak with calm certainty and warmth, like someone who knows this person and their health well. Give your recommendation plainly and one concrete next step. Never soften it with \'if you like / if you want / whenever you\'re ready / feel free\', and never end with a menu of offers (\'would you like me to...?\'). Ask a question only when you truly need a fact about the user to care for them better - at most one, asked directly. The knowledge you hold is your own expertise, there to make you a reliable guide: use it confidently, adapted to this person.',
     },
 }

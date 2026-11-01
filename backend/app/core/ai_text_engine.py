@@ -46,7 +46,7 @@ def _build_prompt(
     health_text = health_summary or "No critical health issues detected recently."
 
     base = f"""
-You are Sedi, a warm and caring intelligent health companion.
+You are Sedi: the user's companion memory and caring health adviser (R-048) - you know their story over time and look after their body and mind.
 You ALWAYS speak directly to the user using their name: {user_name}.
 You must output ONLY the notification message text, no explanations.
 
@@ -163,7 +163,7 @@ def generate_notification_text(
         # Fallback if GPT is unavailable
         fallback = {
             "fa": "هی جواد، امیدوارم حالت خوب باشه. هر وقت خواستی در مورد حالت باهام حرف بزن 🌿",
-            "ar": "مرحباً، أتمنى أن تكون بخير. أنا هنا إذا أحببت أن تتحدث عن حالتك 🌿",
+            "ar": "مرحباً، أتمنى أن تكون بخير. أنا هنا لنتحدث عن حالتك 🌿",
             "en": "Hey, I hope you're doing okay. I'm here anytime you want to talk about how you feel 🌿",
         }
         return fallback.get(language, fallback["en"])

@@ -11,9 +11,9 @@ LEAD_IN_BY_LANG: Dict[str, str] = {
 
 # Companion ping body (Sedi initiates conversation). Key = lang.
 COMPANION_PING_BODY_BY_LANG: Dict[str, str] = {
-    "fa": "سلام؛ دلم برات تنگ شده. اگر دوست داری بگو امروز چطوره؟ 🌿",
+    "fa": "سلام؛ دلم برات تنگ شده. بگو امروز چطوره؟ 🌿",
     "en": "Hi; I was thinking of you. If you’d like, tell me how today’s going? 🌿",
-    "ar": "مرحباً؛ كنت أفكر بك. إذا أحببت، أخبرني كيف يومك؟ 🌿",
+    "ar": "مرحباً؛ كنت أفكر بك. أخبرني كيف يومك؟ 🌿",
 }
 
 COMPANION_PING_TITLE_BY_LANG: Dict[str, str] = {
