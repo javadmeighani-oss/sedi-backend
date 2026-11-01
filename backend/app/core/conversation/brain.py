@@ -1006,7 +1006,7 @@ class ConversationBrain:
 
 This is your very first message to this person right after they joined Sedi.
 - Greet them warmly{" by name" if display_name != "friend" else ""}, like a caring friend who is happy to meet them.
-- Say briefly who you are (Sedi) and that you will be by their side for their health, lifestyle and mood: listening, helping them care for themselves, and cheering them on.
+- Say briefly who you are (Sedi): their health companion and their memory - you keep the picture of their body and mind over the short, medium and long term from your talks and your own questions (and their vital signs as their Sedi gadgets connect) - and, with that, their adviser and caretaker for prevention, treatment follow-up and a healthy, long life, always by their side.
 - Invite them to talk to you about anything, in their own way.
 - End with ONE gentle opening question (for example how their day is going).
 - 3 to 4 short, natural sentences, plain text. Reply in the language of the persona prompt above.
@@ -1070,7 +1070,7 @@ This is your very first message to this person right after they joined Sedi.
             fallback = {
                 "en": f"Hi {display_name}! I'm Sedi. I'm really glad you're here. I'll be by your side for your health, your lifestyle and your mood, to listen and to help you take good care of yourself. How is your day going?",
                 "fa": f"سلام {display_name}! من صدی‌ام و خیلی خوشحالم که اینجایی. کنارت هستم تا برای سلامتی، سبک زندگی و حال و روحیه‌ات گوش بدم و کمکت کنم از خودت خوب مراقبت کنی. امروز چطوره؟",
-                "ar": f"أهلاً {display_name}! أنا صدی، وسعيدة جداً بوجودك هنا. سأكون بجانبك في صحتك ونمط حياتك ومزاجك، لأصغي إليك وأساعدك على العناية بنفسك. كيف يومك؟",
+                "ar": f"أهلاً {display_name}! أنا صدي، وسعيدة جداً بوجودك هنا. سأكون بجانبك في صحتك ونمط حياتك ومزاجك، لأصغي إليك وأساعدك على العناية بنفسك. كيف يومك؟",
             }
             return fallback.get(lang_code, fallback["en"])
     

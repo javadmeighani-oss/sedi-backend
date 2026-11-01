@@ -1125,7 +1125,8 @@ def test_a4_brand_copy_canonical_sedi():
     assert fa_wrong not in fa_blob
     assert brand_fa_ar in fa_blob
     assert ar_wrong not in ar_blob
-    assert brand_fa_ar in ar_blob
+    assert 'صدي' in ar_blob  # R-048: the Arabic spelling of the brand
+    assert brand_fa_ar not in ar_blob
     assert "Sedi" in en_blob
     assert typo not in ar_blob
     assert typo not in fa_blob
@@ -1143,7 +1144,7 @@ def test_a4_brand_copy_canonical_sedi():
     ar_open = get_action_label("open_chat", "ar")
     en_open = get_action_label("open_chat", "en")
     assert ar_wrong not in ar_open
-    assert brand_fa_ar in ar_open
+    assert 'صدي' in ar_open  # R-048
     assert "Sedi" in en_open
     assert fa_wrong not in ACTION_LABELS["open_chat"]["fa"]
 

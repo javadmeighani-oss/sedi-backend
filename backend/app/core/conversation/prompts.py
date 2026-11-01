@@ -19,6 +19,7 @@ RESPONSIBILITY:
 
 from typing import Dict, Optional
 from openai import OpenAI
+from backend.app import sedi_copy
 from backend.app.core.conversation.stages import ConversationStage
 from backend.app.core.conversation.name_database import is_likely_name, detect_language
 from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
@@ -332,7 +333,7 @@ class ConversationPrompts:
         self.onboarding_prompts = {
             "en": {
                 "first_launch": "Hello, I'm Sedi. I'm really glad to meet you. What's your name?",
-                "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
+                "name_pending": sedi_copy.t("identity.intro", "en") + "\n\nThank you for starting this connection. Could you please tell me your name?",
                 "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
                 "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
                 "name_refusal_with_question": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Please, could you tell me your name now?",
@@ -356,8 +357,8 @@ class ConversationPrompts:
             },
             "fa": {
                 "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
-                "greeting_response": "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خیلی خوشحالم از آشنایی با شما. برای شروع، لطفاً اسمتون را به من بگین؟",
-                "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
+                "greeting_response": sedi_copy.t("identity.intro", "fa") + "\n\nبرای شروع، لطفاً اسمتون را به من بگین؟",
+                "name_pending": sedi_copy.t("identity.intro", "fa") + "\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
                 "name_refusal_with_question": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. ممنون میشم حالا اسم خودت رو بگی؟",
@@ -382,8 +383,8 @@ class ConversationPrompts:
             },
             "ar": {
                 "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
-                "greeting_response": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. سعيد جداً بلقائك. للبدء، هل يمكنك إخباري باسمك من فضلك؟",
-                "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
+                "greeting_response": sedi_copy.t("identity.intro", "ar") + "\n\nللبدء، هل يمكنك إخباري باسمك من فضلك؟",
+                "name_pending": sedi_copy.t("identity.intro", "ar") + "\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
                 "name_refusal_with_question": "أنا سأكون مساعدك للعناية بالصحة وأحتاج أن أعرف اسمك الحقيقي حتى أتمكن من تبادل المعلومات الصحيحة والدقيقة مع الأطباء أو المؤسسات الصحية. من فضلك، هل يمكنك إخباري باسمك الآن؟",

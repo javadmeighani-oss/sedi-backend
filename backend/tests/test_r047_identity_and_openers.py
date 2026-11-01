@@ -110,3 +110,53 @@ def test_catalog_keys_exist_for_every_family():
     for fam in _FAMILIES:
         for lang in ("fa", "ar", "en"):
             assert sedi_copy.t(f"session.digest.{fam}", lang, prefix="")
+
+
+# ---- R-048: ONE locked identity everywhere, Arabic brand spelling -------------------------------------------------
+
+_TIERS = {"fa": ("کوتاه‌مدت", "میان‌مدت", "بلندمدت"), "en": ("short-term", "medium-term", "long-term")}
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_every_persona_prompt_opens_with_the_locked_identity(lang):
+    prompt = PersonaPolicyV1.system_prompt(lang)
+    assert prompt.startswith(sedi_copy.t("identity.core", lang))
+
+
+def test_identity_names_memory_tiers_adviser_and_gadgets():
+    en = sedi_copy.t("identity.core", "en")
+    for word in ("short-term", "medium-term", "long-term", "vital signs", "adviser", "treatment"):
+        assert word in en
+    fa = sedi_copy.t("identity.core", "fa")
+    for word in _TIERS["fa"] + ("گجت",):
+        assert word in fa.replace("‌", "‌")
+    ar = sedi_copy.t("identity.core", "ar")
+    for word in ("قصيرة المدى", "طويلة المدى", "الحيوية"):
+        assert word in ar
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_intro_and_about_share_the_identity(lang):
+    intro = sedi_copy.t("identity.intro", lang)
+    about = about_sedi_message(lang)
+    assert intro.strip() and about.strip()
+
+
+def test_arabic_brand_uses_arabic_yeh_everywhere_in_the_catalog():
+    persian = "صدی"
+    arabic = "صدي"
+    for key, lang, text in sedi_copy.iter_strings():
+        if lang == "ar":
+            assert persian not in text, key
+    assert arabic in sedi_copy.t("about.sedi", "ar")
+    assert persian in sedi_copy.t("about.sedi", "fa") and arabic not in sedi_copy.t("about.sedi", "fa")
+
+
+def test_legacy_intro_templates_use_the_identity():
+    from backend.app.core.conversation.prompts import ConversationPrompts  # noqa: F401  (import must work)
+    from backend.app.core.conversation import sedi_knowledge_base as kb
+
+    for lang in ("en", "fa", "ar"):
+        ident = kb.SEDI_IDENTITY[lang]
+        assert "assistant" not in ident["type"].lower() or lang != "en"
+    assert "memory" in kb.SEDI_IDENTITY["en"]["type"].lower()

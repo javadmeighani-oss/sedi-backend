@@ -98,10 +98,9 @@ def test_arabic_uses_arabic_letters():
     for key, lang, text in _entries():
         if lang != "ar":
             continue
-        stripped = text.replace("صدی", "")  # the brand keeps its Persian Yeh in every language (R-007)
-        if re.search("[یک]", stripped):
+        if re.search("[یک]", text):
             problems.append((key, text))
-    assert not problems, f"Persian Yeh/Kaf inside Arabic text: {problems}"
+    assert not problems, f"Persian Yeh/Kaf inside Arabic text (the brand is «صدي» in Arabic, R-048): {problems}"
 
 
 def test_no_double_spaces_or_stray_whitespace():

@@ -499,7 +499,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
             "If you feel like sharing: what would you like Sedi to help you with most from here on?"
         ),
         "fa": "دوست داری صدی بیشتر تو چه زمینه‌ای کمکت کنه؟",
-        "ar": "بماذا تود أن يساعدك صدی أكثر من الآن؟",
+        "ar": "بماذا تود أن يساعدك صدي أكثر من الآن؟",
     },
     "nbq.general.communication_style.v1": {
         "en": (
