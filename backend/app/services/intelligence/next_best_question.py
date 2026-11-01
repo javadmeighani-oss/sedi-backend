@@ -465,9 +465,9 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "ar": 'هل أثّر مرضك على الأكل أو الحركة أو التنفس؟ إن كان نعم فأخبرني باختصار.',
     },
     "nbq.sleep.bedtime.v1": {
-        "en": "If you're open to it, what time do you usually go to bed?",
-        "fa": "اگه دوست داری بگی، معمولاً چه ساعتی می‌خوابی؟",
-        "ar": "إن رغبت، في أي وقت تنام عادة؟",
+        "en": "What time do you usually go to bed?",
+        "fa": "معمولاً چه ساعتی می‌خوابی؟",
+        "ar": "في أي وقت تنام عادة؟",
     },
     "nbq.sleep.wake_time.v1": {
         "en": "What time do you usually wake up?",
@@ -475,14 +475,14 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "ar": "في أي وقت تستيقظ عادةً؟",
     },
     "nbq.sleep.sleep_quality.v1": {
-        "en": "How would you describe your sleep lately, if you'd like to share?",
-        "fa": "این روزها خوابت چطوره؟ اگه دوست داری برام بگو.",
-        "ar": "إن أحببت، كيف تصف جودة نومك مؤخراً؟",
+        "en": "How would you describe your sleep lately?",
+        "fa": "این روزها خوابت چطوره؟",
+        "ar": "كيف تصف جودة نومك مؤخراً؟",
     },
     "nbq.nutrition.food_habits.v1": {
-        "en": "If helpful, what do your usual eating habits look like?",
+        "en": "What do your usual eating habits look like?",
         "fa": "عادت‌های غذایی‌ات معمولاً چطوره؟",
-        "ar": "إن كان مفيداً، كيف تبدو عاداتك الغذائية المعتادة؟",
+        "ar": "كيف تبدو عاداتك الغذائية المعتادة؟",
     },
     "nbq.activity.activity_level.v1": {
         "en": "How active are you on a typical day?",
@@ -490,15 +490,15 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "ar": "ما مدى نشاطك في يوم عادي؟",
     },
     "nbq.activity.exercise_schedule.v1": {
-        "en": "If you'd like, when do you usually exercise?",
+        "en": "When do you usually exercise?",
         "fa": "معمولاً چه موقع ورزش می‌کنی؟",
-        "ar": "إن رغبت، متى تمارس الرياضة عادة؟",
+        "ar": "متى تمارس الرياضة عادة؟",
     },
     "nbq.general.interests.v1": {
         "en": (
-            "If you feel like sharing: what would you like Sedi to help you with most from here on?"
+            "What would you like Sedi to help you with most from here on?"
         ),
-        "fa": "دوست داری صدی بیشتر تو چه زمینه‌ای کمکت کنه؟",
+        "fa": "صدی بیشتر تو چه زمینه‌ای کمکت کنه؟",
         "ar": "بماذا تود أن يساعدك صدي أكثر من الآن؟",
     },
     "nbq.general.communication_style.v1": {
@@ -511,7 +511,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
             "یا چیزی بین این دو؟"
         ),
         "ar": (
-            "إن رغبت، هل تفضل أسلوباً مباشراً، أم أسلوباً حوارياً داعماً، "
+            "هل تفضل أسلوباً مباشراً، أم أسلوباً حوارياً داعماً، "
             "أم شيئاً بينهما؟"
         ),
     },
@@ -539,9 +539,9 @@ _TEMPLATES: dict[str, dict[str, str]] = {
         "ar": "ما نوع عملك؟",
     },
     "nbq.contextual.work_schedule.v1": {
-        "en": "If you're open to it, what does your work schedule usually look like?",
+        "en": "What does your work schedule usually look like?",
         "fa": "برنامه کاری‌ت معمولاً چطوره؟",
-        "ar": "إن رغبت، كيف يبدو جدول عملك عادة؟",
+        "ar": "كيف يبدو جدول عملك عادة؟",
     },
     "nbq.contextual.time_constraints.v1": {
         "en": "How much time do you usually have for this?",

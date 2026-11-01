@@ -163,7 +163,7 @@ def generate_notification_text(
         # Fallback if GPT is unavailable
         fallback = {
             "fa": "هی جواد، امیدوارم حالت خوب باشه. هر وقت خواستی در مورد حالت باهام حرف بزن 🌿",
-            "ar": "مرحباً، أتمنى أن تكون بخير. أنا هنا إذا أحببت أن تتحدث عن حالتك 🌿",
+            "ar": "مرحباً، أتمنى أن تكون بخير. أنا هنا لنتحدث عن حالتك 🌿",
             "en": "Hey, I hope you're doing okay. I'm here anytime you want to talk about how you feel 🌿",
         }
         return fallback.get(language, fallback["en"])

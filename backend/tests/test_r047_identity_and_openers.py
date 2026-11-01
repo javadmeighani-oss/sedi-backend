@@ -160,3 +160,57 @@ def test_legacy_intro_templates_use_the_identity():
         ident = kb.SEDI_IDENTITY[lang]
         assert "assistant" not in ident["type"].lower() or lang != "en"
     assert "memory" in kb.SEDI_IDENTITY["en"]["type"].lower()
+
+
+# ---- R-049: a permanent companion and professional adviser does not hedge ---------------------------------------------
+
+import re as _re
+
+from backend.app.services.intelligence.grounding_guard import strip_hedging_offers
+
+_HEDGE_RE = _re.compile(
+    "اگه (?:دوست داری|خواستی)|اگر دوست داری|if you(?:'d)? (?:like|want)|إن (?:أحببت|رغبت|شئت)|إذا أحببت|متى (?:ما )?(?:رغبت|شئت)",
+    _re.I,
+)
+
+
+def test_no_catalog_text_hedges_with_if_you_like():
+    bad = [(k, lang) for k, lang, t in sedi_copy.iter_strings() if not k.startswith("identity.") and _HEDGE_RE.search(t)]
+    assert not bad, bad
+
+
+def test_persona_voice_forbids_hedging_and_offer_menus():
+    for lang in ("fa", "ar", "en"):
+        prompt = PersonaPolicyV1.system_prompt(lang)
+        assert sedi_copy.t("identity.voice", lang) in prompt
+    assert "Never soften" in sedi_copy.t("identity.voice", "en")
+
+
+@pytest.mark.parametrize(
+    "text,lang,must_have,must_not",
+    [
+        ("امشب زودتر بخواب و صبح نور بگیر. اگه دوست داری برنامه‌ی خواب هم بچینیم؟", "fa", "زودتر بخواب", "اگه دوست داری"),
+        ("این غذاها برای دیابتت خوبه. اگه خواستی بیشتر توضیح می‌دم.", "fa", "خوبه", "اگه خواستی"),
+        ("یه قدم کوچیک بردار، اگه خواستی.", "fa", "قدم کوچیک", "اگه خواستی"),
+        ("Walk after dinner. If you like, I can build a plan. Would you like me to continue?", "en", "Walk after dinner", "If you like"),
+        ("نفس عميق. إن أحببت نضع خطة. هل تريد المزيد؟", "ar", "نفس عميق", "إن أحببت"),
+    ],
+)
+def test_guard_removes_hedging_and_offer_menus(text, lang, must_have, must_not):
+    out = strip_hedging_offers(text, lang)
+    assert must_have in out and must_not not in out
+    assert out.strip()
+
+
+def test_guard_keeps_the_specialist_offer_and_never_empties():
+    keep = "این تمرین رو انجام بده. یه متخصص مناسب برات پیدا کنم؟"
+    assert strip_hedging_offers(keep, "fa") == keep
+    only = "اگه دوست داری بگو."
+    assert strip_hedging_offers(only, "fa").strip()
+
+
+def test_governed_knowledge_is_framed_as_her_own_expertise():
+    from backend.app.core.conversation import brain
+
+    assert "own professional expertise" in brain._KNOWLEDGE_VOICE
+    assert "if you like" in brain._KNOWLEDGE_VOICE  # named as the thing NOT to do
