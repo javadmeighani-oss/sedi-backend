@@ -97,9 +97,10 @@ def test_coverage_target_lists_the_domains_under_forty():
         baseline_counts=None,
     )
     cov = report["coverage"]
-    assert cov["target_per_domain"] == 40 and cov["domains_total"] == 4
-    assert cov["domains_below_target"] == {"oncology": 7, "renal": 11}  # sorted by gap, nutrition (=40) is not a gap
-    assert cov["units_missing_to_target"] == (40 - 7) + (40 - 11)
+    assert cov["target_per_domain"] == 40 and cov["domains_total"] == 5
+    # dermatology has units but none eligible: it is the most severe gap and must be listed first
+    assert list(cov["domains_below_target"].items()) == [("dermatology", 0), ("oncology", 7), ("renal", 11)]
+    assert cov["units_missing_to_target"] == 40 + (40 - 7) + (40 - 11)  # nutrition (=40) is not a gap
 
 
 def test_a_replaced_unit_is_not_growth():

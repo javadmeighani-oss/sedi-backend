@@ -88,10 +88,11 @@ def assemble_report(
         for name, column in (("new", "knowledge_new_count"), ("updated", "knowledge_updated_count"), ("rejected", "knowledge_rejected_count"), ("errors", "error_count")):
             totals[name] += int(row.get(column) or 0)
 
+    unit_counts_list = [tuple(r) for r in unit_counts]
     by_eligibility: Counter[str] = Counter()
     eligible_now: Counter[str] = Counter()
     psych_now: Counter[str] = Counter()
-    for domain, language, eligibility, n in unit_counts:
+    for domain, language, eligibility, n in unit_counts_list:
         by_eligibility[str(eligibility)] += int(n)
         if str(eligibility) == "ELIGIBLE":
             eligible_now[_key(domain, language)] += int(n)
@@ -109,7 +110,9 @@ def assemble_report(
                 psych_created += int(n)
 
     eligible_total = sum(eligible_now.values())
-    by_domain: Counter[str] = Counter()
+    # Seed every domain that has ANY unit (even review-required only) so a domain with zero eligible units is the
+    # most severe gap, not invisible.
+    by_domain: Counter[str] = Counter({str(domain): 0 for domain, _l, _e, _n in unit_counts_list})
     for dl, n in eligible_now.items():
         by_domain[dl.split("|", 1)[0]] += int(n)
     below_target = {d: int(n) for d, n in sorted(by_domain.items(), key=lambda kv: (kv[1], kv[0])) if n < COVERAGE_TARGET}
