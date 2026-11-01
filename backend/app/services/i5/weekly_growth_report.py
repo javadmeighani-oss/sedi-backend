@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 PACKAGE_ID = "I5-R044-WEEKLY-GROWTH-REPORT-V1"
 PSYCHOLOGY_DOMAINS: tuple[str, ...] = ("mental_health_psychology", "wellbeing")
 MAX_FAILURE_CODES = 10
+# R-046: every knowledge domain should hold at least this many ELIGIBLE units; a domain under it is a gap.
+COVERAGE_TARGET = 40
 
 
 def _utc_naive(moment: Optional[datetime]) -> Optional[datetime]:
@@ -86,10 +88,11 @@ def assemble_report(
         for name, column in (("new", "knowledge_new_count"), ("updated", "knowledge_updated_count"), ("rejected", "knowledge_rejected_count"), ("errors", "error_count")):
             totals[name] += int(row.get(column) or 0)
 
+    unit_counts_list = [tuple(r) for r in unit_counts]
     by_eligibility: Counter[str] = Counter()
     eligible_now: Counter[str] = Counter()
     psych_now: Counter[str] = Counter()
-    for domain, language, eligibility, n in unit_counts:
+    for domain, language, eligibility, n in unit_counts_list:
         by_eligibility[str(eligibility)] += int(n)
         if str(eligibility) == "ELIGIBLE":
             eligible_now[_key(domain, language)] += int(n)
@@ -107,6 +110,12 @@ def assemble_report(
                 psych_created += int(n)
 
     eligible_total = sum(eligible_now.values())
+    # Seed every domain that has ANY unit (even review-required only) so a domain with zero eligible units is the
+    # most severe gap, not invisible.
+    by_domain: Counter[str] = Counter({str(domain): 0 for domain, _l, _e, _n in unit_counts_list})
+    for dl, n in eligible_now.items():
+        by_domain[dl.split("|", 1)[0]] += int(n)
+    below_target = {d: int(n) for d, n in sorted(by_domain.items(), key=lambda kv: (kv[1], kv[0])) if n < COVERAGE_TARGET}
     eligible_new = sum(eligible_created.values())
     created_total = sum(created_by_eligibility.values())
     # The real "before" is the count captured before the run (a replaced unit makes the old version NOT_ELIGIBLE, so
@@ -154,6 +163,12 @@ def assemble_report(
             "by_eligibility": _sorted(by_eligibility),
             "eligible_total": eligible_total,
             "eligible_by_domain_language": _sorted(eligible_now),
+        },
+        "coverage": {
+            "target_per_domain": COVERAGE_TARGET,
+            "domains_total": len(by_domain),
+            "domains_below_target": below_target,
+            "units_missing_to_target": sum(COVERAGE_TARGET - n for n in below_target.values()),
         },
         "growth": {
             "created_by_eligibility": _sorted(created_by_eligibility),
@@ -354,6 +369,7 @@ if __name__ == "__main__":
 __all__ = [
     "PACKAGE_ID",
     "PSYCHOLOGY_DOMAINS",
+    "COVERAGE_TARGET",
     "assemble_report",
     "capture_eligible_baseline",
     "build_weekly_growth_report",

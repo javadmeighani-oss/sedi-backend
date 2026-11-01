@@ -22,6 +22,13 @@ class Wave02CoverageIdentity:
 # Needle (lowercased substring of canonical URL) → coverage identity.
 # Order matters for first-match; keep more-specific needles before broad ones.
 _WAVE02_URL_COVERAGE: tuple[tuple[str, Wave02CoverageIdentity], ...] = (
+    # R-046 elder care: explicit topic instead of the sleep default.
+    ("medlineplus.gov/mobilityaids.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/alzheimerscaregivers.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/elderabuse.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/homecareservices.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/nursinghomes.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/pressuresores.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
     # R-044 open-licence library (nutrition / exercise / lifestyle sources): explicit topics instead of the sleep default.
     ("medlineplus.gov/antioxidants.html", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "antioxidants")),
     ("medlineplus.gov/bvitamins.html", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "bvitamins")),
