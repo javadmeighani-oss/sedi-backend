@@ -1486,7 +1486,17 @@ class IntelligenceOrchestrator:
             not terminal_safety
             and not discovery_reply_active
             and not care_nav_handled
-            and not skip_generator
+            and (
+                not skip_generator
+                # a capability question («می‌تونی نوتیف بفرستی؟») also reads as a reminder with no time: the answer about
+                # Sedi's abilities wins over the «which day/time?» clarification (never over a created reminder)
+                or (
+                    clarification_message is not None
+                    and reminder_message is None
+                    and intent_meta is not None
+                    and intent_meta.intent_id.value in ("reminder", "general")
+                )
+            )
         ):
             try:
                 from backend.app.services.intelligence.about_sedi import (

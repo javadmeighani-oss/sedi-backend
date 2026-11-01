@@ -214,3 +214,42 @@ def test_governed_knowledge_is_framed_as_her_own_expertise():
 
     assert "own professional expertise" in brain._KNOWLEDGE_VOICE
     assert "if you like" in brain._KNOWLEDGE_VOICE  # named as the thing NOT to do
+
+
+# ---- Codex review fixes (PR #139) ------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "ماذا يمكنك أن تفعلي؟",
+        "ما هي قدراتك؟",
+        "عرفي بنفسك",
+        "هل تستطيعين أن ترسلي لي إشعاراً؟",
+        "ماذا تستطيعين أن تفعلي لي",
+    ],
+)
+def test_arabic_capability_questions_are_detected(text):
+    assert is_about_sedi_question(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "can you send me a reminder tomorrow at 10",
+        "هل تستطيعين أن ترسلي لي إشعاراً غداً الساعة ١٠",
+        "می‌تونی فردا ساعت ۱۰ برام نوتیف بفرستی؟",
+        "what happened today",
+    ],
+)
+def test_a_real_scheduling_request_is_not_an_about_question(text):
+    assert not is_about_sedi_question(text)
+
+
+def test_capability_answer_wins_over_the_reminder_clarification_only():
+    import pathlib
+
+    src = pathlib.Path("backend/app/services/intelligence/orchestrator.py").read_text(encoding="utf-8")
+    block = src[src.index("R-047: \"who are you"):src.index("CR-03.2: discovery marker already")]
+    assert "clarification_message is not None" in block
+    assert "reminder_message is None" in block  # never over a reminder that was created
