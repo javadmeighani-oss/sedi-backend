@@ -123,13 +123,97 @@ sources:
       - https://medlineplus.gov/genetics/condition/huntington-disease/
       - https://medlineplus.gov/genetics/condition/parkinson-disease/
       - https://medlineplus.gov/genetics/condition/alzheimer-disease/
+      # R-046 coverage (weak domains): MedlinePlus topics, each in the lane named by its URL needle
+      - https://medlineplus.gov/breastcancer.html
+      - https://medlineplus.gov/colorectalcancer.html
+      - https://medlineplus.gov/prostatecancer.html
+      - https://medlineplus.gov/cervicalcancer.html
+      - https://medlineplus.gov/ovariancancer.html
+      - https://medlineplus.gov/cancer.html
+      - https://medlineplus.gov/urinaryincontinence.html
+      - https://medlineplus.gov/diabetickidneyproblems.html
+      - https://medlineplus.gov/chronickidneydisease.html
+      - https://medlineplus.gov/kidneyfailure.html
+      - https://medlineplus.gov/kidneystones.html
+      - https://medlineplus.gov/urinarytractinfections.html
+      - https://medlineplus.gov/dialysis.html
+      - https://medlineplus.gov/kidneytransplantation.html
+      - https://medlineplus.gov/kidneycysts.html
+      - https://medlineplus.gov/bladderdiseases.html
+      - https://medlineplus.gov/interstitialcystitis.html
+      - https://medlineplus.gov/kidneytests.html
+      - https://medlineplus.gov/urinalysis.html
+      - https://medlineplus.gov/ureteraldisorders.html
+      - https://medlineplus.gov/urethraldisorders.html
+      - https://medlineplus.gov/diarrhea.html
+      - https://medlineplus.gov/hemorrhoids.html
+      - https://medlineplus.gov/celiacdisease.html
+      - https://medlineplus.gov/crohnsdisease.html
+      - https://medlineplus.gov/diverticulosisanddiverticulitis.html
+      - https://medlineplus.gov/nauseaandvomiting.html
+      - https://medlineplus.gov/gerd.html
+      - https://medlineplus.gov/indigestion.html
+      - https://medlineplus.gov/bowelincontinence.html
+      - https://medlineplus.gov/hernia.html
+      - https://medlineplus.gov/irritablebowelsyndrome.html
+      - https://medlineplus.gov/constipation.html
+      - https://medlineplus.gov/hepatitisb.html
+      - https://medlineplus.gov/chlamydiainfections.html
+      - https://medlineplus.gov/hepatitisa.html
+      - https://medlineplus.gov/hepatitisc.html
+      - https://medlineplus.gov/hiv.html
+      - https://medlineplus.gov/bullyingandcyberbullying.html
+      - https://medlineplus.gov/learningdisabilities.html
+      - https://medlineplus.gov/childdevelopment.html
+      - https://medlineplus.gov/parenting.html
+      - https://medlineplus.gov/infantandnewborncare.html
+      - https://medlineplus.gov/puberty.html
+      - https://medlineplus.gov/childsafety.html
+      - https://medlineplus.gov/babyhealthcheckup.html
+      - https://medlineplus.gov/croup.html
+      - https://medlineplus.gov/earinfections.html
+      - https://medlineplus.gov/newbornscreening.html
+      - https://medlineplus.gov/prematurebabies.html
+      - https://medlineplus.gov/growthdisorders.html
+      - https://medlineplus.gov/schoolhealth.html
+      - https://medlineplus.gov/teendevelopment.html
+      - https://medlineplus.gov/teenhealth.html
+      - https://medlineplus.gov/infantandnewborndevelopment.html
+      - https://medlineplus.gov/commoninfantandnewbornproblems.html
+      - https://medlineplus.gov/leadpoisoning.html
+      - https://medlineplus.gov/strokerehabilitation.html
+      - https://medlineplus.gov/oxygentherapy.html
+      - https://medlineplus.gov/pulmonaryrehabilitation.html
+      - https://medlineplus.gov/cardiacrehabilitation.html
+      - https://medlineplus.gov/assistivedevices.html
+      - https://medlineplus.gov/artificiallimbs.html
+      - https://medlineplus.gov/hipreplacement.html
+      - https://medlineplus.gov/kneereplacement.html
+      - https://medlineplus.gov/surgery.html
+      - https://medlineplus.gov/criticalcare.html
+      - https://medlineplus.gov/cancerlivingwithcancer.html
+      - https://medlineplus.gov/endoflifeissues.html
+      - https://medlineplus.gov/hospicecare.html
+      - https://medlineplus.gov/skininfections.html
+      - https://medlineplus.gov/eczema.html
+      - https://medlineplus.gov/skinconditions.html
+      - https://medlineplus.gov/acne.html
+      - https://medlineplus.gov/psoriasis.html
+      - https://medlineplus.gov/hives.html
+      - https://medlineplus.gov/rosacea.html
+      - https://medlineplus.gov/warts.html
+      - https://medlineplus.gov/scabies.html
+      - https://medlineplus.gov/impetigo.html
+      - https://medlineplus.gov/rashes.html
+      - https://medlineplus.gov/vitiligo.html
+      - https://medlineplus.gov/sunexposure.html
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
       - "^https://medlineplus\\.gov/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_22_urls"
+    rate_limit: "weekly_controlled_max_110_urls"
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19, D23]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]  # specialty_domain is varchar(128): D23 comes from specialized_serving_eligibility
     activation: YES
@@ -924,3 +1008,34 @@ sources:
     jurisdiction_country_code: US
     reject_medicine_talk: true
     license_notes: "US federal government work, public domain; attribution to HHS/ODPHP (health.gov); not endorsed by HHS"
+
+  # R-046 elder care (nurturing older adults): MedlinePlus topics, public domain; low-risk path with the resource-list and
+  # medicine guards. A dedicated geriatrics_elder_care domain and lane are a later Opus decision; these are mapped to
+  # lifestyle_prevention_routines / topic elder_care until then.
+  - source_key: medlineplus_eldercare
+    publisher: NIH/NLM MedlinePlus - caring for older adults
+    publisher_family: medlineplus.gov/eldercare
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://medlineplus.gov/mobilityaids.html
+    additional_urls:
+      - https://medlineplus.gov/alzheimerscaregivers.html
+      - https://medlineplus.gov/elderabuse.html
+      - https://medlineplus.gov/homecareservices.html
+      - https://medlineplus.gov/nursinghomes.html
+      - https://medlineplus.gov/pressuresores.html
+    allowed_domain: medlineplus.gov
+    allowed_url_patterns:
+      - "^https://medlineplus\\.gov/(mobilityaids|alzheimerscaregivers|elderabuse|homecareservices|nursinghomes|pressuresores)\\.html$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_6_urls"
+    entity_coverage: [D12]
+    knowledge_domains: [lifestyle_prevention_routines]
+    activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
+    reject_resource_lists: true
+    reject_medicine_talk: true
+    license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"

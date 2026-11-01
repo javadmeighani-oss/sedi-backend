@@ -193,6 +193,11 @@ D16 = SpecializedEntitySpec(
     domain="palliative",
     topic="palliative_care",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/cancerlivingwithcancer.html",
+        "medlineplus.gov/endoflifeissues.html",
+        "medlineplus.gov/hospicecare.html",
+        
         "advanced-cancer/care-choices",
         "about-cancer/coping",
         "medlineplus.gov/palliativecare.html",
@@ -209,6 +214,14 @@ D01 = SpecializedEntitySpec(
     domain="oncology",
     topic="cancer",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/breastcancer.html",
+        "medlineplus.gov/colorectalcancer.html",
+        "medlineplus.gov/prostatecancer.html",
+        "medlineplus.gov/cervicalcancer.html",
+        "medlineplus.gov/ovariancancer.html",
+        "medlineplus.gov/cancer.html",
+        
         "cancer.gov/publications/pdq",
         "about-cancer/treatment",
         "cancer.gov/types/",
@@ -231,6 +244,21 @@ D06 = SpecializedEntitySpec(
     domain="dermatology",
     topic="skin_health",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/skininfections.html",
+        "medlineplus.gov/eczema.html",
+        "medlineplus.gov/skinconditions.html",
+        "medlineplus.gov/acne.html",
+        "medlineplus.gov/psoriasis.html",
+        "medlineplus.gov/hives.html",
+        "medlineplus.gov/rosacea.html",
+        "medlineplus.gov/warts.html",
+        "medlineplus.gov/scabies.html",
+        "medlineplus.gov/impetigo.html",
+        "medlineplus.gov/rashes.html",
+        "medlineplus.gov/vitiligo.html",
+        "medlineplus.gov/sunexposure.html",
+        
         "health-topics/skin-diseases",
         "skin-diseases",
         "medlineplus.gov/skincancer.html",
@@ -275,6 +303,23 @@ D03 = SpecializedEntitySpec(
     domain="renal",
     topic="kidney",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/urinaryincontinence.html",
+        "medlineplus.gov/diabetickidneyproblems.html",
+        "medlineplus.gov/chronickidneydisease.html",
+        "medlineplus.gov/kidneyfailure.html",
+        "medlineplus.gov/kidneystones.html",
+        "medlineplus.gov/urinarytractinfections.html",
+        "medlineplus.gov/dialysis.html",
+        "medlineplus.gov/kidneytransplantation.html",
+        "medlineplus.gov/kidneycysts.html",
+        "medlineplus.gov/bladderdiseases.html",
+        "medlineplus.gov/interstitialcystitis.html",
+        "medlineplus.gov/kidneytests.html",
+        "medlineplus.gov/urinalysis.html",
+        "medlineplus.gov/ureteraldisorders.html",
+        "medlineplus.gov/urethraldisorders.html",
+        
         "kidney-disease",
         "medlineplus.gov/kidneydiseases.html",
         "kidneydiseases.html",
@@ -290,6 +335,20 @@ D04 = SpecializedEntitySpec(
     domain="gastroenterology",
     topic="digestive_liver",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/diarrhea.html",
+        "medlineplus.gov/hemorrhoids.html",
+        "medlineplus.gov/celiacdisease.html",
+        "medlineplus.gov/crohnsdisease.html",
+        "medlineplus.gov/diverticulosisanddiverticulitis.html",
+        "medlineplus.gov/nauseaandvomiting.html",
+        "medlineplus.gov/gerd.html",
+        "medlineplus.gov/indigestion.html",
+        "medlineplus.gov/bowelincontinence.html",
+        "medlineplus.gov/hernia.html",
+        "medlineplus.gov/irritablebowelsyndrome.html",
+        "medlineplus.gov/constipation.html",
+        
         "liver-disease",
         "digestive-diseases",
         "medlineplus.gov/digestivediseases.html",
@@ -421,6 +480,27 @@ D11 = SpecializedEntitySpec(
     domain="pediatrics",
     topic="child_development",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/bullyingandcyberbullying.html",
+        "medlineplus.gov/learningdisabilities.html",
+        "medlineplus.gov/childdevelopment.html",
+        "medlineplus.gov/parenting.html",
+        "medlineplus.gov/infantandnewborncare.html",
+        "medlineplus.gov/puberty.html",
+        "medlineplus.gov/childsafety.html",
+        "medlineplus.gov/babyhealthcheckup.html",
+        "medlineplus.gov/croup.html",
+        "medlineplus.gov/earinfections.html",
+        "medlineplus.gov/newbornscreening.html",
+        "medlineplus.gov/prematurebabies.html",
+        "medlineplus.gov/growthdisorders.html",
+        "medlineplus.gov/schoolhealth.html",
+        "medlineplus.gov/teendevelopment.html",
+        "medlineplus.gov/teenhealth.html",
+        "medlineplus.gov/infantandnewborndevelopment.html",
+        "medlineplus.gov/commoninfantandnewbornproblems.html",
+        "medlineplus.gov/leadpoisoning.html",
+        
         "cdc.gov/child-development",
         "ncbddd/childdevelopment",
         "childdevelopment",
@@ -450,6 +530,13 @@ D13 = SpecializedEntitySpec(
     domain="infectious",
     topic="infectious_diseases",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/hepatitisb.html",
+        "medlineplus.gov/chlamydiainfections.html",
+        "medlineplus.gov/hepatitisa.html",
+        "medlineplus.gov/hepatitisc.html",
+        "medlineplus.gov/hiv.html",
+        
         "cdc.gov/ncezid",
         "/ncezid/",
         "medlineplus.gov/infectiousdiseases.html",
@@ -493,6 +580,18 @@ D15 = SpecializedEntitySpec(
     domain="rehabilitation",
     topic="rehabilitation",
     url_needles=(
+        # R-046 coverage: MedlinePlus topics reviewed for this lane (public domain)
+        "medlineplus.gov/strokerehabilitation.html",
+        "medlineplus.gov/oxygentherapy.html",
+        "medlineplus.gov/pulmonaryrehabilitation.html",
+        "medlineplus.gov/cardiacrehabilitation.html",
+        "medlineplus.gov/assistivedevices.html",
+        "medlineplus.gov/artificiallimbs.html",
+        "medlineplus.gov/hipreplacement.html",
+        "medlineplus.gov/kneereplacement.html",
+        "medlineplus.gov/surgery.html",
+        "medlineplus.gov/criticalcare.html",
+        
         "nichd.nih.gov/health",
         "medlineplus.gov/rehabilitation.html",
         "rehabilitation.html",

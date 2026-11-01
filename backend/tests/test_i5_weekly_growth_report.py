@@ -82,6 +82,26 @@ def test_sources_are_summarised_per_source_and_failure_code():
     assert nhs["urls"] == 2 and nhs["by_result"] == {"EXTRACTED": 1, "SKIPPED": 1} and "new" not in nhs
 
 
+def test_coverage_target_lists_the_domains_under_forty():
+    report = _assemble(
+        unit_counts=[
+            ("mental_health_psychology", "en", "ELIGIBLE", 546),
+            ("oncology", "en", "ELIGIBLE", 7),
+            ("oncology", "en", "ELIGIBLE", 0),
+            ("renal", "en", "ELIGIBLE", 11),
+            ("nutrition", "en", "ELIGIBLE", 40),
+            ("nutrition", "en", "NOT_ELIGIBLE", 9),
+            ("dermatology", "en", "REVIEW_REQUIRED", 30),
+        ],
+        created_counts=[],
+        baseline_counts=None,
+    )
+    cov = report["coverage"]
+    assert cov["target_per_domain"] == 40 and cov["domains_total"] == 4
+    assert cov["domains_below_target"] == {"oncology": 7, "renal": 11}  # sorted by gap, nutrition (=40) is not a gap
+    assert cov["units_missing_to_target"] == (40 - 7) + (40 - 11)
+
+
 def test_a_replaced_unit_is_not_growth():
     # one of 100 eligible units is replaced by a new version: the old one turns NOT_ELIGIBLE, the new one is ELIGIBLE
     report = _assemble(
