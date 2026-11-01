@@ -254,6 +254,10 @@ D05 = SpecializedEntitySpec(
         "nhs.uk/conditions/osteoporosis",
         "nhs.uk/conditions/back-pain",
         "nhs.uk/conditions/fibromyalgia",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/osteoarthritis",
+        "nhs.uk/conditions/rheumatoid-arthritis",
+        "nhs.uk/conditions/gout",
     ),
     clinical_tokens=("arthritis", "joint", "musculoskeletal", "bone", "rheumat",
         "osteoporosis",
@@ -303,6 +307,8 @@ D02 = SpecializedEntitySpec(
     topic="lung_health",
     url_needles=(
         "nhs.uk/conditions/asthma",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/chronic-obstructive-pulmonary-disease-copd",
         "nhlbi.nih.gov/health",
         "medlineplus.gov/lungdiseases.html",
         "lungdiseases.html",
@@ -386,6 +392,10 @@ D10 = SpecializedEntitySpec(
         "womenshealth.html",
         "cdc.gov/womens-health",
         "nhs.uk/conditions/menopause",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/endometriosis",
+        "nhs.uk/conditions/polycystic-ovary-syndrome-pcos",
+        "nhs.uk/conditions/periods",
         "nhs.uk/pregnancy/",
     ),
     clinical_tokens=(
@@ -536,6 +546,11 @@ D21 = SpecializedEntitySpec(
         "nhs.uk/conditions/high-blood-pressure",
         "nhs.uk/conditions/coronary-heart-disease",
         "nhs.uk/conditions/heart-failure",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/atrial-fibrillation",
+        "nhs.uk/conditions/high-cholesterol",
+        "nhs.uk/conditions/angina",
+        "nhs.uk/conditions/cardiovascular-disease",
         "cdc.gov/heart-disease",
         "cdc.gov/high-blood-pressure",
         "nhlbi.nih.gov/health/high-blood-pressure",
@@ -565,6 +580,8 @@ D22 = SpecializedEntitySpec(
         "nhs.uk/conditions/type-1-diabetes",
         "nhs.uk/conditions/type-2-diabetes",
         "nhs.uk/conditions/overweight-and-obesity",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/gestational-diabetes",
         "cdc.gov/diabetes",
         "niddk.nih.gov/health-information/diabetes",
     ),
@@ -714,6 +731,8 @@ D25 = SpecializedEntitySpec(
     url_needles=(
         "nhs.uk/conditions/insomnia",
         "nhs.uk/conditions/chronic-fatigue-syndrome-cfs",
+        # R-044 library: more NHS Health A-Z pages in the same lane
+        "nhs.uk/conditions/obstructive-sleep-apnoea",
         "cdc.gov/sleep",
         "medlineplus.gov/sleepdisorders.html",
     ),

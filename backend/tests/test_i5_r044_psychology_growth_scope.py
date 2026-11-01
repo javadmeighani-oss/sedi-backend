@@ -96,7 +96,7 @@ def test_no_new_source_and_the_low_risk_source_is_untouched():
     live_well = rows["nhs_uk_live_well"]
     assert len([live_well["exact_url"], *live_well["additional_urls"]]) == 23
     assert not any("every-mind-matters" in u for u in live_well["additional_urls"])
-    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189 + 28 + 37 + 13  # + OpenStax Psychology 2e, MedlinePlus wellness, ODPHP
+    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189 + 28 + 37 + 13 + 13  # + OpenStax Psychology 2e, MedlinePlus wellness, ODPHP, NHS conditions
 
 
 def test_rate_limit_labels_of_the_changed_sources_match_their_url_counts():
