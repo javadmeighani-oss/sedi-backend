@@ -62,8 +62,8 @@ def test_replies_without_a_self_limit_are_untouched_and_never_emptied():
 
 def test_the_prompt_helps_first_offers_a_specialist_and_never_talks_about_her_limits():
     for lang, needles in {
-        "en": ("always give your own concrete help first", "I can find a suitable specialist for you", "Never talk about your own limits"),
-        "fa": ("همیشه اول خودت کمک مشخص می‌کنی", "یه متخصص مناسب برات پیدا کنم", "هرگز از محدودیت یا ناتوانی خودت"),
+        "en": ("always give your own concrete help first", "Shall I find a suitable specialist for you?", "Never talk about your own limits"),
+        "fa": ("همیشه اول خودت کمک مشخص می‌کنی", "یک متخصص مناسب برایت پیدا کنم", "هرگز از محدودیت یا ناتوانی خودت"),
         "ar": ("تقدّمين دائماً مساعدتك الملموسة أولاً", "أجد لك مختصاً مناسباً", "لا تتحدثي أبداً عن حدودك"),
     }.items():
         prompt = PersonaPolicyV1.system_prompt(lang)
