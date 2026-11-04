@@ -18,6 +18,8 @@ from backend.app import sedi_copy
 # R-051: a long, chatty question about her abilities ("صدی میخواهم در مورد توانایی‌های تو صحبت کنیم و اینکه بدانم
 # دقیقا چه کمکی به من بکنی") used to exceed 14 words, skip this answer and reach the model, which answered generically.
 _MAX_WORDS: Final[int] = 40
+# Up to this many words ANY about-pattern counts; between this and _MAX_WORDS only the META patterns count (Codex P2).
+_SHORT_WORDS: Final[int] = 14
 
 _ABOUT_SOURCE = (
     r"("
@@ -37,6 +39,18 @@ _ABOUT_SOURCE = (
     r"who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|what\s+do\s+you\s+do|introduce\s+yourself|"
     r"tell\s+me\s+about\s+yourself|your\s+(?:abilities|capabilities|features)|"
     r"can\s+you\s+(?:send|give)\s+(?:me\s+)?(?:a\s+)?(?:notification|reminder|alert)s?"
+    r")"
+)
+
+_META_SOURCE = (
+    r"("
+    # fa: explicit talk about her identity / abilities
+    r"تو\s+(?:دقیقا\s+|اصلا\s+)?کی\s*(?:هستی|ای)|خودت\s*رو\s+معرفی|خودتو\s+معرفی|"
+    r"(?:توانایی|توانمندی|قابلیت|امکانات)\s*(?:ها)?\s*[‌ ]?(?:ت|هات|های\s*تو|هایت)|"
+    # ar
+    r"من\s+أنت|ما\s+أنت|عرف\S*\s+بنفسك|ما\s+(?:هي\s+)?(?:قدراتك|إمكانياتك|مهامك|وظيفتك)|"
+    # en
+    r"who\s+are\s+you|introduce\s+yourself|tell\s+me\s+about\s+yourself|your\s+(?:abilities|capabilities|features)"
     r")"
 )
 
@@ -60,6 +74,7 @@ def _fold(text: str) -> str:
 
 
 _ABOUT = re.compile(_fold(_ABOUT_SOURCE), re.I)
+_ABOUT_META = re.compile(_fold(_META_SOURCE), re.I)
 
 # A real scheduling request (a day, a clock, a number) is NOT a question about Sedi: the reminder path owns it.
 _SCHEDULE_HINT = re.compile(
@@ -79,6 +94,8 @@ def is_about_sedi_question(message: str) -> bool:
         return False
     if _SCHEDULE_HINT.search(text):
         return False
+    if len(text.split()) > _SHORT_WORDS:
+        return bool(_ABOUT_META.search(text))
     return bool(_ABOUT.search(text))
 
 

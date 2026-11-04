@@ -144,3 +144,26 @@ def test_about_answer_has_no_stock_hedge_and_one_question(lang):
     msg = about_sedi_message(lang)
     assert msg.count("؟") + msg.count("?") == 1
     assert not re.search(r"اگه دوست داری|if you like|إن أحببت", msg, re.I)
+
+
+def test_a_real_health_request_is_never_swallowed_by_the_identity_answer():
+    # Codex P2 on PR #140: the longer word limit must not turn a personal request into the fixed introduction.
+    sleep = (
+        "I am having trouble sleeping and feel exhausted when I try to work; "
+        "what can you do to help me sleep better and also fix my daily routine this month?"
+    )
+    assert not is_about_sedi_question(sleep)
+    fa = "من چند شب است خوابم نمی‌برد و سر کار خسته‌ام و می‌خواهم بدانم دقیقاً چه کمکی به من بکنی که بهتر بخوابم و روزم منظم شود"
+    assert not is_about_sedi_question(fa)
+    # the phone-test question (explicit talk about HER abilities) still gets the locked answer
+    assert is_about_sedi_question(_PHONE_TEST_MESSAGE)
+
+
+def test_assessment_questions_survive_the_menu_filter_but_offers_do_not():
+    # Codex P2 on PR #140: «What kind of help have you already sought?» is an assessment question, not an offer menu.
+    kept = "That sounds difficult. What kind of help have you already sought?"
+    assert strip_hedging_offers(kept, "en") == kept
+    fa_kept = "این موضوع سخت است. تا حالا چه نوع کمکی گرفته‌ای؟"
+    assert strip_hedging_offers(fa_kept, "fa") == fa_kept
+    offer = "Start the walk tonight. Or what kind of help can you get from me next?"
+    assert strip_hedging_offers(offer, "en") == "Start the walk tonight."
