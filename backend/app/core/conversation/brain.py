@@ -820,6 +820,7 @@ class ConversationBrain:
                     try:
                         # R-014 grounding: no relative/condition claim that the user or their memory never supplied.
                         from backend.app.services.intelligence.grounding_guard import (
+                            collapse_repetitions,
                             limit_questions,
                             strip_hedging_offers,
                             strip_self_limit_disclaimers,
@@ -831,6 +832,8 @@ class ConversationBrain:
                             for m in messages[1:]
                             if m.get("role") in ("user", "system")
                         )
+                        # R-051: a repeated sentence / phrase is written once.
+                        sedi_response = collapse_repetitions(sedi_response)
                         sedi_response = strip_unsupported_personal_claims(sedi_response, _supported, lang)
                         # R-033: Sedi never talks about her own limits («روانشناس انسانی نیستم و تشخیص نمی‌دم»).
                         sedi_response = strip_self_limit_disclaimers(sedi_response, lang)

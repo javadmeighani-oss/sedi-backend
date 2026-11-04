@@ -35,7 +35,7 @@ _FIRST_PERSON_RELATIVE = re.compile(
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?؟!\n])\s+|\n+")
 
 _FALLBACK = {
-    "fa": "برای اینکه دقیق‌ترین پیشنهاد رو بهت بدم، اول می‌خوام درباره‌ی وضعیت خودت بیشتر بدونم؛ برام تعریف کن.",
+    "fa": "برای اینکه دقیق‌ترین پیشنهاد را به تو بدهم، اول باید درباره‌ی وضعیت خودت بیشتر بدانم؛ برایم تعریف کن.",
     "en": "To give you the most accurate suggestion, I'd like to know more about your own situation first. Tell me more.",
     "ar": "لأقدّم لك أدق اقتراح أودّ أن أعرف عن وضعك أكثر أولاً؛ حدّثني.",
 }
@@ -102,7 +102,12 @@ _SELF_LIMIT = re.compile(
     r"\bas an ai\b|"
     r"لست (?:أخصائية|اخصائية|طبيبة|معالجة|مختصة)|"
     r"لا أستطيع (?:ال)?تشخيص|لا أشخّص|لا اشخص|"
-    r"(?:أنا )?مجرد (?:ذكاء اصطناعي|برنامج)"
+    r"(?:أنا )?مجرد (?:ذكاء اصطناعي|برنامج)|"
+    # R-051: no self-doubt about her memory or her ability to diagnose/treat, in any wording.
+    r"حافظه ?(?:ام|م) (?:کامل|تضمینی|دقیق)(?: و (?:کامل|تضمینی|دقیق))? نیست|"
+    r"(?:تشخیص|درمان)(?: پزشکی)?(?: یا [^.؛،]{1,40})? انجام (?:نمی ?دم|نمیدم|نمی ?دهم|نمیدهم)|"
+    r"\bmy memory (?:is not|isn't) (?:complete|perfect|guaranteed)\b|"
+    r"ذاكرتي (?:ليست|غير) (?:كاملة|مضمونة)"
     r")",
     re.I,
 )
@@ -174,7 +179,12 @@ _OFFER_Q = re.compile(
     r"^\s*(?:"
     r"(?:می" + _ZW + r"?\s*خوای|دوست\s+داری|می" + _ZW + r"?\s*خواهی|مایلی|بخوام|بگم|بدم)\b.*|"
     r"(?:would\s+you\s+like|do\s+you\s+want|shall\s+i|should\s+i|want\s+me\s+to|would\s+you\s+want)\b.*|"
-    r"(?:هل\s+(?:تريد|تحب|ترغب|تود)|أتريد|هل\s+تحب)\b.*"
+    r"(?:هل\s+(?:تريد|تحب|ترغب|تود)|أتريد|هل\s+تحب)\b.*|"
+    # R-051: closing menu questions in any register («… یا چه نوع کمکی می‌خواهی؟»)
+    r".*(?:می" + _ZW + r"?\s*(?:خوای|خواهی)\s+(?:بدونی|بدانی))\b.*|"
+    r".*\bیا\s+(?:چه|چی)\s+(?:نوع\s+)?(?:کمک|کار)\w*\s+.*?(?:می" + _ZW + r"?\s*(?:تونی|توانی|خوای|خواهی)|نیاز\s+داری|لازم\s+داری).*|"
+    r".*(?:what|which)\s+(?:kind|type)\s+of\s+help\s+(?:can\s+you|could\s+you|would\s+you|do\s+you\s+(?:want|need)|should\s+i)\b.*|"
+    r".*(?:أي|ما)\s+نوع\s+من\s+المساعدة\s+(?:تحتاج|تريد|تحب|يمكنك|تود)\b.*"
     r")$",
     re.I,
 )
@@ -240,3 +250,54 @@ def strip_hedging_offers(reply: str, language: str = "fa") -> str:
     if not changed or not out:
         return text
     return " ".join(out)
+
+
+# R-051 (Javad 2026-11-04 phone test): a reply repeated a phrase and a sentence («... موضوع‌ها روشن‌تر بشن و قدم بعدی
+# موضوع‌ها روشن‌تر بشن ...»). Deterministic clean-up: a sentence that already appeared is dropped, and a phrase of 3+
+# words repeated back to back is written once. Never empties a reply.
+_TOKEN_PUNCT = ".,،؛;!?؟…:«»\"()"
+
+
+def _tok(token: str) -> str:
+    return token.strip(_TOKEN_PUNCT).lower()
+
+
+def _collapse_stutter(line: str) -> str:
+    tokens = line.split(" ")
+    changed = True
+    while changed:
+        changed = False
+        n = len(tokens)
+        for width in range(min(12, n // 2), 2, -1):
+            for i in range(0, n - 2 * width + 1):
+                first = [_tok(t) for t in tokens[i : i + width]]
+                second = [_tok(t) for t in tokens[i + width : i + 2 * width]]
+                if first == second and any(first):
+                    del tokens[i + width : i + 2 * width]
+                    changed = True
+                    break
+            if changed:
+                break
+    return " ".join(tokens)
+
+
+def collapse_repetitions(reply: str) -> str:
+    """R-051: drop a repeated sentence and a back-to-back repeated phrase (3+ words); everything else is kept."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    seen: set[str] = set()
+    kept_lines: list[str] = []
+    for line in text.split("\n"):
+        parts = [p for p in _SENTENCE_SPLIT.split(line) if p and p.strip()]
+        kept: list[str] = []
+        for p in parts:
+            key = _norm(p).rstrip(" ؟?.!…")
+            if len(key.split()) >= 3 and key in seen:
+                continue
+            seen.add(key)
+            kept.append(_collapse_stutter(p.strip()))
+        kept_lines.append(" ".join(kept))
+    out = "\n".join(kept_lines).strip()
+    return out or text
+

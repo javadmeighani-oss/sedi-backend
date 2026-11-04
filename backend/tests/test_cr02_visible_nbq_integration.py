@@ -406,7 +406,8 @@ def test_first_contact_current_priority_wording():
     assert "Sedi" in msg
     assert "Sara" in msg or ", Sara" in msg
     assert "how are you feeling today" not in msg.lower()
-    assert "important" in msg.lower() or "helpful" in msg.lower() or "focus" in msg.lower()
+    # R-061: first contact ends with the goal question (what does the user want to change?).
+    assert "what you want to change" in msg.lower()
 
     class Ufa:
         name = "سارا"

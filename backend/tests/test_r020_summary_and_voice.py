@@ -58,7 +58,8 @@ def test_story_or_request_is_never_stored_as_a_list_like_preference():
     assert classify_discovery_reply("preferences.interests", "پیاده روی و کتاب", "fa").disposition is DiscoveryDisposition.ANSWER
 
 
-def test_persona_speaks_colloquially_and_asks_the_missing_question_instead_of_refusing():
+def test_persona_speaks_educated_persian_and_asks_the_missing_question_instead_of_refusing():
+    # R-057 (2026-11-04) replaced R-020's colloquial register: educated, friendly standard Persian with «تو».
     fa = PersonaPolicyV1.system_prompt("fa")
-    assert "محاوره‌ای و صمیمی" in fa and "می‌تونی" in fa and "نمی‌توانم کمک کنم" in fa
+    assert "فارسی روان و معیار" in fa and "می‌توانی" in fa and "نمی‌توانم کمک کنم" in fa
     assert "ONE most important missing question" in PersonaPolicyV1.system_prompt("en")
