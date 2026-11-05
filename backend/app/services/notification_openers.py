@@ -150,13 +150,18 @@ def _p(*parts: str) -> re.Pattern:
 
 _DONE = _p(
     r"^(?:اره|ارع|بله|اری|انجام دادم|انجام شد|کردم|خوردم|رفتم|ورزش کردم|زدم|خواندم)\b",
-    r"^(?:yes|yeah|yep|done|i did|did it|i have|completed|sure)\b",
+    r"^(?:yes|yeah|yep|yup|done|i did|did it|i have done|i have finished|i finished|completed|sure|all done)\b",
     r"^(?:نعم|اجل|انجزت|فعلتها|تم)\b",
 )
+# negations are checked FIRST and ANYWHERE: «I did not», «I have not», «آره نکردم» are never a completion (Codex P2 on PR #145)
 _NOT_DONE = _p(
     r"^(?:نه|خیر|نشد|نکردم|نتونستم|نتوانستم|انجام نشد|هنوز نه|نخوردم|نرفتم)\b",
-    r"^(?:no|nope|not yet|didn t|did not|couldn t|could not|i didn t|i couldn t)\b",
+    r"^(?:no|nope|not yet|didn t|did not|couldn t|could not|can t|cannot|never|haven t|have not|hasn t|i didn t|i did not|i couldn t|i could not|i haven t|i have not|i never)\b",
     r"^(?:لا|لم افعل|لم استطع|ما قدرت|لم انجز)\b",
+)
+_NEGATION = _p(
+    r"\bnot\b", r"\bnever\b", r"\bno\b", r"\bnope\b", r"\bcan t\b", r"\bcannot\b", r"\bwon t\b", r"\bn t\b",
+    r"\bنه\b", r"نکرد", r"نشد", r"نتون", r"نتوان", r"نخورد", r"نرفت", r"\bخیر\b", r"\bلا\b", r"\bلم\b", r"ما قدرت", r"ما استطع",
 )
 _BUT = _p(r"\bولی\b", r"\bاما\b", r"\bbut\b", r"\bلكن\b", r"\bلکن\b")
 _REASONS = (
@@ -167,19 +172,24 @@ _REASONS = (
 
 
 def parse_followup_reply(message: str) -> Optional[tuple]:
-    """('done', None) / ('not_done', reason) for a SHORT, unambiguous answer; None for anything else."""
-    folded = _fold(message)
-    if not folded or len(folded.split()) > _MAX_REPLY_WORDS:
+    """('done', None) / ('not_done', reason) for a SHORT, unambiguous answer; None for anything else.
+
+    Cautious by design (a wrong «done» would close a commitment the user never completed): a question, a mixed answer
+    («آره ولی …»), a negation anywhere in an affirmative, or more than four words after «done» is never read as done."""
+    raw = message or ""
+    folded = _fold(raw)
+    if not folded or len(folded.split()) > _MAX_REPLY_WORDS or "?" in raw or "؟" in raw:
         return None
-    if _BUT.search(folded):  # «آره ولی …» / «no but …»: a mixed answer is never guessed
+    if _BUT.search(folded):
         return None
-    done, not_done = bool(_DONE.search(folded)), bool(_NOT_DONE.search(folded))
-    if done == not_done:  # neither, or both: never guess
+    if _NOT_DONE.search(folded):
+        reason = next((name for name, pattern in _REASONS if pattern.search(folded)), "other")
+        return ("not_done", reason)
+    if _NEGATION.search(folded):
         return None
-    if done:
+    if _DONE.search(folded) and len(folded.split()) <= 4:
         return ("done", None)
-    reason = next((name for name, pattern in _REASONS if pattern.search(folded)), "other")
-    return ("not_done", reason)
+    return None
 
 
 def apply_chat_answer(

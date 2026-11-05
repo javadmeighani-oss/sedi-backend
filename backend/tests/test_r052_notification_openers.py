@@ -143,6 +143,9 @@ _ANSWERS = [
     ("yes", ("done", None)), ("done", ("done", None)), ("I did it", ("done", None)),
     ("no", ("not_done", "other")), ("no time, busy", ("not_done", "no_time")), ("I didn't, I was sick", ("not_done", "not_feeling_well")),
     ("نعم", ("done", None)), ("لا", ("not_done", "other")), ("لم أستطع", ("not_done", "other")),
+    # Codex P2 on PR #145: a negation or a question is never a completion
+    ("I did not", ("not_done", "other")), ("I have not", ("not_done", "other")), ("I haven't yet", ("not_done", "other")),
+    ("I have a question", None), ("yes?", None), ("آره نکردم", None), ("yes I did not", None), ("آره؟", None),
     # never guess
     ("سلام", None), ("نه ولی آره", None), ("آره ولی خیلی سخت بود", None), ("no but later", None), ("", None),
     ("آره خیلی خوب بود و بعدش رفتم بیرون قدم زدم و دوباره برگشتم", None),  # long message: a new statement
