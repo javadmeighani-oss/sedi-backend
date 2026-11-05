@@ -1886,8 +1886,9 @@ class IntelligenceOrchestrator:
                 q_list = [discovery_localized_question]
                 if discovery_companion_question:
                     q_list.append(discovery_companion_question)
+                _before_nbq = gen_message
                 gen_message = append_discovery_questions(gen_message, q_list)
-                nbq_was_appended = True
+                nbq_was_appended = gen_message != _before_nbq  # R-066: skipped when the model already asked
 
             validated = self._safety_validator(text=gen_message, language=lang)
             from backend.app.services.intelligence.plain_text import to_plain_chat_text
