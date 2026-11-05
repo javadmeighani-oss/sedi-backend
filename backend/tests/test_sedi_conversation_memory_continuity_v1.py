@@ -303,7 +303,8 @@ def test_b6_returning_contextual_and_generic(client, db):
     assert no.status_code == 200, no.text
     no_msg = (no.json()["message"] or "").lower()
     assert "walking 30 minutes" not in no_msg
-    assert "evening" not in no_msg or "welcome" in no_msg or no_msg == ""
+    # the other user's topic must not leak (the new-day greeting itself may say «good evening», so the topic word is checked)
+    assert "walk" not in no_msg
 
 
 def test_b7_i6_fact_continuity(client, db):
