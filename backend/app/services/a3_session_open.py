@@ -360,19 +360,25 @@ def build_notification_origin_opener(
     return _generic_notification_origin_opener(lang=lang, name=name)
 
 
-def _with_pending_followup(db: Session, user: models.User, lang: str, opener: str) -> str:
-    """The opener, or - when a notification awaits Sedi's reason / follow-up question - the time greeting plus that ONE question."""
+def _followup_opener(db: Session, user: models.User, lang: str, opener: str) -> tuple:
+    """(opener, ask) - the opener, or - when a notification awaits Sedi's reason / follow-up question - the time greeting plus that
+    ONE question and the quick answers the app draws inside her message box (``ask``; None when there is nothing to ask)."""
     try:
-        from backend.app.services.notification_followup_ask import compose_opener
+        from backend.app.services.notification_followup_ask import compose_opener_with_ask
 
         greeting = _time_greeting(db, user.id, lang, _name_part(user, lang), datetime.now(timezone.utc))
-        return compose_opener(db, user, greeting, lang) or opener
+        composed = compose_opener_with_ask(db, user, greeting, lang)
+        return (composed[0], composed[1]) if composed else (opener, None)
     except Exception:
         try:
             db.rollback()
         except Exception:
             pass
-        return opener
+        return opener, None
+
+
+def _with_pending_followup(db: Session, user: models.User, lang: str, opener: str) -> str:
+    return _followup_opener(db, user, lang, opener)[0]
 
 
 def open_a3_session(
@@ -424,6 +430,7 @@ def open_a3_session(
     first_intro = user.sedi_intro_completed_at is None
     message = ""
     proactive: Optional[str] = None
+    followup_ask: Optional[dict] = None
     pack = None
     preferred_name: Optional[str] = None
     try:
@@ -467,7 +474,7 @@ def open_a3_session(
         if proactive:
             # R-070 / R-072: a notification the user reacted to negatively without a reason, or left unanswered for about a
             # day, is asked about HERE - in the first message of the chat (one question; it replaces the opener's own).
-            proactive = _with_pending_followup(db, user, lang, proactive)
+            proactive, followup_ask = _followup_opener(db, user, lang, proactive)
             message = proactive
 
     # R-064: every opener goes through the one typography contract (paragraphs, punctuation, half-space, digits).
@@ -497,6 +504,7 @@ def open_a3_session(
         "first_intro": first_intro,
         "intro_completed": user.sedi_intro_completed_at is not None,
         "proactive_opener": proactive if not first_intro else None,
+        "followup_ask": followup_ask,
         "interaction_lifecycle": lifecycle.as_dict(),
         "known_profile_keys": list(lifecycle.known_profile_keys),
         "timezone_authority_gap": lifecycle.timezone_authority_gap,

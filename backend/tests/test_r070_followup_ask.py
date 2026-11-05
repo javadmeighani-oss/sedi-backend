@@ -309,7 +309,7 @@ def test_every_subject_has_a_noun_in_every_language_and_the_questions_have_one_q
 
 def test_the_opener_the_chat_and_the_model_context_are_wired():
     app = Path(__file__).resolve().parents[1] / "app"
-    assert "_with_pending_followup(db, user, lang, proactive)" in (app / "services" / "a3_session_open.py").read_text(encoding="utf-8")
+    assert "_followup_opener(db, user, lang, proactive)" in (app / "services" / "a3_session_open.py").read_text(encoding="utf-8")
     assert "answer_pending(db, user_id, message)" in (app / "routers" / "interact.py").read_text(encoding="utf-8")
     from backend.app.core.conversation.brain import _format_notification_context_block
 

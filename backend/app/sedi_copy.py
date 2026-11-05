@@ -1659,4 +1659,34 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'سألتك سابقا كيف سار موعدك ولم يصلني رد؛ ماذا كانت النتيجة؟',
         'en': 'Earlier I asked how your event went and heard nothing back; what came of it?',
     },
+    'ask.quick.reason.busy_now': {
+        'fa': 'درگیر بودم',
+        'ar': 'كنت مشغولا',
+        'en': 'I was busy',
+    },
+    'ask.quick.reason.rest_time': {
+        'fa': 'وقت استراحتم بود',
+        'ar': 'كان وقت الراحة',
+        'en': 'It was my rest time',
+    },
+    'ask.quick.reason.not_in_mood': {
+        'fa': 'حوصله نداشتم',
+        'ar': 'قلة رغبة',
+        'en': 'I was not in the mood',
+    },
+    'ask.quick.reason.other': {
+        'fa': 'دلیل دیگری دارم',
+        'ar': 'لدي سبب آخر',
+        'en': 'I have another reason',
+    },
+    'ask.quick.unanswered.done': {
+        'fa': 'انجام دادم',
+        'ar': 'تم',
+        'en': 'I did it',
+    },
+    'ask.quick.unanswered.not_done': {
+        'fa': 'نشد',
+        'ar': 'لم أستطع',
+        'en': "I couldn't",
+    },
 }

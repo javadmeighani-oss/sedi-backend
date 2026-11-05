@@ -134,6 +134,7 @@ def open_session(
         first_intro=data["first_intro"],
         intro_completed=data["intro_completed"],
         proactive_opener=data.get("proactive_opener"),
+        followup_ask=data.get("followup_ask"),
         continued_from_notification=data.get("continued_from_notification") or None,
         source_notification_id=data.get("source_notification_id"),
     )

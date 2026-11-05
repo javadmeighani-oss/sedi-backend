@@ -258,15 +258,36 @@ def mark_asked(db: Session, user_id: int, pending: Pending, question: str) -> No
     db.flush()
 
 
-def compose_opener(db: Session, user: models.User, greeting: str, lang: str) -> Optional[str]:
-    """greeting + the pending question (ONE question in the whole opener), or None when nothing is pending."""
+def quick_options(pending: Pending, lang: str) -> list:
+    """The one-tap answers shown INSIDE Sedi's message box: [{id, label}]. A label is sent as the user's own chat message, so the
+    SAME cautious parsers that read typed answers read it (R-073). The post-event question is free text: no options."""
+    if pending.kind == "reason":
+        ids = ("busy_now", "rest_time", "not_in_mood", "other")
+        prefix = "ask.quick.reason."
+    elif pending.kind == "unanswered" and pending.subject_key != "post_event":
+        ids = ("done", "not_done")
+        prefix = "ask.quick.unanswered."
+    else:
+        return []
+    return [{"id": i, "label": sedi_copy.t(prefix + i, lang)} for i in ids]
+
+
+def compose_opener_with_ask(db: Session, user: models.User, greeting: str, lang: str) -> Optional[tuple]:
+    """(opener text, ask metadata for the app) or None. The metadata lets the app draw the quick answers in the message box."""
     pending = pick_pending(db, user)
     if pending is None:
         return None
     question = question_text(pending, lang)
     mark_asked(db, int(user.id), pending, question)
     db.commit()
-    return f"{greeting.strip()}\n\n{question}".strip()
+    ask = {"kind": pending.kind, "notification_id": pending.notification_id, "options": quick_options(pending, lang)}
+    return f"{greeting.strip()}\n\n{question}".strip(), ask
+
+
+def compose_opener(db: Session, user: models.User, greeting: str, lang: str) -> Optional[str]:
+    """greeting + the pending question (ONE question in the whole opener), or None when nothing is pending."""
+    composed = compose_opener_with_ask(db, user, greeting, lang)
+    return composed[0] if composed else None
 
 
 # ---- reading the answer -------------------------------------------------------------------------------------------------
