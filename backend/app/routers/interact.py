@@ -370,6 +370,14 @@ async def chat(
         continued_from_notification = True
         response_source_notification_id = payload.source_notification_id
         response_conversation_id = payload.conversation_id
+    else:
+        # R-070 / R-072: the first message after Sedi's follow-up question (why? / did you do it?) is the answer to it.
+        try:
+            from backend.app.services.notification_followup_ask import answer_pending
+
+            notification_context = answer_pending(db, user_id, message)
+        except Exception:
+            notification_context = None
 
     try:
         # STEP 3: HARDEN CHAT FLOW - Validate message before GPT call
