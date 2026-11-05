@@ -50,11 +50,11 @@ _NEGATIVE_EVENTS = frozenset({"notification_dislike", "notification_not_now", "n
 _ANSWERED_EVENTS = frozenset(
     {
         "notification_done", "notification_like", "notification_dislike", "notification_dislike_reason", "notification_not_now",
-        "notification_talk_later", "notification_open_chat", "chat_message", "notification_ack",
+        "notification_talk_later", "notification_open_chat", "chat_message", "notification_ack", "notification_assured",
     }
 )
 _ACTION_KEYS = frozenset({"reminder", "medication", "plan_nutrition", "plan_exercise", "post_event"})
-_EXCLUDED_TEMPLATES = frozenset({"commitment_follow_up"})
+_EXCLUDED_TEMPLATES = frozenset({"commitment_follow_up", "assurance_follow_up"})  # each has its own ladder / is the one assurance
 _EXCLUDED_FAMILIES = frozenset({"DAILY_WELLNESS_DIGEST"})
 _BOUNDED_TIMING = ("busy_now", "rest_time", "not_in_mood")
 
@@ -405,6 +405,11 @@ def answer_pending(db: Session, user_id: int, message: str, *, now: Optional[dat
             verdict = parse_followup_reply(message)
             if verdict is not None:
                 result = "done" if verdict[0] == "done" else f"not_done:{verdict[1]}"
+                if notification is not None:
+                    # R-070 (2D): the answer is recorded through the OWNER (dose / event / plan item) and I7, not only the ledger
+                    from backend.app.services.i10.action_done import apply_chat_answer as record_owner
+
+                    record_owner(db, notification, user_id, verdict)
         db.add(
             models.InteractionEvent(
                 user_id=user_id,

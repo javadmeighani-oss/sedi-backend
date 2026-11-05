@@ -30,8 +30,9 @@ DONE_EVENT = "user_schedule_done"
 UNDONE_EVENT = "user_schedule_undone"
 LEDGER_SOURCE = "schedule"
 
-DOMAINS = ("medication", "appointment", "meeting", "commitment", "other")
-KINDS = ("event", "medication", "commitment")
+DOMAINS = ("medication", "appointment", "meeting", "commitment", "plan", "other")
+KINDS = ("event", "medication", "commitment", "plan")
+NOTDONE_EVENT = "user_schedule_notdone"  # R-070: «not done» + its bounded reason is memory too
 
 _APPOINTMENT_TYPES = frozenset(
     {
@@ -180,6 +181,73 @@ def done_counts_for_day(db: Session, user_id: int, day: date) -> Dict[str, int]:
     return dict(counts)
 
 
+def record_not_done(
+    db: Session,
+    user_id: int,
+    *,
+    kind: str,
+    ref_id: int,
+    day: date,
+    hhmm: Optional[str],
+    domain: str,
+    reason: Optional[str],
+) -> models.InteractionEvent:
+    """R-070: the user said «not done» (with a bounded reason). Once per occurrence; an occurrence that is DONE is never turned
+    into «not done» by a late or replayed tap."""
+    from backend.app.services.gate4.interaction_event_service import create_interaction_event
+
+    occ = occurrence_id(kind, ref_id, day, hhmm)
+    existing = (
+        db.query(models.InteractionEvent)
+        .filter(
+            models.InteractionEvent.user_id == user_id,
+            models.InteractionEvent.source == LEDGER_SOURCE,
+            models.InteractionEvent.source_id == occ,
+            models.InteractionEvent.event_type == NOTDONE_EVENT,
+        )
+        .order_by(models.InteractionEvent.id.desc())
+        .first()
+    )
+    if existing is not None or is_done(db, user_id, occ):
+        return existing or _latest_row(db, user_id, occ)
+    return create_interaction_event(
+        db,
+        user_id=user_id,
+        event_type=NOTDONE_EVENT,
+        source=LEDGER_SOURCE,
+        source_type=f"schedule_{kind}",
+        source_id=occ,
+        metadata={"domain": domain, "kind": kind, "ref_id": int(ref_id), "day": day.isoformat(), "time": hhmm, "reason": (reason or "other")[:32]},
+    )
+
+
+def not_done_counts_for_day(db: Session, user_id: int, day: date) -> Dict[str, int]:
+    """I7 daily signal: {domain: n, 'reason.<r>': n} of things the user said they did NOT do that day (empty when none)."""
+    rows = (
+        db.query(models.InteractionEvent)
+        .filter(
+            models.InteractionEvent.user_id == user_id,
+            models.InteractionEvent.source == LEDGER_SOURCE,
+            models.InteractionEvent.event_type == NOTDONE_EVENT,
+            models.InteractionEvent.source_id.like(f"%:{day.strftime('%Y%m%d')}%"),
+        )
+        .all()
+    )
+    counts: Counter = Counter()
+    seen = set()
+    for r in rows:
+        if r.source_id in seen or is_done(db, user_id, str(r.source_id)):
+            continue
+        seen.add(r.source_id)
+        m = _meta(r)
+        if m.get("day") != day.isoformat():
+            continue
+        dom = m.get("domain") if m.get("domain") in DOMAINS else "other"
+        counts[dom] += 1
+        counts[f"reason.{str(m.get('reason') or 'other')[:32]}"] += 1
+    return dict(counts)
+
+
 def merge_done_counts(parts: Iterable[Dict[str, Any]]) -> Dict[str, int]:
     total: Counter = Counter()
     for p in parts:
@@ -195,9 +263,9 @@ def done_today_hint(db: Session, user_id: int, language: Optional[str], today: d
         return ""
     lang = (language or "fa").strip().lower().split("-")[0]
     names = {
-        "fa": {"medication": "دارو", "appointment": "نوبت/مراجعه", "meeting": "جلسه/کار", "commitment": "قدمی از برنامه‌ی صدی", "other": "یک کار دیگر"},
-        "ar": {"medication": "الدواء", "appointment": "الموعد", "meeting": "الاجتماع/العمل", "commitment": "خطوة من خطة صدي", "other": "عمل آخر"},
-        "en": {"medication": "medication", "appointment": "an appointment", "meeting": "a meeting/work item", "commitment": "a step of Sedi's plan", "other": "another item"},
+        "fa": {"medication": "دارو", "appointment": "نوبت/مراجعه", "meeting": "جلسه/کار", "commitment": "قدمی از برنامه‌ی صدی", "plan": "یک مورد از برنامه‌ات", "other": "یک کار دیگر"},
+        "ar": {"medication": "الدواء", "appointment": "الموعد", "meeting": "الاجتماع/العمل", "commitment": "خطوة من خطة صدي", "plan": "بند من خطتك", "other": "عمل آخر"},
+        "en": {"medication": "medication", "appointment": "an appointment", "meeting": "a meeting/work item", "commitment": "a step of Sedi's plan", "plan": "an item of your plan", "other": "another item"},
     }
     table = names.get(lang, names["en"])
     items = ", ".join(table[d] for d in DOMAINS if counts.get(d))

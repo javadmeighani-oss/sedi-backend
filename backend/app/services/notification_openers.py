@@ -84,6 +84,8 @@ def _key_for(notification: models.Notification) -> Optional[str]:
     family = (notification.semantic_family or "").strip()
     if template == "commitment_follow_up":
         return "commitment"
+    if template == "assurance_follow_up":
+        return "assurance"
     if template in _EVENT_REMINDER_KEYS:
         return "reminder"
     if family in _MEDICATION_FAMILIES:
@@ -199,6 +201,14 @@ def apply_chat_answer(
     still awaiting its answer (NOTIFIED) is touched, so a replay or a later unrelated «نه» never changes it. Returns
     'done' / 'not_done:<reason>' or None. Fail-open."""
     try:
+        if (notification.template_key or "") in (
+            "assurance_follow_up", "medication_reminder", "generic_event_reminder", "nutrition_plan_follow_up", "exercise_plan_follow_up"
+        ):
+            # R-070 (2D): a short chat answer about a dose / reminder / assurance goes through the owner and I7
+            from backend.app.services.i10.action_done import apply_chat_answer as record_owner
+
+            verdict_owner = parse_followup_reply(message)
+            return record_owner(db, notification, user_id, verdict_owner) if verdict_owner is not None else None
         if (notification.template_key or "") != "commitment_follow_up":
             return None
         from backend.app.services.i10.commitment_followup import apply_done, apply_not_done, task_from_notification

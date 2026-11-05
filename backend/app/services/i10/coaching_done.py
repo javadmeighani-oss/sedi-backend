@@ -171,6 +171,9 @@ def handle_coaching_done_for_notification(
         payload=payload,
         domain_completion_authorized=True,
     )
+    from backend.app.services.i10.action_done import record_plan_outcome
+
+    record_plan_outcome(db, actor_user_id, int(action.id), done=True)
     return CoachingDoneResult(
         interaction=interaction,
         action_id=completion.action_id,
@@ -206,6 +209,10 @@ def handle_coaching_not_done_for_notification(
     except ActionReviewError as exc:
         if exc.code != "ACTION_NOT_REVIEWABLE":
             raise HTTPException(status_code=422, detail=exc.code) from exc
+    else:
+        from backend.app.services.i10.action_done import record_plan_outcome
+
+        record_plan_outcome(db, actor_user_id, int(action.id), done=False, reason=reason)
     return record_notification_interaction(
         db,
         notification=notification,

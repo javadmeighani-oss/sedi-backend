@@ -1347,6 +1347,11 @@ def submit_notification_feedback(
         record_result = handle_commitment_answer(
             db, notification=notification, actor_user_id=user_id, payload=payload
         )
+    elif (notification.template_key or "") in ("medication_reminder", "generic_event_reminder", "assurance_follow_up"):
+        # R-070 (2D): done / not done / later on a medication or reminder notification and on Sedi's assurance
+        from backend.app.services.i10.action_done import handle_action_answer
+
+        record_result = handle_action_answer(db, notification=notification, actor_user_id=user_id, payload=payload)
     elif resolve_interaction_verb(payload).verb is CanonicalInteractionVerb.DONE:
         from backend.app.services.i10.coaching_done import handle_coaching_done_for_notification
 
