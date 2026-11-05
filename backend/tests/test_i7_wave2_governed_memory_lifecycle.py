@@ -95,15 +95,19 @@ def test_cross_user_identity_mismatch():
     assert result.reason == "AUTH_IDENTITY_MISMATCH"
 
 
-def test_expired_raw_hidden():
+def test_governed_raw_never_expires_but_ineligible_and_legacy_expired_raw_stay_hidden():
     from backend.app.services.i7.retention import is_raw_visible
 
     now = datetime(2026, 8, 20, tzinfo=timezone.utc)
-    expired = SimpleNamespace(retain_until=now - timedelta(days=1), durable_write=True)
+    old_governed = SimpleNamespace(retain_until=now - timedelta(days=400), durable_write=True)  # R-054: permanent
     visible = SimpleNamespace(retain_until=now + timedelta(days=1), durable_write=True)
+    ineligible = SimpleNamespace(retain_until=now - timedelta(seconds=1), durable_write=False)  # marked ineligible
+    legacy_expired = SimpleNamespace(retain_until=now - timedelta(days=1), durable_write=False)  # ungoverned legacy keeps the bound
     unset = SimpleNamespace(retain_until=None, durable_write=True)
-    assert is_raw_visible(expired, now=now) is False
+    assert is_raw_visible(old_governed, now=now) is True
     assert is_raw_visible(visible, now=now) is True
+    assert is_raw_visible(ineligible, now=now) is False
+    assert is_raw_visible(legacy_expired, now=now) is False
     assert is_raw_visible(unset, now=now) is False
 
 

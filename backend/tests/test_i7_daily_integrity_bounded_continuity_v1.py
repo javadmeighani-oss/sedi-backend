@@ -40,8 +40,8 @@ def _assert_integrity(row: models.UserPeriodSummary) -> None:
     assert payload.get("bounded_continuity", {}).get("topic")
 
 
-def test_raw_retention_days_unchanged():
-    assert RAW_VISIBLE_DAYS == 30
+def test_governed_raw_retention_is_permanent():
+    assert RAW_VISIBLE_DAYS == 36500  # R-054: no 30-day expiry of governed raw
 
 
 def test_fresh_daily_bounded_continuity_matches_integrity(db):
@@ -222,4 +222,4 @@ def test_raw_expiry_leaves_derived_daily_integrity_intact(db):
     row = get_canonical_daily(db, user.id)
     _assert_integrity(row)
     assert get_bounded_continuity_topic(db, user.id)
-    assert RAW_VISIBLE_DAYS == 30
+    assert RAW_VISIBLE_DAYS == 36500

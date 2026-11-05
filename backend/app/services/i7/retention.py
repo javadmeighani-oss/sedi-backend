@@ -1,4 +1,10 @@
-"""I7 raw retention eligibility — fail-closed after retain_until."""
+"""I7 raw retention eligibility.
+
+R-054 (2026-11-04): the RAW text of every governed chat turn stays PERMANENTLY (``durable_write`` = written under memory consent).
+A governed row is hidden only when it was marked ineligible (``durable_write`` False: failed finalisation / user action) -
+never because 30 days passed. Legacy ungoverned rows keep the old bounded rule (``retain_until`` in the future). Reading is
+still gated by the memory READ permission at every reader, and the user can still view, correct and delete any turn.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +16,7 @@ from sqlalchemy.sql import or_
 
 from backend.app import models
 
-RAW_VISIBLE_DAYS = 30
+RAW_VISIBLE_DAYS = 36500  # ~100 years: governed raw is permanent (R-054); the number stays only as the stored retain_until horizon
 
 
 def utcnow() -> datetime:
@@ -32,6 +38,8 @@ def is_raw_visible(row: models.Memory, *, now: Optional[datetime] = None) -> boo
     if retain is None:
         # Legacy unset: fail-closed for product visibility (Wave-2).
         return False
+    if getattr(row, "durable_write", None) is True:
+        return True  # governed raw never expires (R-054)
     return retain > when
 
 
@@ -47,6 +55,7 @@ def eligible_raw_filter(query: Query, *, now: Optional[datetime] = None) -> Quer
     return query.filter(
         models.Memory.retain_until.isnot(None),
         or_(
+            models.Memory.durable_write.is_(True),  # governed raw is permanent (R-054)
             models.Memory.retain_until > when,
             models.Memory.retain_until > when_naive,
         ),

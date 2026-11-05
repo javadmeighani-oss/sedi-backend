@@ -710,6 +710,16 @@ class ConversationBrain:
             except Exception:
                 pass
 
+            try:
+                # R-054 / R-072: the raw text of every earlier day stays whole; Sedi RECALLS what bears on this message from it
+                from backend.app.services.i7.recall import build_recall_block
+
+                _recall_block = build_recall_block(self.db, user_id, user_message, lang)
+                if _recall_block:
+                    messages.append({"role": "system", "content": _recall_block})
+            except Exception:
+                pass
+
             if structured_mode:
                 # Connected I2 path: single prebuilt projection replaces covered packs.
                 messages.append(
