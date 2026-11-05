@@ -360,6 +360,21 @@ def build_notification_origin_opener(
     return _generic_notification_origin_opener(lang=lang, name=name)
 
 
+def _with_pending_followup(db: Session, user: models.User, lang: str, opener: str) -> str:
+    """The opener, or - when a notification awaits Sedi's reason / follow-up question - the time greeting plus that ONE question."""
+    try:
+        from backend.app.services.notification_followup_ask import compose_opener
+
+        greeting = _time_greeting(db, user.id, lang, _name_part(user, lang), datetime.now(timezone.utc))
+        return compose_opener(db, user, greeting, lang) or opener
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return opener
+
+
 def open_a3_session(
     db: Session,
     user: models.User,
@@ -450,6 +465,9 @@ def open_a3_session(
         # Cooldown engagement only — calendar NEW_DAY does not force greeting.
         proactive = maybe_proactive_opener(db, user)
         if proactive:
+            # R-070 / R-072: a notification the user reacted to negatively without a reason, or left unanswered for about a
+            # day, is asked about HERE - in the first message of the chat (one question; it replaces the opener's own).
+            proactive = _with_pending_followup(db, user, lang, proactive)
             message = proactive
 
     # R-064: every opener goes through the one typography contract (paragraphs, punctuation, half-space, digits).

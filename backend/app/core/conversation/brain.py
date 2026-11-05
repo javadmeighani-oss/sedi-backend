@@ -76,6 +76,17 @@ def _format_notification_context_block(notification_context: Optional[Mapping[st
             "followup_result_note: the step was NOT done (" + followup.partition(":")[2] + ") - accept it without blame, "
             "make the step lighter and say you will check in again tomorrow."
         )
+    if followup.startswith("reason:"):
+        lines.append(
+            "followup_result_note: the user told you WHY they set the notification aside (" + followup.partition(":")[2] + ") - "
+            "thank them in one warm sentence and say plainly what changes (another time of day, plainer text, fewer messages); "
+            "do not ask a new question."
+        )
+    elif followup == "unparsed" and str(notification_context.get("template_key") or "").startswith("followup_"):
+        lines.append(
+            "followup_result_note: the user answered your question in their own words - read it in the light of opening_message, "
+            "respond to it, and if it tells you why they set the notification aside or whether they did the thing, take it as that."
+        )
     hints = notification_context.get("context_hints")
     if isinstance(hints, dict):
         for hint_key, hint_value in hints.items():
@@ -729,6 +740,10 @@ class ConversationBrain:
                     messages.append({"role": "system", "content": notification_block})
                 _append_recent_history(messages, self.memory, user_id, limit=10)
             else:
+                # R-052 / R-070: structured mode still hears the question Sedi asked and how the user answered it.
+                followup_block = _format_notification_context_block(notification_context) if notification_context else None
+                if followup_block:
+                    messages.append({"role": "system", "content": followup_block})
                 # R-014: structured mode also sees the last turns (it sent none, so Sedi could not follow the thread).
                 _append_recent_history(messages, self.memory, user_id, limit=8)
 

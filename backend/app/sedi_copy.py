@@ -1534,4 +1534,69 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'كيف كانت زيارتك؟ هل تلقيت توصية جديدة يجب أن نتابعها؟',
         'en': 'How did your visit go? Did you get any new advice we should follow up?',
     },
+    'ask.subject.reminder': {
+        'fa': 'یادآوری',
+        'ar': 'التذكير',
+        'en': 'your reminder',
+    },
+    'ask.subject.medication': {
+        'fa': 'دارویت',
+        'ar': 'دوائك',
+        'en': 'your medication',
+    },
+    'ask.subject.plan_nutrition': {
+        'fa': 'برنامه\u200cی غذاییت',
+        'ar': 'خطة غذائك',
+        'en': 'your meal plan',
+    },
+    'ask.subject.plan_exercise': {
+        'fa': 'برنامه\u200cی ورزشیت',
+        'ar': 'خطة تمرينك',
+        'en': 'your exercise plan',
+    },
+    'ask.subject.weekly_review': {
+        'fa': 'مرور هفتگی',
+        'ar': 'المراجعة الأسبوعية',
+        'en': 'your weekly review',
+    },
+    'ask.subject.motivation_workout_day': {
+        'fa': 'تمرین امروز',
+        'ar': 'تمرين اليوم',
+        'en': 'your workout today',
+    },
+    'ask.subject.motivation_comeback': {
+        'fa': 'انگیزه گرفتن',
+        'ar': 'التحفيز',
+        'en': 'staying motivated',
+    },
+    'ask.subject.motivation_milestone': {
+        'fa': 'انگیزه گرفتن',
+        'ar': 'التحفيز',
+        'en': 'staying motivated',
+    },
+    'ask.subject.post_event': {
+        'fa': 'رویدادت',
+        'ar': 'موعدك',
+        'en': 'your appointment',
+    },
+    'ask.subject.commitment': {
+        'fa': 'قرارمان',
+        'ar': 'اتفاقنا',
+        'en': 'our agreement',
+    },
+    'ask.subject.other': {
+        'fa': 'موضوع قبلی',
+        'ar': 'الموضوع السابق',
+        'en': 'our earlier topic',
+    },
+    'ask.reason': {
+        'fa': 'پیامی را که درباره\u200cی {subject} فرستادم کنار گذاشتی؛ دلیلش چه بود: درگیر بودی، وقت استراحتت بود یا حوصله نداشتی؟',
+        'ar': 'الرسالة التي أرسلتها عن {subject} لم تناسبك؛ ما السبب: انشغال أم وقت راحة أم قلة رغبة؟',
+        'en': 'You set aside the message I sent about {subject}; what was the reason: were you busy, was it your rest time, or were you not in the mood?',
+    },
+    'ask.unanswered': {
+        'fa': 'پیش\u200cتر درباره\u200cی {subject} پیامی فرستادم و جوابی نرسید؛ انجامش دادی؟',
+        'ar': 'أرسلت لك سابقا رسالة عن {subject} ولم يصلني رد؛ هل أنجزته؟',
+        'en': 'Earlier I sent you a message about {subject} and heard nothing back; did you get it done?',
+    },
 }
