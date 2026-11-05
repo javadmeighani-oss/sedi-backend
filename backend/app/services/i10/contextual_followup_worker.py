@@ -131,6 +131,20 @@ def _care_checkin_may_send(db: Session, task: models.CareFollowUpTask, now: date
     return bool(verdict.get("allowed"))
 
 
+def _is_commitment(task: models.CareFollowUpTask) -> bool:
+    return parse_bounded_meta(task.description)[1].follow_up_kind == "commitment"
+
+
+def _commitment_may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
+    """R-068: a commitment follow-up obeys the smart-notification send guard like any Sedi notification. When blocked it
+    WAITS (the worker retries every cycle) - it is never dropped: the user is never left."""
+    from backend.app.services.notifications.send_guard_v1 import can_send_v1
+
+    now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+    verdict = can_send_v1(db, task.user_id, "companion", "commitment_follow_up", "normal", now_naive)
+    return bool(verdict.get("allowed"))
+
+
 def process_single_follow_up_task(
     db: Session,
     task: models.CareFollowUpTask,
@@ -140,6 +154,8 @@ def process_single_follow_up_task(
     if not is_task_eligible(task, now):
         return False
     if _is_care_checkin(task) and not _care_checkin_may_send(db, task, now):
+        return False
+    if _is_commitment(task) and not _commitment_may_send(db, task, now):
         return False
     occurrence_key = build_followup_occurrence_key(task_id=task.id)
     existing = (
@@ -164,6 +180,14 @@ def process_single_follow_up_task(
     task.status = FollowUpTaskStatus.NOTIFIED.value
     task.description = with_notification_id(task.description, notif.id)
     task.updated_at = datetime.utcnow()
+    if _is_commitment(task):
+        # R-068: the next follow-up is scheduled the moment this one is sent (interval never above 2 days)
+        try:
+            from backend.app.services.i10.commitment_followup import schedule_next_attempt
+
+            schedule_next_attempt(db, task, now=now)
+        except Exception:
+            logger.exception("[R-068] next commitment attempt not scheduled task=%s", task.id)
     return True
 
 

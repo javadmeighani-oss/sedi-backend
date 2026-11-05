@@ -30,8 +30,8 @@ DONE_EVENT = "user_schedule_done"
 UNDONE_EVENT = "user_schedule_undone"
 LEDGER_SOURCE = "schedule"
 
-DOMAINS = ("medication", "appointment", "meeting", "other")
-KINDS = ("event", "medication")
+DOMAINS = ("medication", "appointment", "meeting", "commitment", "other")
+KINDS = ("event", "medication", "commitment")
 
 _APPOINTMENT_TYPES = frozenset(
     {
@@ -195,9 +195,9 @@ def done_today_hint(db: Session, user_id: int, language: Optional[str], today: d
         return ""
     lang = (language or "fa").strip().lower().split("-")[0]
     names = {
-        "fa": {"medication": "دارو", "appointment": "نوبت/مراجعه", "meeting": "جلسه/کار", "other": "یک کار دیگر"},
-        "ar": {"medication": "الدواء", "appointment": "الموعد", "meeting": "الاجتماع/العمل", "other": "عمل آخر"},
-        "en": {"medication": "medication", "appointment": "an appointment", "meeting": "a meeting/work item", "other": "another item"},
+        "fa": {"medication": "دارو", "appointment": "نوبت/مراجعه", "meeting": "جلسه/کار", "commitment": "قدمی از برنامه‌ی صدی", "other": "یک کار دیگر"},
+        "ar": {"medication": "الدواء", "appointment": "الموعد", "meeting": "الاجتماع/العمل", "commitment": "خطوة من خطة صدي", "other": "عمل آخر"},
+        "en": {"medication": "medication", "appointment": "an appointment", "meeting": "a meeting/work item", "commitment": "a step of Sedi's plan", "other": "another item"},
     }
     table = names.get(lang, names["en"])
     items = ", ".join(table[d] for d in DOMAINS if counts.get(d))

@@ -94,6 +94,21 @@ def _initiative_copy(db: Session, task: models.CareFollowUpTask, name: Optional[
     return sedi_copy.t("followup.title.brand", lang), body, "daily_initiative"
 
 
+def _commitment_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[str, str, str]:
+    """R-068: the commitment follow-up. Lock-screen safe (never names an illness or the step); the attempt picks the wording."""
+    from backend.app.services.i10.commitment_followup import COMMITMENT_TEMPLATE_KEY, commitment_copy
+
+    lang = "fa"
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == task.user_id).first()
+        raw = ((row[0] if row else None) or "fa").strip().lower().split("-")[0]
+        lang = raw if raw in ("fa", "en", "ar") else "en"
+    except Exception:
+        pass
+    title, body = commitment_copy(lang, int(meta.attempt or 1), meta.approach, meta.reason)
+    return title, body, COMMITMENT_TEMPLATE_KEY
+
+
 def _explicit_language(db: Session, user_id: int) -> str:
     """fa/ar only when the user's language is explicitly set; otherwise the long-standing English copy stays."""
     try:
@@ -133,6 +148,8 @@ def render_followup_copy(
         return _care_checkin_copy(db, task, name)
     if meta.follow_up_kind == "daily_initiative":
         return _initiative_copy(db, task, name)
+    if meta.follow_up_kind == "commitment":
+        return _commitment_copy(db, task, meta)
 
     # P7: the follow-up speaks the user's language, and learns from reactions - a user who said the last one was not
     # relevant / unclear gets the gentle wording without the topic.
@@ -183,6 +200,7 @@ def build_followup_payload(
             "trigger_reason": "contextual_follow_up",
             "source_summary_key": f"follow_up_task:{task.id}",
             "action_hint": task.source,
+            **({"commitment_task_id": str(task.id)} if meta.follow_up_kind == "commitment" else {}),
         }
     )
     notif_type = "connection_ping"

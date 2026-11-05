@@ -15,6 +15,13 @@ class BoundedFollowUpMeta:
     user_event_id: Optional[int] = None
     source_notification_id: Optional[int] = None
     notification_id: Optional[int] = None
+    # R-068 commitment loop (vocabulary only, JSON keys written when set): attempt number, coarse domain, chain root id,
+    # the approach of this attempt and the bounded reason of the last «not done»
+    attempt: int = 1
+    domain: Optional[str] = None
+    chain_id: Optional[int] = None
+    approach: Optional[str] = None
+    reason: Optional[str] = None
 
 
 def pack_description(
@@ -27,6 +34,12 @@ def pack_description(
         "source_notification_id": meta.source_notification_id,
         "notification_id": meta.notification_id,
     }
+    if meta.attempt and int(meta.attempt) != 1:
+        payload["attempt"] = int(meta.attempt)
+    for key in ("domain", "chain_id", "approach", "reason"):
+        value = getattr(meta, key)
+        if value is not None:
+            payload[key] = value
     blob = json.dumps(payload, separators=(",", ":"), sort_keys=True)
     prefix = f"{BOUNDED_META_PREFIX}{blob}"
     if user_description:
@@ -48,6 +61,11 @@ def parse_bounded_meta(description: Optional[str]) -> tuple[Optional[str], Bound
         user_event_id=raw.get("user_event_id"),
         source_notification_id=raw.get("source_notification_id"),
         notification_id=raw.get("notification_id"),
+        attempt=int(raw.get("attempt") or 1),
+        domain=raw.get("domain"),
+        chain_id=raw.get("chain_id"),
+        approach=raw.get("approach"),
+        reason=raw.get("reason"),
     )
 
 
@@ -60,5 +78,10 @@ def with_notification_id(description: Optional[str], notification_id: int) -> st
             user_event_id=meta.user_event_id,
             source_notification_id=meta.source_notification_id,
             notification_id=notification_id,
+            attempt=meta.attempt,
+            domain=meta.domain,
+            chain_id=meta.chain_id,
+            approach=meta.approach,
+            reason=meta.reason,
         ),
     )
