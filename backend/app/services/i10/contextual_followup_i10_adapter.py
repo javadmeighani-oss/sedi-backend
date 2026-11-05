@@ -109,6 +109,21 @@ def _commitment_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[
     return title, body, COMMITMENT_TEMPLATE_KEY
 
 
+def _assurance_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[str, str, str]:
+    """R-070: ONE «I only want to be sure» message with NEW text; lock-screen safe (kind only)."""
+    from backend.app.services.i10.action_done import ASSURANCE_TEMPLATE_KEY, assurance_copy
+
+    lang = "fa"
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == task.user_id).first()
+        raw = ((row[0] if row else None) or "fa").strip().lower().split("-")[0]
+        lang = raw if raw in ("fa", "en", "ar") else "en"
+    except Exception:
+        pass
+    title, body = assurance_copy(lang, meta.domain)
+    return title, body, ASSURANCE_TEMPLATE_KEY
+
+
 def _explicit_language(db: Session, user_id: int) -> str:
     """fa/ar only when the user's language is explicitly set; otherwise the long-standing English copy stays."""
     try:
@@ -150,6 +165,8 @@ def render_followup_copy(
         return _initiative_copy(db, task, name)
     if meta.follow_up_kind == "commitment":
         return _commitment_copy(db, task, meta)
+    if meta.follow_up_kind == "assurance":
+        return _assurance_copy(db, task, meta)
 
     # P7: the follow-up speaks the user's language, and learns from reactions - a user who said the last one was not
     # relevant / unclear gets the gentle wording without the topic.
@@ -201,6 +218,7 @@ def build_followup_payload(
             "source_summary_key": f"follow_up_task:{task.id}",
             "action_hint": task.source,
             **({"commitment_task_id": str(task.id)} if meta.follow_up_kind == "commitment" else {}),
+            **({"assured_notification_id": str(meta.source_notification_id)} if meta.follow_up_kind == "assurance" and meta.source_notification_id else {}),
         }
     )
     notif_type = "connection_ping"

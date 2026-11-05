@@ -136,6 +136,13 @@ def _done_signal(db: Session, user_id: int, local_day: date) -> dict:
     return done_counts_for_day(db, user_id, local_day)
 
 
+def _not_done_signal(db: Session, user_id: int, local_day: date) -> dict:
+    """R-070: what the user said they did NOT do that day (domain counts + bounded reasons; never titles)."""
+    from backend.app.services.i7.user_done import not_done_counts_for_day
+
+    return not_done_counts_for_day(db, user_id, local_day)
+
+
 def _topic_signal(db: Session, user_id: int, turns: Iterable[Any]) -> list:
     """Verified I5 concept keys named in the day's eligible user turns (keys only, never text)."""
     try:
@@ -162,6 +169,7 @@ def collect_daily_signals(db: Session, user_id: int, local_day: date, turns: Ite
         ("plan", lambda: _plan_signal(db, user_id, local_day)),
         ("feedback", lambda: _feedback_signal(db, user_id, local_day)),
         ("user_done", lambda: _done_signal(db, user_id, local_day)),
+        ("user_not_done", lambda: _not_done_signal(db, user_id, local_day)),
     ):
         try:
             val = fn()
@@ -191,9 +199,12 @@ def merge_signals(parts: Iterable[dict]) -> dict:
     wellbeing: Counter = Counter()
     days_with_wellbeing = 0
     done_parts: list = []
+    not_done_parts: list = []
     for s in parts:
         if not s:
             continue
+        if s.get("user_not_done"):
+            not_done_parts.append(s.get("user_not_done"))
         if s.get("user_done"):
             done_parts.append(s.get("user_done"))
         w = s.get("wellbeing") or {}
@@ -227,6 +238,12 @@ def merge_signals(parts: Iterable[dict]) -> dict:
         merged_done = merge_done_counts(done_parts)
         if merged_done:
             out["user_done"] = merged_done
+    if not_done_parts:
+        from backend.app.services.i7.user_done import merge_done_counts
+
+        merged_not_done = merge_done_counts(not_done_parts)
+        if merged_not_done:
+            out["user_not_done"] = merged_not_done
     return out
 
 

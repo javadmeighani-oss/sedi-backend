@@ -1599,4 +1599,29 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'أرسلت لك سابقا رسالة عن {subject} ولم يصلني رد؛ هل أنجزته؟',
         'en': 'Earlier I sent you a message about {subject} and heard nothing back; did you get it done?',
     },
+    'assurance.title': {
+        'fa': 'یک اطمینان کوچک',
+        'ar': 'اطمئنان صغير',
+        'en': 'A quick check',
+    },
+    'assurance.body.medication': {
+        'fa': 'فقط می\u200cخواهم مطمئن شوم داروی این نوبت را مصرف کرده\u200cای.',
+        'ar': 'أريد فقط أن أطمئن أنك تناولت دواء هذه الجرعة.',
+        'en': 'I only want to be sure you took your medicine for this dose.',
+    },
+    'assurance.body.plan': {
+        'fa': 'فقط می\u200cخواهم مطمئن شوم قدم امروز برنامه\u200cات انجام شد.',
+        'ar': 'أريد فقط أن أطمئن أن خطوة اليوم من خطتك قد تمت.',
+        'en': "I only want to be sure today's step of your plan got done.",
+    },
+    'assurance.body.other': {
+        'fa': 'فقط می\u200cخواهم مطمئن شوم آن کار انجام شد.',
+        'ar': 'أريد فقط أن أطمئن أن ذلك الأمر قد تم.',
+        'en': 'I only want to be sure that got done.',
+    },
+    'session.origin.assurance': {
+        'fa': 'فقط می\u200cخواستم مطمئن شوم آن کار انجام شد. انجامش دادی؟ اگر نشد، چه چیزی مانع شد؟',
+        'ar': 'أردت فقط أن أطمئن أن ذلك الأمر قد تم. هل أنجزته؟ وإن لم يتم، فما الذي أعاق؟',
+        'en': 'I only wanted to be sure that got done. Did you do it? If not, what got in the way?',
+    },
 }

@@ -77,6 +77,7 @@ ALLOWED_CONTEXT_JSON_KEYS: Final[frozenset[str]] = frozenset(
         "content_family",
         # R-068: the commitment follow-up task this notification belongs to (server-side provenance of the answer)
         "commitment_task_id",
+        "assured_notification_id",
     }
 )
 

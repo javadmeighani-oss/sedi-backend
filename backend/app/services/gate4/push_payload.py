@@ -46,7 +46,13 @@ MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("open_chat", "dislike")
 
 # P8: nutrition / exercise plan follow-ups ask "did you do it?" with these three tray buttons instead.
 PLAN_FOLLOWUP_ACTIONS: tuple[str, ...] = ("done", "plan_not_done", "later")
-PLAN_FOLLOWUP_TEMPLATE_KEYS = frozenset({"nutrition_plan_follow_up", "exercise_plan_follow_up", "commitment_follow_up"})
+PLAN_FOLLOWUP_TEMPLATE_KEYS = frozenset(
+    {
+        "nutrition_plan_follow_up", "exercise_plan_follow_up", "commitment_follow_up",
+        # R-070 (2D): medication, one-off reminders and Sedi's assurance collect the answer in the tray too
+        "medication_reminder", "generic_event_reminder", "assurance_follow_up",
+    }
+)
 
 
 def normalize_push_language(language: str | None) -> str:

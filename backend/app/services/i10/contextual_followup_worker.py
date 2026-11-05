@@ -131,6 +131,31 @@ def _care_checkin_may_send(db: Session, task: models.CareFollowUpTask, now: date
     return bool(verdict.get("allowed"))
 
 
+def _is_assurance(task: models.CareFollowUpTask) -> bool:
+    return parse_bounded_meta(task.description)[1].follow_up_kind == "assurance"
+
+
+def _assurance_may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
+    """R-070: the one 30-minute assurance obeys the send guard (quiet hours, adaptive policy). A late «just making sure» is no
+    longer caring, so when it could not be sent within two hours it is dropped."""
+    from backend.app.services.notifications.send_guard_v1 import can_send_v1
+
+    now_naive = now.replace(tzinfo=None) if now.tzinfo else now
+    due = task.due_at.replace(tzinfo=None) if task.due_at is not None and task.due_at.tzinfo else task.due_at
+    if due is not None and now_naive - due > timedelta(hours=2):
+        task.status = FollowUpTaskStatus.CANCELLED.value
+        task.updated_at = datetime.utcnow()
+        return False
+    from backend.app.services.i10.action_done import assurance_still_needed
+
+    if not assurance_still_needed(db, task, now_naive):
+        # the original was answered / completed while the assurance was waiting: no check about something already done
+        task.status = FollowUpTaskStatus.CANCELLED.value
+        task.updated_at = datetime.utcnow()
+        return False
+    return bool(can_send_v1(db, task.user_id, "companion", "assurance_follow_up", "normal", now_naive).get("allowed"))
+
+
 def _is_commitment(task: models.CareFollowUpTask) -> bool:
     return parse_bounded_meta(task.description)[1].follow_up_kind == "commitment"
 
@@ -156,6 +181,8 @@ def process_single_follow_up_task(
     if _is_care_checkin(task) and not _care_checkin_may_send(db, task, now):
         return False
     if _is_commitment(task) and not _commitment_may_send(db, task, now):
+        return False
+    if _is_assurance(task) and not _assurance_may_send(db, task, now):
         return False
     occurrence_key = build_followup_occurrence_key(task_id=task.id)
     existing = (
@@ -196,6 +223,12 @@ def process_due_follow_up_tasks(db: Session, *, now: Optional[datetime] = None) 
     if not contextual_followup_enabled():
         return 0
     when = now or datetime.utcnow()
+    try:
+        from backend.app.services.i10.action_done import create_due_assurance_tasks
+
+        create_due_assurance_tasks(db, now=when)
+    except Exception:
+        logger.exception("[R-070] assurance sweep failed")
     rows = (
         db.query(models.CareFollowUpTask)
         .filter(
