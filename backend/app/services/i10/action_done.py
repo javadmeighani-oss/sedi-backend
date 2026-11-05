@@ -170,13 +170,14 @@ def _complete_plan(db: Session, user_id: int, original: models.Notification) -> 
 def complete(db: Session, user_id: int, target: Target, *, source: str = "USER_TRAY") -> bool:
     """Owner completion + I7 for ONE target. Idempotent. Returns False when nothing could be completed (never raises)."""
     try:
+        if target.kind == "plan":
+            # the I8 owner commits its own work (record_review / completion): it must not run inside a savepoint (Codex P2 PR #147)
+            return _complete_plan(db, user_id, target.original)
         with db.begin_nested():
             if target.kind == "medication":
                 return _complete_medication(db, user_id, target.original, source)
             if target.kind == "event":
                 return _complete_event(db, user_id, target.original)
-            if target.kind == "plan":
-                return _complete_plan(db, user_id, target.original)
     except Exception:
         logger.exception("[R-070] done not recorded")
     return False
@@ -187,8 +188,16 @@ def mark_not_done(db: Session, user_id: int, target: Target, reason: Optional[st
     try:
         from backend.app.services.i7 import user_done
 
+        original = target.original
+        if target.kind == "plan":
+            # plan: the I8 review (skipped + reason) is written - and committed - by the I8 owner, outside any savepoint
+            from backend.app.services.i10.coaching_done import handle_coaching_not_done_for_notification
+
+            handle_coaching_not_done_for_notification(
+                db, notification=original, actor_user_id=user_id, payload={"action_id": "plan_not_done", "reason": reason or ""}
+            )
+            return True
         with db.begin_nested():
-            original = target.original
             if target.kind == "medication":
                 occ = (
                     db.query(models.MedicationDoseOccurrence)
@@ -210,13 +219,6 @@ def mark_not_done(db: Session, user_id: int, target: Target, reason: Optional[st
                 user_done.record_not_done(
                     db, user_id, kind="event", ref_id=int(ev.id), day=_event_day(db, user_id, ev), hhmm=None,
                     domain=user_done.domain_for("event", ev.event_type, ev.event_domain), reason=reason,
-                )
-            else:
-                # plan: the I8 review (skipped + reason) is written by coaching_done.handle_coaching_not_done_for_notification
-                from backend.app.services.i10.coaching_done import handle_coaching_not_done_for_notification
-
-                handle_coaching_not_done_for_notification(
-                    db, notification=original, actor_user_id=user_id, payload={"action_id": "plan_not_done", "reason": reason or ""}
                 )
         return True
     except Exception:
@@ -287,9 +289,15 @@ def apply_chat_answer(db: Session, notification: models.Notification, user_id: i
         if _already_answered(db, user_id, target.original):
             return None
         if verdict[0] == "done":
-            return "done" if complete(db, user_id, target, source="USER_CHAT") else None
+            if not complete(db, user_id, target, source="USER_CHAT"):
+                return None
+            _mirror_on_original(db, user_id, notification, target)
+            return "done"
         reason = verdict[1] if len(verdict) > 1 else None
-        return f"not_done:{reason}" if mark_not_done(db, user_id, target, reason) else None
+        if not mark_not_done(db, user_id, target, reason):
+            return None
+        _mirror_on_original(db, user_id, notification, target)
+        return f"not_done:{reason}"
     except Exception:
         logger.exception("[R-070] chat answer not applied")
         return None
@@ -351,16 +359,33 @@ def create_due_assurance_tasks(db: Session, *, now: Optional[datetime] = None) -
 
         when = now or datetime.now(timezone.utc)
         now_naive = _naive_utc(when)
-        rows = (
-            db.query(models.Notification)
-            .filter(
-                models.Notification.created_at >= now_naive - _ASSURANCE_MAX_AGE - timedelta(hours=1),
-                models.Notification.status.in_(("sent", "delivered")),
+        from sqlalchemy import and_, exists, or_
+
+        answered_sql = exists().where(
+            and_(
+                models.InteractionEvent.source_notification_id == models.Notification.id,
+                models.InteractionEvent.event_type.in_(_ANSWER_EVENTS),
             )
-            .order_by(models.Notification.id.asc())
-            .limit(_SCAN_CAP)
-            .all()
         )
+        base = db.query(models.Notification).filter(
+            models.Notification.created_at >= now_naive - _ASSURANCE_MAX_AGE - timedelta(hours=1),
+            models.Notification.created_at <= now_naive,
+            models.Notification.status.in_(("sent", "delivered")),
+            or_(
+                models.Notification.template_key.in_(("medication_reminder", "generic_event_reminder") + tuple(_PLAN_TEMPLATES)),
+                models.Notification.semantic_family.in_(tuple(_MEDICATION_FAMILIES | _PLAN_FAMILIES)),
+            ),
+            ~answered_sql,
+        )
+        # bounded batches by id (never one global prefix that newer eligible rows can starve behind)
+        rows: list = []
+        last_id = 0
+        for _batch in range(10):
+            chunk = base.filter(models.Notification.id > last_id).order_by(models.Notification.id.asc()).limit(_SCAN_CAP).all()
+            rows.extend(chunk)
+            if len(chunk) < _SCAN_CAP:
+                break
+            last_id = int(chunk[-1].id)
         known: dict = {}
         for n in rows:
             sent = _naive_utc(n.sent_at or n.created_at)
@@ -401,6 +426,35 @@ def create_due_assurance_tasks(db: Session, *, now: Optional[datetime] = None) -
     except Exception:
         logger.exception("[R-070] assurance sweep skipped")
     return created
+
+
+def assurance_still_needed(db: Session, task: models.CareFollowUpTask, now: Optional[datetime] = None) -> bool:
+    """A deferred assurance is re-checked right before it is sent: if the original was answered or completed meanwhile (dose
+    confirmed, event done, plan item done, any tray / chat answer) the task is dropped (Codex P2 PR #147)."""
+    try:
+        from backend.app.services.i10.contextual_followup_task_meta import parse_bounded_meta
+
+        meta = parse_bounded_meta(task.description)[1]
+        ref = int(meta.source_notification_id or 0)
+        original = (
+            db.query(models.Notification).filter(models.Notification.id == ref, models.Notification.user_id == task.user_id).first()
+            if ref
+            else None
+        )
+        if original is None:
+            return False
+        answered = (
+            db.query(models.InteractionEvent.id)
+            .filter(
+                models.InteractionEvent.user_id == task.user_id,
+                models.InteractionEvent.source_notification_id == original.id,
+                models.InteractionEvent.event_type.in_(_ANSWER_EVENTS),
+            )
+            .first()
+        )
+        return answered is None and _assurable(db, int(task.user_id), original, _naive_utc(now or datetime.now(timezone.utc)))
+    except Exception:
+        return False
 
 
 def assurance_copy(lang: str, domain: Optional[str]) -> tuple:

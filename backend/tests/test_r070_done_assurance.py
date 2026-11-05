@@ -321,3 +321,69 @@ def test_the_router_the_worker_and_the_plan_path_are_wired():
     coaching = (app / "services" / "i10" / "coaching_done.py").read_text(encoding="utf-8")
     assert coaching.count("record_plan_outcome(") == 2  # done and not done
     assert '"assured_notification_id"' in (app / "services" / "gate4" / "notification_context.py").read_text(encoding="utf-8")
+
+
+# ---- Codex review of PR #147 (P2 x4) -------------------------------------------------------------------------------------
+@pytest.mark.parametrize("outcome", ["done", "not_done"])
+def test_a_plan_outcome_never_runs_inside_a_savepoint(db, outcome):
+    """The I8 owner commits its own work: wrapping it in begin_nested broke the chat / assurance path (Codex P2)."""
+    u = _user_in(db, f"+17770111{outcome[0]}01")
+    plan = _notif(db, u.id, "nutrition_plan_follow_up", "NUTRITION_PLAN_FOLLOW_UP", minutes_ago=5)
+    target = ad.resolve_target(db, plan, u.id)
+    assert target is not None and target.kind == "plan"
+    calls = []
+    with patch.object(db, "begin_nested", side_effect=AssertionError("plan path must not open a savepoint")), patch(
+        "backend.app.services.i10.coaching_done.handle_coaching_done_for_notification", side_effect=lambda *a, **k: calls.append("done")
+    ), patch(
+        "backend.app.services.i10.coaching_done.handle_coaching_not_done_for_notification", side_effect=lambda *a, **k: calls.append("not_done")
+    ):
+        ok = ad.complete(db, u.id, target) if outcome == "done" else ad.mark_not_done(db, u.id, target, "no_time")
+    assert ok is True and calls == [outcome]
+
+
+@pytest.mark.parametrize("message,expected", [("آره", "done"), ("نه، وقت نداشتم", "not_done:no_time")])
+def test_a_chat_answer_on_the_assurance_also_answers_the_original(db, message, expected):
+    u = _user_in(db, f"+177701120{abs(hash(message)) % 90:02d}")
+    n, occ, _ = _medication(db, u, notif_minutes_ago=40)
+    ad.create_due_assurance_tasks(db, now=_NOW)
+    process_due_follow_up_tasks(db, now=_NAIVE_NOW)
+    assurance = db.query(models.Notification).filter_by(user_id=u.id, template_key="assurance_follow_up").one()
+    assert no.apply_chat_answer(db, assurance, u.id, message) == expected
+    db.commit()
+    assert db.query(models.InteractionEvent).filter_by(user_id=u.id, event_type=ad.ASSURED_EVENT, source_notification_id=n.id).count() == 1
+    # the original is now answered: 2C-1 never asks about it, and the assurance is not created again
+    assert ask.pick_pending(db, u, now=_NOW + timedelta(hours=30)) is None
+
+
+def test_a_waiting_assurance_is_dropped_when_the_original_was_completed_meanwhile(db):
+    u = _user_in(db, "+17770113001")
+    n, occ, _ = _medication(db, u, notif_minutes_ago=40)
+    ad.create_due_assurance_tasks(db, now=_NOW)
+    occ.state = "CONFIRMED_TAKEN"  # the user took the dose on the schedule page while the assurance was waiting
+    db.commit()
+    assert process_due_follow_up_tasks(db, now=_NAIVE_NOW) == 0
+    assert db.query(models.Notification).filter_by(user_id=u.id, template_key="assurance_follow_up").count() == 0
+    assert [t.status for t in _tasks(db, u.id)] == ["cancelled"]
+
+
+def test_a_waiting_assurance_is_dropped_when_the_original_was_answered_meanwhile(db):
+    u = _user_in(db, "+17770113002")
+    n, _occ, _ = _medication(db, u, notif_minutes_ago=40)
+    ad.create_due_assurance_tasks(db, now=_NOW)
+    db.add(models.InteractionEvent(user_id=u.id, event_type="notification_talk_later", source="notification", source_notification_id=n.id))
+    db.commit()
+    assert process_due_follow_up_tasks(db, now=_NAIVE_NOW) == 0
+    assert [t.status for t in _tasks(db, u.id)] == ["cancelled"]
+
+
+def test_unrelated_and_already_answered_notifications_never_starve_an_eligible_one(db):
+    u = _user_in(db, "+17770114001")
+    for i in range(ad._SCAN_CAP + 5):  # a full batch of other families first
+        db.add(models.Notification(
+            user_id=u.id, type="connection_ping", title="x", body="x", channel="push", status="sent", is_sent=True,
+            template_key="daily_digest", semantic_family="DAILY_WELLNESS_DIGEST",
+            created_at=_NAIVE_NOW - timedelta(minutes=45), sent_at=_NAIVE_NOW - timedelta(minutes=45),
+        ))
+    db.commit()
+    _medication(db, u, notif_minutes_ago=40)  # a later id than the whole prefix
+    assert ad.create_due_assurance_tasks(db, now=_NOW) == 1

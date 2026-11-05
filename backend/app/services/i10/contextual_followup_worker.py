@@ -146,6 +146,13 @@ def _assurance_may_send(db: Session, task: models.CareFollowUpTask, now: datetim
         task.status = FollowUpTaskStatus.CANCELLED.value
         task.updated_at = datetime.utcnow()
         return False
+    from backend.app.services.i10.action_done import assurance_still_needed
+
+    if not assurance_still_needed(db, task, now_naive):
+        # the original was answered / completed while the assurance was waiting: no check about something already done
+        task.status = FollowUpTaskStatus.CANCELLED.value
+        task.updated_at = datetime.utcnow()
+        return False
     return bool(can_send_v1(db, task.user_id, "companion", "assurance_follow_up", "normal", now_naive).get("allowed"))
 
 
