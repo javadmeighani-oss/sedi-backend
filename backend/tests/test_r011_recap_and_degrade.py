@@ -50,8 +50,9 @@ def test_continuity_opener_is_natural_and_offers_another_topic():
         text = so._continuity_opener(lang, {"fa": "خوابت", "en": "your sleep", "ar": "نومك"}[lang], " جواد")
         assert "خوش برگشتی" not in text and "Welcome back" not in text and "بعودتك" not in text
     fa = so._continuity_opener("fa", "خوابت", " جواد")
-    assert fa.startswith("سلام جواد جان!") and "خوابت" in fa and "یه موضوع دیگه" in fa
-    assert so._hello("fa", "") == "سلام!"
+    # R-062/R-049: educated voice, one direct question, no «یا موضوع دیگه» menu
+    assert fa.startswith("سلام جواد.") and "خوابت" in fa and "چه تغییری کرده است؟" in fa and "موضوع دیگه" not in fa
+    assert so._hello("fa", "") == "سلام."
 
 
 def test_proactive_opener_uses_the_recap_not_the_users_last_words(db):
@@ -66,7 +67,7 @@ def test_proactive_opener_uses_the_recap_not_the_users_last_words(db):
     db.commit()
     text = so.maybe_proactive_opener(db, u)
     assert text and "ندارم" not in text and "خوش برگشتی" not in text
-    assert "برنامه‌ی غذایی و تغذیه‌ات" in text and "یه موضوع دیگه" in text
+    assert "برنامه‌ی غذایی و تغذیه‌ات" in text and "چه تغییری کرده است؟" in text and "موضوع دیگه" not in text
 
 
 def test_provider_errors_are_recognised_but_auth_errors_keep_the_502_path():

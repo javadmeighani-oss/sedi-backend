@@ -110,29 +110,8 @@ def _continuity_opener(lang: str, topic: str, name_part: str) -> str:
     return template.format(hello=_hello(lang, name_part), topic=topic)
 
 
-def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
-    """Bounded opener: cooldown first, then authorized continuity or generic."""
-    if user.sedi_intro_completed_at is None:
-        return None
-    last = _last_user_message_at(db, user.id)
-    now = datetime.now(timezone.utc)
-    lang = _lang(user)
-    name_part = _name_part(user, lang)
-    if last is not None:
-        last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
-        if now - last_aware < _REOPEN_GUARD:
-            return None
-        # P9: the user already talked to Sedi today and the app was opened again -> compress today and invite.
-        try:
-            from backend.app.services.i7.same_day_recap import build_same_day_recap, same_day_opener
-
-            recap = build_same_day_recap(db, user.id, lang)
-            if recap:
-                return same_day_opener(lang, _hello(lang, name_part), recap)
-        except Exception:
-            pass
-        if now - last_aware < _OPENER_COOLDOWN:
-            return None
+def _resolve_topic(db: Session, user: models.User, lang: str) -> Optional[str]:
+    """The last topic Sedi and the user talked about as ONE coarse phrase (never the user's own words), or None."""
     topic = None
     try:
         from backend.app.services.i7.conversation_recap import recap_topic
@@ -167,6 +146,86 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
                 topic = display_phrase_for_topic_label(label, lang)
         except Exception:
             topic = None
+    return topic or None
+
+
+def _first_open_of_local_day(db: Session, user_id: int, now: datetime) -> bool:
+    """R-062: True when the previous app opening was on an EARLIER local day (or there was none).
+
+    Fail-open to the old behaviour (False) on any problem, so a broken timezone read never greets twice."""
+    try:
+        from backend.app.services.auth_session_policy import SESSION_OPEN_EVENT_TYPE
+        from backend.app.services.i7.memory_explorer import _zone
+
+        zone, _ = _zone(db, user_id)
+        row = (
+            db.query(models.InteractionEvent.created_at)
+            .filter(
+                models.InteractionEvent.user_id == user_id,
+                models.InteractionEvent.event_type == SESSION_OPEN_EVENT_TYPE,
+            )
+            .order_by(models.InteractionEvent.created_at.desc())
+            .first()
+        )
+        if not row or row[0] is None:
+            return True
+        last = row[0] if row[0].tzinfo else row[0].replace(tzinfo=timezone.utc)
+        return last.astimezone(zone).date() < now.astimezone(zone).date()
+    except Exception:
+        return False
+
+
+def _time_greeting(db: Session, user_id: int, lang: str, name_part: str, now: datetime) -> str:
+    """«صبح بخیر جواد.» - the greeting follows the user's LOCAL part of day."""
+    from backend.app.services.intelligence.time_context import part_of_day
+
+    try:
+        from backend.app.services.i7.memory_explorer import _zone
+
+        zone, _ = _zone(db, user_id)
+        hour = now.astimezone(zone).hour
+    except Exception:
+        hour = now.hour
+    return sedi_copy.t("session.greet." + part_of_day(hour), lang, name_part=name_part)
+
+
+def _new_day_opener(db: Session, user: models.User, lang: str, name_part: str, now: datetime) -> str:
+    """R-062: the first opening of a local day. Greeting + ONE concrete continuation + ONE direct question."""
+    greet = _time_greeting(db, user.id, lang, name_part, now)
+    topic = _resolve_topic(db, user, lang)
+    if topic:
+        return sedi_copy.t("session.newday.topic", lang, greet=greet, topic=topic)
+    return sedi_copy.t("session.newday.goal", lang, greet=greet)
+
+
+def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
+    """Bounded opener. R-062: the FIRST opening of every local day always greets; later openings keep the cooldown."""
+    if user.sedi_intro_completed_at is None:
+        return None
+    last = _last_user_message_at(db, user.id)
+    now = datetime.now(timezone.utc)
+    lang = _lang(user)
+    name_part = _name_part(user, lang)
+    last_aware = None
+    if last is not None:
+        last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
+        if now - last_aware < _REOPEN_GUARD:
+            return None
+        # P9: the user already talked to Sedi today and the app was opened again -> compress today and invite.
+        try:
+            from backend.app.services.i7.same_day_recap import build_same_day_recap, same_day_opener
+
+            recap = build_same_day_recap(db, user.id, lang)
+            if recap:
+                return same_day_opener(lang, _hello(lang, name_part), recap)
+        except Exception:
+            pass
+    # R-062: a new local day never starts with an empty chat (the old 12 h cooldown left an 8 h overnight gap silent).
+    if _first_open_of_local_day(db, user.id, now):
+        return _new_day_opener(db, user, lang, name_part, now)
+    if last_aware is not None and now - last_aware < _OPENER_COOLDOWN:
+        return None
+    topic = _resolve_topic(db, user, lang)
     if topic:
         return _continuity_opener(lang, topic, name_part)
     options = _OPENERS.get(lang, _OPENERS["en"])
@@ -382,6 +441,17 @@ def open_a3_session(
         proactive = maybe_proactive_opener(db, user)
         if proactive:
             message = proactive
+
+    # R-064: every opener goes through the one typography contract (paragraphs, punctuation, half-space, digits).
+    try:
+        from backend.app.typography import normalize as _normalize_typography
+
+        if message:
+            message = _normalize_typography(message, lang)
+        if proactive:
+            proactive = _normalize_typography(proactive, lang)
+    except Exception:
+        pass
 
     try:
         from backend.app.services.auth_session_policy import record_session_open_presence
