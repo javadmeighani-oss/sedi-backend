@@ -5,7 +5,11 @@ Phone test 2026-11-05 (sleep): every Sedi reply restated what the user had just 
 hard cap on questions - the goal is a complete and correct conclusion; what matters is how Sedi explains and asks. So:
 
 * ``strip_echo``      - deterministic: a reply never opens by repeating the user's own words (and bare acknowledgements
-                         such as «متوجه شدم،» that only introduce a restatement are removed);
+                         such as «متوجه شدم،» that only introduce a restatement are removed). It is deliberately CAUTIOUS
+                         (Codex P1 on PR #142): a sentence is dropped only with positive evidence that it is a pure
+                         restatement - never when it carries advice, a risk statement, a number the user did not give,
+                         a dose/medicine, or when the message is about a severe symptom; only the opening span is edited
+                         so paragraph breaks survive (Codex P2);
 * ``advance_hint``    - a SOFT hint (never a strip): when two or more consecutive replies ended with a question, Sedi is
                          reminded to give her hypothesis + reason + a step unless a missing fact truly blocks the advice.
 
@@ -18,19 +22,39 @@ import re
 from typing import Final, Optional, Sequence
 
 _SENTENCE = re.compile(r"(?<=[.!?؟…])\s+|\n+")
+_FIRST_BREAK = re.compile(r"(?<=[.!?؟…])[ \t]+|\n+")
 _ECHO_THRESHOLD: Final[float] = 0.35
 _MIN_ECHO_WORDS: Final[int] = 4
+_NUMBER = re.compile(r"[0-9۰-۹٠-٩]+(?:[.,٫][0-9۰-۹٠-٩]+)?")
 
 # A sentence that confirms a dose / medicine / quantity is kept even when it overlaps the user's words.
 _KEEP_CONFIRMATION = re.compile(
-    r"(?:\bmg\b|\bml\b|\bmcg\b|میلی\s*گرم|میلی‌گرم|قرص|دوز|دارو|آمپول|mg/|ملغ|جرعة|دواء)", re.I
+    r"(?:\bmg\b|\bml\b|\bmcg\b|میلی\s*گرم|میلی‌گرم|قرص|دوز|دارو|آمپول|ملغ|جرعة|جرعه|دواء|\bdose\b|\bpill|\bmedic)", re.I
+)
+
+# Advice / risk / instruction markers: such a sentence is NEVER an echo (fa / ar / en).
+_ADVICE_MARKERS = re.compile(
+    r"(?:\b(?:require|requires|need|needs|should|must|avoid|stop|call|seek|urgent|urgently|emergency|danger|dangerous|serious|"
+    r"immediately|risk|doctor|hospital|ambulance|warning|careful|dont|don't|do not)\b|"
+    r"اورژانس|فوری|فوراً|فورا|خطر|جدی|باید|نباید|لازم|نکن|بپرهیز|پرهیز|مراقب|بیمارستان|پزشک|دکتر|آمبولانس|"
+    r"طوارئ|عاجل|خطير|خطر|يجب|لا\s+ت|تجنب|انتبه|مستشفى|طبيب|إسعاف)",
+    re.I,
+)
+
+# Severe symptoms / crises in the user's message: the guard stands aside completely (the I4 safety floor owns them).
+_SEVERE = re.compile(
+    r"(?:chest\s+pain|shortness\s+of\s+breath|can'?t\s+breathe|cannot\s+breathe|difficulty\s+breathing|bleeding|stroke|seizure|"
+    r"faint|unconscious|overdose|suicid|kill\s+myself|self[-\s]?harm|allergic\s+reaction|heart\s+attack|"
+    r"درد\s+قفسه|تنگی\s+نفس|نفس\s+نمی|خونریزی|سکته|تشنج|غش\s|بیهوش|خودکشی|خودکشي|آسیب\s+به\s+خود|مسمومیت|حمله\s+قلبی|"
+    r"ألم\s+في\s+الصدر|ضيق\s+(?:في\s+)?التنفس|نزيف|سكتة|نوبة|إغماء|انتحار|إيذاء\s+النفس|جرعة\s+زائدة)",
+    re.I,
 )
 
 # «متوجه شدم، جواد؛» / «I understand,» - an acknowledgement that only introduces a restatement.
 _ACK_OPENER = re.compile(
     r"^\s*(?:متوجه\s+شدم|فهمیدم|می‌?\s*فهمم|مفهوم(?:\s+است)?|باشه|حله|"
     r"i\s+(?:understand|see|get\s+it)|got\s+it|understood|"
-    r"فهمت|فهمتُ|أفهم|مفهوم)"
+    r"فهمت|فهمتُ|أفهم)"
     r"\s*[,،;؛:.!\-–—]*\s*(?:[^\s,،;؛:.!]{2,16}\s*[,،;؛:]\s*)?",
     re.I,
 )
@@ -59,41 +83,81 @@ def _words(text: str) -> int:
     return len(re.findall(r"\S+", text or ""))
 
 
+def _digits_key(text: str) -> str:
+    table = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    return text.translate(table)
+
+
+_NUMBER_WORDS: Final[frozenset] = frozenset(
+    {
+        # fa
+        "صفر", "یک", "دو", "سه", "چهار", "پنج", "شش", "هفت", "هشت", "ده", "یازده", "دوازده", "بیست", "سی", "چهل", "پنجاه",
+        "صد", "هزار", "نیم", "نصف", "دوبار", "سهبار",
+        # ar
+        "واحد", "اثنان", "اثنين", "ثلاثة", "ثلاث", "أربعة", "اربعه", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة", "عشرة", "نصف",
+        # en
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "twenty", "thirty",
+        "forty", "fifty", "hundred", "thousand", "half", "twice",
+    }
+)
+
+
+def _tokens(text: str) -> set:
+    return set(_norm(text).split())
+
+
+def _has_new_number(sentence: str, message: str) -> bool:
+    """True when the sentence contains a number - written in digits or in words - the user did not give (a computation /
+    a new fact, not a restatement)."""
+    given = set(_NUMBER.findall(_digits_key(message)))
+    if any(n not in given for n in _NUMBER.findall(_digits_key(sentence))):
+        return True
+    return bool((_tokens(sentence) & _NUMBER_WORDS) - _tokens(message))
+
+
 def asks_a_question(text: Optional[str]) -> bool:
     """True when the LAST sentence of a reply is a question."""
     parts = [p.strip() for p in _SENTENCE.split(text or "") if p and p.strip()]
     return bool(parts) and parts[-1].rstrip("\"'») ").endswith(("?", "؟"))
 
 
+def _is_pure_restatement(sentence: str, message: str) -> bool:
+    """Positive evidence that ``sentence`` only repeats the user's words (and adds nothing)."""
+    return (
+        _words(sentence) >= _MIN_ECHO_WORDS
+        and not sentence.rstrip("\"'») ").endswith(("?", "؟"))
+        and not _KEEP_CONFIRMATION.search(sentence)
+        and not _ADVICE_MARKERS.search(sentence)
+        and not _SEVERE.search(sentence)
+        and not _has_new_number(sentence, message)
+        and _overlap(sentence, message) >= _ECHO_THRESHOLD
+    )
+
+
 def strip_echo(reply: str, user_message: str, language: str = "fa") -> str:
-    """R-066: never open by repeating the user's own words. Keeps every statement that adds something, never empties."""
-    text = (reply or "").strip()
+    """R-066: never open by repeating the user's own words. Cautious by design; edits only the opening span."""
+    text = reply or ""
     message = (user_message or "").strip()
-    if not text or not message:
-        return text
+    if not text.strip() or not message:
+        return text.strip() if text else text
     try:
-        parts = [p.strip() for p in _SENTENCE.split(text) if p and p.strip()]
-        if not parts:
-            return text
-        first = parts[0]
+        if _SEVERE.search(message):
+            return text  # a severe-symptom message: the safety floor owns the answer; no cosmetic edits
+        body = text.lstrip()
+        lead = text[: len(text) - len(body)]
+        match = _FIRST_BREAK.search(body)
+        first, sep, rest = (body[: match.start()], body[match.start() : match.end()], body[match.end() :]) if match else (body, "", "")
         stripped = _ACK_OPENER.sub("", first, count=1).strip()
-        if not stripped and len(parts) > 1:
+        if not stripped and rest.strip():
             # the whole first sentence was a bare acknowledgement («فهمیدم.» / "I understand."): drop it, then check the next
-            return strip_echo(" ".join(parts[1:]), message, language)
-        if stripped and _words(stripped) >= 2:
+            return strip_echo(rest, message, language)
+        if stripped and stripped != first.strip() and _words(stripped) >= 2:
             first = stripped[:1].upper() + stripped[1:] if stripped[:1].isascii() else stripped
-        rest = parts[1:]
-        substantive_rest = [p for p in rest if _words(p) >= 3]
-        is_question = first.rstrip("\"'») ").endswith(("?", "؟"))
-        if (
-            substantive_rest
-            and not is_question
-            and _words(first) >= _MIN_ECHO_WORDS
-            and not _KEEP_CONFIRMATION.search(first)
-            and _overlap(first, message) >= _ECHO_THRESHOLD
-        ):
-            return " ".join(rest).strip()
-        return " ".join([first] + rest).strip() or text
+        rest_sentences = [p for p in _SENTENCE.split(rest) if p and _words(p) >= 3]
+        if rest_sentences and _is_pure_restatement(first, message):
+            return rest.lstrip()
+        rebuilt = lead + first + sep + rest
+        return rebuilt if rebuilt.strip() else text
     except Exception:
         return text
 

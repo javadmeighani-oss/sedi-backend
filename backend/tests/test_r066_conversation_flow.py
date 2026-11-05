@@ -132,3 +132,38 @@ def test_the_brain_and_the_orchestrator_are_wired():
     assert brain.index("advance_hint(") < brain.index('messages.append({"role": "user", "content": user_message})')
     orchestrator = (app / "services" / "intelligence" / "orchestrator.py").read_text(encoding="utf-8")
     assert "nbq_was_appended = gen_message != _before_nbq" in orchestrator
+
+
+# ---- Codex review on PR #142: cautious by design, paragraphs preserved ----------------------------------------------------
+_SEVERE_CASES = [
+    ("en", "I have chest pain and shortness of breath",
+     "Chest pain and shortness of breath require emergency medical attention. Sit down and avoid exertion while waiting for help."),
+    ("fa", "درد قفسه سینه و تنگی نفس دارم",
+     "درد قفسه سینه و تنگی نفس نیاز به کمک اورژانسی دارد. همین حالا بنشین و به اورژانس زنگ بزن."),
+    ("ar", "عندي ألم في الصدر وضيق في التنفس",
+     "ألم في الصدر وضيق في التنفس يحتاجان إلى رعاية طارئة. اجلس الآن واتصل بالإسعاف."),
+]
+
+
+@pytest.mark.parametrize("lang,user,reply", _SEVERE_CASES)
+def test_a_severe_symptom_message_is_never_touched(lang, user, reply):
+    assert strip_echo(reply, user, lang) == reply
+
+
+def test_advice_a_risk_statement_or_a_new_number_is_never_an_echo_even_when_it_reuses_the_users_words():
+    user = "I get headaches every day after lunch"
+    advice = "Headaches every day after lunch should be checked if they last more than two weeks. Drink water and walk for ten minutes."
+    assert strip_echo(advice, user, "en") == advice  # advice marker + a number the user did not give
+    fa_user = "هر روز بعد از ناهار سردرد می‌گیرم"
+    computed = "هر روز بعد از ناهار سردرد می‌گیری، یعنی هفته‌ای هفت بار. امروز دو لیوان آب بیشتر بنوش."
+    assert strip_echo(computed, fa_user, "fa") == computed  # a computed count is new information
+
+
+def test_paragraph_breaks_survive_when_nothing_is_removed_and_when_the_opening_is():
+    nl = chr(10)
+    user = "سه شب است خوابم نمی‌برد"
+    three = nl.join(["سه شب بی‌خوابی فرساینده است؛ امشب خودت را مجبور نکن.", "", "کافئین را از بعدازظهر حذف کن.", "", "فردا صبح ساعت بیدارشدنت را ثابت نگه دار."])
+    assert strip_echo(three, user, "fa") == three
+    echoing = nl.join(["متوجه شدم، جواد؛ هر شب دیر خوابت می‌برد و صبح زود بیدار می‌شوی.", "", "کافئین را از بعدازظهر حذف کن.", "", "فردا صبح ساعت بیدارشدنت را ثابت نگه دار."])
+    out = strip_echo(echoing, "هر شب دیر خوابم می‌برد و صبح زود بیدار می‌شوم", "fa")
+    assert out.startswith("کافئین را") and out.count(nl + nl) == 1
