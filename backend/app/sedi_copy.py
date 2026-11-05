@@ -1434,4 +1434,24 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ' وبقي هذا السؤال بلا جواب: «{question}»',
         'en': ', and this question was left unanswered: “{question}”',
     },
+    'commitment.title': {
+        'fa': 'پیگیری صدی',
+        'ar': 'متابعة صدي',
+        'en': 'Sedi follow-up',
+    },
+    'commitment.body.1': {
+        'fa': 'برنامه\u200cی دیروزت را انجام دادی؟',
+        'ar': 'هل نفّذت خطة الأمس؟',
+        'en': "Did you follow through on yesterday's plan?",
+    },
+    'commitment.body.2': {
+        'fa': 'دیروز پرسیدم و جوابی نیامد. برنامه\u200cی امروزت منتظر است.',
+        'ar': 'سألتك أمس ولم يصلني جواب. خطة اليوم بانتظارك.',
+        'en': "I asked yesterday and heard nothing. Today's plan is waiting.",
+    },
+    'commitment.body.3': {
+        'fa': ['چند روز است پیگیرم. چه چیزی مانع شده؟ برنامه را سبک\u200cتر کنم؟', 'هنوز کنارت هستم. ساعت دیگری برایت مناسب\u200cتر است؟ بگو تا برنامه را با روزت هماهنگ کنم.', 'قدم امروز می\u200cتواند کوچک\u200cتر باشد؛ فقط پنج دقیقه. بگو چطور پیش رفت.'],
+        'ar': ['منذ أيام وأنا أتابع. ما الذي أعاقك؟ هل أخفّف الخطة؟', 'ما زلت بجانبك. هل وقت آخر أنسب لك؟ أخبرني لأوفّق الخطة مع يومك.', 'خطوة اليوم قد تكون أصغر؛ خمس دقائق فقط. أخبرني كيف سارت الأمور.'],
+        'en': ['I have been following up for a few days. What got in the way? I can make the plan lighter.', 'I am still with you. Tell me a better time and I will fit the plan to your day.', "Today's step can be smaller - just five minutes. Tell me how it went."],
+    },
 }
