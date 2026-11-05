@@ -60,3 +60,28 @@ def test_the_whole_opener_through_the_session_path_names_the_question(db):
     text = so.maybe_proactive_opener(db, u)
     assert "«چند روز در هفته می‌توانی ورزش کنی؟»" in text
     assert "این برای تنظیم برنامه لازم است" not in text  # only the question itself, not the reason
+
+
+# ---- Codex review on PR #143 ---------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("reply,expected", [
+    ("چند روز در هفته می‌توانی ورزش کنی؟ این برای تنظیم برنامه لازم است؟ «چند روز در هفته می‌توانی ورزش کنی؟»", "چند روز در هفته می‌توانی ورزش کنی؟"),
+    ("یک توضیح کوتاه. «چند روز در هفته ورزش می‌کنی؟»", "چند روز در هفته ورزش می‌کنی؟"),
+    ("A short explanation. \"How often do you exercise?\"", "How often do you exercise?"),
+    ("شرح کوتاه. «كم مرة تمارس الرياضة؟»", "كم مرة تمارس الرياضة؟"),
+])
+def test_a_quoted_question_is_still_an_open_question(db, reply, expected):
+    u = _fa_user(db, "+17770065003")
+    _earlier_today(db, u.id, ["این چند شب خوابم خوب نیست"], reply=reply)
+    recap = sdr.build_same_day_recap(db, u.id, "fa")
+    assert recap["open_question"] is True and recap["open_question_text"] == expected
+    assert expected in sdr.same_day_opener("fa", "سلام جواد.", recap)
+
+
+def test_a_very_long_question_is_never_quoted_as_a_fragment(db):
+    long_question = "وقتی شب‌ها بیدار می‌شوی و ساعت را نگاه می‌کنی " * 10 + "زود دوباره خوابت می‌برد یا مدت زیادی بیدار می‌مانی؟"
+    u = _fa_user(db, "+17770065004")
+    _earlier_today(db, u.id, ["این چند شب خوابم خوب نیست"], reply=long_question)
+    recap = sdr.build_same_day_recap(db, u.id, "fa")
+    assert recap["open_question"] is True and recap["open_question_text"] == ""
+    text = sdr.same_day_opener("fa", "سلام جواد.", recap)
+    assert "جوابش را بنویس" in text and "می‌کنی" not in text.split("جوابش")[0].split("بود")[-1]  # the generic, complete fallback

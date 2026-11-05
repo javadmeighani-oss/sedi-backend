@@ -148,7 +148,8 @@ def last_question(assistant_text: Optional[str]) -> Optional[str]:
     """The last question sentence of Sedi's previous reply, or None."""
     sentences = [s.strip() for s in _SENTENCE.split(assistant_text or "") if s and s.strip()]
     for sentence in reversed(sentences):
-        if sentence.endswith(("?", "؟")):
+        # a question wrapped in quotes («…؟» / "…?") is still a question (Codex P2 on PR #143)
+        if sentence.rstrip("\"'»”’)] ").endswith(("?", "؟")):
             return sentence
     return None
 

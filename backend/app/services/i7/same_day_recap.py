@@ -18,6 +18,7 @@ from backend.app import models
 from backend.app.services.i7.conversation_recap import _lang, is_trivial_turn, topic_phrase_from_text
 
 MAX_TOPICS = 3
+_MAX_QUESTION_CHARS = 320
 _SCAN = 200
 
 
@@ -73,7 +74,8 @@ def build_same_day_recap(
         "topics": topics,
         "count": len(meaningful),
         "open_question": bool(question),
-        "open_question_text": question[:200],
+        # never a fragment: a question longer than the limit is not quoted (the opener falls back to the generic wording)
+        "open_question_text": question if len(question) <= _MAX_QUESTION_CHARS else "",
     }
 
 
