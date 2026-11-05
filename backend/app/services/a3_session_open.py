@@ -346,6 +346,16 @@ def build_notification_origin_opener(
             lang=lang, name=name, topic_phrase=topic_phrase
         )
 
+    # R-052: every other family with a specific opener (commitment follow-up, event reminders, medication, plan follow-ups,
+    # weekly review, motivation, post-event) continues ITS subject; the generic line is the last resort.
+    try:
+        from backend.app.services.notification_openers import family_opener
+
+        specific = family_opener(db, user, notification, language=lang, name=name)
+        if specific:
+            return specific
+    except Exception:
+        pass
     # Other families: short localized acknowledgment only (no clinical reinterpretation).
     return _generic_notification_origin_opener(lang=lang, name=name)
 

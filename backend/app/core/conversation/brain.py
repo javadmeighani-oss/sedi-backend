@@ -57,11 +57,25 @@ def _format_notification_context_block(notification_context: Optional[Mapping[st
         "source_id",
         "notification_title",
         "notification_summary",
+        "opening_message",
     ):
         value = notification_context.get(key)
         if value is not None and str(value).strip():
             lines.append(f"{key}: {str(value).strip()[:256]}")
 
+    if str(notification_context.get("opening_message") or "").strip():
+        lines.append(
+            "Your opening message in this chat is opening_message above; the user's message is the reply to it - answer it, "
+            "do not ask it again and do not restate it."
+        )
+    followup = str(notification_context.get("followup_result") or "")
+    if followup == "done":
+        lines.append("followup_result_note: the user says the step is DONE - celebrate briefly and give the next small step.")
+    elif followup.startswith("not_done"):
+        lines.append(
+            "followup_result_note: the step was NOT done (" + followup.partition(":")[2] + ") - accept it without blame, "
+            "make the step lighter and say you will check in again tomorrow."
+        )
     hints = notification_context.get("context_hints")
     if isinstance(hints, dict):
         for hint_key, hint_value in hints.items():
