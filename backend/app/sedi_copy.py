@@ -1474,4 +1474,64 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'خفّفت الخطة. اليوم خطوة صغيرة واحدة فقط؛ أخبرني كيف سارت.',
         'en': 'I made the plan lighter. Today just one small step; tell me how it went.',
     },
+    'session.origin.commitment': {
+        'fa': 'قرارمان این بود: «{step}». انجام شد؟ اگر نشد، چه چیزی مانع شد؟',
+        'ar': 'اتفقنا على هذا: «{step}». هل تم؟ وإن لم يتم، فما الذي أعاق؟',
+        'en': 'Our plan was: “{step}”. Did it happen? If not, what got in the way?',
+    },
+    'session.origin.commitment_lighter': {
+        'fa': 'قدم را با هم سبک\u200cتر می\u200cکنیم: «{step}». کدام بخش آن برایت شدنی\u200cتر است؟',
+        'ar': 'سنخفّف الخطوة معاً: «{step}». أي جزء منها أسهل عليك؟',
+        'en': 'Let us make the step lighter together: “{step}”. Which part of it feels more doable?',
+    },
+    'session.origin.reminder': {
+        'fa': '«{title}» نزدیک است. چه چیزی برای آن آماده کرده\u200cای و چه چیزی مانده؟',
+        'ar': '«{title}» اقترب. ما الذي جهّزته له وما الذي بقي؟',
+        'en': '“{title}” is coming up. What have you prepared for it and what is left?',
+    },
+    'session.origin.reminder_notitle': {
+        'fa': 'یادآوری\u200cات را دیدی. چه چیزی برای آن آماده کرده\u200cای و چه چیزی مانده؟',
+        'ar': 'رأيت تذكيرك. ما الذي جهّزته له وما الذي بقي؟',
+        'en': 'You saw your reminder. What have you prepared for it and what is left?',
+    },
+    'session.origin.medication': {
+        'fa': 'داروی این نوبت را مصرف کردی؟',
+        'ar': 'هل تناولت دواء هذه الجرعة؟',
+        'en': 'Did you take the medicine for this dose?',
+    },
+    'session.origin.plan_nutrition': {
+        'fa': 'برنامه\u200cی غذایی امروزت را انجام دادی؟ اگر نشد، چه چیزی مانع شد؟',
+        'ar': 'هل التزمت بخطة الغذاء اليوم؟ وإن لم تلتزم، فما الذي أعاق؟',
+        'en': "Did you follow today's meal plan? If not, what got in the way?",
+    },
+    'session.origin.plan_exercise': {
+        'fa': 'برنامه\u200cی ورزشی امروزت را انجام دادی؟ اگر نشد، چه چیزی مانع شد؟',
+        'ar': 'هل أنجزت تمرين اليوم؟ وإن لم تنجزه، فما الذي أعاق؟',
+        'en': "Did you do today's workout? If not, what got in the way?",
+    },
+    'session.origin.weekly_review': {
+        'fa': 'مرور هفته\u200cی برنامه\u200cات آماده است. این هفته کدام بخش برایت سخت\u200cتر بود؟',
+        'ar': 'مراجعة أسبوع خطتك جاهزة. أي جزء كان أصعب عليك هذا الأسبوع؟',
+        'en': 'Your weekly plan review is ready. Which part was hardest for you this week?',
+    },
+    'session.origin.motivation_workout_day': {
+        'fa': 'امروز روز تمرین توست. چه ساعتی انجامش می\u200cدهی؟',
+        'ar': 'اليوم يوم تمرينك. في أي ساعة ستؤديه؟',
+        'en': 'Today is your workout day. What time will you do it?',
+    },
+    'session.origin.motivation_comeback': {
+        'fa': 'چند روز است تمرین نکرده\u200cای. چه چیزی مانع شده؟',
+        'ar': 'مرت أيام دون تمرين. ما الذي أعاقك؟',
+        'en': 'It has been a few days without a workout. What got in the way?',
+    },
+    'session.origin.motivation_milestone': {
+        'fa': 'به یک نقطه\u200cی عطف رسیدی. در این مدت چه چیزی بیشتر از همه کمکت کرد؟',
+        'ar': 'وصلت إلى محطة مهمة. ما الذي ساعدك أكثر في هذه المدة؟',
+        'en': 'You have reached a milestone. What helped you most along the way?',
+    },
+    'session.origin.post_event': {
+        'fa': 'مراجعه\u200cات چطور گذشت؟ توصیه\u200cی تازه\u200cای گرفتی که باید پیگیری کنیم؟',
+        'ar': 'كيف كانت زيارتك؟ هل تلقيت توصية جديدة يجب أن نتابعها؟',
+        'en': 'How did your visit go? Did you get any new advice we should follow up?',
+    },
 }
