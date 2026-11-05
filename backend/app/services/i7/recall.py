@@ -82,9 +82,29 @@ def _readable(db: Session, user_id: int) -> bool:
         return False
 
 
-def _snippet(text: str) -> str:
+def _snippet(text: str, query: Optional[list] = None) -> str:
+    """The user's own words, at most MAX_SNIPPET_CHARS. A long turn is cut AROUND the first matched word (not at its opening), so
+    the passage that made the turn relevant is the passage the model receives (Codex P2 on PR #149)."""
     one = " ".join(str(text or "").split())
-    return one if len(one) <= MAX_SNIPPET_CHARS else one[: MAX_SNIPPET_CHARS - 1].rstrip() + "…"
+    if len(one) <= MAX_SNIPPET_CHARS:
+        return one
+    words = one.split(" ")
+    hit = 0
+    for index, word in enumerate(words):
+        toks = set(_tokens(word))
+        if toks and any(_matches(q, toks) for q in (query or [])):
+            hit = index
+            break
+    start = max(0, hit - 6)
+    chosen: list = []
+    used = 0
+    for word in words[start:]:
+        if used + len(word) + 1 > MAX_SNIPPET_CHARS - 2:
+            break
+        chosen.append(word)
+        used += len(word) + 1
+    out = " ".join(chosen)
+    return ("…" if start > 0 else "") + out + ("…" if start + len(chosen) < len(words) else "")
 
 
 def recall_snippets(db: Session, user_id: int, message: str, *, limit: int = MAX_SNIPPETS) -> list[dict]:
@@ -121,7 +141,7 @@ def recall_snippets(db: Session, user_id: int, message: str, *, limit: int = MAX
         out: list[dict] = []
         seen_text: set = set()
         for score, _neg, row in scored:
-            text = _snippet(row.user_message)
+            text = _snippet(row.user_message, query)
             key = _norm(text)
             if key in seen_text:
                 continue

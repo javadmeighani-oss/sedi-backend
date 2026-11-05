@@ -190,3 +190,21 @@ def test_the_brain_adds_the_recall_block_before_the_history():
     brain = (Path(__file__).resolve().parents[1] / "app" / "core" / "conversation" / "brain.py").read_text(encoding="utf-8")
     assert "build_recall_block(self.db, user_id, user_message, lang)" in brain
     assert brain.index("build_recall_block(") < brain.index("_append_recent_history(messages, self.memory, user_id, limit=8)")
+
+
+# ---- Codex review of PR #149 ----------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("lang,filler,tail,query", [
+    ("en", "I told my doctor about many ordinary things during the long visit " * 8, "and finally I mentioned my penicillin allergy clearly", "is my penicillin allergy a problem"),
+    ("fa", "درباره‌ی کارهای عادی روزمره و رفت و آمدهای این هفته صحبت کردم " * 8, "و در آخر گفتم به پنی‌سیلین حساسیت دارم", "حساسیت پنی‌سیلین من چه می‌شود"),
+    ("ar", "تحدثت عن أمور عادية كثيرة في حياتي اليومية والعمل والبيت " * 8, "وفي النهاية ذكرت حساسية البنسلين عندي", "حساسية البنسلين مرة أخرى"),
+])
+def test_a_long_turn_is_cut_around_the_matching_words_not_at_its_opening(db, lang, filler, tail, query):
+    u = _user_in(db, f"+177703040{['en', 'fa', 'ar'].index(lang)}0")
+    _turn(db, u.id, 30, filler + tail)
+    _filler(db, u.id)
+    found = recall.recall_snippets(db, u.id, query)
+    assert found, lang
+    text = found[0]["text"]
+    assert len(text) <= recall.MAX_SNIPPET_CHARS
+    assert any(word in text for word in ("penicillin", "پنی", "البنسلين", "بنسلين")), text  # the passage that selected the turn
+    assert text.startswith("…")  # it was cut inside the turn, and says so
