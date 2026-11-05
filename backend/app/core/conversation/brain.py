@@ -76,6 +76,17 @@ def _format_notification_context_block(notification_context: Optional[Mapping[st
             "followup_result_note: the step was NOT done (" + followup.partition(":")[2] + ") - accept it without blame, "
             "make the step lighter and say you will check in again tomorrow."
         )
+    if followup == "attended":
+        lines.append(
+            "followup_result_note: the user told you how the event went - answer the content; if a doctor or professional gave advice, restate it "
+            "as ONE concrete step with a time and say you will ask about it tomorrow; if a result day or next visit was mentioned without a date, "
+            "ask once for the date; do not ask how it went again."
+        )
+    elif followup.startswith("missed:"):
+        lines.append(
+            "followup_result_note: the event did not take place for them (" + followup.partition(":")[2] + ") - accept it without blame and "
+            "offer ONE concrete next step (rebooking or a new time); no guilt."
+        )
     if followup.startswith("reason:"):
         lines.append(
             "followup_result_note: the user told you WHY they set the notification aside (" + followup.partition(":")[2] + ") - "

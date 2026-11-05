@@ -121,6 +121,10 @@ def family_opener(
         elif key == "reminder":
             title = _event_title(db, user_id, notification)
             body = sedi_copy.t("session.origin.reminder", lang, title=title) if title else sedi_copy.t("session.origin.reminder_notitle", lang)
+        elif key == "post_event":
+            from backend.app.services.i10.event_outcome import opener as post_event_opener
+
+            body = post_event_opener(db, user_id, notification, lang) or sedi_copy.t("session.origin.post_event", lang)
         else:
             body = sedi_copy.t(f"session.origin.{key}", lang)
         return (_prefix(name, lang) + body).strip()
@@ -201,6 +205,11 @@ def apply_chat_answer(
     still awaiting its answer (NOTIFIED) is touched, so a replay or a later unrelated «نه» never changes it. Returns
     'done' / 'not_done:<reason>' or None. Fail-open."""
     try:
+        if (notification.template_key or "") == "post_event_follow_up":
+            # R-071 (2E): the reply to the post-event question is the event's outcome (owner + I7)
+            from backend.app.services.i10.event_outcome import apply_chat_answer as record_outcome
+
+            return record_outcome(db, notification, user_id, message)
         if (notification.template_key or "") in (
             "assurance_follow_up", "medication_reminder", "generic_event_reminder", "nutrition_plan_follow_up", "exercise_plan_follow_up"
         ):

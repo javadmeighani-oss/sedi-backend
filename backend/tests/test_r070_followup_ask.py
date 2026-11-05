@@ -303,7 +303,8 @@ def test_every_subject_has_a_noun_in_every_language_and_the_questions_have_one_q
     subject = sedi_copy.t(f"ask.subject.{key}", lang, default="en")
     for kind in ("reason", "unanswered"):
         text = fa.question_text(fa.Pending(1, kind, key), lang)
-        assert subject in text and "{" not in text and text.count("؟") + text.count("?") == 1
+        own_wording = key == "post_event" and kind == "unanswered"  # 2E: the outcome question has its own text
+        assert (subject in text or own_wording) and "{" not in text and text.count("؟") + text.count("?") == 1
 
 
 def test_the_opener_the_chat_and_the_model_context_are_wired():
