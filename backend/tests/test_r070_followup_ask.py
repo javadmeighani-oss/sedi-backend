@@ -318,3 +318,46 @@ def test_the_opener_the_chat_and_the_model_context_are_wired():
     assert "set the notification aside (busy_now)" in block and "do not ask a new question" in block
     unparsed = _format_notification_context_block({"template_key": "followup_reason_ask", "opening_message": "q", "followup_result": "unparsed"})
     assert "in their own words" in unparsed
+
+
+# ---- Codex review of PR #146 (P2 x3) -------------------------------------------------------------------------------------
+_DENIALS = [
+    "سرم شلوغ نبود", "درگیر نبودم", "وقت استراحتم نبود", "خواب نبودم", "پیام‌ها زیاد پیام نبود",
+    "It was not bad timing", "There are not too many messages", "I was not busy", "it wasn't my rest time", "it was not confusing",
+    "لم أكن مشغولا", "ليس كثيرا",
+]
+
+
+@pytest.mark.parametrize("message", _DENIALS)
+def test_a_denied_reason_is_never_recorded_as_that_reason(message):
+    assert fa.parse_reason(message) is None
+
+
+@pytest.mark.parametrize("message,expected", [
+    ("وقت نداشتم", "busy_now"), ("حوصله نداشتم", "not_in_mood"), ("no time", "busy_now"), ("I was not in the mood", "not_in_mood"),
+    ("به من ربطی ندارد", "irrelevant"), ("I don't need it", "irrelevant"), ("نفهمیدم", "unclear"), ("مفید نبود", "not_helpful"),
+    ("وقتش مناسب نبود", "wrong_timing"), ("ما عندي وقت", "busy_now"), ("غير واضح", "unclear"),
+])
+def test_a_phrase_that_carries_its_own_negation_still_counts(message, expected):
+    assert fa.parse_reason(message) == expected
+
+
+def test_an_acknowledged_notification_is_not_followed_up_as_unanswered(db):
+    u = _user_in(db, "+17770098001")
+    n = _reminder(db, u)
+    _event(db, u.id, n.id, "notification_ack")
+    assert fa.pick_pending(db, u, now=_NOW) is None
+
+
+def test_the_question_and_the_answer_reach_the_model_in_structured_mode_too():
+    from backend.app.services.intelligence.orchestrator import _followup_only_context
+
+    ctx = {"template_key": "followup_reason_ask", "opening_message": "q?", "followup_result": "reason:busy_now",
+           "notification_summary": "must not travel", "body": "nor this"}
+    assert _followup_only_context(ctx) == {"template_key": "followup_reason_ask", "opening_message": "q?", "followup_result": "reason:busy_now"}
+    assert _followup_only_context({"template_key": "x", "category": "c"}) is None and _followup_only_context(None) is None
+    app = Path(__file__).resolve().parents[1] / "app"
+    orchestrator = (app / "services" / "intelligence" / "orchestrator.py").read_text(encoding="utf-8")
+    assert "_followup_only_context(generation_notification_context)" in orchestrator
+    brain = (app / "core" / "conversation" / "brain.py").read_text(encoding="utf-8")
+    assert "structured mode still hears the question Sedi asked" in brain

@@ -50,7 +50,7 @@ _NEGATIVE_EVENTS = frozenset({"notification_dislike", "notification_not_now", "n
 _ANSWERED_EVENTS = frozenset(
     {
         "notification_done", "notification_like", "notification_dislike", "notification_dislike_reason", "notification_not_now",
-        "notification_talk_later", "notification_open_chat", "chat_message",
+        "notification_talk_later", "notification_open_chat", "chat_message", "notification_ack",
     }
 )
 _ACTION_KEYS = frozenset({"reminder", "medication", "plan_nutrition", "plan_exercise", "post_event"})
@@ -275,40 +275,43 @@ def _re(*parts: str) -> re.Pattern:
     return re.compile("(?:" + "|".join(_fold_letters(p) for p in parts) + ")")
 
 
-# (reason, phrases that already carry their own meaning, positive-state words that a nearby negation turns around)
+# (reason, intrinsic phrases whose own words already carry a negation or the whole meaning, words/phrases that a nearby
+# negation turns around: «سرم شلوغ نبود», «It was not bad timing», «There are not too many messages» are DENIALS - Codex P2 PR #146)
 _REASON_RULES = (
     ("busy_now",
-     _re(r"وقت ندا", r"سرم شلوغ", r"کار داشتم", r"کار دارم", r"no time", r"عندي عمل", r"ما عندي وقت", r"لم يكن عندي وقت"),
-     _re(r"درگیر", r"مشغول", r"شلوغ", r"\bbusy\b", r"\bworking\b", r"\bmeeting\b", r"منشغل", r"مشغول")),
+     _re(r"وقت ندا", r"no time", r"ما عندي وقت", r"لم يكن عندي وقت"),
+     _re(r"سرم شلوغ", r"کار داشتم", r"کار دارم", r"عندي عمل", r"درگیر", r"مشغول", r"شلوغ", r"\bbusy\b", r"\bworking\b", r"\bmeeting\b", r"منشغل")),
     ("rest_time",
-     _re(r"وقت استراحت", r"وقت خواب", r"خواب بودم", r"خوابیده بودم", r"rest time", r"bedtime", r"was sleeping", r"was asleep", r"وقت الراحه", r"وقت النوم", r"كنت نائم"),
-     _re(r"استراحت", r"\brest\b", r"\bnap\b", r"راحه")),
+     None,
+     _re(r"وقت استراحت", r"وقت خواب", r"خواب بودم", r"خوابیده بودم", r"rest time", r"bedtime", r"was sleeping", r"was asleep", r"وقت الراحه",
+         r"وقت النوم", r"كنت نائم", r"استراحت", r"\brest\b", r"\bnap\b", r"راحه")),
     ("not_in_mood",
-     _re(r"حوصله", r"میل ندا", r"دلم نمی ?خواست", r"دلم نخواست", r"not in the mood", r"didn t feel like", r"did not feel like", r"wasn t in the mood",
-         r"can t be bothered", r"مزاج", r"ما عندي رغبه", r"قله رغبه", r"ما حبيت", r"بلا رغبه"),
+     _re(r"حوصله ندا", r"حوصله نبود", r"میل ندا", r"دلم نمی ?خواست", r"دلم نخواست", r"not in the mood", r"didn t feel like", r"did not feel like",
+         r"wasn t in the mood", r"can t be bothered", r"ما عندي مزاج", r"ما عندي رغبه", r"قله رغبه", r"ما حبيت", r"بلا رغبه"),
      None),
     ("too_frequent",
-     _re(r"زیاد پیام", r"خیلی پیام", r"مدام پیام", r"زیادی", r"too many", r"too often", r"too frequent", r"كثير", r"كثره"),
-     None),
+     None,
+     _re(r"زیاد پیام", r"خیلی پیام", r"مدام پیام", r"زیادی", r"too many", r"too often", r"too frequent", r"كثير", r"كثره")),
     ("irrelevant",
-     _re(r"ربطی ندار", r"مربوط نیست", r"به من نمی ?خور", r"نیازی ندار", r"لازم ندار", r"irrelevant", r"not relevant", r"don t need", r"not for me", r"لا يخصني", r"ما يخصني", r"لا احتاج"),
-     None),
+     _re(r"ربطی ندار", r"مربوط نیست", r"به من نمی ?خور", r"نیازی ندار", r"لازم ندار", r"not relevant", r"don t need", r"not for me", r"لا يخصني",
+         r"ما يخصني", r"لا احتاج"),
+     _re(r"irrelevant")),
     ("unclear",
-     _re(r"نفهمیدم", r"نامفهوم", r"گنگ", r"مبهم", r"didn t understand", r"did not understand", r"unclear", r"confusing", r"ما فهمت", r"غير واضح"),
-     None),
+     _re(r"نفهمیدم", r"نامفهوم", r"didn t understand", r"did not understand", r"ما فهمت", r"غير واضح"),
+     _re(r"گنگ", r"مبهم", r"unclear", r"confusing")),
     ("wrong_timing",
-     _re(r"وقتش مناسب نبود", r"وقت مناسب نبود", r"بد موقع", r"بد وقت", r"bad timing", r"wrong time", r"not a good time", r"توقيت", r"وقت غير مناسب"),
-     None),
+     _re(r"وقتش مناسب نبود", r"وقت مناسب نبود", r"not a good time", r"وقت غير مناسب"),
+     _re(r"بد موقع", r"بد وقت", r"bad timing", r"wrong time", r"توقيت")),
     ("not_helpful",
-     _re(r"به درد نخور", r"مفید نبود", r"کمکی نکرد", r"بی ?فایده", r"not helpful", r"useless", r"didn t help", r"ما فادني", r"غير مفيد", r"بلا فايده"),
-     None),
+     _re(r"به درد نخور", r"مفید نبود", r"کمکی نکرد", r"بی ?فایده", r"not helpful", r"didn t help", r"ما فادني", r"غير مفيد", r"بلا فايده"),
+     _re(r"useless")),
 )
-_NEGATION_NEAR = _re(r"نبود", r"نیستم", r"نبودم", r"نیست", r"\bnot\b", r"\bwasn t\b", r"\bn t\b", r"\bnever\b", r"\bno\b", r"لم ", r"لست", r"ما كنت")
+_NEGATION_NEAR = _re(r"نبود", r"نیستم", r"نبودم", r"نیست", r"\bnot\b", r"\bwasn t\b", r"\bn t\b", r"\bnever\b", r"\bno\b", r"لم ", r"لست", r"ليس", r"ما كنت")
 
 
 def _negated_near(folded: str, start: int, end: int) -> bool:
     """A negation right after («درگیر نبودم») or right before («I was not busy») the matched state word."""
-    window = " ".join(folded[:start].split()[-2:] + ["|"] + folded[end:].split()[:3])
+    window = " ".join(folded[:start].split()[-4:] + ["|"] + folded[end:].split()[:3])
     return bool(_NEGATION_NEAR.search(window))
 
 
@@ -320,10 +323,10 @@ def parse_reason(message: str) -> Optional[str]:
     if not folded or len(folded.split()) > _MAX_REPLY_WORDS or "?" in raw or "؟" in raw:
         return None
     matched: list[str] = []
-    for name, phrases, states in _REASON_RULES:
-        hit = bool(phrases.search(folded))
-        if not hit and states is not None:
-            for m in states.finditer(folded):
+    for name, intrinsic, checked in _REASON_RULES:
+        hit = intrinsic is not None and bool(intrinsic.search(folded))
+        if not hit and checked is not None:
+            for m in checked.finditer(folded):
                 if not _negated_near(folded, m.start(), m.end()):
                     hit = True
                     break

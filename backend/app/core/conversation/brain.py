@@ -740,6 +740,10 @@ class ConversationBrain:
                     messages.append({"role": "system", "content": notification_block})
                 _append_recent_history(messages, self.memory, user_id, limit=10)
             else:
+                # R-052 / R-070: structured mode still hears the question Sedi asked and how the user answered it.
+                followup_block = _format_notification_context_block(notification_context) if notification_context else None
+                if followup_block:
+                    messages.append({"role": "system", "content": followup_block})
                 # R-014: structured mode also sees the last turns (it sent none, so Sedi could not follow the thread).
                 _append_recent_history(messages, self.memory, user_id, limit=8)
 

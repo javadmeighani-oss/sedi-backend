@@ -377,6 +377,17 @@ _BANNED_NOTIF_KEYS = frozenset(
     {"body", "raw_body", "context_json", "health", "dose", "dosage", "notification_body"}
 )
 
+_FOLLOWUP_CONTEXT_KEYS = ("template_key", "opening_message", "followup_result")
+
+
+def _followup_only_context(context: Optional[Mapping[str, Any]]) -> Optional[dict]:
+    """R-052 / R-070: in structured mode the model must still know the question Sedi just asked and how the user answered it
+    (both are Sedi's own sentence / a bounded token - never notification body or health data). Nothing else is forwarded."""
+    if not context or not (context.get("opening_message") or context.get("followup_result")):
+        return None
+    return {k: context[k] for k in _FOLLOWUP_CONTEXT_KEYS if context.get(k) is not None}
+
+
 _ASSESS_REASON = {
     RiskLevel.NONE: ReasonCode.SAFETY_RISK_NONE,
     RiskLevel.CAUTION: ReasonCode.SAFETY_RISK_CAUTION,
@@ -1792,7 +1803,7 @@ class IntelligenceOrchestrator:
                 )
                 call_kwargs: Dict[str, Any] = {
                     "notification_context": (
-                        None
+                        _followup_only_context(generation_notification_context)
                         if use_structured_context
                         else generation_notification_context
                     ),
