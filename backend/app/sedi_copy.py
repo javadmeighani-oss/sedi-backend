@@ -1454,4 +1454,24 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ['منذ أيام وأنا أتابع. ما الذي أعاقك؟ هل أخفّف الخطة؟', 'ما زلت بجانبك. هل وقت آخر أنسب لك؟ أخبرني لأوفّق الخطة مع يومك.', 'خطوة اليوم قد تكون أصغر؛ خمس دقائق فقط. أخبرني كيف سارت الأمور.'],
         'en': ['I have been following up for a few days. What got in the way? I can make the plan lighter.', 'I am still with you. Tell me a better time and I will fit the plan to your day.', "Today's step can be smaller - just five minutes. Tell me how it went."],
     },
+    'commitment.lighter.no_time': {
+        'fa': 'می\u200cدانم روزت شلوغ بود. امروز فقط یک قدم پنج\u200cدقیقه\u200cای؛ بگو چطور شد.',
+        'ar': 'أعرف أن يومك كان مزدحماً. اليوم خطوة واحدة من خمس دقائق فقط؛ أخبرني كيف سارت.',
+        'en': 'I know your day was packed. Today just one five-minute step; tell me how it went.',
+    },
+    'commitment.lighter.dont_like': {
+        'fa': 'اگر این روش به دلت ننشست، راه دیگری هم هست. بگو کدام را بیشتر می\u200cپسندی تا برنامه را عوض کنم.',
+        'ar': 'إن لم تعجبك هذه الطريقة فهناك طريقة أخرى. أخبرني أيها تفضّل لأغيّر الخطة.',
+        'en': 'If this way did not suit you, there is another one. Tell me which you prefer and I will change the plan.',
+    },
+    'commitment.lighter.not_feeling_well': {
+        'fa': 'حالت خوب نبود؛ امروز فقط استراحت کن و مراقب خودت باش. فردا دوباره سر می\u200cزنم.',
+        'ar': 'لم تكن بخير؛ اليوم استرح فقط واعتنِ بنفسك. سأطمئن عليك غداً.',
+        'en': 'You were not feeling well; today just rest and look after yourself. I will check in again tomorrow.',
+    },
+    'commitment.lighter.other': {
+        'fa': 'برنامه را سبک\u200cتر کردم. امروز فقط یک قدم کوچک؛ بگو چطور شد.',
+        'ar': 'خفّفت الخطة. اليوم خطوة صغيرة واحدة فقط؛ أخبرني كيف سارت.',
+        'en': 'I made the plan lighter. Today just one small step; tell me how it went.',
+    },
 }
