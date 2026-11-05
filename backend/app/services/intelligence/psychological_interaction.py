@@ -406,8 +406,13 @@ def append_discovery_question(primary_answer: str, localized_question: str) -> s
 def append_discovery_questions(
     primary_answer: str, localized_questions: Sequence[str]
 ) -> str:
-    """Primary answer first, then up to two concise discovery questions."""
+    """Primary answer first, then up to two concise discovery questions.
+
+    R-066/R-020: one question per reply - when the answer already ends with a question, the system question is NOT
+    stacked under it (the answer is returned unchanged)."""
     answer = (primary_answer or "").rstrip()
+    if answer.rstrip("\"'») ").endswith(("?", "\u061f")):
+        return answer
     questions: list[str] = []
     for raw in localized_questions or ():
         q = (raw or "").strip()

@@ -737,6 +737,15 @@ class ConversationBrain:
                 _hint = binding_hint(_last_assistant, user_message, lang)
                 if _hint:
                     messages.append({"role": "system", "content": _hint})
+                # R-066/R-067: no hard cap on questions; after several question-replies in a row a SOFT hint asks her to
+                # advance toward a complete, correct conclusion (hypothesis + reason + a step).
+                from backend.app.services.intelligence.conversation_flow import advance_hint
+
+                _advance = advance_hint(
+                    [str(m.get("content") or "") for m in messages if m.get("role") == "assistant"], lang
+                )
+                if _advance:
+                    messages.append({"role": "system", "content": _advance})
             except Exception as _bind_err:
                 print(f"[BRAIN WARNING] answer binding skipped: {_bind_err}")
 
@@ -852,6 +861,10 @@ class ConversationBrain:
                         sedi_response = strip_self_limit_disclaimers(sedi_response, lang)
                         # R-049: a permanent companion and professional adviser speaks with certainty - no «اگه دوست داری».
                         sedi_response = strip_hedging_offers(sedi_response, lang)
+                        # R-066: never open by repeating the user's own words.
+                        from backend.app.services.intelligence.conversation_flow import strip_echo
+
+                        sedi_response = strip_echo(sedi_response, user_message, lang)
                         sedi_response = limit_questions(sedi_response, 1)
                         # R-064: one typography contract (paragraphs, punctuation, half-space, digits) for every reply.
                         from backend.app.typography import normalize as _normalize_typography
