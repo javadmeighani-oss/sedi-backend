@@ -43,8 +43,12 @@ def resolve_semantic_family(task: models.CareFollowUpTask) -> I10SemanticFamily:
     return I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP
 
 
+def _non_medical_post_event(task: models.CareFollowUpTask) -> bool:
+    return task.source == FollowUpTaskSource.POST_EVENT.value and parse_bounded_meta(task.description)[1].domain in ("meeting", "exam", "deadline")
+
+
 def resolve_privacy_class(task: models.CareFollowUpTask) -> I10PrivacyClass:
-    if task.source == FollowUpTaskSource.POST_EVENT.value:
+    if task.source == FollowUpTaskSource.POST_EVENT.value and not _non_medical_post_event(task):
         return I10PrivacyClass.HEALTH_SENSITIVE
     return I10PrivacyClass.PRIVATE
 
@@ -222,7 +226,7 @@ def build_followup_payload(
         }
     )
     notif_type = "connection_ping"
-    if task.source == FollowUpTaskSource.POST_EVENT.value:
+    if task.source == FollowUpTaskSource.POST_EVENT.value and not _non_medical_post_event(task):
         notif_type = "health_alert"
     return NotificationPayload(
         user_id=task.user_id,

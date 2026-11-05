@@ -1624,4 +1624,39 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'أردت فقط أن أطمئن أن ذلك الأمر قد تم. هل أنجزته؟ وإن لم يتم، فما الذي أعاق؟',
         'en': 'I only wanted to be sure that got done. Did you do it? If not, what got in the way?',
     },
+    'session.origin.post_event.visit': {
+        'fa': 'ویزیت «{title}» چطور پیش رفت: پزشک چه گفت و چه چیزی تجویز کرد یا خواست؟',
+        'ar': 'كيف سارت زيارة «{title}»: ماذا قال الطبيب، وماذا وصف أو طلب منك؟',
+        'en': 'How did {title} go: what did the doctor say, and what did they prescribe or ask of you?',
+    },
+    'session.origin.post_event.lab': {
+        'fa': 'آزمایش «{title}» انجام شد و جواب را چه روزی می\u200cدهند؟',
+        'ar': 'هل تم «{title}»، وفي أي يوم تصدر النتيجة؟',
+        'en': 'Did {title} get done, and on what day will the result be ready?',
+    },
+    'session.origin.post_event.meeting': {
+        'fa': 'جلسه\u200cی «{title}» چطور پیش رفت و چه کار تازه\u200cای از آن بیرون آمد؟',
+        'ar': 'كيف سار اجتماع «{title}»، وما المهمة الجديدة التي خرجت منه؟',
+        'en': 'How did {title} go, and what new task came out of it?',
+    },
+    'session.origin.post_event.exam': {
+        'fa': 'امتحان «{title}» چطور گذشت و خودت چه حسی از آن داری؟',
+        'ar': 'كيف مر امتحان «{title}»، وكيف تشعر تجاهه؟',
+        'en': 'How did {title} go, and how do you feel about it?',
+    },
+    'session.origin.post_event.deadline': {
+        'fa': '«{title}» را تحویل دادی و چه چیزی از آن باقی مانده است؟',
+        'ar': 'هل سلمت «{title}»، وما الذي تبقى منه؟',
+        'en': 'Did you hand in {title}, and what is still left?',
+    },
+    'session.origin.post_event.event': {
+        'fa': '«{title}» چطور پیش رفت و نتیجه\u200cاش چه شد؟',
+        'ar': 'كيف سار «{title}»، وماذا كانت النتيجة؟',
+        'en': 'How did {title} go, and what came of it?',
+    },
+    'ask.outcome': {
+        'fa': 'پیش\u200cتر پرسیدم رویدادت چطور پیش رفت و جوابی نرسید؛ نتیجه\u200cاش چه شد؟',
+        'ar': 'سألتك سابقا كيف سار موعدك ولم يصلني رد؛ ماذا كانت النتيجة؟',
+        'en': 'Earlier I asked how your event went and heard nothing back; what came of it?',
+    },
 }

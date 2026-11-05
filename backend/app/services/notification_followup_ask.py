@@ -128,7 +128,9 @@ def _completed_elsewhere(db: Session, user_id: int, notification: models.Notific
             event = db.query(models.UserEvent).filter(models.UserEvent.id == int(source_id), models.UserEvent.user_id == user_id).first()
             if event is None or (event.status or "") in ("completed", "cancelled", "missed"):
                 return True
-            starts = _naive_utc(event.starts_at)
+            from backend.app.services.i10.event_reminder_i10_adapter import event_starts_utc
+
+            starts = event_starts_utc(event)  # starts_at is local wall-clock time of the event's own zone
             return starts is not None and starts > now_naive
         if key == "medication":
             occ = (
@@ -157,7 +159,10 @@ def _completed_elsewhere(db: Session, user_id: int, notification: models.Notific
                 .first()
             )
             return action is None or action.status != "ACTIVE"
-        return False  # post_event: the question itself
+        from backend.app.services.i10.event_outcome import _already_recorded, event_of_notification
+
+        found = event_of_notification(db, notification, user_id)  # post_event: the outcome may already be recorded
+        return found is None or _already_recorded(db, user_id, found[0])
     except Exception:
         return True
 
@@ -231,6 +236,8 @@ def pick_pending(db: Session, user: models.User, *, now: Optional[datetime] = No
 
 
 def question_text(pending: Pending, lang: str) -> str:
+    if pending.kind == "unanswered" and pending.subject_key == "post_event":
+        return sedi_copy.t("ask.outcome", lang)
     subject = sedi_copy.t(f"ask.subject.{pending.subject_key}", lang, default="en")
     key = "ask.reason" if pending.kind == "reason" else "ask.unanswered"
     return sedi_copy.t(key, lang, subject=subject)
@@ -402,7 +409,13 @@ def answer_pending(db: Session, user_id: int, message: str, *, now: Optional[dat
         elif kind == "unanswered":
             from backend.app.services.notification_openers import parse_followup_reply
 
-            verdict = parse_followup_reply(message)
+            if meta.get("subject") == "post_event":
+                from backend.app.services.i10.event_outcome import apply_chat_answer as record_outcome
+
+                result = (record_outcome(db, notification, user_id, message) if notification is not None else None) or "unparsed"
+                verdict = None
+            else:
+                verdict = parse_followup_reply(message)
             if verdict is not None:
                 result = "done" if verdict[0] == "done" else f"not_done:{verdict[1]}"
                 if notification is not None:

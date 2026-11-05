@@ -131,6 +131,10 @@ def _care_checkin_may_send(db: Session, task: models.CareFollowUpTask, now: date
     return bool(verdict.get("allowed"))
 
 
+def _is_post_event(task: models.CareFollowUpTask) -> bool:
+    return parse_bounded_meta(task.description)[1].follow_up_kind == "post_event"
+
+
 def _is_assurance(task: models.CareFollowUpTask) -> bool:
     return parse_bounded_meta(task.description)[1].follow_up_kind == "assurance"
 
@@ -184,6 +188,11 @@ def process_single_follow_up_task(
         return False
     if _is_assurance(task) and not _assurance_may_send(db, task, now):
         return False
+    if _is_post_event(task):
+        from backend.app.services.i10.event_outcome import post_event_may_send
+
+        if not post_event_may_send(db, task, now):
+            return False
     occurrence_key = build_followup_occurrence_key(task_id=task.id)
     existing = (
         db.query(models.I10NotificationDecision.id)
@@ -229,6 +238,12 @@ def process_due_follow_up_tasks(db: Session, *, now: Optional[datetime] = None) 
         create_due_assurance_tasks(db, now=when)
     except Exception:
         logger.exception("[R-070] assurance sweep failed")
+    try:
+        from backend.app.services.i10.event_outcome import create_due_event_outcome_tasks
+
+        create_due_event_outcome_tasks(db, now=when)
+    except Exception:
+        logger.exception("[R-071] event outcome sweep failed")
     rows = (
         db.query(models.CareFollowUpTask)
         .filter(
