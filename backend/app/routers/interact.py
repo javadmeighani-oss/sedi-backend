@@ -338,6 +338,25 @@ async def chat(
             db=db,
             viewer_user_id=user_id,
         )
+        # R-052: the chat continues the push - the model is told the exact opening message Sedi spoke (rebuilt
+        # deterministically, never stored) and a short answer to a commitment opener updates the commitment.
+        try:
+            from backend.app import models as _models
+            from backend.app.services import a3_session_open as _a3
+            from backend.app.services.notification_openers import apply_chat_answer
+
+            _opener_user = db.query(_models.User).filter(_models.User.id == user_id).first()
+            if _opener_user is not None:
+                _opening = _a3.build_notification_origin_opener(
+                    db, _opener_user, notification, language=_a3._lang(_opener_user)
+                )
+                if _opening:
+                    notification_context["opening_message"] = _opening[:256]
+                _answered = apply_chat_answer(db, notification, user_id, message)
+                if _answered:
+                    notification_context["followup_result"] = _answered
+        except Exception:
+            pass
         create_chat_message_event(
             db,
             user_id=user_id,
