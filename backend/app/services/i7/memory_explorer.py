@@ -563,8 +563,7 @@ def search(
     limit: int = MAX_SEARCH_RESULTS,
     now: Optional[datetime] = None,
 ) -> dict[str, Any]:
-    """Keyword search. Raw chat text only inside the 30-day window; older days are searched through derived summaries,
-    events, day notes and facts — never raw chat."""
+    """Keyword search over the user's raw chat text (permanent, R-054), derived summaries, events, day notes and facts."""
     from backend.app.services.i6.consent_service import PERM_READ
 
     needle = norm(query)

@@ -189,7 +189,9 @@ def test_b3_revoked_and_expired_and_cross_user_not_projected(db):
         idempotency_key="expired-turn",
         commit=True,
     )
+    # R-054: a governed turn no longer expires; a turn marked INELIGIBLE (durable_write off) is what stays hidden
     expired.memory.retain_until = datetime.now(timezone.utc) - timedelta(days=1)
+    expired.memory.durable_write = False
     db.commit()
 
     stranger_items = CurrentMemoryContextAdapter().load(

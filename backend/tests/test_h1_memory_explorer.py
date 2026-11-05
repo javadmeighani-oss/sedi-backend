@@ -21,13 +21,13 @@ def _today():
     return datetime.now(timezone.utc).astimezone(TEHRAN).date()
 
 
-def _turn(db, uid, days_ago, text, reply="باشه", *, hour=10):
-    """A chat turn `days_ago` local days back at `hour`:00 (Tehran); retention follows the 30-day rule."""
+def _turn(db, uid, days_ago, text, reply="باشه", *, hour=10, durable=True, retain_days=36500):
+    """A governed chat turn `days_ago` local days back at `hour`:00 (Tehran); R-054: governed raw is permanent."""
     day = _today() - timedelta(days=days_ago)
     at = TEHRAN.localize(datetime(day.year, day.month, day.day, hour, 0)).astimezone(timezone.utc)
     row = models.Memory(
         user_id=uid, user_message=text, sedi_response=reply, language="fa",
-        created_at=at.replace(tzinfo=None), retain_until=at + timedelta(days=30),
+        created_at=at.replace(tzinfo=None), retain_until=at + timedelta(days=retain_days), durable_write=durable,
     )
     db.add(row)
     db.commit()
@@ -35,18 +35,22 @@ def _turn(db, uid, days_ago, text, reply="باشه", *, hour=10):
     return row, day
 
 
-def test_day_shows_raw_only_inside_thirty_days(client, db):
+def test_day_shows_the_raw_text_of_every_day_forever(client, db):
+    """R-054: the raw text of a governed turn never expires; only an ineligible (non-durable) turn stays hidden."""
     u = _user(db, "+17770031001", tz="Asia/Tehran")
     _seed_consent(db, u.id)
     _, recent = _turn(db, u.id, 2, "امروز نوبت دکتر دارم")
     _, old = _turn(db, u.id, 60, "درباره خواب حرف زدیم")
+    _, hidden_day = _turn(db, u.id, 90, "این نوبت نامعتبر است", durable=False, retain_days=-1)  # marked ineligible
 
     d = client.get("/memory/day", params={"date": recent.isoformat()}, headers=_auth(u.id)).json()["data"]
     assert d["raw_visible"] is True and d["days_ago"] == 2
     assert [t["user_message"] for t in d["turns"]] == ["امروز نوبت دکتر دارم"] and d["turns"][0]["time"] == "10:00"
 
     o = client.get("/memory/day", params={"date": old.isoformat()}, headers=_auth(u.id)).json()["data"]
-    assert o["raw_visible"] is False and o["turns"] == []  # the raw text of an old day is never returned
+    assert o["raw_visible"] is True and [t["user_message"] for t in o["turns"]] == ["درباره خواب حرف زدیم"]
+    h = client.get("/memory/day", params={"date": hidden_day.isoformat()}, headers=_auth(u.id)).json()["data"]
+    assert h["turns"] == []  # an ineligible (non-durable) turn is never returned
 
 
 def test_old_day_correction_is_a_note_beside_the_summary_not_a_rewrite(client, db):
@@ -86,7 +90,7 @@ def test_notes_are_consent_gated_and_isolated(client, db):
     assert client.post("/memory/day-notes", json={"day": "نادرست", "text": "x"}, headers=_auth(u.id)).status_code == 422
 
 
-def test_turn_edit_and_delete_inside_window_only(client, db):
+def test_turn_edit_and_delete_work_on_every_own_governed_turn_never_on_anothers(client, db):
     u = _user(db, "+17770031005", tz="Asia/Tehran")
     other = _user(db, "+17770031006", tz="Asia/Tehran")
     _seed_consent(db, u.id)
@@ -101,7 +105,8 @@ def test_turn_edit_and_delete_inside_window_only(client, db):
     db.expire_all()
     assert "user_edited_at" in (db.query(models.Memory).get(row.id).provenance_json or "")
 
-    assert client.patch(f"/memory/turns/{expired.id}", json={"user_message": "x"}, headers=_auth(u.id)).status_code == 404
+    # R-054: an old governed turn is permanent AND stays editable by its owner; another user's turn is never reachable
+    assert client.patch(f"/memory/turns/{expired.id}", json={"user_message": "x"}, headers=_auth(u.id)).status_code == 200
     assert client.patch(f"/memory/turns/{foreign.id}", json={"user_message": "x"}, headers=_auth(u.id)).status_code == 404
     assert client.patch(f"/memory/turns/{row.id}", json={}, headers=_auth(u.id)).status_code == 422
 
@@ -110,17 +115,17 @@ def test_turn_edit_and_delete_inside_window_only(client, db):
     assert d["turns"] == []
 
 
-def test_search_covers_recent_chat_and_old_events_but_never_old_raw_chat(client, db):
+def test_search_covers_the_whole_raw_chat_and_old_events(client, db):
     u = _user(db, "+17770031007", tz="Asia/Tehran")
     _seed_consent(db, u.id)
     _turn(db, u.id, 3, "امروز فشار خون را اندازه گرفتم")
-    _turn(db, u.id, 70, "فشار خون من بالاست")  # expired raw: must stay invisible
+    _turn(db, u.id, 70, "فشار خون من بالاست")  # R-054: old governed raw stays searchable
     record_life_event(db, u.id, kind="medical_document", summary="آزمایش فشار خون سالانه", occurred_at=datetime.utcnow() - timedelta(days=90))
 
     res = client.get("/memory/search", params={"q": "فشار خون"}, headers=_auth(u.id)).json()["data"]
     kinds = sorted(r["type"] for r in res["results"])
-    assert kinds == ["chat", "event"]
-    assert all("بالاست" not in r["snippet"] for r in res["results"])
+    assert kinds == ["chat", "chat", "event"]
+    assert any("بالاست" in r["snippet"] for r in res["results"])
     assert res["results"][0]["type"] == "chat"  # newest first
 
     # Arabic letter variants (ي/ك) normalise to the Persian spelling

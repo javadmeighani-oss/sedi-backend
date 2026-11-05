@@ -86,8 +86,8 @@ def _patch_gpt(text: str = "Governed Sedi response.", captured: dict | None = No
     )
 
 
-def test_raw_retention_days_unchanged():
-    assert RAW_VISIBLE_DAYS == 30
+def test_governed_raw_retention_is_permanent_and_reauth_unchanged():
+    assert RAW_VISIBLE_DAYS == 36500  # R-054
     assert SECURITY_REAUTH_DAYS == 30
 
 
