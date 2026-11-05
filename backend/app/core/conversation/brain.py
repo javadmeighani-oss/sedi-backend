@@ -727,6 +727,19 @@ class ConversationBrain:
                 notification_context=notification_context,
             )
             
+            # R-063/R-065: a short reply to Sedi's own question is the ANSWER to it (general answer-binding).
+            try:
+                from backend.app.services.intelligence.answer_binding import binding_hint
+
+                _last_assistant = next(
+                    (str(m.get("content") or "") for m in reversed(messages) if m.get("role") == "assistant"), ""
+                )
+                _hint = binding_hint(_last_assistant, user_message, lang)
+                if _hint:
+                    messages.append({"role": "system", "content": _hint})
+            except Exception as _bind_err:
+                print(f"[BRAIN WARNING] answer binding skipped: {_bind_err}")
+
             # Always append current user message
             messages.append({"role": "user", "content": user_message})
             
@@ -840,6 +853,10 @@ class ConversationBrain:
                         # R-049: a permanent companion and professional adviser speaks with certainty - no «اگه دوست داری».
                         sedi_response = strip_hedging_offers(sedi_response, lang)
                         sedi_response = limit_questions(sedi_response, 1)
+                        # R-064: one typography contract (paragraphs, punctuation, half-space, digits) for every reply.
+                        from backend.app.typography import normalize as _normalize_typography
+
+                        sedi_response = _normalize_typography(sedi_response, lang)
                     except Exception as _guard_err:
                         print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
                     if not use_intelligence_safety:

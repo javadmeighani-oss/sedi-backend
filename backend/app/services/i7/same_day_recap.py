@@ -80,21 +80,16 @@ def _join(items: list[str], lang: str) -> str:
 
 
 def same_day_opener(lang: str, hello: str, recap: dict[str, Any]) -> str:
-    """One warm message: what we talked about today + continue / something new / your own topic."""
+    """One message: what we talked about today + ONE direct way to continue (R-049: no menu of offers)."""
+    from backend.app import sedi_copy
+
     lang = _lang(lang)
     topics = _join(list(recap.get("topics") or []), lang)
     thread = bool(recap.get("open_question"))
-    if lang == "fa":
-        what = f"امروز قبلاً درباره‌ی {topics} حرف زدیم" if topics else "امروز قبلاً با هم حرف زده بودیم"
-        tail = " و آخرش یه سؤال بی‌جواب مونده بود" if thread else ""
-        return f"{hello} {what}{tail}. می‌خوای همون رو ادامه بدیم، یه پیشنهاد تازه بدم، یا خودت بگی چی تو ذهنته؟"
-    if lang == "ar":
-        what = f"تحدثنا اليوم قبل قليل عن {topics}" if topics else "تحدثنا اليوم قبل قليل"
-        tail = " وبقي في النهاية سؤال بلا جواب" if thread else ""
-        return f"{hello} {what}{tail}. هل تحب أن نكمل، أم أقترح عليك فكرة جديدة، أم تخبرني بما يشغل بالك؟"
-    what = f"Earlier today we talked about {topics}" if topics else "We already talked earlier today"
-    tail = ", and one question was left unanswered" if thread else ""
-    return f"{hello} {what}{tail}. Want to pick that up, hear a fresh idea from me, or tell me what is on your mind?"
+    what = sedi_copy.t("session.same_day.what", lang, topics=topics) if topics else sedi_copy.t("session.same_day.what_none", lang)
+    tail = sedi_copy.t("session.same_day.tail_open", lang) if thread else ""
+    ask = sedi_copy.t("session.same_day.ask_open" if thread else "session.same_day.ask", lang)
+    return f"{hello} {what}{tail}. {ask}"
 
 
 def today_so_far_hint(db: Session, user_id: int, language: Optional[str], *, now: Optional[datetime] = None) -> str:

@@ -429,7 +429,7 @@ def test_opener_after_cooldown_uses_authorized_memory(client, db):
     assert resp.status_code == 200, resp.text
     msg = (resp.json().get("message") or "").lower()
     assert "walking" in msg or "exercise" in msg
-    assert "pick that up" in msg or "continue" in msg
+    assert "what has changed" in msg.lower() or "continue" in msg.lower()
 
 
 def test_opener_after_cooldown_revoked_no_memory(client, db):

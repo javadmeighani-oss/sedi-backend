@@ -46,20 +46,21 @@ def _earlier_today(db, uid, texts, *, reply="باشه"):
     db.commit()
 
 
-def test_returning_the_same_day_gets_a_recap_opener_with_three_ways_forward(db):
+def test_returning_the_same_day_gets_a_recap_opener_with_one_direct_question(db):
     u = _fa_user(db, "+17770051001")
     _earlier_today(db, u.id, ["میخوام یه رژیم غذایی برام بچینی", "این چند شب خوابم خوب نیست", "باشه"])
     text = so.maybe_proactive_opener(db, u)
-    assert text and text.startswith("سلام جواد جان!")
+    assert text and text.startswith("سلام جواد.")
     assert "امروز قبلاً درباره‌ی" in text and "برنامه‌ی غذایی و تغذیه‌ات" in text and "خوابت" in text
-    assert "همون رو ادامه بدیم" in text and "پیشنهاد تازه" in text and "تو ذهنته" in text
+    # R-049/R-062: ONE direct question, no menu of offers
+    assert "از کجا ادامه بدهیم؟" in text and "پیشنهاد تازه" not in text and "تو ذهنته" not in text and text.count("؟") == 1
     assert "رژیم غذایی برام" not in text and "خوش برگشتی" not in text and "سدی" not in text  # never the user's words
 
 
 def test_an_unanswered_question_is_mentioned(db):
     u = _fa_user(db, "+17770051002")
     _earlier_today(db, u.id, ["میخوام برنامه ورزشی داشته باشم"], reply="چند روز در هفته می‌تونی ورزش کنی؟")
-    assert "یه سؤال بی‌جواب مونده بود" in so.maybe_proactive_opener(db, u)
+    assert "یک سؤال بی‌پاسخ مانده بود" in so.maybe_proactive_opener(db, u)
 
 
 def test_a_crash_restart_right_after_a_message_is_not_a_return(db):
@@ -100,8 +101,8 @@ def test_only_the_users_own_chats_are_recapped(db):
 @pytest.mark.parametrize("lang,needle", [("en", "Earlier today we talked about"), ("ar", "تحدثنا اليوم قبل قليل عن")])
 def test_other_languages(db, lang, needle):
     recap = {"topics": ["your sleep", "your family"], "count": 2, "open_question": False}
-    text = sdr.same_day_opener(lang, "Hi!", recap)
-    assert needle in text and text.startswith("Hi!")
+    text = sdr.same_day_opener(lang, "Hello.", recap)
+    assert needle in text and text.startswith("Hello.")
 
 
 def test_the_chat_model_gets_todays_topics_for_a_later_continue(db):

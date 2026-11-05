@@ -735,7 +735,7 @@ def test_product_ownership_skips_legacy_gate3_pre_post():
     assert calls["pre"] == 0
     assert calls["post"] == 0
     assert calls["gpt"] == 1
-    assert "generated ok" in out["message"]
+    assert "generated ok" in out["message"].lower()  # R-064: the typography contract capitalises a paragraph start
 
 
 def test_direct_brain_default_preserves_legacy_safety():

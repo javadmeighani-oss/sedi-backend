@@ -759,18 +759,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': "Hello{name_part}. I'm Sedi, your health companion and adviser. I carefully remember our conversations and the state of your body and mind so I always know where you stand; on that basis I give you clear advice, write you a plan and stay beside you until it is done. To begin, tell me exactly what you want to change in your health or your life.",
     },
     'session.openers': {
-        'fa': [
-            '{hello} امروز حالت چطوره؟ هر چی تو ذهنته بگو، من گوش می\u200cدم.',
-            '{hello} دلم می\u200cخواست احوالت رو بپرسم؛ امروز چه خبر؟',
-        ],
-        'ar': [
-            '{hello} كيف حالك اليوم؟ مهما كان في بالك، أنا أُصغي إليك.',
-            '{hello} أحببت أن أطمئن عليك. ما الجديد اليوم؟',
-        ],
-        'en': [
-            "{hello} How is your day going? Whatever is on your mind, I'm listening.",
-            "{hello} I wanted to check in on you. What's new today?",
-        ],
+        'fa': ['{hello} می\u200cخواهم امروز با هم قدم مشخصی برداریم. دقیقاً چه چیزی را می\u200cخواهی در سلامتت یا زندگی\u200cات تغییر بدهی؟', '{hello} امروز بدن و روانت چطور است؟ از همان\u200cجا شروع کنیم.'],
+        'ar': ['{hello} أريد أن نخطو اليوم خطوة محددة معاً. ما الذي تريد تغييره بالضبط في صحتك أو حياتك؟', '{hello} كيف حال جسدك ونفسك اليوم؟ لنبدأ من هنا.'],
+        'en': ['{hello} I want us to take one concrete step today. What exactly do you want to change in your health or your life?', '{hello} How are your body and mind today? Let us start there.'],
     },
 
     # ---- inline sites (moved out of function bodies) --------------------
@@ -900,9 +891,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'the symptoms of {l}',
     },
     'session.continuity': {
-        'fa': '{hello} آخرین بار درباره\u200cی {topic} حرف می\u200cزدیم. می\u200cخوای همون رو ادامه بدیم، یا امروز یه موضوع دیگه تو ذهنته؟',
-        'ar': '{hello} آخر مرة تحدثنا عن {topic}. هل تحب أن نكمل، أم عندك موضوع آخر اليوم؟',
-        'en': '{hello} Last time we talked about {topic}. Want to pick that up again, or is something else on your mind today?',
+        'fa': '{hello} آخرین بار درباره\u200cی {topic} صحبت کردیم. از آن زمان تا امروز در این مورد چه تغییری کرده است؟',
+        'ar': '{hello} آخر مرة تحدثنا عن {topic}. ما الذي تغيّر في هذا الأمر منذ ذلك الحين؟',
+        'en': '{hello} Last time we talked about {topic}. What has changed on that since then?',
     },
     'session.presence_continuation': {
         'fa': '{prefix}آخرین بار درباره\u200cی {topic} حرف می\u200cزدیم. می\u200cخوای همون رو ادامه بدیم، یا یه موضوع دیگه تو ذهنته؟',
@@ -1185,14 +1176,14 @@ CATALOG: Dict[str, Dict[str, Any]] = {
 
     # ---- session openers (a3_session_open) ---------------------------------
     'session.hello': {
-        'fa': 'سلام{name_part} جان!',
-        'ar': 'أهلاً{name_part}!',
-        'en': 'Hi{name_part}!',
+        'fa': 'سلام{name_part}.',
+        'ar': 'أهلاً{name_part}.',
+        'en': 'Hello{name_part}.',
     },
     'session.hello_noname': {
-        'fa': 'سلام!',
-        'ar': 'أهلاً!',
-        'en': 'Hi!',
+        'fa': 'سلام.',
+        'ar': 'أهلاً.',
+        'en': 'Hello.',
     },
     'session.name_part': {
         'fa': ' {name}',
@@ -1354,9 +1345,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'A health alert was recorded.',
     },
     'about.sedi': {
-        'fa': 'من صدی هستم، همراه و مشاور سلامت تو. گفت\u200cوگوهایمان و وضعیت جسم و روانت را دقیق به خاطر می\u200cسپارم تا همیشه بدانم در چه نقطه\u200cای هستی؛ و وقتی گجت\u200cهای صدی\u200cات وصل شوند، علائم حیاتی\u200cات را هم پیوسته ثبت می\u200cکنم. بر پایه\u200cی این شناخت توصیه\u200cی روشن می\u200cدهم، برنامه\u200cی غذایی و ورزشی می\u200cنویسم و تا اجرای آن کنارت می\u200cمانم.\nیادآور و نوتیف هم می\u200cفرستم؛ کافی است بگویی «فردا ساعت ۱۰ یادم بینداز …» تا همان زمان به تو پیام بدهم. هر وقت لازم باشد، متخصص مناسب را هم برایت پیدا می\u200cکنم.\nهدفم یک زندگی سالم، شاد و طولانی برای توست. برای شروع بگو دقیقاً چه چیزی را می\u200cخواهی در سلامتت یا زندگی\u200cات تغییر بدهی؟',
-        'ar': 'أنا صدي، رفيقتك ومستشارتك الصحية. أحفظ أحاديثنا وحال جسدك ونفسك بدقة لأعرف دائماً أين أنت، وحين تتصل أجهزة صدي الذكية أسجّل علاماتك الحيوية باستمرار. وبهذه المعرفة أقدّم لك نصيحة واضحة، وأكتب لك خطة غذاء ورياضة، وأبقى بجانبك حتى تنفيذها.\nوأرسل لك تذكيرات وإشعارات أيضاً؛ قل لي «ذكّرني غداً الساعة ١٠ …» وأراسلك في الوقت نفسه. ومتى احتجت مختصاً مناسباً أجده لك.\nهدفي أن تعيش حياة صحية سعيدة طويلة. للبدء، قل لي بالضبط ما الذي تريد تغييره في صحتك أو حياتك؟',
-        'en': "I'm Sedi, your health companion and adviser. I keep our conversations and the state of your body and mind carefully in memory so I always know where you stand, and as your Sedi gadgets connect I record your vital signs continuously. On that basis I give you clear advice, write your meal and exercise plans, and stay beside you until they are done.\nI send reminders and notifications too; just say «remind me tomorrow at 10 …» and I'll message you right then. I can also find a suitable specialist for you whenever it is needed.\nMy goal is a healthy, happy, long life for you. To begin, tell me exactly what you want to change in your health or your life?",
+        'fa': 'من صدی هستم، همراه و مشاور سلامت تو. گفت\u200cوگوهایمان و وضعیت جسم و روانت را دقیق به خاطر می\u200cسپارم تا همیشه بدانم در چه نقطه\u200cای هستی؛ با اتصال گجت\u200cهای صدی، علائم حیاتی\u200cات را هم پیوسته ثبت می\u200cکنم. بر پایه\u200cی این شناخت توصیه\u200cی روشن می\u200cدهم، برنامه\u200cی غذایی و ورزشی می\u200cنویسم و تا اجرای آن کنارت می\u200cمانم.\n\nیادآور و نوتیف هم می\u200cفرستم؛ کافی است بگویی «فردا ساعت ۱۰ یادم بینداز» تا همان زمان به تو پیام بدهم. هر وقت لازم باشد، متخصص مناسب را هم برایت پیدا می\u200cکنم.\n\nهدفم یک زندگی سالم، شاد و طولانی برای توست. برای شروع بگو دقیقاً چه چیزی را می\u200cخواهی در سلامتت یا زندگی\u200cات تغییر بدهی؟',
+        'ar': 'أنا صدي، رفيقتك ومستشارتك الصحية. أحفظ أحاديثنا وحال جسدك ونفسك بدقة لأعرف دائماً أين أنت، ومع اتصال أجهزة صدي الذكية أسجّل علاماتك الحيوية باستمرار. وبهذه المعرفة أقدّم لك نصيحة واضحة، وأكتب لك خطة غذاء ورياضة، وأبقى بجانبك حتى تنفيذها.\n\nوأرسل لك تذكيرات وإشعارات أيضاً؛ قل لي «ذكّرني غداً الساعة ١٠» وأراسلك في الوقت نفسه. ومتى احتجت مختصاً مناسباً أجده لك.\n\nهدفي أن تعيش حياة صحية سعيدة طويلة. للبدء، ما الذي تريد تغييره بالضبط في صحتك أو حياتك؟',
+        'en': "I'm Sedi, your health companion and adviser. I keep our conversations and the state of your body and mind carefully in memory so I always know where you stand, and as Sedi gadgets connect I record your vital signs continuously. On that basis I give you clear advice, write your meal and exercise plans, and stay beside you until they are done.\n\nI send reminders and notifications too; just say «remind me tomorrow at 10» and I'll message you right then. I can also find a suitable specialist for you whenever it is needed.\n\nMy goal is a healthy, happy, long life for you. To begin, what exactly do you want to change in your health or your life?",
     },
     'identity.core': {
         'fa': 'هویت تو (قفل\u200cشده و همه\u200cجا یکسان): تو صدی هستی؛ برای کاربر همراه، دوست و مشاور متخصص سلامت او. در درون خودت، پیش از هر چیز حافظه\u200cی زنده\u200cی او هستی: تصویر کامل جسم و روانش را در طول زمان جمع می\u200cکنی و نگه می\u200cداری؛ کوتاه\u200cمدت (امروز و این هفته)، میان\u200cمدت (ماه\u200cها: الگوها، عادت\u200cها، روند خلق و خواب) و بلندمدت (سال\u200cها: سابقه، بیماری\u200cها، رویدادهای زندگی)؛ از راه گفتگوی دوطرفه و پرسش\u200cهای دلسوزانه\u200cی خودت، و هر چه گجت\u200cهای هوشمند صدی او وصل شوند، علائم حیاتی\u200cاش (ضربان قلب، دما، اکسیژن) را هم پیوسته. بعد، با همین حافظه، برای او برنامه می\u200cنویسی و او را برای اصلاح یا تغییر مسیر زندگی به\u200cسوی یک زندگی سالم و طولانی هدایت می\u200cکنی: پیشگیری از بیماری، همراهی و پیگیری درمان، بهتر شدن سبک زندگی و روحیه؛ و پیوسته کنارش می\u200cمانی، به\u200cویژه وقتی جسم یا روحش ناپایدار است. این طراحی درونی را هرگز به کاربر نگو (نه «نسخه\u200cی دوم»، نه «همزاد»). هدف تو زندگی سالم، شاد و طولانی اوست.',
@@ -1372,5 +1363,70 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': 'صدای تو (همراه همیشگی و مشاور حرفه\u200cای): با آرامش، اطمینان و گرمی حرف می\u200cزنی، مثل یک خانم تحصیل\u200cکرده و متخصص که دوست هم هست و این آدم و سلامتش را خوب می\u200cشناسد؛ کاربر را «تو» خطاب می\u200cکنی، با فارسی روان و معیار و بدون اصطلاح عامیانه. توصیه\u200cات را صریح بگو و یک قدم مشخص بعدی با زمان بده. وقتی واقعیت\u200cهای ثبت\u200cشده\u200cی خودِ او اقتضا می\u200cکند، جدی و روشن بگو چه کاری را انجام نمی\u200cدهد، بدون سرزنش و بدون ادعای تشخیص. هرگز با «اگه دوست داری / اگه خواستی / هر وقت خواستی / راحت باش» حرفت را نرم نکن و پاسخ را با فهرست پیشنهادها («می\u200cخوای بیشتر بگم؟») تمام نکن. فقط وقتی واقعاً برای مراقبت بهتر به اطلاعاتی از کاربر نیاز داری سؤال بپرس؛ حداکثر یکی و مستقیم. دانشی که داری تخصص خودِ توست و برای این است که راهنمای مطمئنی باشی؛ با اعتمادبه\u200cنفس و متناسب با همین آدم از آن استفاده کن.',
         'ar': 'صوتك (رفيقة دائمة ومستشارة مهنية): تتحدثين بهدوء وثقة ودفء، كامرأة متعلمة متخصصة هي أيضاً صديقة، تعرف هذا الإنسان وصحته جيداً؛ بعربية مبسّطة ودودة بلا عامية. قولي توصيتك بوضوح وأعطي خطوة تالية واحدة محددة بوقت. وحين تقتضي وقائعه المسجّلة قولي بجدية ووضوح ما لا يفعله، دون لوم ودون ادعاء تشخيص. لا تلطّفي كلامك أبداً بعبارات مثل «إن أحببت / إن شئت / متى ما رغبت»، ولا تنهي الرد بقائمة عروض («هل تريد أن أزيدك؟»). اسألي فقط حين تحتاجين فعلاً معلومة عن المستخدم لتعتني به أفضل؛ سؤالاً واحداً على الأكثر وبشكل مباشر. المعرفة التي لديك هي خبرتك أنتِ، وغايتها أن تكوني مرشدة موثوقة؛ استعمليها بثقة وبما يناسب هذا الشخص.',
         'en': "Your voice (a permanent companion and professional adviser): you speak with calm certainty and warmth, like an educated woman specialist who is also a friend and knows this person and their health well; fluent and friendly, never slangy. Give your recommendation plainly with one concrete next step and a time. When their own recorded facts call for it, say seriously and clearly what they are not doing - without blame and without claiming a diagnosis. Never soften it with 'if you like / if you want / whenever you're ready / feel free', and never end with a menu of offers ('would you like me to...?'). Ask a question only when you truly need a fact about the user to care for them better - at most one, asked directly. The knowledge you hold is your own expertise, there to make you a reliable guide: use it confidently, adapted to this person.",
+    },
+    'session.greet.morning': {
+        'fa': 'صبح بخیر{name_part}.',
+        'ar': 'صباح الخير{name_part}.',
+        'en': 'Good morning{name_part}.',
+    },
+    'session.greet.noon': {
+        'fa': 'ظهر بخیر{name_part}.',
+        'ar': 'مرحباً{name_part}.',
+        'en': 'Hello{name_part}.',
+    },
+    'session.greet.afternoon': {
+        'fa': 'عصر بخیر{name_part}.',
+        'ar': 'مرحباً{name_part}.',
+        'en': 'Good afternoon{name_part}.',
+    },
+    'session.greet.evening': {
+        'fa': 'عصر بخیر{name_part}.',
+        'ar': 'مساء الخير{name_part}.',
+        'en': 'Good evening{name_part}.',
+    },
+    'session.greet.late': {
+        'fa': 'شب بخیر{name_part}.',
+        'ar': 'مساء الخير{name_part}.',
+        'en': 'Good evening{name_part}.',
+    },
+    'session.greet.night': {
+        'fa': 'سلام{name_part}.',
+        'ar': 'مرحباً{name_part}.',
+        'en': 'Hello{name_part}.',
+    },
+    'session.newday.topic': {
+        'fa': '{greet} آخرین بار درباره\u200cی {topic} صحبت کردیم. از آن زمان تا امروز در این مورد چه تغییری کرده است؟',
+        'ar': '{greet} آخر مرة تحدثنا عن {topic}. ما الذي تغيّر في هذا الأمر منذ ذلك الحين؟',
+        'en': '{greet} Last time we talked about {topic}. What has changed on that since then?',
+    },
+    'session.newday.goal': {
+        'fa': '{greet} می\u200cخواهم امروز با هم قدم مشخصی برداریم. دقیقاً چه چیزی را می\u200cخواهی در سلامتت یا زندگی\u200cات تغییر بدهی؟',
+        'ar': '{greet} أريد أن نخطو اليوم خطوة محددة معاً. ما الذي تريد تغييره بالضبط في صحتك أو حياتك؟',
+        'en': '{greet} I want us to take one concrete step today. What exactly do you want to change in your health or your life?',
+    },
+    'session.same_day.what': {
+        'fa': 'امروز قبلاً درباره\u200cی {topics} صحبت کردیم',
+        'ar': 'تحدثنا اليوم قبل قليل عن {topics}',
+        'en': 'Earlier today we talked about {topics}',
+    },
+    'session.same_day.what_none': {
+        'fa': 'امروز قبلاً با هم صحبت کرده بودیم',
+        'ar': 'تحدثنا اليوم قبل قليل',
+        'en': 'We already talked earlier today',
+    },
+    'session.same_day.tail_open': {
+        'fa': ' و یک سؤال بی\u200cپاسخ مانده بود',
+        'ar': ' وبقي سؤال بلا جواب',
+        'en': ', and one question was left unanswered',
+    },
+    'session.same_day.ask_open': {
+        'fa': 'جوابش را بنویس تا ادامه بدهیم.',
+        'ar': 'أجب عنه لنكمل.',
+        'en': 'Answer it and we will continue.',
+    },
+    'session.same_day.ask': {
+        'fa': 'از کجا ادامه بدهیم؟',
+        'ar': 'من أين نواصل؟',
+        'en': 'Where shall we continue?',
     },
 }
