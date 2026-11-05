@@ -185,7 +185,7 @@ def process_single_follow_up_task(
         try:
             from backend.app.services.i10.commitment_followup import schedule_next_attempt
 
-            schedule_next_attempt(db, task)
+            schedule_next_attempt(db, task, now=now)
         except Exception:
             logger.exception("[R-068] next commitment attempt not scheduled task=%s", task.id)
     return True

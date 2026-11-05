@@ -105,7 +105,7 @@ def _commitment_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[
         lang = raw if raw in ("fa", "en", "ar") else "en"
     except Exception:
         pass
-    title, body = commitment_copy(lang, int(meta.attempt or 1))
+    title, body = commitment_copy(lang, int(meta.attempt or 1), meta.approach, meta.reason)
     return title, body, COMMITMENT_TEMPLATE_KEY
 
 

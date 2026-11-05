@@ -157,11 +157,12 @@ def interval_days_after(attempt: int) -> int:
     return 1 if int(attempt or 1) <= 1 else 2
 
 
-_APPROACHES: tuple = ("nudge", "why", "lighter", "time")
+_APPROACHES: tuple = ("nudge", "why", "time", "lighter")
+_VARIANT_OF_APPROACH: dict = {"why": 0, "time": 1, "lighter": 2}  # index into commitment.body.3
 
 
 def approach_for(attempt: int) -> str:
-    """Every attempt changes approach: 2 = nudge, then why / lighter step / a better time, cycling."""
+    """Every attempt changes approach: 2 = nudge, then why / a better time / a lighter step, cycling."""
     attempt = int(attempt or 1)
     if attempt <= 1:
         return "first"
@@ -170,17 +171,25 @@ def approach_for(attempt: int) -> str:
     return _APPROACHES[1 + (attempt - 3) % 3]
 
 
+_REASONS = frozenset({"no_time", "dont_like", "not_feeling_well", "other"})
+
+
 # ---- copy (lock-screen safe: never names an illness or the step) --------------------------------------------------------
-def commitment_copy(lang: str, attempt: int) -> tuple:
+def commitment_copy(lang: str, attempt: int, approach: Optional[str] = None, reason: Optional[str] = None) -> tuple:
+    """The wording follows the approach: a «not done» answer made it «lighter» (and its bounded reason picks the text),
+    otherwise the attempt's own ladder approach (R-068: every attempt changes approach)."""
     lang = lang if lang in ("fa", "ar", "en") else "en"
     title = sedi_copy.t("commitment.title", lang)
     attempt = int(attempt or 1)
-    if attempt <= 1:
+    approach = approach or approach_for(attempt)
+    if reason and approach == "lighter" and attempt > 1:
+        body = sedi_copy.t(f"commitment.lighter.{reason if reason in _REASONS else 'other'}", lang)
+    elif attempt <= 1 or approach == "first":
         body = sedi_copy.t("commitment.body.1", lang)
-    elif attempt == 2:
+    elif attempt == 2 or approach == "nudge":
         body = sedi_copy.t("commitment.body.2", lang)
     else:
-        body = sedi_copy.t("commitment.body.3", lang, pick=attempt - 3)
+        body = sedi_copy.t("commitment.body.3", lang, pick=_VARIANT_OF_APPROACH.get(approach, 0))
     return title, body
 
 
@@ -309,8 +318,12 @@ def capture_from_reply(
         return None
 
 
-def schedule_next_attempt(db: Session, task: models.CareFollowUpTask) -> Optional[models.CareFollowUpTask]:
-    """Called right after a follow-up was SENT: the next one is already scheduled (the user is never left)."""
+def schedule_next_attempt(
+    db: Session, task: models.CareFollowUpTask, *, now: Optional[datetime] = None
+) -> Optional[models.CareFollowUpTask]:
+    """Called right after a follow-up was SENT: the next one is already scheduled (the user is never left). The interval
+    is counted from the moment of DELIVERY (``now``), not from the original due time - a follow-up that waited for the send
+    guard or a worker restart must not make the next one instantly overdue (Codex P2 on PR #144)."""
     meta = meta_of(task)
     if meta.follow_up_kind != COMMITMENT_KIND:
         return None
@@ -319,7 +332,7 @@ def schedule_next_attempt(db: Session, task: models.CareFollowUpTask) -> Optiona
     for existing in chain_of(db, task, (FollowUpTaskStatus.OPEN.value,)):
         if int(meta_of(existing).attempt or 1) > attempt:
             return existing  # idempotent
-    base = task.due_at or datetime.utcnow()
+    base = now or datetime.now(timezone.utc)
     due = follow_up_time(db, task.user_id, base_utc=base, days_ahead=interval_days_after(attempt))
     return _create_task(
         db,
@@ -356,9 +369,6 @@ def apply_done(db: Session, task: models.CareFollowUpTask) -> None:
         )
     except Exception:
         logger.exception("[R-068] I7 user_done not recorded")
-
-
-_REASONS = frozenset({"no_time", "dont_like", "not_feeling_well", "other"})
 
 
 def apply_not_done(db: Session, task: models.CareFollowUpTask, reason: Optional[str]) -> None:
@@ -413,14 +423,17 @@ def handle_commitment_answer(db: Session, *, notification: models.Notification, 
     from backend.app.services.i10.interaction_recorder import record_notification_interaction
     from backend.app.services.i10.interaction_vocabulary import CanonicalInteractionVerb, resolve_interaction_verb
 
-    task = task_from_notification(db, notification, actor_user_id)
+    resolved = task_from_notification(db, notification, actor_user_id)
+    # a stale / replayed tap on an already answered, completed or superseded follow-up is only RECORDED: it never mutates
+    # the chain and never revives a closed commitment (Codex P2 on PR #144)
+    task = resolved if resolved is not None and resolved.status == FollowUpTaskStatus.NOTIFIED.value else None
     action_id = str(payload.get("action_id") or "").strip().lower()
     verb = resolve_interaction_verb(payload).verb
-    authorized = False
+    # a DONE tap whose provenance resolved to a commitment of THIS user is a legitimate (possibly replayed) completion tap
+    authorized = resolved is not None and verb is CanonicalInteractionVerb.DONE
     if task is not None:
         if verb is CanonicalInteractionVerb.DONE:
             apply_done(db, task)
-            authorized = True
         elif action_id == "plan_not_done":
             apply_not_done(db, task, str(payload.get("reason") or "").strip())
         elif action_id == "later" or verb is CanonicalInteractionVerb.TALK_LATER:

@@ -92,7 +92,7 @@ def test_the_interval_never_exceeds_two_days():
 
 
 def test_every_attempt_changes_the_approach():
-    assert [cf.approach_for(n) for n in range(1, 9)] == ["first", "nudge", "why", "lighter", "time", "why", "lighter", "time"]
+    assert [cf.approach_for(n) for n in range(1, 9)] == ["first", "nudge", "why", "time", "lighter", "why", "time", "lighter"]
 
 
 @pytest.mark.parametrize("lang", ["fa", "ar", "en"])
@@ -282,6 +282,75 @@ def test_a_reaction_that_is_not_an_answer_only_records_and_keeps_the_chain(db):
     _answer(db, task, notif, reaction="open", action_id="open_chat")
     db.expire_all()
     assert [t.status for t in _chain(db, task)] == ["notified", "open"]  # talking to Sedi does not end the follow-up
+
+
+# ---- Codex review on PR #144 ---------------------------------------------------------------------------------------------
+def test_a_stale_or_replayed_tap_never_revives_a_closed_chain(db):
+    u = _fa_user(db, "+17770074001")
+    task = cf.capture_from_reply(db, u.id, _SLEEP, "fa")
+    notif = _send(db, task)
+    _answer(db, task, notif, reaction="interact", action_id="done")
+    db.expire_all()
+    before = [(t.id, t.status) for t in _chain(db, task)]
+    for action in ("later", "plan_not_done", "done"):  # replays after the chain was completed
+        _answer(db, task, notif, reaction="interact", action_id=action, reason="no_time")
+    db.expire_all()
+    assert [(t.id, t.status) for t in _chain(db, task)] == before
+    assert db.query(models.CareFollowUpTask).filter(models.CareFollowUpTask.user_id == u.id).count() == len(before)
+
+
+def test_an_answered_not_done_cannot_be_replayed_into_a_new_attempt(db):
+    u = _fa_user(db, "+17770074002")
+    task = cf.capture_from_reply(db, u.id, _SLEEP, "fa")
+    notif = _send(db, task)
+    _answer(db, task, notif, reaction="interact", action_id="plan_not_done", reason="no_time")
+    db.expire_all()
+    count = db.query(models.CareFollowUpTask).filter(models.CareFollowUpTask.user_id == u.id).count()
+    _answer(db, task, notif, reaction="interact", action_id="plan_not_done", reason="dont_like")
+    db.expire_all()
+    assert db.query(models.CareFollowUpTask).filter(models.CareFollowUpTask.user_id == u.id).count() == count
+    assert cf.meta_of(_chain(db, task)[0]).reason == "no_time"
+
+
+def test_a_superseded_chain_ignores_its_old_notification(db):
+    u = _fa_user(db, "+17770074003")
+    task = cf.capture_from_reply(db, u.id, _SLEEP, "fa")
+    notif = _send(db, task)
+    cf.capture_from_reply(db, u.id, "ساعت بیدارشدنت را ثابت نگه دار و شب‌ها زودتر بخواب. فردا درباره‌اش می‌پرسم.", "fa")  # same subject
+    db.expire_all()
+    _answer(db, task, notif, reaction="interact", action_id="later")
+    db.expire_all()
+    assert all(t.status == "cancelled" for t in _chain(db, task))  # the old chain stays closed
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+@pytest.mark.parametrize("reason", ["no_time", "dont_like", "not_feeling_well", "other"])
+def test_a_not_done_answer_changes_the_wording_of_the_next_follow_up(db, lang, reason):
+    u = _fa_user(db, f"+1777007{4100 + ['fa', 'ar', 'en'].index(lang) * 10 + ['no_time', 'dont_like', 'not_feeling_well', 'other'].index(reason)}")
+    u.preferred_language = lang
+    db.commit()
+    task = cf.capture_from_reply(db, u.id, _SLEEP, "fa")
+    notif = _send(db, task)
+    _answer(db, task, notif, reaction="interact", action_id="plan_not_done", reason=reason)
+    db.expire_all()
+    pending = [t for t in _chain(db, task) if t.status == "open"][0]
+    nxt = _send(db, pending)
+    assert nxt.body == sedi_copy.t(f"commitment.lighter.{reason}", lang)
+    assert nxt.body != sedi_copy.t("commitment.body.2", lang)  # it is NOT the «I asked yesterday and heard nothing» text
+
+
+def test_the_next_attempt_counts_from_the_moment_of_delivery_not_from_the_old_due_time(db):
+    u = _fa_user(db, "+17770074004")
+    task = cf.capture_from_reply(db, u.id, _SLEEP, "fa")
+    task.due_at = datetime.utcnow() - timedelta(days=6)  # waited six days (send guard / worker downtime)
+    db.commit()
+    now = datetime.utcnow()
+    assert process_due_follow_up_tasks(db, now=now) == 1
+    db.expire_all()
+    nxt = [t for t in _chain(db, task) if t.status == "open"][0]
+    local_due = pytz.utc.localize(nxt.due_at).astimezone(TEHRAN)
+    assert nxt.due_at > now and local_due.hour == 9  # in the future, 09:00 local - not instantly overdue
+    assert local_due.date() == pytz.utc.localize(now).astimezone(TEHRAN).date() + timedelta(days=1)
 
 
 # ---- wiring contracts ---------------------------------------------------------------------------------------------------
