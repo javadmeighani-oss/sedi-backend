@@ -311,3 +311,47 @@ def test_the_worker_the_adapter_and_the_model_notes_are_wired():
     assert "ONE concrete step" in attended and "ask once for the date" in attended
     missed = _format_notification_context_block({"template_key": "post_event_follow_up", "opening_message": "q?", "followup_result": "missed:no_time"})
     assert "did not take place" in missed and "no guilt" in missed
+
+
+# ---- Codex review of PR #148 --------------------------------------------------------------------------------------------
+_NOT_ATTENDANCE = [
+    # negations / unrelated text must never become a permanent «done» (Codex P1)
+    "I have not done it", "I haven't done it yet", "I did not attend the appointment", "I didn't go", "I want to discuss something else",
+    "I need to talk about my sleep", "can we talk about something different today", "the doctor was not available",
+    "هنوز انجام ندادم", "می‌خواهم درباره‌ی چیز دیگری حرف بزنم", "امروز حالم خوب نیست", "دکتر نبود", "نه نرفتم",
+    "لم أنجز ذلك بعد", "أريد أن أتحدث عن شيء آخر", "الطبيب لم يكن موجودا",
+    # both named, or only a question
+    "رفتم ولی نشد", "I went but it was cancelled", "رفتی؟",
+]
+
+
+@pytest.mark.parametrize("message", _NOT_ATTENDANCE)
+def test_attendance_needs_affirmative_evidence(message):
+    verdict = eo.parse_attendance(message)
+    assert verdict is None or verdict[0] == "missed", verdict
+
+
+@pytest.mark.parametrize("message", ["I have not done it", "I did not attend the appointment", "هنوز انجام ندادم", "لم أنجز ذلك"])
+def test_an_explicit_not_attended_reply_is_missed_never_attended(message):
+    verdict = eo.parse_attendance(message)
+    assert verdict is not None and verdict[0] == "missed"
+
+
+@pytest.mark.parametrize("message", ["I want to discuss something else", "امروز حالم خوب نیست", "the doctor was not available"])
+def test_an_unrelated_or_negated_reply_records_nothing_in_the_owner_or_i7(db, message):
+    u = _user_in(db, f"+177702{abs(hash(message)) % 90000 + 10000}")
+    ev, n = _notified(db, u)
+    assert no.apply_chat_answer(db, n, u.id, message) is None
+    db.refresh(ev)
+    assert ev.status == "scheduled"
+    assert user_done.done_counts_for_day(db, u.id, ev.starts_at.date()) == {}
+
+
+def test_an_event_moved_into_the_future_is_not_asked_about_before_it_ends(db):
+    u = _user_in(db, "+17770212001")
+    ev = _event(db, u)
+    eo.create_due_event_outcome_tasks(db, now=_NOW)
+    ev.starts_at = _local(20, 0)  # the user moved the appointment to this evening while the question waited
+    db.commit()
+    assert process_due_follow_up_tasks(db, now=_NAIVE_NOW) == 0
+    assert _sent(db, u.id) is None and [t.status for t in _tasks(db, u.id)] == ["open"]

@@ -177,6 +177,8 @@ def post_event_may_send(db: Session, task: models.CareFollowUpTask, now: datetim
         task.status = "cancelled"
         task.updated_at = datetime.utcnow()
         return False
+    if end is not None and now_naive < end + _DUE_AFTER_END:
+        return False  # the event was moved into the future: wait until it has ended (the task stays pending)
     return bool(can_send_v1(db, task.user_id, "companion", POST_EVENT_TEMPLATE_KEY, "normal", now_naive).get("allowed"))
 
 
@@ -231,38 +233,53 @@ def _p(*parts: str) -> re.Pattern:
 
 _MISSED = _p(
     r"نرفتم", r"نتونستم", r"نتوانستم", r"نشد", r"نرسیدم", r"کنسل", r"لغو", r"عقب افتاد", r"به تعویق", r"نیامد", r"برگزار نشد", r"نرفت",
+    r"انجام ندادم", r"شرکت نکردم", r"حاضر نشدم",
     r"\bcancel", r"postponed", r"didn t go", r"did not go", r"couldn t", r"could not", r"missed", r"didn t happen", r"did not happen", r"never went",
-    r"لم اذهب", r"لم استطع", r"تاجل", r"الغي", r"لم يتم", r"فاتني",
+    r"did not attend", r"didn t attend", r"have not", r"haven t", r"did not do", r"didn t do",
+    r"لم اذهب", r"لم استطع", r"تاجل", r"الغي", r"لم يتم", r"فاتني", r"لم احضر", r"لم انجز",
 )
+# affirmative EVIDENCE that the event took place (a reply without it is never read as attendance - Codex P1 on PR #148)
 _ATTENDED = _p(
-    r"رفتم", r"انجام شد", r"انجام دادم", r"گذشت", r"خوب بود", r"دکتر گفت", r"پزشک گفت", r"گفت", r"نتیجه", r"جواب", r"برگزار شد", r"تحویل دادم",
-    r"\bwent\b", r"it went", r"\bdone\b", r"doctor said", r"\battended\b", r"was fine", r"\bgot it\b", r"finished", r"handed in", r"submitted", r"\bsaid\b",
-    r"ذهبت", r"تمت", r"كان جيدا", r"قال", r"النتيجه", r"سلمت",
+    r"\bرفتم\b", r"\bانجام شد\b", r"\bانجام دادم\b", r"\bگذشت\b", r"\bخوب بود\b", r"\bدکتر گفت\b", r"\bپزشک گفت\b", r"\bبرگزار شد\b",
+    r"\bتحویل دادم\b", r"\bتجویز کرد\b", r"\bنتیجه اش\b", r"\bجوابش\b",
+    r"\bwent\b", r"it went", r"\bdone\b", r"(?:doctor|dr|he|she|they) said", r"told me", r"prescribed", r"\battended\b", r"was fine", r"finished",
+    r"handed (?:it )?in", r"submitted",
+    r"\bذهبت\b", r"\bتمت\b", r"كان جيدا", r"\bقال\b", r"\bسلمت\b", r"وصف لي",
 )
-_MIN_FREE_WORDS = 4
+# any negation in the reply: without an explicit «missed» pattern it is ambiguous, so nothing is recorded
+_NEGATION = _p(
+    r"\bنه\b", r"نشد", r"نکرد", r"نرفت", r"نتون", r"نتوان", r"نداد", r"نداشت", r"\bنیست\b", r"\bنبود", r"نیامد", r"نگرفت", r"\bهنوز\b",
+    r"\bnot\b", r"\bno\b", r"\bnever\b", r"\bn t\b", r"\byet\b", r"\bلم\b", r"\bلا\b", r"\bليس\b", r"\bلن\b",
+)
 _MAX_WORDS = 60
 
 
+def _negated_near(folded: str, start: int, end: int) -> bool:
+    window = " ".join(folded[:start].split()[-4:] + ["|"] + folded[end:].split()[:3])
+    return bool(_NEGATION.search(window))
+
+
 def parse_attendance(message: str) -> Optional[tuple]:
-    """('attended', None) / ('missed', reason) for a reply to «how did it go?», or None. Cautious: a question, an empty text, or a
-    reply that names BOTH is never guessed; a free description of at least four words with no sign of «missed» is attended."""
+    """('attended', None) / ('missed', reason) for a reply to «how did it go?», or None. Cautious by design: attendance needs
+    AFFIRMATIVE evidence («رفتم», «it went», «the doctor said»); a question, a negation without an explicit «missed» pattern, a reply
+    that names both, or any unrelated text records nothing. A permanent I7 «done» must never be written from a guess."""
     from backend.app.services.notification_openers import _REASONS
 
     raw = message or ""
     folded = _fold(raw)
     if not folded or "?" in raw or "؟" in raw:
         return None
-    words = folded.split()
-    if len(words) > _MAX_WORDS:
+    if len(folded.split()) > _MAX_WORDS:
         return None
     missed = bool(_MISSED.search(folded))
-    attended = bool(_ATTENDED.search(folded))
-    if missed and attended and not re.search(r"نشد|نرفتم|not|never|didn|couldn", folded):
+    # an evidence word that sits next to a negation («I have NOT done it», «رفتم ولی نشد») is not evidence
+    attended = any(not _negated_near(folded, m.start(), m.end()) for m in _ATTENDED.finditer(folded))
+    if missed and attended:
         return None
     if missed:
         reason = next((name for name, pattern in _REASONS if pattern.search(folded)), "other")
         return ("missed", reason)
-    if attended or len(words) >= _MIN_FREE_WORDS:
+    if attended and not _NEGATION.search(folded):
         return ("attended", None)
     return None
 
