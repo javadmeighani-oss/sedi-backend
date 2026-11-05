@@ -1429,4 +1429,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'من أين نواصل؟',
         'en': 'Where shall we continue?',
     },
+    'session.same_day.tail_question': {
+        'fa': ' و این سؤال بی\u200cپاسخ مانده بود: «{question}»',
+        'ar': ' وبقي هذا السؤال بلا جواب: «{question}»',
+        'en': ', and this question was left unanswered: “{question}”',
+    },
 }

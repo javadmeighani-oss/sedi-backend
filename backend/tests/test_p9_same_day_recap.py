@@ -60,7 +60,8 @@ def test_returning_the_same_day_gets_a_recap_opener_with_one_direct_question(db)
 def test_an_unanswered_question_is_mentioned(db):
     u = _fa_user(db, "+17770051002")
     _earlier_today(db, u.id, ["میخوام برنامه ورزشی داشته باشم"], reply="چند روز در هفته می‌تونی ورزش کنی؟")
-    assert "یک سؤال بی‌پاسخ مانده بود" in so.maybe_proactive_opener(db, u)
+    # R-065: the opener SAYS the open question (it used to say only that one remained)
+    assert "این سؤال بی‌پاسخ مانده بود: «چند روز در هفته می‌تونی ورزش کنی؟»" in so.maybe_proactive_opener(db, u)
 
 
 def test_a_crash_restart_right_after_a_message_is_not_a_return(db):

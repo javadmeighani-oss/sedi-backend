@@ -64,10 +64,16 @@ def build_same_day_recap(
             break
     topics.reverse()  # told in the order they happened
     last_reply = str(turns[-1].sedi_response or "").strip()
+    # R-065: a message that points at an unanswered question must SAY the question. The user has not replied after the
+    # last turn, so any question in Sedi's last reply is still open (not only a reply that ends with one).
+    from backend.app.services.intelligence.answer_binding import last_question
+
+    question = (last_question(last_reply) or "").strip(" \"'\u00ab\u00bb")
     return {
         "topics": topics,
         "count": len(meaningful),
-        "open_question": last_reply.endswith(("؟", "?", "؟»", "?\"")),
+        "open_question": bool(question),
+        "open_question_text": question[:200],
     }
 
 
@@ -86,7 +92,11 @@ def same_day_opener(lang: str, hello: str, recap: dict[str, Any]) -> str:
     lang = _lang(lang)
     topics = _join(list(recap.get("topics") or []), lang)
     thread = bool(recap.get("open_question"))
+    question = str(recap.get("open_question_text") or "").strip()
     what = sedi_copy.t("session.same_day.what", lang, topics=topics) if topics else sedi_copy.t("session.same_day.what_none", lang)
+    if thread and question:
+        # the question itself is the invitation (R-065: never «a question remained» without saying which)
+        return f"{hello} {what}" + sedi_copy.t("session.same_day.tail_question", lang, question=question)
     tail = sedi_copy.t("session.same_day.tail_open", lang) if thread else ""
     ask = sedi_copy.t("session.same_day.ask_open" if thread else "session.same_day.ask", lang)
     return f"{hello} {what}{tail}. {ask}"
