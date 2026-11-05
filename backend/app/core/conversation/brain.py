@@ -870,6 +870,10 @@ class ConversationBrain:
                         from backend.app.typography import normalize as _normalize_typography
 
                         sedi_response = _normalize_typography(sedi_response, lang)
+                        # R-068: a follow-up promise in her reply becomes a real, tracked commitment (consent-gated, fail-open)
+                        from backend.app.services.i10.commitment_followup import capture_from_reply
+
+                        capture_from_reply(self.db, user_id, sedi_response, lang, user_message=user_message)
                     except Exception as _guard_err:
                         print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
                     if not use_intelligence_safety:

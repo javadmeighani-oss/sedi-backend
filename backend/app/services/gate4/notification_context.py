@@ -75,6 +75,8 @@ ALLOWED_CONTEXT_JSON_KEYS: Final[frozenset[str]] = frozenset(
         "recurrence_hint",
         # Which kind of daily message this was (enum value only); lets the chat opener continue its subject.
         "content_family",
+        # R-068: the commitment follow-up task this notification belongs to (server-side provenance of the answer)
+        "commitment_task_id",
     }
 )
 

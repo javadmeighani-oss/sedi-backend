@@ -1340,7 +1340,14 @@ def submit_notification_feedback(
         db, notification_id=notification_id
     )
 
-    if resolve_interaction_verb(payload).verb is CanonicalInteractionVerb.DONE:
+    if (notification.template_key or "") == "commitment_follow_up":
+        # R-068: the commitment loop owns the answer (done / not done + reason / later)
+        from backend.app.services.i10.commitment_followup import handle_commitment_answer
+
+        record_result = handle_commitment_answer(
+            db, notification=notification, actor_user_id=user_id, payload=payload
+        )
+    elif resolve_interaction_verb(payload).verb is CanonicalInteractionVerb.DONE:
         from backend.app.services.i10.coaching_done import handle_coaching_done_for_notification
 
         record_result = handle_coaching_done_for_notification(
