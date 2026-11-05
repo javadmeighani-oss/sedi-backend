@@ -30,7 +30,8 @@ _TERMINAL: Final[str] = ".!?؟…:"
 _CLOSERS: Final[str] = "»)\"'”]"
 
 _PLACEHOLDER = re.compile(r"\{[^{}]*\}")
-_LEADING_JUNK = re.compile(r"^[\s\-–—•*·.:،؛]+")
+_JUNK_CHARS: Final[str] = " \t-–—•*·.:،؛"
+_NUMBER_START = re.compile(r"[0-9۰-۹٠-٩]")
 _BULLET = re.compile(r"^\s*(?:[-*•·]|#{1,6})\s+")
 _PROTECT = re.compile(r"\{[^{}]*\}|https?://\S+|www\.\S+|\S+@\S+\.\S+")
 
@@ -128,9 +129,20 @@ def _end_paragraph(paragraph: str, lang: str) -> str:
     return core + "." + body[len(core):]
 
 
+def _strip_leading_junk(text: str) -> str:
+    """Drop stray punctuation at a paragraph start, but NEVER a sign or decimal point that belongs to a number
+    («.5 mg» is not «5 mg»; «-۲ درجه» keeps its minus) - a formatting pass must not change a quantity (Codex P1)."""
+    index = 0
+    while index < len(text) and text[index] in _JUNK_CHARS:
+        if text[index] in ".-–—" and index + 1 < len(text) and _NUMBER_START.match(text[index + 1]):
+            break
+        index += 1
+    return text[index:]
+
+
 def _start_paragraph(paragraph: str, lang: str) -> str:
     cleaned = _BULLET.sub("", paragraph)
-    cleaned = _LEADING_JUNK.sub("", cleaned) if not cleaned.startswith("") else cleaned
+    cleaned = _strip_leading_junk(cleaned) if not cleaned.startswith("") else cleaned
     if lang == "en" and cleaned[:1].islower():
         cleaned = cleaned[:1].upper() + cleaned[1:]
     return cleaned

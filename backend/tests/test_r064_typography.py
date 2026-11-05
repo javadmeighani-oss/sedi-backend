@@ -89,3 +89,22 @@ def test_the_catalog_is_typographically_clean():
         if normalize(text, lang, paragraphs=key.startswith("about."), digits=False) != text:
             problems.append((key, lang, text[:60]))
     assert not problems, f"typography contract (R-064) violated in the catalog: {problems}"
+
+
+# ---- a formatting pass must never change a quantity (Codex P1 on PR #141) ---------------------------------------
+@pytest.mark.parametrize("lang,text", [
+    ("en", ".5 mg is the recorded dose."),
+    ("en", "-3 C is the target for the lab today."),
+    ("fa", "-۲ درجه زیر صفر است."),
+    ("fa", ".۵ میلی‌گرم دوز ثبت‌شده است."),
+    ("ar", "-٢ درجة تحت الصفر اليوم."),
+])
+def test_a_numeric_sign_or_decimal_point_at_a_paragraph_start_is_never_dropped(lang, text):
+    for digits in (True, False):
+        out = normalize(text, lang, digits=digits)
+        assert out[0] == text[0], (lang, digits, out)
+
+
+def test_stray_punctuation_at_a_paragraph_start_is_still_removed():
+    assert normalize(".. hello there my friend", "en") == "Hello there my friend."
+    assert normalize("- . سلام به تو ای دوست خوب", "fa").startswith("سلام")
