@@ -70,8 +70,8 @@ BATTERY = [
      [("reference range", "normal range"), ("cholesterol", "ldl", "hdl"), ("hemoglobin",), ("glucose", "sugar"), ("doctor", "healthcare")]),
 ]
 
-CHAT_LIMIT = 5
-CHAT_BLOCK_CHARS = 4400
+CHAT_LIMIT = 10  # R-074 step 2: brain._KNOWLEDGE_LIMIT
+CHAT_BLOCK_CHARS = 8200  # brain._KNOWLEDGE_BLOCK_CHARS
 
 
 def _concept_cover(text: str, groups) -> float:
