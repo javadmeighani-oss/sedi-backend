@@ -71,7 +71,7 @@ _GUIDES: tuple[tuple[str, re.Pattern[str], str], ...] = (
             r"دیابت|فشار\s*خون|قند\s*بالا|آسم|میگرن|ریفلاکس|پوکی\s*استخوان|کم\s*خونی|تیروئید|\bdiabet|hypertension|blood\s*pressure|asthma|migraine|reflux|\bgerd\b|osteoporosis|anemia|anaemia|thyroid|السكري|ضغط\s*الدم|الربو|الصداع\s*النصفي|الارتجاع",
             re.IGNORECASE,
         ),
-        "LONG-TERM CONDITION: what it is and how it behaves in plain words | daily self-care that matters most (food, movement, sleep, stress, medicines as prescribed) | what to monitor and how often | typical triggers and how to avoid them | a step-by-step routine for the week | complications to prevent | danger signs needing real help now, as the knowledge block lists them.",
+        "LONG-TERM CONDITION: what it is and how it behaves in plain words | daily self-care that matters most (food, movement, sleep, stress, medicines the person already takes) | what to monitor and how often | typical triggers and how to avoid them | a step-by-step routine for the week | complications to prevent | danger signs needing real help now, as the knowledge block lists them.",
     ),
 )
 
