@@ -26,6 +26,9 @@ from backend.app.models import User
 
 _USER_KNOWLEDGE_MAX_CHARS = 1200
 _NOTIFICATION_CONTEXT_MAX_CHARS = 2000
+# R-074 step 2: how much governed knowledge a knowledge turn may carry (measured: 5 units / 4400 chars gave ~0.58 concept coverage).
+_KNOWLEDGE_LIMIT = 10
+_KNOWLEDGE_BLOCK_CHARS = 8200
 
 # R-049: the governed knowledge below is Sedi's OWN professional knowledge, there to make her a reliable adviser.
 _KNOWLEDGE_VOICE = (
@@ -376,7 +379,7 @@ def _maybe_append_structured_governed_knowledge(
             user_message,
             user_id=user_id,
             language=language,
-            limit=5,
+            limit=_KNOWLEDGE_LIMIT,
             enqueue_gap_on_empty=False,
         )
         grounded = render_grounded_answer(
@@ -384,9 +387,15 @@ def _maybe_append_structured_governed_knowledge(
             language=language,
             user_requested_sources=True,
         )
-        block = format_care_context_block(grounded, max_chars=4400)
+        block = format_care_context_block(grounded, max_chars=_KNOWLEDGE_BLOCK_CHARS)
         if block and str(block).strip():
-            messages.append({"role": "system", "content": _KNOWLEDGE_VOICE + "\n" + str(block).strip()[:4800]})
+            messages.append({"role": "system", "content": _KNOWLEDGE_VOICE + "\n" + str(block).strip()[: _KNOWLEDGE_BLOCK_CHARS + 400]})
+            # R-074 step 2: the shape of a complete answer for this topic (sleep, plans, muscle pain, labs, elder care, chronic care)
+            from backend.app.core.conversation.domain_guides import answer_guide_block
+
+            _guide = answer_guide_block(user_message)
+            if _guide:
+                messages.append({"role": "system", "content": _guide})
     except Exception as e:
         # Clear the aborted transaction so later Brain/I6 writes still proceed.
         # Do not retrieve again and do not supply invented evidence.

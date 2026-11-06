@@ -467,14 +467,15 @@ def format_care_context_block(answer: GroundedAnswerView, *, max_chars: int = 44
             lines.append(
                 "INSTRUCTION: Answer from the grounded summary below. It may be in English: translate it "
                 "faithfully into the user's language and organise it for the question (what it is, care and "
-                "management, prevention). Plain text only: no markdown, no asterisks, no headings. "
+                "management, prevention). Plain text only: no markdown, no asterisks; short plain-word section labels "
+                "ending with a colon are allowed for a complete how-to / plan / care answer. "
                 "Do not say you lack a verified source when it is present."
             )
         domains = set((answer.chat_metadata or {}).get("domains") or [])
         if answer.status == "OK" and domains & _PSYCHOLOGY_DOMAINS:
             lines.append(_PSYCHOLOGICAL_SUPPORT_STYLE)
         lines.append("Grounded summary:")
-        lines.append(answer.synthesized_text[:3300])
+        lines.append(answer.synthesized_text[: max(3300, max_chars - 1100)])
     if answer.show_sources:
         lines.append("SHOW SOURCES:")
         for src in answer.show_sources[:5]:
