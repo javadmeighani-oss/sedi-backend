@@ -206,6 +206,39 @@ def _is_protected_offer(sentence: str) -> bool:
     return bool(_PROTECT.search(sentence) and _FIND_WORDS.search(sentence))
 
 
+# R-042: a model reply reaches this guard only when NO notification/reminder was created in this turn (the deterministic reminder
+# path answers before the model). A sentence that claims «I sent you a notification right now» is therefore false and is removed.
+_SEND_NOUN = re.compile(r"نوتیف|اعلان|پیام|یادآور|[اإ]شعار|اشعار|notification|reminder|\bping\b|\balert\b|تنبيه", re.IGNORECASE)
+_SEND_DONE = re.compile(
+    r"فرستادم|ارسال\s*کردم|فرستاده\s*شد|ارسال\s*شد|\b(?:i(?:'ve| have)?\s+)?sent\b|\bjust\s+sent\b|أرسلت|ارسلت|تم\s+إرسال|تم\s+ارسال",
+    re.IGNORECASE,
+)
+_SEND_NOW = re.compile(r"همین\s*الان|الان|همین\s*حالا|حالا|\bright\s+now\b|\bjust\s+now\b|\bnow\b|للتو|الآن|الان", re.IGNORECASE)
+
+
+def strip_unverified_send_claims(reply: str, language: str = "fa") -> str:
+    """Remove «نوتیف … را همین الان فرستادم»-style claims (an immediate send that did not happen). Past references
+    without «now» («this morning I sent the digest») and every other sentence stay. If nothing remains, one honest line asks
+    for the time and topic."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    kept = [
+        p.strip()
+        for p in parts
+        if not (_SEND_NOUN.search(p) and _SEND_DONE.search(p) and _SEND_NOW.search(p))
+    ]
+    if len(kept) == len(parts):
+        return text
+    if kept:
+        return " ".join(kept)
+    from backend.app import sedi_copy
+
+    block = sedi_copy.by_lang("reminder.not_sent_say_when")
+    return block.get(language) or block["en"]
+
+
 def strip_hedging_offers(reply: str, language: str = "fa") -> str:
     """R-049: remove «اگه دوست داری / if you like / إن أحببت» softeners and trailing offer-menu questions
     («می‌خوای بیشتر بگم؟»). Statements and recommendations stay; the R-033 specialist offer stays; never empties a reply."""
