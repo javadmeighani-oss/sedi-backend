@@ -1,0 +1,65 @@
+# R-074 step 1 - READ-ONLY knowledge-depth audit. workflow_dispatch only. It pipes ops/depth_audit/depth_battery.py into the
+# running backend container (python via stdin): retrieval + renderer only, rollback only, no DB/env/flag/container change,
+# no chat-model call, no user data. No secrets printed.
+name: I5 Depth Audit Read-only
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "DEPTH_AUDIT_READONLY"
+        required: true
+      deployed_image_sha:
+        description: "40-char SHA of the deployed backend image"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Depth battery (read-only)
+    if: github.event.inputs.confirmation == 'DEPTH_AUDIT_READONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          test -s ops/depth_audit/depth_battery.py
+      - name: SSH read-only depth battery
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          B64="$(base64 -w0 ops/depth_audit/depth_battery.py)"
+          ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "IMAGE_SHA=$(printf '%q' "${SHA}") SCRIPT_B64=$(printf '%q' "${B64}") bash -s" \
+            2>&1 <<'REMOTE' | tee /tmp/depth.log
+          set -Eeuo pipefail
+          IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "${IMG}" | grep -Fq "${IMAGE_SHA}" || { echo "DEPTH|image_guard|FAIL"; exit 10; }
+          echo "DEPTH|image_guard|PASS"
+          echo "${SCRIPT_B64}" | base64 -d | docker exec -i sedi-backend python -
+          REMOTE
+          grep -Eq 'DEPTH\|done\|PASS' /tmp/depth.log
+          if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/depth.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-depth-audit
+          path: /tmp/depth.log
+          retention-days: 30
