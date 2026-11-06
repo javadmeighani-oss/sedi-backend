@@ -583,12 +583,12 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'Like',
     },
     'action.label.dislike': {
-        'fa': 'نپسندیدم',
-        'ar': 'لم يعجبني',
-        'en': 'Dislike',
+        'fa': 'فعلاً نه',
+        'ar': 'ليس الآن',
+        'en': 'Not now',
     },
     'action.label.open_chat': {
-        'fa': 'صحبت کنیم',
+        'fa': 'صحبت با صدی',
         'ar': 'لنتحدث مع صدي',
         'en': 'Talk to Sedi',
     },
