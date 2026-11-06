@@ -776,7 +776,7 @@ def retrieve_knowledge_context(
 
     nq = normalize_query(query)
     lim = clamp_limit(limit)
-    serving_lim = min(lim, 5)
+    serving_lim = min(lim, MAX_LIMIT)  # R-074 step 2: the chat may ask for up to 10 governed units (was capped at 5)
     trace_id = str(uuid.uuid4())
     query_id = _sha256_hex(f"{trace_id}|{nq.normalized_query}")[:32]
     pers_ctx = normalize_personalization_context(personalization)
