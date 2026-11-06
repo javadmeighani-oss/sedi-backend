@@ -27,6 +27,8 @@ from backend.app.services.scis.serving_text_guard import pick_servable_statement
 # Bounded serving context (chars per evidence statement).
 MAX_SERVING_CONTEXT_CHARS = 600
 DEFAULT_SERVING_TOP_K = 5
+# R-074 step 2: the chat may ask for more governed units than the default (ceiling, not the default).
+MAX_SERVING_TOP_K = 10
 # Concept authority may look past the serving cap, but never past this bound.
 CONCEPT_AUTHORITY_CANDIDATE_TOP_K = 8
 
@@ -231,7 +233,7 @@ def _retry_via_english_query(db: Session, query: str, lang: str, **kwargs: Any) 
     """
     from backend.app.services.i5.query_translation import translate_query_alternatives
 
-    want = max(1, min(int(kwargs.get("limit") or DEFAULT_SERVING_TOP_K), DEFAULT_SERVING_TOP_K))
+    want = max(1, min(int(kwargs.get("limit") or DEFAULT_SERVING_TOP_K), MAX_SERVING_TOP_K))
     merged: List[RetrievedKnowledgeItem] = []
     seen: set = set()
     first_meta: Optional[dict] = None
@@ -294,7 +296,7 @@ def retrieve_scis_governed_runtime_items(
     if not is_supported_governed_language(lang):
         raise UnsupportedGovernedLanguageError(lang)
 
-    top_k = max(1, min(int(limit), DEFAULT_SERVING_TOP_K))
+    top_k = max(1, min(int(limit), MAX_SERVING_TOP_K))
     hints = list(alias_hints or [])[:4]
     meta: dict = {
         "requested_mode": None,
