@@ -3657,6 +3657,18 @@
             ],
             "title": "First Intro"
           },
+          "followup_ask": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followup Ask"
+          },
           "health_subject_id": {
             "anyOf": [
               {
