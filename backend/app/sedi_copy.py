@@ -1272,6 +1272,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم، سأذكّرك {when}: «{title}» 🌿 وستجده في «جدولي».',
         'en': "Done - I'll remind you {when}: “{title}” 🌿 You'll see it in My Schedule.",
     },
+    'reminder.not_sent_say_when': {
+        'fa': 'برای ارسال نوتیف زمان و موضوعش را بگو؛ مثلاً «الان نوتیف بفرست» یا «فردا ساعت ۱۰ یادم بینداز».',
+        'ar': 'لإرسال إشعار أخبرني بالوقت والموضوع، مثل «أرسل لي إشعاراً الآن» أو «ذكّرني غداً الساعة 10».',
+        'en': 'To send a notification, tell me the time and the topic, like “send me a notification now” or “remind me tomorrow at 10”.',
+    },
     'reminder.clarify.datetime': {
         'fa': 'کِی یادت بندازم؟ روز و ساعتش رو بگو، مثلاً «فردا ساعت ۱۰ صبح».',
         'ar': 'متى أذكّرك؟ أخبرني باليوم والساعة، مثل «غداً الساعة 10 صباحاً».',

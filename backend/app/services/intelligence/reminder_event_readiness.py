@@ -199,6 +199,25 @@ _NOTIFY_CONCEPT = re.compile(
     r"|[كک]لمن[يی]|اتصل\s+ب[يی]|إشعار|اشعار",
     re.IGNORECASE,
 )
+# R-042 (2026-11-06, class fix): «میخواهم یه نوتیف الان برام ارسال کنی / بفرستی / بدی / بزنی» - a notification noun and a delivery
+# verb in the same clause with ONLY small words between them (now, me, "a", polite particles), in any order of those small words.
+# The "when" must still come from a date/time word (or «الان»); complaints and negations («چرا نفرستادی») are never requests.
+_NOUN_FA = r"(?:نوتیف(?:یکیشن)?|نوتفیکیشن|اعلان|پیام|پیغام|یادآور[یی]?|تنبیه|[اإ]شعار)"
+_VERB_FA = r"(?:ارسال\s*(?:کن|کنی|کنید|بکن|بکنی)|بفرست(?:ی|ید)?|بد(?:ه|ی|ید)|بزن(?:ی|ید)?|برسان(?:ی|ید)?)(?![\w\u200c])"
+_NOUN_VERB = re.compile(
+    _NOUN_FA + r"(?:\s+[^\s.!?؟،,]+){0,5}?\s+" + _VERB_FA
+    + r"|\b(?:send|push|shoot|fire|give)\s+(?:me\s+)?(?:a|an|the|one)?\s*(?:\w+\s+){0,2}(?:notification|reminder|message|ping|alert)\b"
+    + r"|\b(?:can|could|would)\s+you\s+(?:please\s+)?(?:notify|message|text|ping|alert)\s+me\b"
+    + r"|(?:أرسل|ارسل|ابعث|أعطني|اعطني|أرسلي|ارسلي)\s+(?:لي\s+)?(?:\S+\s+){0,2}(?:[اإ]شعار\w*|رسالة|تنبيه|تذكير\w*)",
+    re.IGNORECASE,
+)
+_COMPLAINT_OR_NEGATION = re.compile(
+    r"چرا|\bwhy\b|لماذا|نفرست|نمی\s*[‌]?\s*فرست|نمی\s*[‌]?\s*ده|ندادی|نیومد|نیامد|نرسید|\bnever\b|\bdidn'?t\b|\bdid\s+not\b|\bdon'?t\b|"
+    r"لم\s+ت|ما\s+وصل|توقف",
+    re.IGNORECASE,
+)
+# a question about a missing notification is a complaint for EVERY wording (also the older keyword rules)
+_WHY_COMPLAINT = re.compile(r"چرا|\bwhy\b|لماذا|نفرستاد|ندادی|نیومد|نیامد|نرسید", re.IGNORECASE)
 _TOPIC_MARKERS = {
     "fa": re.compile(r"(?:درباره\s*(?:ی|ء)?|در\s*مورد|راجع\s*به|راجب|پیرامون)\s+(?P<t>.+?)\s*$"),
     "en": re.compile(r"(?:about|regarding|concerning)\s+(?P<t>.+?)\s*$", re.IGNORECASE),
@@ -256,11 +275,12 @@ def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
 def looks_like_notify_request(message: str, language: str) -> bool:
     """True when the user asks Sedi to reach out at a stated time/day - whatever words they use for it."""
     text = _normalize(message or "")
-    if not text or _PAST_REFERENCE.search(text):
+    if not text or _PAST_REFERENCE.search(text) or _WHY_COMPLAINT.search(text):
         return False
     lang = language if language in ("fa", "ar", "en") else _guess_language(text, None)
     _topic, rest = _split_topic(text, lang)
-    if not _NOTIFY_CONCEPT.search(text):
+    matched = _NOTIFY_CONCEPT.search(text) or (not _COMPLAINT_OR_NEGATION.search(text) and _NOUN_VERB.search(text))
+    if not matched:
         return False
     return any(rx.search(rest) for rx in _WHEN_TOKENS)
 
