@@ -25,7 +25,7 @@ _CONDITION_TERMS = (
     "سكري", "سرطان", "ضغط", "قلب", "مرض",
 )
 _CLAIM_VERB = re.compile(
-    r"(?:داشت|داره|دارد|دارند|داشته|مبتلا|گرفته|گرفت|بوده|سابقه|had|has|have|suffer|diagnosed|history|كان|لديه|عانى)",
+    r"(?:داشت|داره|دارد|دارند|داشته|مبتلا|گرفته|گرفت|بوده|سابقه|\bhad\b|\bhas\b|\bhave\b|suffer|diagnosed|history|كان|لديه|عانى)",
     re.I,
 )
 _FIRST_PERSON_RELATIVE = re.compile(
@@ -204,6 +204,43 @@ _FIRST_PERSON_OFFER = re.compile(
 def _is_protected_offer(sentence: str) -> bool:
     """The R-033 specialist offer («یه متخصص مناسب برات پیدا کنم؟») is kept - it is the consent question."""
     return bool(_PROTECT.search(sentence) and _FIND_WORDS.search(sentence))
+
+
+# R-042: a model reply reaches this guard only when NO notification/reminder was created in this turn (the deterministic reminder
+# path answers before the model). A sentence that claims «I sent you a notification right now» is therefore false and is removed.
+_SEND_NOUN = re.compile(r"نوتیف|اعلان|پیام|یادآور|[اإ]شعار|اشعار|notification|reminder|\bping\b|\balert\b|تنبيه", re.IGNORECASE)
+_SEND_DONE = re.compile(
+    r"فرستادم|ارسال\s*کردم|فرستاده\s*شد|ارسال\s*شد|\b(?:i(?:'ve| have)?\s+)?sent\b|\bjust\s+sent\b|أرسلت|ارسلت|تم\s+إرسال|تم\s+ارسال",
+    re.IGNORECASE,
+)
+_SEND_NOW = re.compile(r"همین\s*الان|الان|همین\s*حالا|حالا|\bright\s+now\b|\bjust\s+now\b|\bnow\b|للتو|الآن|الان", re.IGNORECASE)
+
+
+# a DENIAL of a send («نفرستادم», «ارسال نکردم», «I did not send», «لم أرسل») is accurate and must stay
+_SEND_NEGATED = re.compile(r"نفرستاد|نکردم|نکرده|نشد|نمی\s*[‌]?\s*فرست|\bnot\b|n't\b|\bnever\b|\bno\b|لم\s|لا\s|ما\s+أرسل|ما\s+ارسل", re.IGNORECASE)
+
+
+def strip_unverified_send_claims(reply: str, language: str = "fa") -> str:
+    """Remove «نوتیف … را همین الان فرستادم»-style claims (an immediate send that did not happen). Past references
+    without «now» («this morning I sent the digest») and every other sentence stay. If nothing remains, one honest line asks
+    for the time and topic."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    kept = [
+        p.strip()
+        for p in parts
+        if not (_SEND_NOUN.search(p) and _SEND_DONE.search(p) and _SEND_NOW.search(p) and not _SEND_NEGATED.search(p))
+    ]
+    if len(kept) == len(parts):
+        return text
+    if kept:
+        return " ".join(kept)
+    from backend.app import sedi_copy
+
+    block = sedi_copy.by_lang("reminder.not_sent_say_when")
+    return block.get(language) or block["en"]
 
 
 def strip_hedging_offers(reply: str, language: str = "fa") -> str:
