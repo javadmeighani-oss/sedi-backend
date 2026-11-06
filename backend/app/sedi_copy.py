@@ -928,8 +928,8 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'In {n} minutes',
     },
     'reminder.event.generic': {
-        'fa': '{lead} وقتِ «{label}»ه 🌿',
-        'ar': '{lead} موعد «{label}» 🌿',
+        'fa': '{lead} یادآوری تو: «{label}» 🌿',
+        'ar': '{lead} تذكيرك: «{label}» 🌿',
         'en': '{lead}: {label} 🌿',
     },
     'reminder.event.generic_nolabel': {

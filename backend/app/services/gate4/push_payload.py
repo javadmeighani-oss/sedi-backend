@@ -45,7 +45,10 @@ CHANNEL_HEALTH_ALERT_V2 = "health_alert_v2"
 MOBILE_INTERACTION_ACTIONS: tuple[str, ...] = ("open_chat", "dislike")
 
 # P8: nutrition / exercise plan follow-ups ask "did you do it?" with these three tray buttons instead.
-PLAN_FOLLOWUP_ACTIONS: tuple[str, ...] = ("done", "plan_not_done", "later")
+# R-075 (2026-11-06): «talk with Sedi» is ALWAYS on the notification. Android shows at most three buttons, so the follow-up
+# family is done / not done / talk; «later» stays available in the inbox sheet and «not done» already asks why (incl. «busy now»).
+PLAN_FOLLOWUP_ACTIONS: tuple[str, ...] = ("done", "plan_not_done", "open_chat")
+MAX_TRAY_ACTIONS = 3
 PLAN_FOLLOWUP_TEMPLATE_KEYS = frozenset(
     {
         "nutrition_plan_follow_up", "exercise_plan_follow_up", "commitment_follow_up",
@@ -53,6 +56,25 @@ PLAN_FOLLOWUP_TEMPLATE_KEYS = frozenset(
         "medication_reminder", "generic_event_reminder", "assurance_follow_up",
     }
 )
+
+
+def ensure_talk_action(actions: Sequence[str] | None) -> list[str] | None:
+    """R-075: every notification that carries tray actions carries «open_chat» (talk with Sedi), within the 3-button limit.
+    Legacy/V1 action lists (not mobile/plan ids) are returned unchanged."""
+    if actions is None:
+        return None
+    ids = [str(a).strip() for a in actions]
+    if not ids or not all(i in MOBILE_INTERACTION_ACTIONS or i in PLAN_FOLLOWUP_ACTIONS or i in ("like", "later") for i in ids):
+        return list(actions)
+    if "open_chat" in ids:
+        return ids
+    for droppable in ("later", "like"):
+        if len(ids) >= MAX_TRAY_ACTIONS and droppable in ids:
+            ids.remove(droppable)
+    if len(ids) >= MAX_TRAY_ACTIONS:
+        ids = ids[: MAX_TRAY_ACTIONS - 1]
+    ids.append("open_chat")
+    return ids
 
 
 def normalize_push_language(language: str | None) -> str:
@@ -236,7 +258,7 @@ def build_gate4_push_data_payload(
     Legacy ``actions`` (raw ``actions_json``) is preserved by the FCMAdapter merge helper.
     """
     lang = normalize_push_language(language)
-    gate4_actions = _resolve_gate4_actions(actions, lang, include_future=include_future_actions)
+    gate4_actions = _resolve_gate4_actions(ensure_talk_action(actions), lang, include_future=include_future_actions)
     action_labels = {item["action_id"]: item["label"] for item in gate4_actions}
 
     payload: dict[str, str] = {
