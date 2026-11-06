@@ -104,6 +104,10 @@ def resolve_event_semantic_family(event_type: str, *, medical: bool = True) -> I
 
 REMINDER_EXPIRY_GRACE_MINUTES = 30
 _TITLES = sedi_copy.by_lang("reminder.event.title")
+# R-075: a title that is only the generic default («یادآوری», «Reminder») is not something the user wrote - no label in the text.
+_DEFAULT_LABELS = frozenset(
+    text.strip() for block in sedi_copy.nested_by_lang("reminder.title_default").values() for text in block.values()
+)
 
 
 def event_starts_utc(event: models.UserEvent) -> Optional[datetime]:
@@ -169,6 +173,8 @@ def _reminder_copy(
     lead = _lead_phrase(offset_min, lang)
     if not medical:
         label = (event.title or "").strip()
+        if label in _DEFAULT_LABELS:
+            label = ""
         key = "reminder.event.generic" if label else "reminder.event.generic_nolabel"
         return title, sedi_copy.t(key, lang, lead=lead, label=label), "generic_event_reminder"
     if event.event_type == DOCTOR_EVENT_TYPE:

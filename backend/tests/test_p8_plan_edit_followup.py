@@ -38,12 +38,13 @@ def _fcm(template_key: str, lang: str = "fa") -> dict:
     return data
 
 
-def test_plan_followups_carry_done_not_done_later_buttons_and_others_keep_like_dislike():
+def test_plan_followups_carry_done_not_done_talk_buttons_and_others_keep_talk_dislike():
     plan = _actions_of(_fcm("nutrition_plan_follow_up"))
-    assert [a["action_id"] for a in plan] == ["done", "plan_not_done", "later"]
-    assert [a["label"] for a in plan] == ["آره، انجام شد", "نشد", "بعداً"]
-    assert [a["action_id"] for a in _actions_of(_fcm("exercise_plan_follow_up", "en"))] == ["done", "plan_not_done", "later"]
-    assert [a["label"] for a in _actions_of(_fcm("exercise_plan_follow_up", "ar"))] == ["تم", "لم يتم", "لاحقًا"]
+    # R-075: «talk with Sedi» is always there (3-button limit): done / not done / talk; «later» lives in the inbox sheet
+    assert [a["action_id"] for a in plan] == ["done", "plan_not_done", "open_chat"]
+    assert [a["label"] for a in plan] == ["آره، انجام شد", "نشد", "صحبت با صدی"]
+    assert [a["action_id"] for a in _actions_of(_fcm("exercise_plan_follow_up", "en"))] == ["done", "plan_not_done", "open_chat"]
+    assert [a["label"] for a in _actions_of(_fcm("exercise_plan_follow_up", "ar"))][:2] == ["تم", "لم يتم"]
     other = _actions_of(_fcm("daily_smart_touchpoint"))
     assert [a["action_id"] for a in other] == ["open_chat", "dislike"]  # R-039: no Like; Talk first
 
