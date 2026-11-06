@@ -100,3 +100,14 @@ def test_guides_hold_no_medical_specifics_and_follow_only_ok_knowledge():
         assert "knowledge block" in low
     brain = (ROOT / "backend/app/core/conversation/brain.py").read_text(encoding="utf-8")
     assert 'answer_guide_block(user_message) if getattr(grounded, "status", "") == "OK" else None' in brain
+
+
+def test_every_cap_in_the_serving_path_agrees_with_the_chat_request():
+    """Step-2 audit found a THIRD cap (SCIS DEFAULT_SERVING_TOP_K=5 used as ceiling): all ceilings must allow what brain asks."""
+    from backend.app.services.scis import governed_runtime_adapter as gra
+
+    assert gra.DEFAULT_SERVING_TOP_K == 5  # the default for other callers does not change
+    assert gra.MAX_SERVING_TOP_K == MAX_LIMIT == 10
+    src = (ROOT / "backend/app/services/scis/governed_runtime_adapter.py").read_text(encoding="utf-8")
+    assert "min(int(limit), MAX_SERVING_TOP_K)" in src
+    assert 'min(int(kwargs.get("limit") or DEFAULT_SERVING_TOP_K), MAX_SERVING_TOP_K)' in src
