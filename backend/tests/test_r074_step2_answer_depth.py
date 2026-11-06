@@ -89,3 +89,14 @@ def test_default_block_budget_is_unchanged_and_a_wider_budget_carries_more_text(
 def _answer(text: str):
     base = rr.render_grounded_answer({"status": "NO_ELIGIBLE", "items": []}, language="en")
     return base.model_copy(update={"synthesized_text": text, "status": "OK"})
+
+
+def test_guides_hold_no_medical_specifics_and_follow_only_ok_knowledge():
+    """Codex P2 (PR 154): a guide must not supply symptom lists, and must not be added when no governed knowledge was found."""
+    for _gid, _rx, text in dg._GUIDES:
+        low = text.lower()
+        for word in ("chest", "numbness", "dizz", "fever", "bladder", "confusion", "prescribed"):
+            assert word not in low, (word, text)
+        assert "knowledge block" in low
+    brain = (ROOT / "backend/app/core/conversation/brain.py").read_text(encoding="utf-8")
+    assert 'answer_guide_block(user_message) if getattr(grounded, "status", "") == "OK" else None' in brain

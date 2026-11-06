@@ -393,7 +393,7 @@ def _maybe_append_structured_governed_knowledge(
             # R-074 step 2: the shape of a complete answer for this topic (sleep, plans, muscle pain, labs, elder care, chronic care)
             from backend.app.core.conversation.domain_guides import answer_guide_block
 
-            _guide = answer_guide_block(user_message)
+            _guide = answer_guide_block(user_message) if getattr(grounded, "status", "") == "OK" else None
             if _guide:
                 messages.append({"role": "system", "content": _guide})
     except Exception as e:
