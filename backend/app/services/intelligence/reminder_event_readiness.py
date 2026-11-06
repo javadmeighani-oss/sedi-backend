@@ -217,7 +217,7 @@ _COMPLAINT_OR_NEGATION = re.compile(
     re.IGNORECASE,
 )
 # a question about a missing notification is a complaint for EVERY wording (also the older keyword rules)
-_WHY_COMPLAINT = re.compile(r"چرا|why|لماذا|نفرستاد|ندادی|نیومد|نیامد|نرسید", re.IGNORECASE)
+_WHY_COMPLAINT = re.compile(r"چرا|\bwhy\b|لماذا|نفرستاد|ندادی|نیومد|نیامد|نرسید", re.IGNORECASE)
 _TOPIC_MARKERS = {
     "fa": re.compile(r"(?:درباره\s*(?:ی|ء)?|در\s*مورد|راجع\s*به|راجب|پیرامون)\s+(?P<t>.+?)\s*$"),
     "en": re.compile(r"(?:about|regarding|concerning)\s+(?P<t>.+?)\s*$", re.IGNORECASE),

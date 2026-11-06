@@ -25,7 +25,7 @@ _CONDITION_TERMS = (
     "سكري", "سرطان", "ضغط", "قلب", "مرض",
 )
 _CLAIM_VERB = re.compile(
-    r"(?:داشت|داره|دارد|دارند|داشته|مبتلا|گرفته|گرفت|بوده|سابقه|had|has|have|suffer|diagnosed|history|كان|لديه|عانى)",
+    r"(?:داشت|داره|دارد|دارند|داشته|مبتلا|گرفته|گرفت|بوده|سابقه|\bhad\b|\bhas\b|\bhave\b|suffer|diagnosed|history|كان|لديه|عانى)",
     re.I,
 )
 _FIRST_PERSON_RELATIVE = re.compile(
@@ -216,6 +216,10 @@ _SEND_DONE = re.compile(
 _SEND_NOW = re.compile(r"همین\s*الان|الان|همین\s*حالا|حالا|\bright\s+now\b|\bjust\s+now\b|\bnow\b|للتو|الآن|الان", re.IGNORECASE)
 
 
+# a DENIAL of a send («نفرستادم», «ارسال نکردم», «I did not send», «لم أرسل») is accurate and must stay
+_SEND_NEGATED = re.compile(r"نفرستاد|نکردم|نکرده|نشد|نمی\s*[‌]?\s*فرست|\bnot\b|n't\b|\bnever\b|\bno\b|لم\s|لا\s|ما\s+أرسل|ما\s+ارسل", re.IGNORECASE)
+
+
 def strip_unverified_send_claims(reply: str, language: str = "fa") -> str:
     """Remove «نوتیف … را همین الان فرستادم»-style claims (an immediate send that did not happen). Past references
     without «now» («this morning I sent the digest») and every other sentence stay. If nothing remains, one honest line asks
@@ -227,7 +231,7 @@ def strip_unverified_send_claims(reply: str, language: str = "fa") -> str:
     kept = [
         p.strip()
         for p in parts
-        if not (_SEND_NOUN.search(p) and _SEND_DONE.search(p) and _SEND_NOW.search(p))
+        if not (_SEND_NOUN.search(p) and _SEND_DONE.search(p) and _SEND_NOW.search(p) and not _SEND_NEGATED.search(p))
     ]
     if len(kept) == len(parts):
         return text

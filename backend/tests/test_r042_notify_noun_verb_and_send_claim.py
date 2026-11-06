@@ -39,6 +39,8 @@ NEGATIVE = [
     ("پیام بدی دارم", "fa"),
     ("why did you never send a notification now", "en"),
     ("لماذا لم ترسل لي إشعاراً الآن", "ar"),
+    ("Why didn't you ping me tomorrow?", "en"),
+    ("why did you not text me tomorrow at 10", "en"),
 ]
 
 
@@ -83,3 +85,25 @@ def test_other_sentences_stay_and_non_now_references_are_untouched():
     for keep in ("امروز صبح خلاصه‌ات را فرستادم.", "This morning I sent your daily summary.", "Your plan is ready now."):
         assert strip_unverified_send_claims(keep, "fa" if "ا" in keep else "en") == keep
     assert strip_unverified_send_claims("", "fa") == ""
+
+
+@pytest.mark.parametrize(
+    "denial,lang",
+    [
+        ("نوتیف رو همین الان نفرستادم.", "fa"),
+        ("هنوز نوتیف را ارسال نکردم و باید زمانش را بدانم.", "fa"),
+        ("I did not send the notification right now.", "en"),
+        ("I haven't sent a notification just now.", "en"),
+        ("لم أرسل الإشعار الآن.", "ar"),
+    ],
+)
+def test_an_accurate_denial_of_a_send_is_preserved(denial, lang):
+    assert strip_unverified_send_claims(denial, lang) == denial
+
+
+def test_regexes_have_real_word_boundaries_not_backspace_characters():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "app" / "services" / "intelligence"
+    for name in ("reminder_event_readiness.py", "grounding_guard.py"):
+        assert chr(8) not in (root / name).read_text(encoding="utf-8"), name
