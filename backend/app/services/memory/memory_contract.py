@@ -48,6 +48,9 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "health_concerns",
         # R-014: user-stated family health history (never inferred; only what the user said).
         "family_history",
+        # R-074 step 4: what the user's own CONFIRMED documents say (lab values, prescribed medicines).
+        "lab_results",
+        "prescribed_medications",
     ],
     "preferences": [
         "communication_style",
@@ -166,6 +169,8 @@ KEY_OWNERSHIP_OVERRIDES: Dict[tuple, str] = {
     ("medical", "allergies"): LEGACY_COMPATIBILITY,  # UserProfileFact.allergy is structured owner; no dedicated table
     ("medical", "health_concerns"): CANONICAL_I6,
     ("medical", "family_history"): CANONICAL_I6,
+    ("medical", "lab_results"): CANONICAL_I6,
+    ("medical", "prescribed_medications"): CANONICAL_I6,
 }
 
 # R-014 "second memory": user-STATED health facts that Sedi may use when answering (consent-gated reads).
@@ -174,6 +179,8 @@ KEY_OWNERSHIP_OVERRIDES: Dict[tuple, str] = {
 I6_USER_STATED_HEALTH_KEYS = (
     ("medical", "health_concerns"),
     ("medical", "family_history"),
+    ("medical", "lab_results"),
+    ("medical", "prescribed_medications"),
 )
 
 DOMAIN_OWNERSHIP_DEFAULT: Dict[str, str] = {

@@ -195,12 +195,27 @@ def list_attachments(db: Session, user_id: int, limit: int = 50) -> list[dict[st
     return [_meta(r) for r in rows]
 
 
-def get_attachment(db: Session, user_id: int, attachment_id: int) -> dict[str, Any]:
+def _with_analysis(db: Session, user_id: int, row: models.UserAttachment, out: dict[str, Any], language: str) -> dict[str, Any]:
+    """R-074 step 4: plain-words analysis of a read document (deterministic, fail-open: the plain meta stays if it fails)."""
+    try:
+        if row.kind != "audio" and row.status in ("ready", "confirmed") and isinstance(out.get("findings"), dict):
+            from backend.app.services.i7.health_documents import analyse
+
+            out["analysis"] = analyse(
+                db, user_id, out["findings"], attachment_id=int(row.id), language=language, confirmed=row.status == "confirmed"
+            )
+    except Exception:
+        db.rollback()
+    return out
+
+
+def get_attachment(db: Session, user_id: int, attachment_id: int, language: str = "fa") -> dict[str, Any]:
     from backend.app.services.i6.consent_service import PERM_READ
 
     if not _has(db, user_id, PERM_READ):
         raise AttachmentError("MEMORY_READ_NOT_GRANTED", 403)
-    return _meta(_owned(db, user_id, attachment_id), with_findings=True)
+    row = _owned(db, user_id, attachment_id)
+    return _with_analysis(db, user_id, row, _meta(row, with_findings=True), language)
 
 
 # ---------------------------------------------------------------------------------------------- model calls (injected in tests)
@@ -325,10 +340,12 @@ def process_attachment(
     out = _meta(row, with_findings=True)
     if row.kind == "audio":
         out["transcript"] = row.summary
+    else:
+        _with_analysis(db, user_id, row, out, language)
     return out
 
 
-def confirm_attachment(db: Session, user_id: int, attachment_id: int) -> dict[str, Any]:
+def confirm_attachment(db: Session, user_id: int, attachment_id: int, language: str = "fa") -> dict[str, Any]:
     """The user says «yes, remember this»: the document lands on the I7 timeline (never automatic)."""
     from backend.app.services.i7.life_events import record_life_event
 
@@ -355,7 +372,14 @@ def confirm_attachment(db: Session, user_id: int, attachment_id: int) -> dict[st
     row.status = "confirmed"
     db.commit()
     db.refresh(row)
-    return _meta(row, with_findings=True)
+    try:
+        # R-074 step 4: the confirmed document becomes part of the overall health picture (I6, read back into chat context)
+        from backend.app.services.i7.health_documents import record_into_picture
+
+        record_into_picture(db, user_id, findings, attachment_id=int(row.id))
+    except Exception:
+        db.rollback()
+    return _with_analysis(db, user_id, row, _meta(row, with_findings=True), language)
 
 
 def delete_attachment(db: Session, user_id: int, attachment_id: int) -> bool:
@@ -367,6 +391,14 @@ def delete_attachment(db: Session, user_id: int, attachment_id: int) -> bool:
     row = _owned(db, user_id, attachment_id)
     if row.confirmed_event_id:
         delete_life_event(db, user_id, int(row.confirmed_event_id))  # forgetting a document forgets what came from it
+    was_confirmed = row.status == "confirmed"
     db.delete(row)
     db.commit()
+    if was_confirmed:
+        try:
+            from backend.app.services.i7.health_documents import forget_from_picture
+
+            forget_from_picture(db, user_id)  # R-074 step 4: forgetting a document forgets what the picture took from it
+        except Exception:
+            db.rollback()
     return True
