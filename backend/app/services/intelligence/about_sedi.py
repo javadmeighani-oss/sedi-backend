@@ -41,7 +41,7 @@ _ABOUT_SOURCE = (
     r"اجهزتك|اجهزه\s+صدی|ما\s+هی\s+اجهزتك|عن\s+اجهزتك|"
     # en
     r"who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|what\s+do\s+you\s+do|introduce\s+yourself|"
-    r"tell\s+me\s+about\s+yourself|your\s+(?:abilities|capabilities|features)|"
+    r"tell\s+me\s+about\s+yourself|your\s+(?:\w+\s+)?(?:abilities|capabilities|features)|"
     r"can\s+you\s+(?:send|give)\s+(?:me\s+)?(?:a\s+)?(?:notification|reminder|alert)s?"
     r")"
 )
@@ -54,7 +54,7 @@ _META_SOURCE = (
     # ar
     r"من\s+أنت|ما\s+أنت|عرف\S*\s+بنفسك|ما\s+(?:هي\s+)?(?:قدراتك|إمكانياتك|مهامك|وظيفتك)|"
     # en
-    r"who\s+are\s+you|introduce\s+yourself|tell\s+me\s+about\s+yourself|your\s+(?:abilities|capabilities|features)"
+    r"who\s+are\s+you|introduce\s+yourself|tell\s+me\s+about\s+yourself|your\s+(?:\w+\s+)?(?:abilities|capabilities|features)"
     r")"
 )
 
@@ -107,11 +107,17 @@ def is_about_sedi_question(message: str) -> bool:
 # not the general introduction. First match wins (specific before broad).
 _DOMAIN_SOURCES = (
     ("gadgets", r"گجت|ساعت\s+هوشمند|دستگاه|gadget|wearable|device|اجهز|جهاز"),
-    ("documents", r"ازمایش|نسخه|ویزیت|مدارک|مدرک|دارو|test\s+result|lab\b|prescription|visit|تحلیل|تحالیل|وصفه|زیاره"),
+    ("reminders", r"یادآور|نوتیف|اعلان|اشعار|reminder|notification|alert|تذکیر|اشعار"),
+    ("specialist", r"متخصص|پزشک|دکتر|specialist|doctor|مختص|طبیب|اطباء"),
+    ("documents", r"ازمایش|نسخه|ویزیت|مدارک|مدرک|دارو|test\s+result|lab|prescription|visit|تحلیل|تحالیل|وصفه|زیاره"),
+    ("memory", r"حافظه|به\s+خاطر|یاد\s*بسپار|memory|remember|الذاکره|تتذکر|تحفظ"),
     ("psychology", r"روانشناس|روان\s+شناس|اضطراب|استرس|افسرد|روحی|روانی|حال\s+دل|psycholog|mental|anxiety|stress|depress|علم\s+النفس|نفسی|قلق|اکتئاب"),
     ("sleep", r"خواب|sleep|insomnia|نوم|ارق"),
-    ("nutrition", r"تغذیه|رژیم|برنامه\s+غذایی|غذایی|لاغری|nutrition|diet|meal|تغذیه|حمیه|نظام\s+غذایی"),
+    ("elder_care", r"سالمند|پیری|زوال\s+عقل|elderly|older\s+(?:adult|people|person)|dementia|كبار|کبار|مسن|خرف"),
+    ("nutrition", r"تغذیه|رژیم|برنامه\s+غذایی|غذایی|لاغری|nutrition|diet|meal|حمیه|نظام\s+غذایی"),
     ("exercise_pain", r"ورزش|تمرین|درد|عضل|کمر|مفصل|فیزیوتراپی|exercise|workout|pain|muscle|physio|ریاضه|الم"),
+    ("diseases_care", r"بیماری|دیابت|فشار\s+خون|اسم|میگرن|درمان|illness|disease|condition|diabetes|blood\s+pressure|asthma|treatment|مرض|امراض|علاج|السکری|الربو"),
+    ("lifestyle_plan", r"سبک\s+زندگی|برنامه|lifestyle|plan|نمط\s+الحیاه|برنامج"),
 )
 _DOMAINS = tuple((name, re.compile(_fold(src), re.I)) for name, src in _DOMAIN_SOURCES)
 

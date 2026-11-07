@@ -10,6 +10,11 @@ import pytest
 from backend.app import sedi_copy
 from backend.app.services.intelligence.about_sedi import about_domain, about_sedi_message, about_sedi_reply, is_about_sedi_question
 
+ALL_DOMAINS = (
+    "psychology", "nutrition", "exercise_pain", "sleep", "documents", "gadgets",
+    "reminders", "diseases_care", "elder_care", "memory", "specialist", "lifestyle_plan",
+)
+
 DOMAIN_MESSAGES = [
     ("psychology", "صدی در مورد توانایی‌های تو در زمینه روانشناسی بگو"),
     ("psychology", "چه کمکی در زمینه اضطراب می‌تونی به من بکنی"),
@@ -29,6 +34,20 @@ DOMAIN_MESSAGES = [
     ("gadgets", "what are your smart devices"),
     ("gadgets", "ما هي أجهزتك الذكية"),
     ("gadgets", "گجت‌هات چیه"),
+    ("reminders", "توانایی‌هایت در زمینه یادآور و نوتیف چیست"),
+    ("reminders", "what can you do with reminders and notifications"),
+    ("reminders", "ما هي قدراتك في التذكيرات والإشعارات"),
+    ("specialist", "توانایی‌هایت در پیدا کردن متخصص چیست"),
+    ("specialist", "what can you do to find me a specialist"),
+    ("memory", "توانایی‌هایت در زمینه حافظه چیست"),
+    ("memory", "tell me about your memory abilities"),
+    ("elder_care", "چه کمکی در زمینه مراقبت از سالمند می‌تونی بکنی"),
+    ("elder_care", "what can you do for caring for an older adult"),
+    ("diseases_care", "توانایی‌های تو در زمینه بیماری‌ها و درمان چیست"),
+    ("diseases_care", "what can you do about diabetes and blood pressure care"),
+    ("diseases_care", "ماذا تستطيعين أن تفعلي بخصوص السكري"),
+    ("lifestyle_plan", "توانایی‌هایت در زمینه برنامه سبک زندگی چیست"),
+    ("lifestyle_plan", "what can you do for my lifestyle plan"),
 ]
 
 
@@ -52,7 +71,7 @@ def test_the_general_question_still_gets_the_introduction(message):
 
 @pytest.mark.parametrize("lang", ["fa", "ar", "en"])
 def test_every_field_answer_exists_has_one_question_and_no_hedge(lang):
-    for key in ("psychology", "nutrition", "exercise_pain", "sleep", "documents", "gadgets"):
+    for key in ALL_DOMAINS:
         text = sedi_copy.t(f"about.domain.{key}", lang)
         assert text.count("؟") + text.count("?") == 1, (key, lang)
         assert not re.search(r"اگه دوست داری|if you like|إن أحببت|دوست داری", text, re.I)
@@ -103,3 +122,15 @@ JAVAD_APPROVED_FA = (
 def test_the_general_introduction_is_exactly_the_text_javad_approved():
     """Javad 2026-11-07 pasted this text: «دقیقا این جمله را در معرفی کلی صدی بکار ببریم»."""
     assert sedi_copy.t("about.sedi", "fa") == JAVAD_APPROVED_FA
+
+
+def test_every_field_has_its_own_answer_in_three_languages_and_each_is_reachable():
+    reached = {d for d, _ in DOMAIN_MESSAGES}
+    assert reached == set(ALL_DOMAINS)
+    texts = {}
+    for key in ALL_DOMAINS:
+        for lang in ("fa", "ar", "en"):
+            t = sedi_copy.t(f"about.domain.{key}", lang)
+            assert t.strip() and len(t) > 120, (key, lang)
+            texts[(key, lang)] = t
+    assert len({t for t in texts.values()}) == len(texts)  # no two answers are the same text
