@@ -117,6 +117,9 @@ class DiscoveryConfig:
     max_new_urls_per_cycle: int
     max_discovered_urls: int
     exclude_url_tokens: tuple[str, ...]
+    # R-074 step 5: a hub feed may be scoped to certain lanes (the MedlinePlus mental-health hub = D23 only), so adding
+    # reviewed pages of other lanes to the SOURCE never widens what a hub feed admits.
+    lane_entities: tuple[str, ...] = ()
 
 
 def discovery_config(row: Mapping[str, Any]) -> Optional[DiscoveryConfig]:
@@ -144,6 +147,7 @@ def discovery_config(row: Mapping[str, Any]) -> Optional[DiscoveryConfig]:
         max_new_urls_per_cycle=_int("max_new_urls_per_cycle", DEFAULT_MAX_NEW_URLS_PER_CYCLE, MAX_NEW_URLS_PER_RUN),
         max_discovered_urls=_int("max_discovered_urls", DEFAULT_MAX_DISCOVERED_URLS, 200),
         exclude_url_tokens=tuple(str(t).strip().lower() for t in (raw.get("exclude_url_tokens") or []) if str(t).strip()),
+        lane_entities=tuple(str(e).strip() for e in (raw.get("lane_entities") or []) if str(e).strip()),
     )
 
 
@@ -308,6 +312,8 @@ def discover_for_row(
     if cfg is None:
         return SourceDiscovery(key, "NO_DISCOVERY_CONFIG")
     allowed = specialized_allowed_entities_for_source(key)
+    if cfg.lane_entities:
+        allowed = {e for e in allowed if e in cfg.lane_entities}
     if not allowed:
         return SourceDiscovery(key, "NO_SAFETY_LANE_FOR_SOURCE")
     if budget <= 0:
@@ -390,6 +396,19 @@ def _load_policy(raw: Optional[str]) -> dict[str, Any]:
     return policy if isinstance(policy, dict) else {}
 
 
+def keep_in_lane_scope(entries: list[dict[str, Any]], cfg: DiscoveryConfig) -> list[dict[str, Any]]:
+    """Codex P2 (PR 158): when a hub feed is lane-scoped, stale discoveries from other lanes (found before the scope existed)
+    are dropped, so they never use up the cap meant for the scoped lane."""
+    if not cfg.lane_entities:
+        return entries
+    kept = []
+    for e in entries:
+        spec = resolve_specialized_entity_from_url(str(e.get("url") or ""))
+        if spec is not None and spec.entity_id in cfg.lane_entities:
+            kept.append(e)
+    return kept
+
+
 def discovered_entries(policy: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [e for e in (policy.get("discovered_urls") or []) if isinstance(e, Mapping) and e.get("url")]
 
@@ -405,6 +424,8 @@ def discovered_urls_for_cycle(row: Mapping[str, Any], policy: Mapping[str, Any])
     if cfg is None:
         return []
     allowed = specialized_allowed_entities_for_source(str(row.get("source_key") or ""))
+    if cfg.lane_entities:
+        allowed = {e for e in allowed if e in cfg.lane_entities}
     if not allowed:
         return []
     controlled = {url_key(u) for u in (policy.get("controlled_urls") or [])}
@@ -468,7 +489,7 @@ def run_link_discovery(
             report.sources.append(SourceDiscovery(key, "SOURCE_NOT_ACTIVE").summary())
             continue
         policy = _load_policy(ks.crawl_policy_json)
-        stored = discovered_entries(policy)
+        stored = keep_in_lane_scope(discovered_entries(policy), cfg)
         known = {url_key(u) for u in (policy.get("controlled_urls") or [])} | {url_key(str(e["url"])) for e in stored}
         budget = min(cfg.max_new_urls_per_cycle, cfg.max_discovered_urls - len(stored), remaining)
         found = discover_for_row(

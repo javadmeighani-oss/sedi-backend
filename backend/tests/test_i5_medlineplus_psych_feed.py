@@ -94,9 +94,11 @@ def test_every_reviewed_topic_is_in_the_d23_lane(slug):
 
 @pytest.mark.parametrize("slug", NEVER)
 def test_crisis_medication_and_clinical_topics_are_never_admitted(slug):
-    ok, reason, _ = ld.admit_discovered_url(
-        f"{MP}{slug}.html", _row(), allowed_entities=specialized_allowed_entities_for_source("medlineplus_consumer_health")
-    )
+    # R-074 step 5: the hub feed is scoped to D23 (lane_entities), whatever other lanes the SOURCE holds
+    cfg = ld.discovery_config(_row())
+    assert cfg.lane_entities == ("D23",)
+    scoped = {e for e in specialized_allowed_entities_for_source("medlineplus_consumer_health") if e in cfg.lane_entities}
+    ok, reason, _ = ld.admit_discovered_url(f"{MP}{slug}.html", _row(), allowed_entities=scoped)
     assert not ok and reason in {"CONTENT_DENY", "NO_SAFETY_LANE"}
 
 
@@ -161,3 +163,16 @@ def test_pages_eligible_before_r044_are_not_re_judged_by_the_new_rules():
     spec = resolve_specialized_entity_from_url(url)
     text = "Generalised anxiety disorder — Treatment: Talking therapies and medicines can both help people with anxiety."
     assert _d23_mh_edu_content_blocked(text, spec, canonical_url=url) == (False, "")
+
+
+def test_stale_discoveries_from_other_lanes_do_not_use_up_the_scoped_cap():
+    """Codex P2 (PR 158): entries found before the D23 scope existed are pruned before the cap is counted."""
+    cfg = ld.discovery_config(_row())
+    entries = [{"url": MP + "diabetes.html"}, {"url": MP + "depression.html"}, {"url": MP + "dementia.html"}]
+    kept = ld.keep_in_lane_scope(entries, cfg)
+    assert [e["url"] for e in kept] == [MP + "depression.html"]
+    unscoped = ld.DiscoveryConfig(hub_urls=cfg.hub_urls, max_new_urls_per_cycle=1, max_discovered_urls=1, exclude_url_tokens=())
+    assert ld.keep_in_lane_scope(entries, unscoped) == entries  # no scope = untouched
+    import inspect
+
+    assert "keep_in_lane_scope(discovered_entries(policy), cfg)" in inspect.getsource(ld.run_link_discovery)

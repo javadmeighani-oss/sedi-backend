@@ -207,13 +207,34 @@ sources:
       - https://medlineplus.gov/rashes.html
       - https://medlineplus.gov/vitiligo.html
       - https://medlineplus.gov/sunexposure.html
+      # R-074 step 5 coverage: musculoskeletal (D05), dementia (D24), diabetes/weight (D22), blood pressure/cholesterol (D21)
+      - https://medlineplus.gov/backpain.html
+      - https://medlineplus.gov/neckinjuriesanddisorders.html
+      - https://medlineplus.gov/shoulderinjuriesanddisorders.html
+      - https://medlineplus.gov/kneeinjuriesanddisorders.html
+      - https://medlineplus.gov/hipinjuriesanddisorders.html
+      - https://medlineplus.gov/elbowinjuriesanddisorders.html
+      - https://medlineplus.gov/wristinjuriesanddisorders.html
+      - https://medlineplus.gov/footinjuriesanddisorders.html
+      - https://medlineplus.gov/sprainsandstrains.html
+      - https://medlineplus.gov/muscledisorders.html
+      - https://medlineplus.gov/osteoporosis.html
+      - https://medlineplus.gov/osteoarthritis.html
+      - https://medlineplus.gov/sciatica.html
+      - https://medlineplus.gov/alzheimersdisease.html
+      - https://medlineplus.gov/dementia.html
+      - https://medlineplus.gov/diabetestype2.html
+      - https://medlineplus.gov/diabeticdiet.html
+      - https://medlineplus.gov/diabetescomplications.html
+      - https://medlineplus.gov/highbloodpressure.html
+      - https://medlineplus.gov/cholesterol.html
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
       - "^https://medlineplus\\.gov/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_110_urls"
+    rate_limit: "weekly_controlled_max_130_urls"
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19, D23]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]  # specialty_domain is varchar(128): D23 comes from specialized_serving_eligibility
     activation: YES
@@ -227,6 +248,7 @@ sources:
         - https://medlineplus.gov/mentalhealthandbehavior.html
       max_new_urls_per_cycle: 12
       max_discovered_urls: 30
+      lane_entities: [D23]  # the mental-health hub feeds only the reviewed D23 lane
     # Controlled specialized serving only (NOT global low-risk). D12 omitted (no canonical MP spec).
     # D23 = reviewed MedlinePlus mental-health education pages only (URL lane in governed_specialized_entity_eligibility).
     specialized_serving_eligibility:
@@ -712,6 +734,17 @@ sources:
       - https://www.nhs.uk/conditions/endometriosis/
       - https://www.nhs.uk/conditions/polycystic-ovary-syndrome-pcos/
       - https://www.nhs.uk/conditions/periods/
+      # R-074 step 5: more NHS Health A-Z pages in the same reviewed lanes (OGL)
+      - https://www.nhs.uk/conditions/sprains-and-strains/
+      - https://www.nhs.uk/conditions/sciatica/
+      - https://www.nhs.uk/conditions/tennis-elbow/
+      - https://www.nhs.uk/conditions/frozen-shoulder/
+      - https://www.nhs.uk/conditions/plantar-fasciitis/
+      - https://www.nhs.uk/conditions/slipped-disc/
+      - https://www.nhs.uk/conditions/alzheimers-disease/symptoms/
+      - https://www.nhs.uk/conditions/alzheimers-disease/treatment/
+      - https://www.nhs.uk/conditions/vascular-dementia/
+      - https://www.nhs.uk/conditions/frontotemporal-dementia/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/conditions/.*"
@@ -719,7 +752,7 @@ sources:
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_51_urls"
+    rate_limit: "weekly_controlled_max_61_urls"
     entity_coverage: [D01, D02, D03, D05, D10, D18, D19, D21, D22, D24, D25, D26, D27]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic]
     activation: YES
@@ -1024,13 +1057,14 @@ sources:
       - https://medlineplus.gov/homecareservices.html
       - https://medlineplus.gov/nursinghomes.html
       - https://medlineplus.gov/pressuresores.html
+      - https://medlineplus.gov/falls.html
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
-      - "^https://medlineplus\\.gov/(mobilityaids|alzheimerscaregivers|elderabuse|homecareservices|nursinghomes|pressuresores)\\.html$"
+      - "^https://medlineplus\\.gov/(mobilityaids|alzheimerscaregivers|elderabuse|homecareservices|nursinghomes|pressuresores|falls)\\.html$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_6_urls"
+    rate_limit: "weekly_controlled_max_7_urls"
     entity_coverage: [D12]
     knowledge_domains: [lifestyle_prevention_routines]
     activation: YES
