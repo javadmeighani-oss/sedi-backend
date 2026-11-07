@@ -58,6 +58,8 @@ jobs:
           psql_prod() { docker exec sedi-postgres psql -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -tA -c "$1"; }
           IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
           echo "${IMG}" | grep -Fq "${IMAGE_SHA}" || { s image_guard FAIL; exit 10; }
+          REVL="$(docker image inspect "$(docker inspect sedi-backend --format '{{.Image}}')" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          [ "${REVL}" = "${IMAGE_SHA}" ] || { s oci_revision_guard FAIL; exit 11; }
           s image_guard PASS
           curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health PASS
           s links_before "$(psql_prod 'SELECT COUNT(*) FROM i5_knowledge_unit_concepts;')"

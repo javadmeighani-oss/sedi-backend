@@ -84,3 +84,4 @@ def test_the_workflow_is_dispatch_only_and_dumps_the_table_before_apply():
     assert "workflow_dispatch" in wf and "push:" not in wf and "pull_request" not in wf
     assert "CONCEPT_RELINK_APPLY" in wf and "pg_dump" in wf and "-t i5_knowledge_unit_concepts" in wf
     assert wf.index("pg_dump") < wf.index("relink_concepts --apply")
+    assert "org.opencontainers.image.revision" in wf and wf.index("oci_revision_guard") < wf.index("pg_dump")  # Codex P2 (PR 161)
