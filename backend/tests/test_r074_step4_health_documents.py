@@ -139,3 +139,26 @@ def test_the_two_keys_are_i6_owned_and_projected():
     for key in ("lab_results", "prescribed_medications"):
         assert ("medical", key) in I6_USER_STATED_HEALTH_KEYS
         assert MemoryContract.validate_fact("medical", key) == (True, None)
+
+
+def test_trends_compare_only_matching_units_and_only_earlier_documents():
+    """Codex P2 (PR 157): mg/dL vs mmol/L are different scales; a later-dated document is never a 'before'."""
+    prev = [{"date": "2026-01-01", "findings": [{"name": "LDL", "value": "3.4", "unit": "mmol/L"}]}]
+    assert hd._trends([{"name": "LDL", "value": "130", "unit": "mg/dL"}], prev, "2026-06-01") == []
+    same_unit = [{"date": "2026-01-01", "findings": [{"name": "LDL", "value": "100", "unit": "mg/dL"}]}]
+    assert hd._trends([{"name": "LDL", "value": "130", "unit": "mg / dL"}], same_unit, "2026-06-01")[0]["direction"] == "up"
+    later = [{"date": "2026-12-01", "findings": [{"name": "LDL", "value": "100", "unit": "mg/dL"}]}]
+    assert hd._trends([{"name": "LDL", "value": "130", "unit": "mg/dL"}], later, "2026-06-01") == []
+
+
+def test_a_backdated_report_confirmed_later_does_not_overwrite_the_newer_result(client, db, monkeypatch):
+    u = _user(db, "+17770024006", tz="Asia/Tehran")
+    _seed_consent(db, u.id)
+    newer = dict(LAB2)  # 2026-11-01, LDL 140
+    older = dict(LAB1)  # 2026-09-01, LDL 160
+    aid_new, _ = _doc(client, db, monkeypatch, u.id, newer, "e1")
+    client.post(f"/memory/attachments/{aid_new}/confirm", headers=_auth(u.id))
+    aid_old, _ = _doc(client, db, monkeypatch, u.id, older, "e2")
+    client.post(f"/memory/attachments/{aid_old}/confirm", headers=_auth(u.id))
+    latest = _facts(db, u.id)["lab_results"]
+    assert "LDL 140" in latest and "LDL 160" not in latest  # the picture keeps the newest REPORT date

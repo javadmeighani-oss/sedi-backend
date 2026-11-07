@@ -53,6 +53,15 @@ def _norm(name: Any) -> str:
     return re.sub(r"[\s‌\-_/().,:;]+", " ", str(name or "").lower()).strip()
 
 
+def _unit_key(unit: Any) -> str:
+    return re.sub(r"[\s.‌]+", "", str(unit or "").lower())
+
+
+def _by_date_desc(docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Newest REPORT date first (Codex P2): a backdated report confirmed later never overwrites a newer result."""
+    return sorted(docs, key=lambda d: str(d.get("date") or ""), reverse=True)
+
+
 def _previous_docs(db: Session, user_id: int, exclude_id: Optional[int]) -> list[dict[str, Any]]:
     """Earlier CONFIRMED documents of the user, newest first: [{date, type, findings, medications}]."""
     q = (
@@ -79,10 +88,10 @@ def _previous_docs(db: Session, user_id: int, exclude_id: Optional[int]) -> list
                 "medications": [str(m) for m in (data.get("medications") or []) if str(m).strip()],
             }
         )
-    return out[:_PREV_DOCS]
+    return _by_date_desc(out)[:_PREV_DOCS]
 
 
-def _trends(current: list[dict[str, Any]], previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _trends(current: list[dict[str, Any]], previous: list[dict[str, Any]], current_date: str = "") -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for f in current:
         cur = _num(f.get("value"))
@@ -90,7 +99,19 @@ def _trends(current: list[dict[str, Any]], previous: list[dict[str, Any]]) -> li
         if cur is None or not name:
             continue
         for doc in previous:
-            hit = next((p for p in doc["findings"] if _norm(p.get("name")) == name and _num(p.get("value")) is not None), None)
+            if current_date and doc.get("date") and str(doc["date"]) > current_date:
+                continue  # only EARLIER documents are a 'before'
+            # Codex P2: values are compared only when the unit matches (mg/dL vs mmol/L are different scales)
+            hit = next(
+                (
+                    p
+                    for p in doc["findings"]
+                    if _norm(p.get("name")) == name
+                    and _num(p.get("value")) is not None
+                    and _unit_key(p.get("unit")) == _unit_key(f.get("unit"))
+                ),
+                None,
+            )
             if hit is None:
                 continue
             prev = _num(hit.get("value"))
@@ -144,7 +165,7 @@ def analyse(db: Session, user_id: int, parsed: dict[str, Any], *, attachment_id:
                 )
         else:
             lines.append(t("doc.analysis.lab.none_flagged", lang, n=_show(n, lang)))
-        trends = _trends(findings, _previous_docs(db, user_id, attachment_id))
+        trends = _trends(findings, _previous_docs(db, user_id, attachment_id), str(parsed.get("date") or ""))
         for tr in trends:
             lines.append(
                 t(
@@ -186,6 +207,7 @@ def _sync_picture(db: Session, user_id: int, docs: list[dict[str, Any]]) -> dict
     from backend.app.services.i6.memory_writes import delete_fact, write_fact
 
     done = {"lab_results": False, "prescribed_medications": False}
+    docs = _by_date_desc(docs)
     latest: dict[str, str] = {}
     for doc in docs:  # the first sighting of a test is its latest value
         if doc.get("type") != "lab_result":
