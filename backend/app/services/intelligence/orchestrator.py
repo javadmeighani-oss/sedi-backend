@@ -1511,12 +1511,12 @@ class IntelligenceOrchestrator:
         ):
             try:
                 from backend.app.services.intelligence.about_sedi import (
-                    about_sedi_message,
+                    about_sedi_reply,
                     is_about_sedi_question,
                 )
 
                 if is_about_sedi_question(message):
-                    about_message = about_sedi_message(lang)
+                    about_message = about_sedi_reply(message, lang)
                     extra_reason_codes.append("R047_ABOUT_SEDI_IDENTITY")
                     skip_generator = True
                     clarification_message = None
