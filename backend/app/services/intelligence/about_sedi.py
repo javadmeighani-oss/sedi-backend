@@ -31,6 +31,7 @@ _ABOUT_SOURCE = (
     r"کارت\s+چیه|وظیفه\s*[‌ ]?ت\s+چیه|به\s+چه\s+دردی\s+می\s*[‌ ]?خوری|"
     r"(?:می\s*[‌ ]?تونی|می\s*[‌ ]?شه)\s+(?:برام\s+|بهم\s+)?(?:نوتیف|اعلان|یادآور|یادآوری)|"
     r"(?:تو\s+)?(?:چه|چی)\s+(?:زمینه|حوزه)\s*(?:ها|های)?\s*(?:ای|هایی)?\s*(?:اطلاعات|دانش|تخصص)|"
+    r"چه\s+کمک\S*\s+(?:\S+\s+){0,6}?(?:می\s*[‌ ]?تونی|می\s*[‌ ]?توانی|بلدی)|گجت\s*(?:ها|های)?\s+(?:هوشمند\s+)?(?:خودت|تو|هایت|های\s+تو)|"
     # ar
     r"من\s+أنت|ما\s+أنت|عرف\S*\s+بنفسك|ماذا\s+(?:تستطيع\S*|يمكنك|تقدم\S*|تفعل\S*)|"
     r"ما\s+(?:هي\s+)?(?:قدراتك|إمكانياتك|مهامك|وظيفتك)|"
@@ -97,6 +98,40 @@ def is_about_sedi_question(message: str) -> bool:
     if len(text.split()) > _SHORT_WORDS:
         return bool(_ABOUT_META.search(text))
     return bool(_ABOUT.search(text))
+
+
+# R-076: a question about her abilities IN A FIELD («توانایی‌هایت در زمینه‌ی روانشناسی») gets the concrete answer of that field,
+# not the general introduction. First match wins (specific before broad).
+_DOMAIN_SOURCES = (
+    ("gadgets", r"گجت|ساعت\s+هوشمند|دستگاه|gadget|wearable|device|اجهزه|جهاز|اجهزة"),
+    ("documents", r"ازمایش|نسخه|ویزیت|مدارک|مدرک|دارو|test\s+result|lab\b|prescription|visit|تحلیل|تحالیل|وصفه|زیاره"),
+    ("psychology", r"روانشناس|روان\s+شناس|اضطراب|استرس|افسرد|روحی|روانی|حال\s+دل|psycholog|mental|anxiety|stress|depress|علم\s+النفس|نفسی|قلق|اکتئاب"),
+    ("sleep", r"خواب|sleep|insomnia|نوم|ارق"),
+    ("nutrition", r"تغذیه|رژیم|برنامه\s+غذایی|غذایی|لاغری|nutrition|diet|meal|تغذیه|حمیه|نظام\s+غذایی"),
+    ("exercise_pain", r"ورزش|تمرین|درد|عضل|کمر|مفصل|فیزیوتراپی|exercise|workout|pain|muscle|physio|ریاضه|الم"),
+)
+_DOMAINS = tuple((name, re.compile(_fold(src), re.I)) for name, src in _DOMAIN_SOURCES)
+
+
+def about_domain(message: str) -> str | None:
+    """The field a question about her abilities names («...در زمینه‌ی روانشناسی»), or None for the general question."""
+    if not is_about_sedi_question(message):
+        return None
+    text = _norm(message)
+    for name, rx in _DOMAINS:
+        if rx.search(text):
+            return name
+    return None
+
+
+def about_sedi_reply(message: str, language: str) -> str:
+    """The answer to a question about Sedi: the field's own concrete answer when a field is named, else the introduction."""
+    lang = (language or "fa").split("-")[0].lower()
+    lang = lang if lang in ("fa", "ar", "en") else "en"
+    domain = about_domain(message)
+    if domain:
+        return sedi_copy.t(f"about.domain.{domain}", lang)
+    return sedi_copy.t("about.sedi", lang)
 
 
 def about_sedi_message(language: str) -> str:
