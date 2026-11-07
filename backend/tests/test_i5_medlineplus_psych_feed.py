@@ -163,3 +163,16 @@ def test_pages_eligible_before_r044_are_not_re_judged_by_the_new_rules():
     spec = resolve_specialized_entity_from_url(url)
     text = "Generalised anxiety disorder — Treatment: Talking therapies and medicines can both help people with anxiety."
     assert _d23_mh_edu_content_blocked(text, spec, canonical_url=url) == (False, "")
+
+
+def test_stale_discoveries_from_other_lanes_do_not_use_up_the_scoped_cap():
+    """Codex P2 (PR 158): entries found before the D23 scope existed are pruned before the cap is counted."""
+    cfg = ld.discovery_config(_row())
+    entries = [{"url": MP + "diabetes.html"}, {"url": MP + "depression.html"}, {"url": MP + "dementia.html"}]
+    kept = ld.keep_in_lane_scope(entries, cfg)
+    assert [e["url"] for e in kept] == [MP + "depression.html"]
+    unscoped = ld.DiscoveryConfig(hub_urls=cfg.hub_urls, max_new_urls_per_cycle=1, max_discovered_urls=1, exclude_url_tokens=())
+    assert ld.keep_in_lane_scope(entries, unscoped) == entries  # no scope = untouched
+    import inspect
+
+    assert "keep_in_lane_scope(discovered_entries(policy), cfg)" in inspect.getsource(ld.run_link_discovery)

@@ -396,6 +396,19 @@ def _load_policy(raw: Optional[str]) -> dict[str, Any]:
     return policy if isinstance(policy, dict) else {}
 
 
+def keep_in_lane_scope(entries: list[dict[str, Any]], cfg: DiscoveryConfig) -> list[dict[str, Any]]:
+    """Codex P2 (PR 158): when a hub feed is lane-scoped, stale discoveries from other lanes (found before the scope existed)
+    are dropped, so they never use up the cap meant for the scoped lane."""
+    if not cfg.lane_entities:
+        return entries
+    kept = []
+    for e in entries:
+        spec = resolve_specialized_entity_from_url(str(e.get("url") or ""))
+        if spec is not None and spec.entity_id in cfg.lane_entities:
+            kept.append(e)
+    return kept
+
+
 def discovered_entries(policy: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [e for e in (policy.get("discovered_urls") or []) if isinstance(e, Mapping) and e.get("url")]
 
@@ -476,7 +489,7 @@ def run_link_discovery(
             report.sources.append(SourceDiscovery(key, "SOURCE_NOT_ACTIVE").summary())
             continue
         policy = _load_policy(ks.crawl_policy_json)
-        stored = discovered_entries(policy)
+        stored = keep_in_lane_scope(discovered_entries(policy), cfg)
         known = {url_key(u) for u in (policy.get("controlled_urls") or [])} | {url_key(str(e["url"])) for e in stored}
         budget = min(cfg.max_new_urls_per_cycle, cfg.max_discovered_urls - len(stored), remaining)
         found = discover_for_row(
