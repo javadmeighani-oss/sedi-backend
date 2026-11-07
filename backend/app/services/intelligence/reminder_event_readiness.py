@@ -595,7 +595,7 @@ _TITLE_NOISE = (
 _FILLER = re.compile(
     r"(?<![\w])(?:لطفا|لطفاً|please|کن|کنی|کنید|بکن|بده|بهم|به من|برام|برای من|برایم|بگو|که|تا|برای|را|رو|"
     r"that|me|set|reminder|دارم|دارید|هست|ساعت|صبح|ظهر|عصر|شب|am|pm|before|prior|"
-    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|میخوام|میخواهم|کنم|حدود|تقریبا|تقریباً|about|around|صباحا|صباحاً|مساء|مساءً|ظهرا)(?![\w])",
+    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|میخوام|میخواهم|کنم|حدود|تقریبا|تقریباً|about|around|صباحا|صباحاً|مساء|مساءً|ظهرا|دیگه|دیگر|دوباره|مجدد|مجددا|مجدداً|یکی|another|again|مرة|اخری|أخرى|اخرى|لي|لی|أرسل|ارسل|إشعاراً|إشعارا|إشعار|آخر|send|notification|notifications)(?![\w])",
     re.IGNORECASE,
 )
 
@@ -608,6 +608,7 @@ def _clean_title(text: str) -> str:
         t = re.sub(r"(?<![\w])" + re.escape(token) + r"(?![\w])", " ", t, flags=re.IGNORECASE)
     t = _FILLER.sub(" ", t)
     t = re.sub(r"[\d]+", " ", t)
+    t = re.sub(r"(?<![\w])ا[ً-ٍ]?(?![\w])", " ", t)  # a lone alef left behind by an Arabic suffix (إشعاراً)
     t = re.sub(r"^\s*to\s+", "", t, flags=re.IGNORECASE)
     t = re.sub(r"[.,،؛:!?؟\-_/()\"'«»]+", " ", t)
     t = re.sub(r"\s+", " ", t).strip()
@@ -744,6 +745,14 @@ def describe_when(draft: ReminderEventDraft, lang: str, now_utc: Optional[dateti
     hhmm = f"{_two(draft.starts_at_local.hour)}:{_two(draft.starts_at_local.minute)}"
     delta = (d - today).days
     rule = draft.recurrence_rule or ""
+    if not rule:
+        # R-078: «send me one now» is confirmed as «now», not as a clock time
+        try:
+            starts_utc = draft.starts_at_local.replace(tzinfo=tz).astimezone(timezone.utc)
+            if -60 <= (starts_utc - effective.astimezone(timezone.utc)).total_seconds() <= 180:
+                return sedi_copy.t("reminder.when.now", lang if lang in ("fa", "ar") else "en")
+        except Exception:
+            pass
     if rule:
         if lang == "fa":
             digits = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")

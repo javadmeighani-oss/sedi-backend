@@ -1267,6 +1267,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم، سجّلتُ «{title}» لـ{when} وسأذكّرك قبله بـ{lead} 🌿 وستجده في «جدولي».',
         'en': "Done - “{title}” is set for {when} and I'll remind you {lead} before 🌿 You'll see it in My Schedule.",
     },
+    'reminder.when.now': {
+        'fa': 'همین الان',
+        'ar': 'الآن',
+        'en': 'right now',
+    },
+    'reminder.confirm.at_time_nolabel': {
+        'fa': 'انجام شد؛ {when} یادآور را برایت می‌فرستم 🌿 در «برنامه‌ی من» هم می‌بینی.',
+        'ar': 'تم؛ أرسل لك التذكير {when} 🌿 وستجده في «جدولي».',
+        'en': "Done - I'll send your reminder {when} 🌿 You'll see it in My Schedule.",
+    },
     'reminder.confirm.at_time': {
         'fa': 'حله، {when} یادت می\u200cندازم: «{title}» 🌿 توی «برنامه\u200cی من» هم می\u200cبینیش.',
         'ar': 'تم، سأذكّرك {when}: «{title}» 🌿 وستجده في «جدولي».',

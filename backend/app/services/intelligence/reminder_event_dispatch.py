@@ -127,6 +127,9 @@ def confirmation_message(dispatched: dict[str, Any], lang: str) -> str:
     title = dispatched.get("title") or ""
     offset = dispatched.get("offset_min")
     lang3 = lang if lang in ("fa", "ar") else "en"
+    defaults = {t.strip() for block in sedi_copy.nested_by_lang("reminder.title_default").values() for t in block.values()}
+    if not offset and title.strip() in defaults:
+        return sedi_copy.t("reminder.confirm.at_time_nolabel", lang3, when=when)
     if offset:
         return sedi_copy.t("reminder.confirm.with_lead", lang3, title=title, when=when, lead=_lead_text(int(offset), lang3))
     return sedi_copy.t("reminder.confirm.at_time", lang3, title=title, when=when)
