@@ -83,5 +83,6 @@ def test_the_workflow_is_dispatch_only_and_dumps_the_table_before_apply():
     wf = (pathlib.Path(__file__).resolve().parents[2] / ".github/workflows/i5-concept-relink.yml").read_text(encoding="utf-8")
     assert "workflow_dispatch" in wf and "push:" not in wf and "pull_request" not in wf
     assert "CONCEPT_RELINK_APPLY" in wf and "pg_dump" in wf and "-t i5_knowledge_unit_concepts" in wf
-    assert wf.index("pg_dump") < wf.index("relink_concepts --apply")
-    assert "org.opencontainers.image.revision" in wf and wf.index("oci_revision_guard") < wf.index("pg_dump")  # Codex P2 (PR 161)
+    dump = wf.index("docker exec sedi-postgres pg_dump")
+    assert dump < wf.index("relink_concepts --apply")
+    assert "org.opencontainers.image.revision" in wf and wf.index("oci_revision_guard") < dump  # Codex P2 (PR 161)
