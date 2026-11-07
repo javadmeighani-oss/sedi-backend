@@ -122,7 +122,8 @@ def test_numbers_trends_and_bounds_are_deterministic():
     prev = [{"date": "2026-01-01", "findings": [{"name": "LDL ", "value": "100", "unit": "mg/dL"}]}]
     cur = [{"name": "ldl", "value": "102", "unit": "mg/dL"}]
     assert hd._trends(cur, prev)[0]["direction"] == "same"  # within 3 %
-    assert hd._trends([{"name": "LDL", "value": "130", "unit": ""}], prev)[0]["direction"] == "up"
+    assert hd._trends([{"name": "LDL", "value": "130", "unit": "mg/dL"}], prev)[0]["direction"] == "up"
+    assert hd._trends([{"name": "LDL", "value": "130", "unit": ""}], prev) == []  # a missing unit is not guessed
     assert hd._trends([{"name": "X", "value": "1", "unit": ""}], prev) == []
 
 
