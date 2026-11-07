@@ -12,6 +12,10 @@ on:
       deployed_image_sha:
         description: "40-char SHA of the deployed backend image"
         required: true
+      script:
+        description: "read-only script under ops/depth_audit (default depth_battery.py)"
+        required: false
+        default: "depth_battery.py"
 
 permissions:
   contents: read
@@ -31,20 +35,23 @@ jobs:
       - name: Validate inputs
         env:
           SHA: ${{ github.event.inputs.deployed_image_sha }}
+          SCRIPT: ${{ github.event.inputs.script }}
         run: |
           set -Eeuo pipefail
           echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
-          test -s ops/depth_audit/depth_battery.py
+          echo "${SCRIPT}" | grep -Eq '^[a-z_]+\.py$'
+          test -s "ops/depth_audit/${SCRIPT}"
       - name: SSH read-only depth battery
         env:
           SHA: ${{ github.event.inputs.deployed_image_sha }}
+          SCRIPT: ${{ github.event.inputs.script }}
         run: |
           set -Eeuo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
           chmod 600 ~/.ssh/sedi_deploy_key
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
-          B64="$(base64 -w0 ops/depth_audit/depth_battery.py)"
+          B64="$(base64 -w0 "ops/depth_audit/${SCRIPT}")"
           ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "IMAGE_SHA=$(printf '%q' "${SHA}") SCRIPT_B64=$(printf '%q' "${B64}") bash -s" \
@@ -55,7 +62,7 @@ jobs:
           echo "DEPTH|image_guard|PASS"
           echo "${SCRIPT_B64}" | base64 -d | docker exec -i sedi-backend python -
           REMOTE
-          grep -Eq 'DEPTH\|done\|PASS' /tmp/depth.log
+          grep -Eq '(DEPTH|DIAG)\|done\|PASS' /tmp/depth.log
           if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/depth.log; then echo SECRET_LEAK; exit 2; fi
       - if: always()
         uses: actions/upload-artifact@v4
