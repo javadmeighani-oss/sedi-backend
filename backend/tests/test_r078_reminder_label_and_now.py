@@ -45,3 +45,10 @@ def test_real_titles_and_clock_times_are_untouched():
 def test_default_title_is_not_echoed_in_the_confirmation():
     msg = confirmation_message({"when": "همین الان", "title": "یادآوری", "offset_min": None}, "fa")
     assert "«یادآوری»" not in msg and "همین الان" in msg
+
+
+@pytest.mark.parametrize("spelling", ["إشعارًا", "إشعاراً", "إشعارا"])
+def test_vocalized_arabic_notification_word_leaves_no_residue(spelling):
+    d, _ = parse_reminder_event_draft(message=f"أرسل لي {spelling} الآن", timezone_name="Asia/Tehran", now_utc=NOW, language="ar")
+    assert d.title.strip("اًٌٍَُِّْ ") != "" and "ا" != d.title.replace("ً", "").strip()
+    assert not any(ch in d.title for ch in "ًٌٍ")

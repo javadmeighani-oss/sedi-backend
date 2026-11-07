@@ -602,13 +602,14 @@ _FILLER = re.compile(
 
 def _clean_title(text: str) -> str:
     t = _normalize(text)
+    t = re.sub("[" + chr(0x64b) + "-" + chr(0x652) + "]", "", t)  # Arabic marks (tanween, shadda...) never split a word (Codex P2)
     for rx in _TITLE_NOISE:
         t = rx.sub(" ", t)
     for token in _WEEKDAY_TOKENS:
         t = re.sub(r"(?<![\w])" + re.escape(token) + r"(?![\w])", " ", t, flags=re.IGNORECASE)
     t = _FILLER.sub(" ", t)
     t = re.sub(r"[\d]+", " ", t)
-    t = re.sub(r"(?<![\w])ا[ً-ٍ]?(?![\w])", " ", t)  # a lone alef left behind by an Arabic suffix (إشعاراً)
+    t = re.sub(r"(?<![\w])ا+(?![\w])", " ", t)  # a lone alef left behind by an Arabic suffix (إشعاراً)
     t = re.sub(r"^\s*to\s+", "", t, flags=re.IGNORECASE)
     t = re.sub(r"[.,،؛:!?؟\-_/()\"'«»]+", " ", t)
     t = re.sub(r"\s+", " ", t).strip()
