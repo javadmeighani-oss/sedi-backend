@@ -1,0 +1,87 @@
+# R-074 step 6b - link ELIGIBLE knowledge units to their catalog concept by URL (additive rows only, idempotent).
+# workflow_dispatch only. DRYRUN writes nothing (rollback). APPLY takes a pg_dump of the one table first, then commits the links.
+# Image SHA pinned to the running container. No secrets printed.
+name: I5 Concept Relink
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "DRYRUN | APPLY"
+        required: true
+      confirmation:
+        description: "CONCEPT_RELINK_DRYRUN | CONCEPT_RELINK_APPLY"
+        required: true
+      deployed_image_sha:
+        description: "40-char SHA of the deployed backend image"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  relink:
+    name: Concept relink ${{ github.event.inputs.phase }}
+    if: >-
+      (github.event.inputs.phase == 'DRYRUN' && github.event.inputs.confirmation == 'CONCEPT_RELINK_DRYRUN') ||
+      (github.event.inputs.phase == 'APPLY' && github.event.inputs.confirmation == 'CONCEPT_RELINK_APPLY')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+      - name: SSH relink
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          PHASE: ${{ github.event.inputs.phase }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DP="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DP} IMAGE_SHA=$(printf '%q' "${SHA}") PHASE=$(printf '%q' "${PHASE}") bash -s" \
+            2>&1 <<'REMOTE' | tee /tmp/relink.log
+          set -Eeuo pipefail
+          s() { echo "RELINK|$1|$2"; }
+          psql_prod() { docker exec sedi-postgres psql -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -tA -c "$1"; }
+          IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "${IMG}" | grep -Fq "${IMAGE_SHA}" || { s image_guard FAIL; exit 10; }
+          s image_guard PASS
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health PASS
+          s links_before "$(psql_prod 'SELECT COUNT(*) FROM i5_knowledge_unit_concepts;')"
+          if [ "${PHASE}" = "APPLY" ]; then
+            cd "${DEPLOY_PATH}"
+            TS="$(date -u +%Y%m%d_%H%M%S)"
+            mkdir -p "${DEPLOY_PATH}/backups/postgres"
+            BK="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_relink_${TS}.sql.gz"
+            docker exec sedi-postgres pg_dump -U "$(docker exec sedi-postgres printenv POSTGRES_USER)" -d "$(docker exec sedi-postgres printenv POSTGRES_DB)" -t i5_knowledge_unit_concepts | gzip > "${BK}"
+            gzip -t "${BK}" && [ -s "${BK}" ] || { s backup FAIL; exit 20; }
+            s backup_file "sedi_db_pre_relink_${TS}.sql.gz"
+            docker exec sedi-backend python -m backend.app.services.i5.know02.relink_concepts --apply
+          else
+            docker exec sedi-backend python -m backend.app.services.i5.know02.relink_concepts
+          fi
+          s links_after "$(psql_prod 'SELECT COUNT(*) FROM i5_knowledge_unit_concepts;')"
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health_after PASS
+          s phase_done PASS
+          REMOTE
+          grep -Eq 'RELINK\|phase_done\|PASS' /tmp/relink.log
+          if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=' /tmp/relink.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-concept-relink
+          path: /tmp/relink.log
+          retention-days: 30
