@@ -31,11 +31,14 @@ _ABOUT_SOURCE = (
     r"کارت\s+چیه|وظیفه\s*[‌ ]?ت\s+چیه|به\s+چه\s+دردی\s+می\s*[‌ ]?خوری|"
     r"(?:می\s*[‌ ]?تونی|می\s*[‌ ]?شه)\s+(?:برام\s+|بهم\s+)?(?:نوتیف|اعلان|یادآور|یادآوری)|"
     r"(?:تو\s+)?(?:چه|چی)\s+(?:زمینه|حوزه)\s*(?:ها|های)?\s*(?:ای|هایی)?\s*(?:اطلاعات|دانش|تخصص)|"
-    r"چه\s+کمک\S*\s+(?:\S+\s+){0,6}?(?:می\s*[‌ ]?تونی|می\s*[‌ ]?توانی|بلدی)|گجت\s*(?:ها|های)?\s+(?:هوشمند\s+)?(?:خودت|تو|هایت|های\s+تو)|"
+    r"چه\s+کمک\S*\s+(?:\S+\s+){0,6}?(?:می\s*[‌ ]?تونی|می\s*[‌ ]?توانی|بلدی)|گجت\s*(?:ها|های)?\s+(?:هوشمند\s+)?(?:خودت|تو|هایت|هات|صدی|های\s+تو)|"
     # ar
     r"من\s+أنت|ما\s+أنت|عرف\S*\s+بنفسك|ماذا\s+(?:تستطيع\S*|يمكنك|تقدم\S*|تفعل\S*)|"
     r"ما\s+(?:هي\s+)?(?:قدراتك|إمكانياتك|مهامك|وظيفتك)|"
     r"هل\s+(?:تستطيع\S*|يمكنك)\s+(?:أن\s+)?(?:ترسل\S*|إرسال)\s+(?:لي\s+)?(?:إشعار\S*|اشعار\S*|تذكير\S*)|"
+    # R-076 (Codex P2, PR 159): questions about her smart gadgets in all three languages
+    r"(?:your|sedi'?s)\s+(?:smart\s+)?(?:gadgets|devices|wearables)|tell\s+me\s+about\s+(?:your\s+)?(?:smart\s+)?gadgets|"
+    r"اجهزتك|اجهزه\s+صدی|ما\s+هی\s+اجهزتك|عن\s+اجهزتك|"
     # en
     r"who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|what\s+do\s+you\s+do|introduce\s+yourself|"
     r"tell\s+me\s+about\s+yourself|your\s+(?:abilities|capabilities|features)|"
@@ -103,7 +106,7 @@ def is_about_sedi_question(message: str) -> bool:
 # R-076: a question about her abilities IN A FIELD («توانایی‌هایت در زمینه‌ی روانشناسی») gets the concrete answer of that field,
 # not the general introduction. First match wins (specific before broad).
 _DOMAIN_SOURCES = (
-    ("gadgets", r"گجت|ساعت\s+هوشمند|دستگاه|gadget|wearable|device|اجهزه|جهاز|اجهزة"),
+    ("gadgets", r"گجت|ساعت\s+هوشمند|دستگاه|gadget|wearable|device|اجهز|جهاز"),
     ("documents", r"ازمایش|نسخه|ویزیت|مدارک|مدرک|دارو|test\s+result|lab\b|prescription|visit|تحلیل|تحالیل|وصفه|زیاره"),
     ("psychology", r"روانشناس|روان\s+شناس|اضطراب|استرس|افسرد|روحی|روانی|حال\s+دل|psycholog|mental|anxiety|stress|depress|علم\s+النفس|نفسی|قلق|اکتئاب"),
     ("sleep", r"خواب|sleep|insomnia|نوم|ارق"),

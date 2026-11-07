@@ -25,6 +25,10 @@ DOMAIN_MESSAGES = [
     ("documents", "what can you do with my lab results"),
     ("psychology", "ما هي قدراتك في مجال علم النفس"),
     ("sleep", "ماذا تستطيعين أن تفعلي بخصوص النوم"),
+    ("gadgets", "tell me about your gadgets"),
+    ("gadgets", "what are your smart devices"),
+    ("gadgets", "ما هي أجهزتك الذكية"),
+    ("gadgets", "گجت‌هات چیه"),
 ]
 
 
