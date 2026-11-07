@@ -65,7 +65,7 @@ def test_the_introduction_follows_his_order_and_does_not_call_her_a_friend():
     assert len(parts) == 4
     assert "همراه و مشاور سلامت" in parts[0] and "قضاوت" in parts[0]  # companion + adviser, invitation to talk openly
     assert all(w in parts[1] for w in ("آزمایش", "برنامه", "یادآوری", "نوتیف", "متخصص"))  # what she does
-    assert "گجت" in parts[2] and "علائم حیاتی" in parts[2]  # the specialised smart gadgets, as they connect
+    assert "گجت" in parts[2] and "علائم حیاتی" in parts[2]  # the specialised smart gadgets and the continuous watch of vital signs
     assert "هدف" in parts[3] and parts[3].strip().endswith("؟")  # her aim, then the one starting question
     for lang in ("fa", "ar", "en"):
         text = sedi_copy.t("about.sedi", lang)
@@ -73,10 +73,16 @@ def test_the_introduction_follows_his_order_and_does_not_call_her_a_friend():
     assert "صدي" in sedi_copy.t("about.sedi", "ar") and "صدی" not in sedi_copy.t("about.sedi", "ar")
 
 
-def test_gadgets_are_described_as_being_prepared_never_as_connected():
-    for lang, marker in (("fa", "در دست آماده"), ("ar", "قيد الإعداد"), ("en", "being prepared")):
-        assert marker in sedi_copy.t("about.sedi", lang)
-        assert marker in sedi_copy.t("about.domain.gadgets", lang)
+def test_gadgets_are_described_as_part_of_her_continuous_care_without_inventing_readings():
+    """Javad 2026-11-07: no «being prepared» wording - the gadgets are part of her care. The honesty line stays: the texts state
+    what she does (a continuous watch over vital signs for a healthy, long life) and never quote a reading or a device status."""
+    for lang, marker in (("fa", "گجت"), ("ar", "أجهزة صدي"), ("en", "smart gadgets")):
+        for key in ("about.sedi", "about.domain.gadgets"):
+            text = sedi_copy.t(key, lang)
+            assert marker in text, (key, lang)
+            assert not re.search(r"در دست آماده|قيد الإعداد|being prepared|coming soon|به‌زودی", text, re.I), (key, lang)
+            assert not re.search(r"\d+\s*(?:bpm|ضربان|mmHg|%|°)", text, re.I), (key, lang)
+    assert "علائم حیاتی" in sedi_copy.t("about.domain.gadgets", "fa") and "زندگی سالم و طولانی" in sedi_copy.t("about.domain.gadgets", "fa")
 
 
 def test_the_orchestrator_uses_the_field_aware_reply():
