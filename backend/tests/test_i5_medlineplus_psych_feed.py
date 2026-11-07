@@ -94,9 +94,11 @@ def test_every_reviewed_topic_is_in_the_d23_lane(slug):
 
 @pytest.mark.parametrize("slug", NEVER)
 def test_crisis_medication_and_clinical_topics_are_never_admitted(slug):
-    ok, reason, _ = ld.admit_discovered_url(
-        f"{MP}{slug}.html", _row(), allowed_entities=specialized_allowed_entities_for_source("medlineplus_consumer_health")
-    )
+    # R-074 step 5: the hub feed is scoped to D23 (lane_entities), whatever other lanes the SOURCE holds
+    cfg = ld.discovery_config(_row())
+    assert cfg.lane_entities == ("D23",)
+    scoped = {e for e in specialized_allowed_entities_for_source("medlineplus_consumer_health") if e in cfg.lane_entities}
+    ok, reason, _ = ld.admit_discovered_url(f"{MP}{slug}.html", _row(), allowed_entities=scoped)
     assert not ok and reason in {"CONTENT_DENY", "NO_SAFETY_LANE"}
 
 

@@ -52,8 +52,8 @@ def test_each_new_page_is_in_the_expected_lane_and_the_manifest(slug, entity):
 def test_every_url_of_the_source_is_in_a_lane_it_holds_and_the_label_matches():
     row = manifest_row_for_key(KEY)
     allowed = specialized_allowed_entities_for_source(KEY)
-    assert len(_urls()) == len(set(_urls())) == 51
-    assert "max_51_urls" in row["rate_limit"]
+    assert len(_urls()) == len(set(_urls())) == 61  # R-074 step 5: +10 pages
+    assert "max_61_urls" in row["rate_limit"]
     for url in _urls():
         spec = resolve_specialized_entity_from_url(url)
         assert spec is None or spec.entity_id in allowed, url
