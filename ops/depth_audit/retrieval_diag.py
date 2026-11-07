@@ -39,6 +39,14 @@ def main() -> None:
                 db.rollback()
                 row["sql_error"] = type(e).__name__
             try:
+                from backend.app.services.i5.know02.taxonomy import resolve_verified_concept_authority
+
+                auth = resolve_verified_concept_authority(db, q, lang)
+                row["concept_authority"] = None if auth is None else {"key": auth.concept_key, "authorized_kus": len(auth.knowledge_unit_ids)}
+            except Exception as e:  # noqa: BLE001
+                db.rollback()
+                row["authority_error"] = type(e).__name__
+            try:
                 cands, meta = lexical_search(db, q, language=lang, top_k=10)
                 qp = meta.get("query_plan", {})
                 row["lexical"] = {

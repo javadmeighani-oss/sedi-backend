@@ -55,7 +55,7 @@ concepts:
     preferred_name: "Alzheimer's disease"
     concept_type: DISEASE
     root_category: NERVOUS_SYSTEM
-    url_needles: ["alzheimers-disease", "cdc.gov/alzheimers-dementia", "genetics/condition/alzheimer-disease"]
+    url_needles: ["alzheimers-disease", "cdc.gov/alzheimers-dementia", "genetics/condition/alzheimer-disease", "medlineplus.gov/alzheimersdisease", "medlineplus.gov/alzheimerscaregivers"]
     labels:
       - {language: en, kind: PREFERRED, text: "alzheimer's disease", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
       - {language: fa, kind: PREFERRED, text: "بیماری آلزایمر", status: FOUNDER_APPROVED, approved_on: "2026-10-18"}
@@ -65,7 +65,7 @@ concepts:
     preferred_name: "Dementia"
     concept_type: DISEASE_FAMILY
     root_category: NERVOUS_SYSTEM
-    url_needles: ["nhs.uk/conditions/dementia"]
+    url_needles: ["nhs.uk/conditions/dementia", "medlineplus.gov/dementia", "nhs.uk/conditions/vascular-dementia", "nhs.uk/conditions/frontotemporal-dementia"]
     labels:
       - {language: en, kind: PREFERRED, text: "dementia", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
       - {language: fa, kind: PREFERRED, text: "زوال عقل", status: FOUNDER_APPROVED, approved_on: "2026-10-18"}
@@ -138,7 +138,7 @@ concepts:
     preferred_name: "High blood pressure"
     concept_type: DISEASE
     root_category: CIRCULATORY_CARDIOVASCULAR
-    url_needles: ["high-blood-pressure"]
+    url_needles: ["high-blood-pressure", "medlineplus.gov/highbloodpressure"]
     labels:
       - {language: en, kind: PREFERRED, text: "high blood pressure", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
       - {language: en, kind: SYNONYM, text: "hypertension", status: OFFICIAL_SOURCE_TITLE, source: "nhlbi.nih.gov"}
@@ -167,7 +167,7 @@ concepts:
     preferred_name: "Diabetes"
     concept_type: DISEASE
     root_category: ENDOCRINE_NUTRITIONAL_METABOLIC
-    url_needles: ["diabetes"]
+    url_needles: ["diabetes", "medlineplus.gov/diabeticdiet"]
     labels:
       - {language: en, kind: PREFERRED, text: "diabetes", status: OFFICIAL_SOURCE_TITLE, source: "niddk.nih.gov"}
       - {language: fa, kind: PREFERRED, text: "دیابت", status: FOUNDER_APPROVED, approved_on: "2026-10-18"}
@@ -194,7 +194,7 @@ concepts:
     preferred_name: "Back pain"
     concept_type: SYMPTOM
     root_category: MUSCULOSKELETAL
-    url_needles: ["conditions/back-pain"]
+    url_needles: ["conditions/back-pain", "medlineplus.gov/backpain", "medlineplus.gov/sciatica", "nhs.uk/conditions/sciatica", "nhs.uk/conditions/slipped-disc"]
     labels:
       - {language: en, kind: PREFERRED, text: "back pain", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
       - {language: fa, kind: PREFERRED, text: "کمردرد", status: FOUNDER_APPROVED, approved_on: "2026-10-18"}
