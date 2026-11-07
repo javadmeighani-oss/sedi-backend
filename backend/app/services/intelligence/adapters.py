@@ -985,14 +985,17 @@ class HealthContextAdapter:
                         )
                     )
                 continue
-            label = "stated_family_history"
+            label = {
+                "lab_results": "documented_lab_results",
+                "prescribed_medications": "documented_prescribed_medications",
+            }.get(key, "stated_family_history")
             out.append(
                 _item(
                     canonical_key=f"health.{label}",
                     section="health",
                     source=ContextSource.HEALTH,
-                    value=text[:200],
-                    display_text=f"{label}={text[:200]}",
+                    value=text[:600],
+                    display_text=f"{label}={text[:600]}",
                     owner_user_id=authenticated_user_id,
                     query_label="I6.user_stated_health",
                     observed_at=getattr(row, "updated_at", None),

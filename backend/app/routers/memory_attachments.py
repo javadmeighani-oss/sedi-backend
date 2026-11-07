@@ -57,7 +57,7 @@ def get_my_attachment(
 ):
     _guard()
     try:
-        return APIResponse(ok=True, data=att.get_attachment(db, auth_user.id, attachment_id))
+        return APIResponse(ok=True, data=att.get_attachment(db, auth_user.id, attachment_id, language=_lang(auth_user)))
     except att.AttachmentError as exc:
         raise _http(exc)
 
@@ -81,7 +81,7 @@ def confirm_my_attachment(
     """«Yes, remember this»: the document is added to my life timeline."""
     _guard()
     try:
-        return APIResponse(ok=True, data=att.confirm_attachment(db, auth_user.id, attachment_id))
+        return APIResponse(ok=True, data=att.confirm_attachment(db, auth_user.id, attachment_id, language=_lang(auth_user)))
     except att.AttachmentError as exc:
         raise _http(exc)
 

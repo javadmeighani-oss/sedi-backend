@@ -1272,6 +1272,66 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم، سأذكّرك {when}: «{title}» 🌿 وستجده في «جدولي».',
         'en': "Done - I'll remind you {when}: “{title}” 🌿 You'll see it in My Schedule.",
     },
+    'doc.analysis.lab.head': {
+        'fa': '{n} نتیجه‌ی آزمایش خوانده شد و {k} مورد در سند خارج از محدوده علامت خورده است.',
+        'ar': 'قُرئت {n} نتيجة تحليل، و{k} منها خارج النطاق في المستند.',
+        'en': '{n} test results were read, and {k} are marked out of range in the document.',
+    },
+    'doc.analysis.lab.none_flagged': {
+        'fa': '{n} نتیجه‌ی آزمایش خوانده شد و سند هیچ موردی را خارج از محدوده علامت نزده است.',
+        'ar': 'قُرئت {n} نتيجة تحليل ولم يشر المستند إلى أي قيمة خارج النطاق.',
+        'en': '{n} test results were read and the document marks none as out of range.',
+    },
+    'doc.analysis.lab.flag_line': {
+        'fa': '• {name}: {value} {unit} ({dir})',
+        'ar': '• {name}: {value} {unit} ({dir})',
+        'en': '• {name}: {value} {unit} ({dir})',
+    },
+    'doc.analysis.lab.trend_line': {
+        'fa': '• {name}: از {prev} به {cur} {unit} رسیده ({dir} {date})',
+        'ar': '• {name}: من {prev} إلى {cur} {unit} ({dir} {date})',
+        'en': '• {name}: {prev} → {cur} {unit} ({dir} {date})',
+    },
+    'doc.analysis.dir.high': {'fa': 'بالا', 'ar': 'مرتفع', 'en': 'high'},
+    'doc.analysis.dir.low': {'fa': 'پایین', 'ar': 'منخفض', 'en': 'low'},
+    'doc.analysis.trend.up': {'fa': 'بالاتر از', 'ar': 'أعلى من', 'en': 'higher than'},
+    'doc.analysis.trend.down': {'fa': 'پایین‌تر از', 'ar': 'أقل من', 'en': 'lower than'},
+    'doc.analysis.trend.same': {'fa': 'تقریباً برابر با', 'ar': 'مقارب لـ', 'en': 'about the same as'},
+    'doc.analysis.lab.saved_pending': {
+        'fa': 'با تأیید تو، این نتیجه‌ها در تصویر کلی‌ات ثبت می‌شود و برنامه‌ی مراقبتت بر پایه‌ی آن‌ها تنظیم می‌شود.',
+        'ar': 'بعد تأكيدك تُسجَّل هذه النتائج في صورتك العامة ويُبنى برنامج رعايتك عليها.',
+        'en': 'Once you confirm, these results are recorded in your overall picture and your care plan is built on them.',
+    },
+    'doc.analysis.lab.saved': {
+        'fa': 'این نتیجه‌ها در تصویر کلی‌ات ثبت شد و برنامه‌ی مراقبتت بر پایه‌ی آن‌ها تنظیم می‌شود.',
+        'ar': 'سُجّلت هذه النتائج في صورتك العامة ويُبنى برنامج رعايتك عليها.',
+        'en': 'These results are recorded in your overall picture and your care plan is built on them.',
+    },
+    'doc.analysis.rx': {
+        'fa': 'در نسخه {n} دارو ثبت شده است: {names}.',
+        'ar': 'تتضمن الوصفة {n} دواء: {names}.',
+        'en': 'The prescription lists {n} medicines: {names}.',
+    },
+    'doc.analysis.rx.pending': {
+        'fa': 'با تأیید تو، این داروها در تصویر کلی‌ات ثبت می‌شود تا پیگیری دارویی‌ات را با هم تنظیم کنیم.',
+        'ar': 'بعد تأكيدك تُسجَّل هذه الأدوية في صورتك العامة لنضبط متابعة أدويتك معاً.',
+        'en': 'Once you confirm, these medicines are recorded in your overall picture so we can set up your medication follow-up together.',
+    },
+    'doc.analysis.rx.saved': {
+        'fa': 'این داروها در تصویر کلی‌ات ثبت شد؛ برای هر کدام بگو چه ساعتی مصرف می‌شود تا یادآور بگذارم.',
+        'ar': 'سُجّلت هذه الأدوية في صورتك العامة؛ أخبرني بوقت كل دواء لأضع لك تذكيراً.',
+        'en': 'These medicines are recorded in your overall picture; tell me when you take each one and I will set the reminders.',
+    },
+    'doc.analysis.other': {
+        'fa': 'مدرک خوانده شد. با تأیید تو در تصویر کلی‌ات ثبت می‌شود.',
+        'ar': 'قُرئ المستند. بعد تأكيدك يُسجَّل في صورتك العامة.',
+        'en': 'The document was read. Once you confirm, it is recorded in your overall picture.',
+    },
+    'doc.analysis.other.saved': {
+        'fa': 'مدرک در تصویر کلی‌ات ثبت شد.',
+        'ar': 'سُجّل المستند في صورتك العامة.',
+        'en': 'The document is recorded in your overall picture.',
+    },
     'reminder.not_sent_say_when': {
         'fa': 'برای ارسال نوتیف زمان و موضوعش را بگو؛ مثلاً «الان نوتیف بفرست» یا «فردا ساعت ۱۰ یادم بینداز».',
         'ar': 'لإرسال إشعار أخبرني بالوقت والموضوع، مثل «أرسل لي إشعاراً الآن» أو «ذكّرني غداً الساعة 10».',
