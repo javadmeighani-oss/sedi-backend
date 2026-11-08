@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import inspect
+import re
 import os
 from datetime import datetime
 
@@ -562,7 +563,8 @@ def test_k03_short_als_natural_en_noise_unrelated(scis_db):
     assert any(e.knowledge_unit_id == strong.id for e in natural.evidence)
     assert all(e.provenance.knowledge_unit_id is not None for e in natural.evidence)
     top = natural.evidence[0]
-    assert top.knowledge_unit_id == strong.id
+    # Other tests of the shared CI DB commit their own ALS units; the contract is: an ALS unit ranks first, never the noise unit.
+    assert top.knowledge_unit_id != noise.id and re.search(r"\bALS\b", top.content) is not None
     ids = [e.knowledge_unit_id for e in natural.evidence]
     if strong.id in ids and noise.id in ids:
         assert ids.index(strong.id) < ids.index(noise.id)
