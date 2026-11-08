@@ -417,6 +417,18 @@ def _maybe_append_structured_governed_knowledge(
         )
 
 
+def _maybe_append_public_web_facts(messages: list, user_message: str, language: str) -> None:
+    """R-074 step 7 (D-208): public facts (price, hours, availability) from the open web. Flag-gated (default OFF), fail-open."""
+    try:
+        from backend.app.services.i5.public_web_lookup import public_facts_block
+
+        block = public_facts_block(user_message, language)
+        if block:
+            messages.append({"role": "system", "content": block})
+    except Exception:  # noqa: BLE001 - optional enrichment; never break the chat
+        pass
+
+
 def _gate3_validate_assistant_response(text: str, language: str) -> str:
     try:
         from backend.app.services.gate3.safety_validator import validate_response_text
@@ -756,6 +768,8 @@ class ConversationBrain:
                 user_knowledge_str = _build_user_knowledge_context(self.db, user_id)
                 if user_knowledge_str:
                     messages.append({"role": "system", "content": user_knowledge_str})
+
+            _maybe_append_public_web_facts(messages, user_message, lang)
 
             if not structured_mode:
                 # Stage 17.5: Optional Local RAG context (gated)
