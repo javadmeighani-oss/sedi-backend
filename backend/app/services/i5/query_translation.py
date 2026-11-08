@@ -63,11 +63,19 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
         _CACHE.move_to_end(text)
         return list(_CACHE[text])
     # R-044: clear psychology / wellbeing questions are bridged instantly and exactly (no model call, no 2-4 s wait).
-    from backend.app.services.i5.psychology_query_bridge import bridge_alternatives
+    from backend.app.services.i5.psychology_query_bridge import bridge_alternatives, matches_any_topic
 
     bridged = bridge_alternatives(text)
     if bridged:
         return bridged
+    # R-074 step 8a: every other health topic of the library is bridged the same way (deterministic, from the lexicon).
+    # A question that ALSO names a psychology topic (combined question) stays with the model path, as before.
+    if not matches_any_topic(text):
+        from backend.app.services.i5.health_query_bridge import health_bridge_alternatives
+
+        bridged = health_bridge_alternatives(text)
+        if bridged:
+            return bridged
     try:
         if client is None:
             from openai import OpenAI

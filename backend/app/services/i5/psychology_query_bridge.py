@@ -91,6 +91,12 @@ _DISEASE = _r(
 )
 
 
+def matches_any_topic(query: str) -> bool:
+    """True when the question names a psychology / wellbeing topic (even if a disease word keeps the bridge silent)."""
+    s = normalize(query)
+    return bool(s) and any(t.markers.search(s) and (t.also is None or t.also.search(s)) for t in _TOPICS)
+
+
 def bridge_alternatives(query: str) -> list[str]:
     """English keyword alternatives for a clear psychology / wellbeing question, [] when not applicable."""
     s = normalize(query)

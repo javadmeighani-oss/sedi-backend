@@ -1,0 +1,180 @@
+# R-074 step 8a - deterministic Persian/Arabic -> English search bridge for EVERY health topic of the governed library.
+#
+# The governed knowledge is English official text (NHS, MedlinePlus, CDC, NIH ...). A Persian/Arabic question reaches it
+# through English keyword alternatives. One entry per topic family of the library (names follow the official page titles):
+#   en: English alternatives, MOST SPECIFIC FIRST (at most 4 are used per question)
+#   fa / ar: marker words or phrases (any one fires the entry). Written naturally; letters are normalised at load time
+#            (ي->ی, ك->ک, ة->ه, hamza forms->ا, diacritics and ZWNJ removed). Markers of <=3 letters must be a whole word.
+# Not user-facing text (R-043: keyword lists are not copy). Psychology / wellbeing topics stay in psychology_query_bridge.py.
+# A question that matches this lexicon AND a psychology topic goes to the model path (combined questions keep working).
+version: i5-health-query-lexicon-v1
+entries:
+  # --- diabetes, heart, weight ---
+  - {k: type1_diabetes, en: [type 1 diabetes, diabetes], fa: [دیابت نوع ۱, دیابت نوع 1, دیابت نوع یک], ar: [السكري من النوع الأول, السكري النوع 1, سكري النوع الاول]}
+  - {k: gestational_diabetes, en: [gestational diabetes, diabetes], fa: [دیابت بارداری, دیابت حاملگی], ar: [سكري الحمل]}
+  - {k: prediabetes, en: [preventing type 2 diabetes, prediabetes], fa: [پیش دیابت, پیشگیری از دیابت], ar: [مقدمات السكري, ما قبل السكري, الوقاية من السكري]}
+  - {k: diabetic_diet, en: [diabetic diet, healthy eating for diabetes, managing diabetes], fa: [رژیم دیابت, تغذیه دیابت, غذای دیابتی, رژیم غذایی دیابت, خوراکی دیابتی], ar: [حمية مرضى السكري, غذاء مرضى السكري, نظام غذائي للسكري, نظام غذائي لمرضى السكري, اكل مرضى السكري, أكل مرضى السكري]}
+  - {k: diabetes, en: [type 2 diabetes, managing diabetes, diabetes, diabetes complications], fa: [دیابت, قند خون, سکری, مرض قند, قند بالا], ar: [السكري, سكر الدم, مرض السكر, داء السكري]}
+  - {k: hypertension, en: [high blood pressure, hypertension], fa: [فشار خون, پرفشاری, فشارخون], ar: [ضغط الدم, ارتفاع الضغط, الضغط المرتفع]}
+  - {k: cholesterol, en: [high cholesterol, cholesterol], fa: [کلسترول, چربی خون], ar: [الكوليسترول, كوليسترول, دهون الدم]}
+  - {k: heart_failure, en: [heart failure], fa: [نارسایی قلب, نارسایی قلبی], ar: [فشل القلب, قصور القلب]}
+  - {k: angina, en: [angina, coronary heart disease], fa: [آنژین, آنژین صدری], ar: [الذبحة الصدرية, الذبحه]}
+  - {k: atrial_fibrillation, en: [atrial fibrillation], fa: [فیبریلاسیون, تپش قلب نامنظم, ضربان نامنظم], ar: [الرجفان الأذيني, عدم انتظام ضربات القلب, خفقان]}
+  - {k: heart, en: [heart disease, coronary heart disease, heart healthy living], fa: [بیماری قلبی, سکته قلبی, حمله قلبی, بیماری های قلبی, قلب], ar: [أمراض القلب, امراض القلب, نوبة قلبية, القلب]}
+  - {k: stroke, en: [stroke, stroke rehabilitation], fa: [سکته مغزی, سکته ی مغزی, سکته], ar: [السكتة الدماغية, جلطة دماغية, جلطة]}
+  - {k: obesity, en: [overweight and obesity, healthy weight, weight control], fa: [اضافه وزن, چاقی, کاهش وزن, لاغری, وزن سالم, وزن], ar: [زيادة الوزن, السمنة, إنقاص الوزن, خسارة الوزن, الوزن الصحي, الوزن]}
+  # --- nutrition ---
+  - {k: healthy_eating, en: [eating a balanced diet, healthy eating tips, eat well, nutrition], fa: [تغذیه سالم, رژیم غذایی سالم, غذای سالم, برنامه غذایی, رژیم غذایی, تغذیه, رژیم], ar: [الأكل الصحي, الاكل الصحي, اكل الصحي, اكل صحي, التغذية السليمة, الغذاء الصحي, نظام غذائي, حمية, تغذية]}
+  - {k: sugar, en: [how to cut down on sugar, sugar], fa: [کاهش شکر, مصرف شکر, شیرینی کمتر, قند و شکر], ar: [تقليل السكر, السكر المضاف, الحلويات]}
+  - {k: sodium, en: [sodium, salt], fa: [نمک, سدیم], ar: [الملح, الصوديوم]}
+  - {k: fats, en: [dietary fats, eat less saturated fat], fa: [چربی غذایی, چربی اشباع, روغن, چربی], ar: [الدهون, دهون مشبعة, الزيوت]}
+  - {k: fibre, en: [dietary fiber], fa: [فیبر], ar: [الألياف, الياف غذائية]}
+  - {k: protein, en: [dietary proteins, protein], fa: [پروتئین], ar: [البروتين, بروتين]}
+  - {k: carbohydrates, en: [carbohydrates], fa: [کربوهیدرات], ar: [الكربوهيدرات, النشويات]}
+  - {k: vitamin_d, en: [vitamin D, vitamins], fa: [ویتامین د, ویتامین دی], ar: [فيتامين د, فيتامين d]}
+  - {k: vitamin_b_folate, en: [vitamin B12 or folate deficiency anaemia, B vitamins, folic acid], fa: [ب ۱۲, ب12, فولات, اسید فولیک, ویتامین ب], ar: [فيتامين ب12, حمض الفوليك, فيتامين ب]}
+  - {k: vitamin_c, en: [vitamin C, vitamins], fa: [ویتامین ث, ویتامین سی, ویتامین c], ar: [فيتامين ج, فيتامين c, فيتامين سي]}
+  - {k: vitamin_aek, en: [vitamin A, vitamin E, vitamin K, vitamins], fa: [ویتامین آ, ویتامین ای, ویتامین ک], ar: [فيتامين أ, فيتامين هـ, فيتامين ك]}
+  - {k: vitamins_minerals, en: [vitamins, minerals], fa: [ویتامین, مواد معدنی, مکمل, املاح], ar: [فيتامين, فيتامينات, معادن, مكملات, الأملاح]}
+  - {k: calcium, en: [calcium], fa: [کلسیم], ar: [الكالسيوم, كالسيوم]}
+  - {k: iron_anaemia, en: [iron deficiency anaemia, iron], fa: [کم خونی, کمخونی, فقر آهن, آهن], ar: [فقر الدم, أنيميا, انيميا, الحديد]}
+  - {k: potassium, en: [potassium], fa: [پتاسیم], ar: [البوتاسيوم, بوتاسيوم]}
+  - {k: caffeine, en: [caffeine], fa: [کافئین, قهوه, نسکافه], ar: [الكافيين, كافيين, القهوة]}
+  - {k: alcohol, en: [alcohol advice, alcohol], fa: [الکل, مشروب الکلی, نوشیدنی الکلی, مشروب], ar: [الكحول, الخمر, المشروبات الكحولية]}
+  - {k: water, en: [drinking water], fa: [آب خوردن, نوشیدن آب, مصرف آب, اب خوردن], ar: [شرب الماء, الماء, شرب المياه]}
+  - {k: vegetarian, en: [the vegetarian diet], fa: [گیاه خواری, گیاهخوار, رژیم گیاهی, گیاهی], ar: [النظام النباتي, نباتي, نباتية]}
+  - {k: antioxidants, en: [antioxidants], fa: [آنتی اکسیدان, انتی اکسیدان], ar: [مضادات الأكسدة, مضادات الاكسدة]}
+  - {k: food_safety, en: [food safety, food labeling], fa: [ایمنی غذا, برچسب غذا, مسمومیت غذایی, فاسد شدن غذا], ar: [سلامة الغذاء, الملصق الغذائي, تسمم غذائي]}
+  # --- exercise and activity ---
+  - {k: exercise_older, en: [exercise for older adults, physical activity guidelines older adults, exercise for seniors], fa: [ورزش سالمند, ورزش برای سالمندان, ورزش مناسب سالمند, ورزش مناسب برای سالمند, ورزش های سالمند, ورزش پدر, ورزش مادر], ar: [رياضة كبار السن, تمارين المسنين, رياضة المسنين]}
+  - {k: exercise_children, en: [exercise for children, get kids active, physical activity guidelines children and young people], fa: [ورزش کودکان, ورزش بچه, ورزش کودک], ar: [رياضة الأطفال, رياضه الاطفال, تمارين الأطفال]}
+  - {k: strength, en: [strength exercises, benefits of exercise], fa: [تمرین قدرتی, عضله سازی, تقویت عضلات, وزنه, بدنسازی], ar: [تمارين القوة, تقوية العضلات, كمال الأجسام]}
+  - {k: balance, en: [balance exercises, balance problems, falls], fa: [تمرین تعادل, تعادل], ar: [تمارين التوازن, التوازن]}
+  - {k: inactivity, en: [health risks of an inactive lifestyle, physical activity], fa: [کم تحرکی, بی تحرکی, نشستن زیاد], ar: [قلة الحركة, الخمول, الجلوس الطويل]}
+  - {k: exercise, en: [physical activity, exercise, benefits of exercise, how much exercise do I need], fa: [ورزش, فعالیت بدنی, تمرین, پیاده روی, پیاده‌روی, دویدن, حرکات ورزشی], ar: [الرياضة, رياضة, النشاط البدني, تمارين, المشي, الجري]}
+  # --- sleep and tiredness ---
+  - {k: sleep_apnoea, en: [obstructive sleep apnoea, sleep disorders], fa: [آپنه خواب, آپنه, خروپف], ar: [انقطاع النفس النومي, انقطاع التنفس أثناء النوم, الشخير]}
+  - {k: sleep_disorders, en: [sleep disorders, sleep and tiredness], fa: [اختلال خواب, اختلالات خواب, پرخوابی, خواب آلودگی], ar: [اضطرابات النوم, كثرة النوم, النعاس]}
+  - {k: tiredness, en: [sleep and tiredness, chronic fatigue syndrome], fa: [خستگی مزمن, خستگی, بی حالی, کوفتگی], ar: [التعب المزمن, التعب, الإرهاق, الارهاق, متلازمة التعب]}
+  # --- bones, joints, muscles ---
+  - {k: back_pain, en: [back pain, sciatica, slipped disc, back injuries], fa: [کمر درد, کمردرد, دیسک کمر, سیاتیک, درد کمر, ستون فقرات, دیسک], ar: [ألم الظهر, الم الظهر, الغضروف, عرق النسا, الظهر, العمود الفقري]}
+  - {k: neck_pain, en: [neck injuries and disorders], fa: [گردن درد, گردندرد, درد گردن], ar: [ألم الرقبة, الم الرقبة, ألم العنق]}
+  - {k: shoulder, en: [shoulder injuries and disorders, frozen shoulder, rotator cuff injuries], fa: [شانه درد, درد شانه, کتف درد, درد کتف, شانه یخ زده, شانه], ar: [ألم الكتف, الم الكتف, الكتف المتجمد, الكتف]}
+  - {k: knee, en: [knee injuries and disorders, knee replacement], fa: [زانو درد, زانودرد, درد زانو, زانو], ar: [ألم الركبة, الم الركبة, الركبة]}
+  - {k: hip, en: [hip injuries and disorders, hip replacement], fa: [درد لگن, مفصل ران, لگن], ar: [ألم الورك, الورك]}
+  - {k: elbow, en: [elbow injuries and disorders, tennis elbow], fa: [آرنج, تنیس البو, درد آرنج], ar: [المرفق, ألم المرفق]}
+  - {k: wrist_hand, en: [wrist injuries and disorders, hand], fa: [مچ دست, درد مچ, مچ], ar: [الرسغ, ألم الرسغ]}
+  - {k: foot, en: [foot injuries and disorders, plantar fasciitis], fa: [درد پا, کف پا, پاشنه, خار پاشنه], ar: [ألم القدم, القدم, الكعب, التهاب اللفافة]}
+  - {k: rheumatoid, en: [rheumatoid arthritis, arthritis], fa: [روماتیسم, آرتریت روماتوئید, روماتوئید], ar: [الروماتويد, الروماتيزم, الروماتيزم المفصلي]}
+  - {k: arthritis, en: [arthritis, osteoarthritis, joint disorders], fa: [آرتروز, آرتریت, مفاصل, مفصل, درد مفاصل, ورم مفاصل], ar: [التهاب المفاصل, خشونة المفاصل, الفصال العظمي, المفاصل, ألم المفاصل]}
+  - {k: osteoporosis, en: [osteoporosis], fa: [پوکی استخوان], ar: [هشاشة العظام]}
+  - {k: gout, en: [gout], fa: [نقرس], ar: [النقرس]}
+  - {k: fibromyalgia, en: [fibromyalgia], fa: [فیبرومیالژیا], ar: [الألم العضلي الليفي, الفيبروميالجيا]}
+  - {k: sports_injuries, en: [sports injuries, sprains and strains], fa: [آسیب ورزشی, آسیب دیدگی ورزشی], ar: [إصابات رياضية, اصابات رياضية]}
+  - {k: muscle, en: [muscle disorders, sprains and strains], fa: [کشیدگی, رگ به رگ, ضرب دیدگی, درد عضله, گرفتگی عضله, عضلانی, عضله], ar: [شد عضلي, التواء, تمزق عضلي, ألم العضلات, الم العضلات, تشنج عضلي, العضلات]}
+  - {k: rehabilitation, en: [rehabilitation, assistive devices, mobility aids], fa: [توانبخشی, توان بخشی, فیزیوتراپی, عصا, واکر, ویلچر], ar: [إعادة التأهيل, اعادة التأهيل, علاج طبيعي, عكاز, كرسي متحرك, تأهيل]}
+  # --- brain and nerves ---
+  - {k: dementia_care, en: [dementia, alzheimer's caregivers, caring for people with dementia], fa: [مراقبت از بیمار آلزایمر, پرستاری از آلزایمر, نگهداری از بیمار دمانس], ar: [رعاية مريض الزهايمر, رعاية مريض الخرف]}
+  - {k: dementia, en: [dementia, alzheimer's disease, vascular dementia, frontotemporal dementia], fa: [زوال عقل, دمانس, آلزایمر, فراموشی, کم حافظگی], ar: [الخرف, الزهايمر, ألزهايمر, فقدان الذاكرة, النسيان]}
+  - {k: parkinson, en: [parkinson's disease], fa: [پارکینسون], ar: [باركنسون, الشلل الرعاش]}
+  - {k: epilepsy, en: [epilepsy], fa: [صرع], ar: [الصرع]}
+  - {k: multiple_sclerosis, en: [multiple sclerosis], fa: [ام اس, ام‌اس, مولتیپل اسکلروزیس, اسکلروز چندگانه], ar: [التصلب المتعدد, التصلب اللويحي]}
+  - {k: als, en: [motor neurone disease, amyotrophic lateral sclerosis], fa: [ای ال اس, اسکلروز جانبی, نورون حرکتی], ar: [التصلب الجانبي الضموري, الخلايا العصبية الحركية]}
+  - {k: migraine, en: [migraine, headaches], fa: [میگرن, سردرد, سر درد], ar: [الصداع النصفي, الشقيقة, صداع]}
+  - {k: myasthenia, en: [myasthenia gravis], fa: [میاستنی], ar: [الوهن العضلي]}
+  - {k: huntington, en: [huntington's disease], fa: [هانتینگتون], ar: [هنتنغتون, هنتنجتون]}
+  - {k: guillain_barre, en: [guillain-barre syndrome], fa: [گیلن باره, گیلن‌باره], ar: [غيلان باريه, غيلان باري]}
+  - {k: neuropathy, en: [peripheral neuropathy], fa: [نوروپاتی, گزگز, بی حسی], ar: [الاعتلال العصبي, تنميل, خدر]}
+  - {k: bipolar, en: [bipolar disorder], fa: [دو قطبی, دوقطبی], ar: [ثنائي القطب, اضطراب ثنائي القطب]}
+  - {k: learning, en: [learning disabilities], fa: [ناتوانی یادگیری, اختلال یادگیری], ar: [صعوبات التعلم]}
+  - {k: bullying, en: [bullying and cyberbullying], fa: [قلدری, آزار همسالان], ar: [التنمر]}
+  - {k: mental_health, en: [mental health, five steps to mental wellbeing, caring for your mental health], fa: [سلامت روان, بهداشت روان, سلامت روانی], ar: [الصحة النفسية, الصحه النفسيه]}
+  # --- lungs ---
+  - {k: asthma, en: [asthma], fa: [آسم, حساسیت تنفسی], ar: [الربو, ربو]}
+  - {k: copd, en: [chronic obstructive pulmonary disease COPD, lung diseases], fa: [انسداد ریوی, سی او پی دی, بیماری مزمن ریه], ar: [الانسداد الرئوي, مرض الانسداد الرئوي المزمن]}
+  - {k: lung_cancer, en: [lung cancer, cancer], fa: [سرطان ریه], ar: [سرطان الرئة, سرطان الرئه]}
+  - {k: lungs, en: [lung diseases, lungs, pulmonary rehabilitation], fa: [بیماری ریه, ریه, تنگی نفس, تنفس سخت], ar: [أمراض الرئة, الرئة, الرئتين, ضيق التنفس]}
+  - {k: croup, en: [croup], fa: [کروپ, سرفه سگی], ar: [الخانوق]}
+  # --- digestion and liver ---
+  - {k: gerd, en: [GERD, acid reflux, indigestion], fa: [ریفلاکس, رفلاکس, سوزش سر دل, ترش کردن معده, ترش کردن], ar: [الارتجاع, حرقة المعدة, ارتجاع المريء, حموضة المعدة]}
+  - {k: ibs, en: [irritable bowel syndrome, digestive diseases], fa: [روده تحریک پذیر, سندرم روده, کولون تحریک پذیر, قولون عصبی], ar: [القولون العصبي, متلازمة القولون]}
+  - {k: constipation, en: [constipation], fa: [یبوست], ar: [الإمساك, الامساك]}
+  - {k: diarrhea, en: [diarrhea], fa: [اسهال], ar: [الإسهال, الاسهال]}
+  - {k: indigestion, en: [indigestion, nausea and vomiting], fa: [سوء هضم, نفخ, گاز معده, دل درد, معده درد], ar: [عسر الهضم, انتفاخ, غازات, ألم المعدة, الم المعدة]}
+  - {k: celiac, en: [celiac disease, gluten], fa: [سلیاک, حساسیت به گلوتن, گلوتن], ar: [الداء الزلاقي, حساسية الغلوتين, الغلوتين]}
+  - {k: crohn, en: [crohn's disease, digestive diseases], fa: [بیماری کرون, کرون], ar: [داء كرون, كرون]}
+  - {k: hemorrhoids, en: [hemorrhoids], fa: [بواسیر], ar: [البواسير]}
+  - {k: hernia, en: [hernia], fa: [فتق], ar: [الفتق]}
+  - {k: liver, en: [liver disease, hepatitis A, hepatitis B, hepatitis C], fa: [کبد چرب, هپاتیت, کبد], ar: [الكبد, التهاب الكبد, الكبد الدهني]}
+  - {k: nausea, en: [nausea and vomiting], fa: [تهوع, استفراغ, حالت تهوع], ar: [الغثيان, القيء, استفراغ]}
+  - {k: diverticulitis, en: [diverticulosis and diverticulitis], fa: [دیورتیکول], ar: [رتج, التهاب الرتوج]}
+  - {k: digestive, en: [digestive diseases], fa: [بیماری گوارشی, گوارش, دستگاه گوارش, معده], ar: [الجهاز الهضمي, الهضم, المعدة]}
+  # --- kidney, urinary, prostate ---
+  - {k: kidney_stones, en: [kidney stones], fa: [سنگ کلیه], ar: [حصى الكلى, حصوات الكلى]}
+  - {k: dialysis, en: [dialysis, kidney failure], fa: [دیالیز], ar: [غسيل الكلى]}
+  - {k: kidney_transplant, en: [kidney transplantation], fa: [پیوند کلیه], ar: [زراعة الكلى]}
+  - {k: kidney, en: [chronic kidney disease, kidney disease, kidney tests], fa: [نارسایی کلیه, بیماری کلیه, کلیه, کلیوی], ar: [الفشل الكلوي, أمراض الكلى, الكلى, الكلية]}
+  - {k: uti, en: [urinary tract infections], fa: [عفونت ادراری, عفونت مجاری ادراری], ar: [التهاب المسالك البولية, التهاب المسالك]}
+  - {k: incontinence, en: [urinary incontinence, bowel incontinence], fa: [بی اختیاری ادرار, سلس ادرار, بی اختیاری], ar: [سلس البول, سلس]}
+  - {k: bladder, en: [bladder diseases, interstitial cystitis], fa: [مثانه], ar: [المثانة, المثانه]}
+  - {k: prostate_cancer, en: [prostate cancer, cancer], fa: [سرطان پروستات], ar: [سرطان البروستاتا, سرطان البروستات]}
+  - {k: prostate, en: [enlarged prostate, prostate cancer], fa: [پروستات], ar: [البروستاتا, البروستات, تضخم البروستاتا]}
+  # --- cancer and end of life ---
+  - {k: breast_cancer, en: [breast cancer, cancer], fa: [سرطان پستان, سرطان سینه], ar: [سرطان الثدي]}
+  - {k: cervical_cancer, en: [cervical cancer, cancer], fa: [سرطان دهانه رحم], ar: [سرطان عنق الرحم, سرطان الرحم]}
+  - {k: bowel_cancer, en: [bowel cancer, colorectal cancer, cancer], fa: [سرطان روده, سرطان کولون, سرطان روده بزرگ], ar: [سرطان القولون, سرطان الأمعاء]}
+  - {k: skin_cancer, en: [skin cancer, cancer, sun exposure], fa: [سرطان پوست], ar: [سرطان الجلد]}
+  - {k: ovarian_cancer, en: [ovarian cancer, cancer], fa: [سرطان تخمدان], ar: [سرطان المبيض]}
+  - {k: testicular_cancer, en: [testicular cancer, cancer], fa: [سرطان بیضه], ar: [سرطان الخصية]}
+  - {k: cancer, en: [cancer, living with cancer], fa: [سرطان, شیمی درمانی, تومور], ar: [السرطان, سرطان, العلاج الكيميائي, ورم]}
+  - {k: palliative, en: [palliative care, hospice care, end of life issues], fa: [مراقبت تسکینی, پایان عمر, آسایشگاه, بیمار رو به مرگ], ar: [الرعاية التلطيفية, الرعايه التلطيفيه, نهاية الحياة, رعاية المحتضر]}
+  # --- skin ---
+  - {k: acne, en: [acne], fa: [آکنه, جوش صورت, جوش], ar: [حب الشباب, البثور]}
+  - {k: eczema, en: [eczema], fa: [اگزما], ar: [الأكزيما, اكزيما]}
+  - {k: psoriasis, en: [psoriasis], fa: [پسوریازیس], ar: [الصدفية]}
+  - {k: rosacea, en: [rosacea], fa: [روزاسه], ar: [الوردية]}
+  - {k: vitiligo, en: [vitiligo], fa: [ویتیلیگو, لک سفید], ar: [البهاق]}
+  - {k: warts, en: [warts], fa: [زگیل], ar: [الثآليل, ثآليل]}
+  - {k: scabies, en: [scabies], fa: [گال, جرب], ar: [الجرب]}
+  - {k: impetigo, en: [impetigo, skin infections], fa: [زرد زخم], ar: [القوباء, التهاب جلدي]}
+  - {k: hives, en: [hives, rashes], fa: [کهیر], ar: [الشرى, شرى]}
+  - {k: rashes, en: [rashes, skin conditions], fa: [بثورات, راش, خارش پوست, خارش], ar: [طفح جلدي, الحكة, حكة]}
+  - {k: sun, en: [sun exposure, skin cancer], fa: [آفتاب سوختگی, ضد آفتاب, آفتاب], ar: [حروق الشمس, واقي الشمس, الشمس]}
+  - {k: skin, en: [skin conditions, skin diseases], fa: [بیماری پوستی, بیماری های پوستی, پوست], ar: [الجلد, أمراض جلدية, البشرة]}
+  # --- infections ---
+  - {k: hiv, en: [HIV], fa: [ایدز, اچ آی وی], ar: [الإيدز, الايدز, فيروس نقص المناعة]}
+  - {k: chlamydia, en: [chlamydia infections], fa: [کلامیدیا], ar: [الكلاميديا]}
+  - {k: ear_infection, en: [ear infections, ear infections in children], fa: [عفونت گوش, گوش درد], ar: [التهاب الأذن, ألم الأذن, الم الاذن]}
+  - {k: infectious, en: [infectious diseases], fa: [بیماری عفونی, عفونت], ar: [الأمراض المعدية, عدوى]}
+  # --- women, men, family ---
+  - {k: menopause, en: [menopause and perimenopause], fa: [یائسگی, منوپوز], ar: [سن اليأس, انقطاع الطمث, سن الياس]}
+  - {k: male_menopause, en: [male menopause], fa: [یائسگی مردان], ar: [اندروبوز, سن اليأس عند الرجال]}
+  - {k: periods, en: [periods], fa: [پریود, قاعدگی, عادت ماهانه, دوره ماهانه, عادت ماهیانه], ar: [الدورة الشهرية, الحيض, الدوره الشهريه]}
+  - {k: pcos, en: [polycystic ovary syndrome PCOS], fa: [تخمدان پلی کیستیک, پی سی او اس, کیست تخمدان], ar: [تكيس المبايض]}
+  - {k: endometriosis, en: [endometriosis], fa: [اندومتریوز], ar: [بطانة الرحم]}
+  - {k: pregnancy, en: [pregnancy, healthy pregnant or postpartum women], fa: [بارداری, حاملگی, دوران بارداری, باردارم], ar: [الحمل, حامل, الحامل, الحمل والولادة]}
+  - {k: erectile, en: [erection problems erectile dysfunction], fa: [ناتوانی جنسی, مشکل نعوظ, نعوظ, ضعف جنسی], ar: [ضعف الانتصاب, العجز الجنسي, الضعف الجنسي]}
+  - {k: womens_health, en: [women's health], fa: [سلامت زنان, بهداشت زنان], ar: [صحة المرأة, صحة النساء]}
+  - {k: child_development, en: [child development, parenting], fa: [رشد کودک, تکامل کودک, پرورش کودک], ar: [نمو الطفل, تطور الطفل]}
+  - {k: newborn, en: [infant and newborn care, newborn screening, premature babies], fa: [نوزاد, شیرخوار, نارس, زودرس, نوزادان], ar: [حديث الولادة, رضيع, خديج, الرضع]}
+  - {k: puberty, en: [puberty, teen development], fa: [بلوغ, نوجوان, نوجوانی], ar: [البلوغ, المراهق, المراهقة, مراهق]}
+  - {k: child_safety, en: [child safety, lead poisoning], fa: [ایمنی کودک, مسمومیت با سرب], ar: [سلامة الطفل, التسمم بالرصاص]}
+  - {k: growth, en: [growth disorders], fa: [اختلال رشد, قد کوتاه], ar: [اضطرابات النمو, قصر القامة]}
+  # --- senses and mouth ---
+  - {k: eyes, en: [eye conditions and diseases, healthy vision, learn about eye health], fa: [بینایی, چشم درد, چشم, دید], ar: [البصر, العين, العيون, الرؤية, ألم العين]}
+  - {k: hearing, en: [hearing disorders and deafness, noise induced hearing loss], fa: [کم شنوایی, ناشنوایی, سمعک, شنوایی, گوش], ar: [ضعف السمع, الصمم, السمع, الأذن]}
+  - {k: dizziness, en: [balance disorders, dizziness], fa: [سرگیجه, گیجی], ar: [الدوار, دوخة, دوار]}
+  - {k: oral, en: [oral hygiene, tooth decay, dental health], fa: [دندان, پوسیدگی, بهداشت دهان, مسواک, لثه], ar: [الأسنان, اسنان, تسوس, نظافة الفم, اللثة]}
+  # --- older adults and care ---
+  - {k: falls, en: [falls, fall prevention, balance problems], fa: [زمین خوردن, زمین میخورد, زمین می خورد, زمین خورد, زمین بخورد, افتادن, سقوط], ar: [السقوط, تسقط, يقع]}
+  - {k: pressure_sores, en: [pressure sores], fa: [زخم بستر], ar: [قرح الفراش, قرحة الفراش]}
+  - {k: elder_abuse, en: [elder abuse], fa: [آزار سالمند, آزار و اذیت سالمند], ar: [إساءة معاملة المسنين, اساءة المسنين]}
+  - {k: home_care, en: [home care services, nursing homes, caring for older adults], fa: [مراقبت در منزل, خانه سالمندان, پرستاری در منزل, نگهداری در خانه], ar: [الرعاية المنزلية, دار المسنين, دار رعاية, الرعاية في المنزل]}
+  - {k: caregivers, en: [caregivers, caring for older adults, care choices], fa: [مراقبت از بیمار, مراقبت از پدر, مراقبت از مادر, مراقبت از سالمند, نگهداری از سالمند, نگهداری از بیمار, پرستاری از, مراقبت کننده, مراقب بیمار], ar: [مقدم الرعاية, رعاية المريض, رعاية المسنين, أعتني بأمي, أعتني بأبي, أعتني بالمسن, أعتني بالمريض, أعتني بوالد]}
+  - {k: older_adults, en: [healthy aging, older adults health, seniors health, caring for older adults], fa: [سالمند, پیری, کهنسالی, سالخورده, سالمندان], ar: [كبار السن, المسنين, المسن, المسنة, الشيخوخة, مسن]}
+  # --- work, environment, habits, surgery, tests ---
+  - {k: ergonomics, en: [ergonomics, work related health], fa: [ارگونومی, پشت میز, نشستن پشت میز], ar: [إرغونوميا, بيئة العمل, الجلوس أمام المكتب]}
+  - {k: chemicals, en: [chemicals, lead poisoning], fa: [مواد شیمیایی, سرب], ar: [مواد كيميائية, الرصاص]}
+  - {k: smoking, en: [quit smoking], fa: [ترک سیگار, سیگار, قلیان, تنباکو], ar: [الإقلاع عن التدخين, التدخين, سيجارة, الشيشة]}
+  - {k: surgery, en: [surgery, preparing for surgery], fa: [عمل جراحی, جراحی, بعد از عمل], ar: [عملية جراحية, جراحة, بعد العملية]}
+  - {k: blood_tests, en: [blood tests, lab tests, kidney tests, urinalysis], fa: [آزمایش خون, آزمایش ادرار, نتیجه آزمایش, نتایج آزمایش, هموگلوبین, اچ بی ای وان سی, آزمایش], ar: [تحليل الدم, تحليل البول, نتيجة التحليل, نتائج التحاليل, الهيموجلوبين, تحليل, تحاليل]}
