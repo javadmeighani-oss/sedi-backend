@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from backend.app.services.i8.plan_composer import catalog
+from backend.app.services.i8.plan_composer import catalog, parse_allergens
 
 NEW_MEALS = {
     "b_yogurt_fruit", "b_boiled_egg_veg", "b_halim_light", "l_pinto_stew", "l_steamed_chicken_veg", "l_lentil_salad",
@@ -77,3 +77,17 @@ def test_a_dish_can_be_avoided_by_naming_its_main_ingredient():
             if word in text and word not in kw:
                 problems.append((m["id"], word))
     assert not problems, problems
+
+
+import pytest
+
+
+@pytest.mark.parametrize("text", ["tuna", "I am allergic to Tuna fish", "حساسیت به تن ماهی دارم", "تن‌ماهی", "تونا", "سالمون", "تونة", "salmon and sardine"])
+def test_a_tuna_or_other_fish_allergy_sets_the_fish_constraint(text):
+    """Codex P1 (PR 164): naming the fish (not the word 'fish') must still exclude every fish dish, tuna salad included."""
+    assert "fish" in parse_allergens(text)
+
+
+def test_unrelated_words_do_not_trigger_the_fish_constraint():
+    for text in ("بدن درد دارم", "تنفس سخت", "تنها هستم", "no allergies", "ندارم"):
+        assert "fish" not in parse_allergens(text)
