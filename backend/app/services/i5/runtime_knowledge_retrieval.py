@@ -809,9 +809,9 @@ def retrieve_knowledge_context(
     # A general-knowledge question such as "explain ALS for me" or "tell me about it" binds no personal
     # data, so an unresolved generic/self cue must not block governed retrieval (it made natural Persian
     # phrasings like "برای من توضیح بده" / "در موردش" refuse). Medication/result/other-person cues still do.
-    _coref_blocks = coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED} and (
-        coref.cue_kind not in {"GENERIC", "HEALTH_SUBJECT_SELF"}
-    )
+    from backend.app.services.scis.coreference import coreference_blocks_retrieval
+
+    _coref_blocks = coreference_blocks_retrieval(coref, nq.original_query, language=lang_for_qi)
     if coref.state in {STATE_AMBIGUOUS, STATE_UNRESOLVED} and not _coref_blocks:
         result.query_intelligence["coreference_general_knowledge_continue"] = True
     if _coref_blocks:
