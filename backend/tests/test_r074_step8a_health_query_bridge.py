@@ -116,31 +116,89 @@ def test_the_lexicon_is_well_formed():
             assert len(hb._norm(m)) >= 2, (e["k"], m)
 
 
-def test_translate_uses_the_bridge_without_any_model_call():
-    class _Boom:
-        class chat:  # noqa: N801
-            class completions:  # noqa: N801
-                @staticmethod
-                def create(*a, **k):
-                    raise AssertionError("the model must not be called for a bridged topic")
+class _Model:
+    def __init__(self, out):
+        self.calls = []
+        self.out = out
+        outer = self
 
-    out = translate_query_alternatives("کمردرد دارم چه کنم", "fa", client=_Boom())
+        class _C:
+            @staticmethod
+            def create(**kw):
+                outer.calls.append(kw)
+                if isinstance(outer.out, Exception):
+                    raise outer.out
+                from types import SimpleNamespace as N
+
+                return N(choices=[N(message=N(content=outer.out))])
+
+        class _Chat:
+            completions = _C
+
+        self.chat = _Chat
+
+
+def setup_function(_):
+    from backend.app.services.i5 import query_translation as qt
+
+    qt._CACHE.clear()
+
+
+def test_v2_the_model_still_runs_and_its_first_two_queries_come_first():
+    m = _Model("asthma symptoms\nasthma treatment\nasthma\nbreathing problems")
+    out = translate_query_alternatives("علائم آسم", "fa", client=m)
+    assert m.calls and out[:2] == ["asthma symptoms", "asthma treatment"]
+
+
+def test_v2_official_names_are_added_after_the_models_two_and_unique():
+    m = _Model("wheeze attacks\nbreathing trouble\nlung disease\nairway problems")
+    out = translate_query_alternatives("کمردرد دارم", "fa", client=m)
+    assert out[:2] == ["wheeze attacks", "breathing trouble"]
+    assert "back pain" in out and len(out) == len({o.lower() for o in out}) <= 4
+
+
+def test_v2_model_outputs_are_not_repeated_by_the_lexicon():
+    m = _Model("back pain\nlow back pain\nspine health\nsciatica")
+    out = translate_query_alternatives("کمردرد دارم", "fa", client=m)
+    assert len({o.lower() for o in out}) == len(out) <= 4 and out[:2] == ["back pain", "low back pain"]
+
+
+def test_v2_a_failed_model_falls_back_to_the_lexicon_alone_and_is_not_cached():
+    from backend.app.services.i5 import query_translation as qt
+
+    m = _Model(RuntimeError("down"))
+    out = translate_query_alternatives("کمردرد دارم چه کنم", "fa", client=m)
+    assert "back pain" in out and len(out) == 4
+    assert not qt._CACHE
+
+
+def test_v2_a_non_english_model_answer_falls_back_to_the_lexicon():
+    out = translate_query_alternatives("کمردرد دارم چه کنم", "fa", client=_Model("کمر درد"))
     assert "back pain" in out
 
 
-def test_a_combined_psychology_question_still_goes_to_the_model_path():
-    calls = []
+def test_v2_an_unknown_topic_is_model_only_and_failure_gives_nothing():
+    assert translate_query_alternatives("درباره بیماری ویلسون بگو", "fa", client=_Model(RuntimeError("down"))) == []
+    out = translate_query_alternatives("درباره بیماری ویلسون بگو", "fa", client=_Model("Wilson disease\ncopper"))
+    assert out == ["Wilson disease", "copper"]
 
-    class _Client:
-        class chat:  # noqa: N801
-            class completions:  # noqa: N801
-                @staticmethod
-                def create(*a, **k):
-                    calls.append(1)
-                    raise RuntimeError("model path reached")
 
-    out = translate_query_alternatives("به خاطر دیابت افسرده شده‌ام", "fa", client=_Client())
-    assert calls and out == []  # fail-open: model path reached, nothing invented
+def test_v2_a_combined_psychology_question_stays_model_only():
+    m = _Model("depression diabetes\ndiabetes distress")
+    out = translate_query_alternatives("به خاطر دیابت افسرده شده‌ام", "fa", client=m)
+    assert m.calls and out == ["depression diabetes", "diabetes distress"]
+
+
+def test_v2_the_merged_result_is_cached_and_the_model_runs_once():
+    m = _Model("a back topic\nanother back topic")
+    first = translate_query_alternatives("کمردرد دارم", "fa", client=m)
+    assert translate_query_alternatives("کمردرد دارم", "fa", client=m) == first and len(m.calls) == 1
+
+
+def test_v2_unpadded_names_are_a_prefix_of_the_padded_list():
+    short = hb.health_bridge_alternatives("علائم آسم", pad=False)
+    full = hb.health_bridge_alternatives("علائم آسم")
+    assert short and len(short) <= len(full) and full[: len(short)] == short
 
 
 def test_an_english_question_is_never_bridged():

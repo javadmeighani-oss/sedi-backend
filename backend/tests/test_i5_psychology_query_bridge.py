@@ -132,12 +132,12 @@ def test_disease_question_is_not_a_psychology_bridge_question():
     assert bridge_alternatives("علائم دیابت چیست؟") == []  # a disease word keeps the psychology bridge silent
 
 
-def test_disease_question_is_bridged_by_the_health_lexicon_without_the_model():
-    """R-074 step 8a: the library's disease topics are answered by the health lexicon (no model call)."""
+def test_disease_question_uses_the_model_and_the_health_lexicon_adds_official_names():
+    """R-074 step 8a v2 (additive): the model keeps writing the broad queries; the lexicon only adds its official names."""
     query_translation._CACHE.clear()
     client = _CountingClient()
     out = query_translation.translate_query_alternatives("علائم دیابت چیست؟", "fa", client=client)
-    assert client.calls == 0 and "diabetes" in out
+    assert client.calls == 1 and out[:2] == ["diabetes symptoms", "diabetes"] and 2 < len(out) <= 4
 
 
 def test_unknown_disease_question_still_goes_to_the_model_path():

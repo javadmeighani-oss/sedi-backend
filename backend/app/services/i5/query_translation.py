@@ -54,6 +54,26 @@ def needs_translation(query: str, language: Optional[str]) -> bool:
     return bool(query and query.strip()) and not lang.startswith("en") and bool(_NON_LATIN.search(query))
 
 
+def _merge_additive(model: list[str], official: list[str]) -> list[str]:
+    """Model's first two queries, then the lexicon's official names, then the rest of the model's; unique, at most 4."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for cand in model[:2] + official + model[2:]:
+        if cand.lower() not in seen:
+            seen.add(cand.lower())
+            out.append(cand)
+        if len(out) == MAX_ALTERNATIVES:
+            break
+    return out
+
+
+def _bridge_only(text: str) -> list[str]:
+    """Model unavailable / empty: the lexicon alone (with breadth padding). Not cached (the failure is transient)."""
+    from backend.app.services.i5.health_query_bridge import health_bridge_alternatives
+
+    return health_bridge_alternatives(text)
+
+
 def translate_query_alternatives(query: str, language: Optional[str], client: Any = None) -> list[str]:
     """Up to 3 English keyword queries (specific → general), [] when disabled/unavailable. Never raises."""
     if not translation_enabled() or not needs_translation(query, language):
@@ -68,14 +88,13 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
     bridged = bridge_alternatives(text)
     if bridged:
         return bridged
-    # R-074 step 8a: every other health topic of the library is bridged the same way (deterministic, from the lexicon).
-    # A question that ALSO names a psychology topic (combined question) stays with the model path, as before.
+    # R-074 step 8a v2 (additive): the model keeps writing the broad queries (measured: replacing it lost fa coverage 0.63 -> 0.60);
+    # the lexicon only ADDS the official English names it knows. A question that ALSO names a psychology topic stays model-only.
+    official: list[str] = []
     if not matches_any_topic(text):
         from backend.app.services.i5.health_query_bridge import health_bridge_alternatives
 
-        bridged = health_bridge_alternatives(text)
-        if bridged:
-            return bridged
+        official = health_bridge_alternatives(text, pad=False)
     try:
         if client is None:
             from openai import OpenAI
@@ -89,7 +108,7 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
         )
         raw = str(resp.choices[0].message.content or "")
     except Exception:  # noqa: BLE001 — retrieval aid only
-        return []
+        return _bridge_only(text) if official else []
     out: list[str] = []
     for line in raw.splitlines():
         cand = " ".join(re.sub(r'^[\s\-\*\d\.\)]+', "", line).replace('"', " ").split())[:MAX_OUT_CHARS]
@@ -98,7 +117,9 @@ def translate_query_alternatives(query: str, language: Optional[str], client: An
         if len(out) == MAX_ALTERNATIVES:
             break
     if not out:
-        return []
+        return _bridge_only(text) if official else []
+    if official:
+        out = _merge_additive(out, official)
     _CACHE[text] = tuple(out)
     if len(_CACHE) > _CACHE_MAX:
         _CACHE.popitem(last=False)

@@ -110,8 +110,11 @@ def matched_topics(query: str) -> list[str]:
     return [k for h, _i, k in sorted((x for x in hits if x[0] > 0), reverse=True)]
 
 
-def health_bridge_alternatives(query: str) -> list[str]:
-    """English keyword alternatives (specific first, at most MAX_ALTERNATIVES) for a clear health-topic question, else []."""
+def health_bridge_alternatives(query: str, pad: bool = True) -> list[str]:
+    """English keyword alternatives (specific first, at most MAX_ALTERNATIVES) for a clear health-topic question, else [].
+
+    ``pad=False`` (step 8a v2) returns only the official names (+ the asked aspect), without the breadth padding: the model's
+    own broader queries are kept and these names are ADDED to them."""
     s = _norm(query)
     if not s:
         return []
@@ -143,6 +146,8 @@ def health_bridge_alternatives(query: str) -> list[str]:
                     out.append(cand)
                 if len(out) == MAX_ALTERNATIVES:
                     return out
+    if not pad:
+        return out
     # Breadth (measured after PR 167): the retrieval adapter takes only a couple of distinct units from EACH alternative, so
     # one or two short names retrieve far less than the model's broader queries did (asthma: 8 units -> 2). Widen the net with
     # the main topic plus the usual aspects, up to MAX_ALTERNATIVES, never repeating an aspect already asked or named.
