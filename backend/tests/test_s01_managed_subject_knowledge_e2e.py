@@ -99,7 +99,8 @@ def _index_als_ku(db):
         knowledge_type="GUIDELINE",
         normalized_statement=(
             "Amyotrophic lateral sclerosis ALS also called Lou Gehrig's disease. "
-            "ALS care education covers breathing, nutrition, and daily monitoring."
+            "ALS care education covers breathing, nutrition, and daily monitoring. "
+            f"(record s01-als-{int(ts)})"
         ),
         evidence_strength="MODERATE",
         medical_safety_state="CLEARED",
@@ -201,7 +202,7 @@ def test_s01_managed_mother_i8_knowledge_e2e(db):
     )
     assert result.status == STATUS_OK
     assert result.items
-    assert any(i.knowledge_unit_id == ku.id for i in result.items)
+    assert any(i.knowledge_unit_id == ku.id for i in result.items), (ku.id, [(i.knowledge_unit_id, i.canonical_unit_id[:14]) for i in result.items])
     assert all(i.immutable_version_id for i in result.items)
     assert all(str(i.memory_item_id).startswith("SCIS_KCE:") for i in result.items)
     snip = result.items[0].as_care_snippet()

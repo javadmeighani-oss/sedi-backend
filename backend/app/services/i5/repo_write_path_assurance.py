@@ -294,6 +294,31 @@ PATH_CLASSIFICATION: dict[str, tuple[str, str, str]] = {
         "PRODUCTION_REACHABLE",
         "manifest-governed low-risk KU eligibility field transitions",
     ),
+    "app/services/i5/governed_specialized_entity_eligibility.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "manifest-governed specialized-entity KU eligibility field transitions (called from the low-risk eligibility pass)",
+    ),
+    "app/services/i5/know07/living_knowledge.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "KNOW-07 living-knowledge event applied to a KU (called from the governed weekly runtime)",
+    ),
+    "ops/i5/i5_specialized_d18_d19_eligibility_inproc.py": (
+        "ADMIN_MAINTENANCE_WRITER",
+        "NON_PRODUCTION_TOOL",
+        "one-off in-process specialized eligibility run (D18/D19), manual operator tool",
+    ),
+    "scripts/i5_coverage_closure_prod_proof.py": (
+        "ADMIN_MAINTENANCE_WRITER",
+        "NON_PRODUCTION_TOOL",
+        "one-off coverage-closure production proof script, manual operator tool",
+    ),
+    "scripts/i5_d08_nidcd_content_quality_prod_proof.py": (
+        "ADMIN_MAINTENANCE_WRITER",
+        "NON_PRODUCTION_TOOL",
+        "one-off D08 content-quality production proof script, manual operator tool",
+    ),
     "app/services/i5/governed_ku_serving.py": (
         "CANONICAL_RUNTIME_WRITER",
         "PRODUCTION_REACHABLE",
