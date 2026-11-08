@@ -48,7 +48,7 @@ def test_the_visit_is_suggested_but_never_created_before_the_user_says_yes(clien
     _seed_consent(db, u.id)
     aid, done = _doc(client, monkeypatch, u.id, _rx(), "a")
     a = done["analysis"]
-    assert {"kind": "next_visit", "date": _rx()["next_visit_date"]} in a["suggestions"]
+    assert {"kind": "next_visit", "date": _rx()["next_visit_date"], "time": ""} in a["suggestions"]
     assert "take after meals" in a["text"]  # instructions are echoed exactly as printed
     assert any(s["kind"] == "medication_times" for s in a["suggestions"])
     r = client.post(f"/memory/attachments/{aid}/accept-next-visit", headers=_auth(u.id))
@@ -61,9 +61,9 @@ def test_accepting_creates_one_doctor_visit_with_a_reminder_and_is_idempotent(cl
     _seed_consent(db, u.id)
     aid, _ = _doc(client, monkeypatch, u.id, _rx(), "b")
     conf = client.post(f"/memory/attachments/{aid}/confirm", headers=_auth(u.id)).json()["data"]
-    assert "Shall I add it to your schedule" in conf["analysis"]["text"]  # the direct question after the yes to the document
-    first = client.post(f"/memory/attachments/{aid}/accept-next-visit", headers=_auth(u.id)).json()["data"]
-    assert first["created"] is True and first["duplicate"] is False
+    assert "what time" in conf["analysis"]["text"].lower()  # no time printed: Sedi asks for it, never guesses (Codex P2)
+    first = client.post(f"/memory/attachments/{aid}/accept-next-visit?time=14:30", headers=_auth(u.id)).json()["data"]
+    assert first["created"] is True and first["duplicate"] is False and first["time"] == "14:30" and first["time_assumed"] is False
     ev = db.query(models.UserEvent).filter(models.UserEvent.user_id == u.id, models.UserEvent.event_type == "doctor_visit").one()
     assert ev.event_type == "doctor_visit" and ev.event_domain == "medical" and ev.reminder_enabled is True
     assert json.loads(ev.reminder_offsets_json) == [60] and ev.source == "system"
@@ -103,3 +103,30 @@ def test_previsit_checklist_uses_only_the_recorded_picture(client, db, monkeypat
 def test_the_checklist_speaks_three_languages(db, lang, marker):
     u = _user(db, f"+1777002510{['fa', 'ar', 'en'].index(lang)}", tz="Asia/Tehran")
     assert marker in hd.previsit_checklist(db, u.id, lang)["text"]
+
+
+def test_printed_time_is_used_and_an_unknown_time_is_flagged_as_assumed(client, db, monkeypatch):
+    u = _user(db, "+17770025005", tz="Asia/Tehran")
+    _seed_consent(db, u.id)
+    aid, _ = _doc(client, monkeypatch, u.id, _rx(next_visit_time="16:45"), "f")
+    conf = client.post(f"/memory/attachments/{aid}/confirm", headers=_auth(u.id)).json()["data"]
+    assert "16:45" in conf["analysis"]["text"]
+    ok = client.post(f"/memory/attachments/{aid}/accept-next-visit", headers=_auth(u.id)).json()["data"]
+    assert ok["time"] == "16:45" and ok["time_assumed"] is False
+    aid2, _ = _doc(client, monkeypatch, u.id, _rx(days_ahead=40), "g")
+    client.post(f"/memory/attachments/{aid2}/confirm", headers=_auth(u.id))
+    assumed = client.post(f"/memory/attachments/{aid2}/accept-next-visit", headers=_auth(u.id)).json()["data"]
+    assert assumed["time"] == "09:00" and assumed["time_assumed"] is True
+
+
+def test_no_reminder_is_promised_while_the_scheduler_is_off(client, db, monkeypatch):
+    monkeypatch.delenv("SEDI_EVENT_REMINDER_SCHEDULER_ENABLED", raising=False)
+    u = _user(db, "+17770025006", tz="Asia/Tehran")
+    _seed_consent(db, u.id)
+    aid, _ = _doc(client, monkeypatch, u.id, _rx(next_visit_time="10:00"), "h")
+    off = client.post(f"/memory/attachments/{aid}/confirm", headers=_auth(u.id)).json()["data"]["analysis"]["text"]
+    assert "reminder" not in off.split("Shall I add it")[-1].lower() and "schedule" in off
+    monkeypatch.setenv("SEDI_EVENT_REMINDER_SCHEDULER_ENABLED", "true")
+    aid2, _ = _doc(client, monkeypatch, u.id, _rx(days_ahead=50, next_visit_time="10:00"), "i")
+    on = client.post(f"/memory/attachments/{aid2}/confirm", headers=_auth(u.id)).json()["data"]["analysis"]["text"]
+    assert "a reminder an hour before" in on

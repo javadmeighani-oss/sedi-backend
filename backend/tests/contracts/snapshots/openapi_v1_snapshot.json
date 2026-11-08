@@ -15804,6 +15804,23 @@
               "title": "Attachment Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "time",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{2}:\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time"
+            }
           }
         ],
         "responses": {

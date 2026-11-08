@@ -1338,9 +1338,19 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'The document mentions the next visit or follow-up on {date}; once you confirm it, I add it to your schedule.',
     },
     'doc.analysis.next_visit.ask': {
-        'fa': 'نوبت یا پیگیری بعدی روز {date} نوشته شده. در برنامه‌ات ثبتش کنم و یک ساعت قبلش یادآوری بفرستم؟',
-        'ar': 'ورد موعد أو متابعة بتاريخ {date}. أسجّله في جدولك وأرسل تذكيراً قبله بساعة؟',
-        'en': 'The next visit or follow-up is on {date}. Shall I add it to your schedule with a reminder an hour before?',
+        'fa': 'نوبت یا پیگیری بعدی {when} نوشته شده. در برنامه‌ات ثبتش کنم و یک ساعت قبلش یادآوری بفرستم؟',
+        'ar': 'ورد موعد أو متابعة في {when}. أسجّله في جدولك وأرسل تذكيراً قبله بساعة؟',
+        'en': 'The next visit or follow-up is on {when}. Shall I add it to your schedule with a reminder an hour before?',
+    },
+    'doc.analysis.next_visit.ask_noremind': {
+        'fa': 'نوبت یا پیگیری بعدی {when} نوشته شده. در برنامه‌ات ثبتش کنم؟',
+        'ar': 'ورد موعد أو متابعة في {when}. أسجّله في جدولك؟',
+        'en': 'The next visit or follow-up is on {when}. Shall I add it to your schedule?',
+    },
+    'doc.analysis.next_visit.ask_notime': {
+        'fa': 'نوبت یا پیگیری بعدی روز {date} نوشته شده، اما ساعتش را ندیدم. ساعت چند است؟ با همان ساعت در برنامه‌ات ثبتش می‌کنم.',
+        'ar': 'ورد موعد أو متابعة بتاريخ {date} لكن الساعة غير مكتوبة. في أي ساعة؟ أسجّله في جدولك بالساعة التي تذكرها.',
+        'en': 'The next visit or follow-up is on {date}, but the time is not written. What time is it? I add it to your schedule with that time.',
     },
     'doc.analysis.instructions': {
         'fa': 'دستورهای چاپ‌شده در مدرک: {items}.',

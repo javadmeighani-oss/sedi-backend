@@ -222,7 +222,7 @@ def get_attachment(db: Session, user_id: int, attachment_id: int, language: str 
 _ANALYZE_PROMPT = """You read ONE medical/health document or photo a user gave their health companion. Output JSON only:
 {"document_type":"lab_result|prescription|report|imaging|other","summary":"<=500 chars, neutral, in the user's language",
  "date":"YYYY-MM-DD or empty","findings":[{"name":"","value":"","unit":"","flag":"low|high|normal|"}],"medications":["names as printed"],
- "next_visit_date":"YYYY-MM-DD of the next appointment/follow-up/re-test ONLY if printed, else empty","instructions":["short instructions exactly as printed, at most 5"]}
+ "next_visit_date":"YYYY-MM-DD of the next appointment/follow-up/re-test ONLY if printed, else empty","next_visit_time":"HH:MM if printed, else empty","instructions":["short instructions exactly as printed, at most 5"]}
 Rules: copy only what is PRINTED or clearly visible; never interpret, diagnose or advise; unknown fields stay empty;
 at most 40 findings; if the image is not a health document, set document_type "other" and describe it in one neutral sentence."""
 
@@ -294,9 +294,14 @@ def validate_document_findings(raw: str) -> Optional[dict[str, Any]]:
         datetime.strptime(next_visit, "%Y-%m-%d")
     except ValueError:
         next_visit = ""
+    next_time = s(data.get("next_visit_time"), 5)
+    try:
+        datetime.strptime(next_time, "%H:%M")
+    except ValueError:
+        next_time = ""
     instructions = [s(i, 160) for i in (data.get("instructions") or [])[:5] if s(i, 160)]
     return {"document_type": doc_type, "summary": summary, "date": date, "findings": findings, "medications": meds,
-            "next_visit_date": next_visit, "instructions": instructions}
+            "next_visit_date": next_visit, "next_visit_time": next_time, "instructions": instructions}
 
 
 def process_attachment(
@@ -412,14 +417,16 @@ def delete_attachment(db: Session, user_id: int, attachment_id: int) -> bool:
     return True
 
 
-def accept_next_visit(db: Session, user_id: int, attachment_id: int, language: str = "fa") -> dict[str, Any]:
+def accept_next_visit(
+    db: Session, user_id: int, attachment_id: int, language: str = "fa", time: Optional[str] = None
+) -> dict[str, Any]:
     """R-074 step 3b: the user says «yes, put the next visit in my schedule» - only for a CONFIRMED document, through the event owner."""
     row = _owned(db, user_id, attachment_id)
     if row.kind == "audio" or row.status != "confirmed" or not row.extracted_json:
         raise AttachmentError("NOT_CONFIRMED", 409)
     from backend.app.services.i7.health_documents import create_next_visit_event
 
-    result = create_next_visit_event(db, user_id, json.loads(row.extracted_json), language=language)
+    result = create_next_visit_event(db, user_id, json.loads(row.extracted_json), language=language, time=time)
     if result is None:
         raise AttachmentError("NO_NEXT_VISIT", 404)
     return result

@@ -191,9 +191,18 @@ def analyse(db: Session, user_id: int, parsed: dict[str, Any], *, attachment_id:
     suggestions: list[dict[str, Any]] = []
     visit = _future_date(parsed.get("next_visit_date"))
     if visit is not None:
-        key = "doc.analysis.next_visit.ask" if confirmed else "doc.analysis.next_visit"
-        lines.append(t(key, lang, date=_show(visit.isoformat(), lang)))
-        suggestions.append({"kind": "next_visit", "date": visit.isoformat()})
+        vtime = _clock(parsed.get("next_visit_time"))
+        if not confirmed:
+            key = "doc.analysis.next_visit"
+        elif vtime is None:
+            key = "doc.analysis.next_visit.ask_notime"  # the time was not printed: ask for it instead of guessing (Codex P2)
+        elif _reminders_deliverable():
+            key = "doc.analysis.next_visit.ask"
+        else:
+            key = "doc.analysis.next_visit.ask_noremind"  # never promise a reminder the scheduler would not send (Codex P2)
+        when = visit.isoformat() + (f" {vtime}" if vtime else "")
+        lines.append(t(key, lang, date=_show(visit.isoformat(), lang), when=_show(when, lang)))
+        suggestions.append({"kind": "next_visit", "date": visit.isoformat(), "time": vtime or ""})
     instr = [str(i) for i in (parsed.get("instructions") or []) if str(i).strip()][:5]
     if instr:
         lines.append(t("doc.analysis.instructions", lang, items=("؛ " if lang in ("fa", "ar") else "; ").join(instr)))
@@ -266,6 +275,22 @@ def forget_from_picture(db: Session, user_id: int) -> dict[str, bool]:
     return _sync_picture(db, user_id, _previous_docs(db, user_id, None))
 
 
+def _clock(value: Any) -> Optional[str]:
+    try:
+        return datetime.strptime(str(value or ""), "%H:%M").strftime("%H:%M")
+    except ValueError:
+        return None
+
+
+def _reminders_deliverable() -> bool:
+    try:
+        from backend.app.services.section10.feature_flags import event_reminder_scheduler_enabled
+
+        return bool(event_reminder_scheduler_enabled())
+    except Exception:
+        return False
+
+
 def _future_date(value: Any) -> Optional[date]:
     try:
         d = datetime.strptime(str(value or ""), "%Y-%m-%d").date()
@@ -274,12 +299,16 @@ def _future_date(value: Any) -> Optional[date]:
     return d if d >= (datetime.utcnow().date() - timedelta(days=1)) else None
 
 
-def create_next_visit_event(db: Session, user_id: int, parsed: dict[str, Any], *, language: str) -> Optional[dict[str, Any]]:
+def create_next_visit_event(
+    db: Session, user_id: int, parsed: dict[str, Any], *, language: str, time: Optional[str] = None
+) -> Optional[dict[str, Any]]:
     """The next appointment printed on a confirmed document becomes a doctor-visit event with a reminder (event owner: gate2)."""
     visit = _future_date(parsed.get("next_visit_date"))
     if visit is None:
         return None
     lang = _lang(language)
+    clock = _clock(time) or _clock(parsed.get("next_visit_time"))
+    hh, mm = (int(x) for x in (clock or "09:00").split(":"))
     day_start = datetime(visit.year, visit.month, visit.day)
     dup = (
         db.query(models.UserEvent)
@@ -306,7 +335,7 @@ def create_next_visit_event(db: Session, user_id: int, parsed: dict[str, Any], *
         title=sedi_copy.t("doc.next_visit.title", lang),
         event_domain="medical",
         event_type="doctor_visit",
-        starts_at=day_start.replace(hour=9),
+        starts_at=day_start.replace(hour=hh, minute=mm),
         timezone=tz,
         status="scheduled",
         importance="high",
@@ -315,7 +344,10 @@ def create_next_visit_event(db: Session, user_id: int, parsed: dict[str, Any], *
         source="system",
     )
     ev = create_event(db, user_id, body)
-    return {"created": True, "duplicate": False, "event_id": ev.get("id"), "date": visit.isoformat()}
+    return {
+        "created": True, "duplicate": False, "event_id": ev.get("id"), "date": visit.isoformat(),
+        "time": clock or "09:00", "time_assumed": clock is None, "reminder_active": _reminders_deliverable(),
+    }
 
 
 def previsit_checklist(db: Session, user_id: int, language: str) -> dict[str, Any]:
