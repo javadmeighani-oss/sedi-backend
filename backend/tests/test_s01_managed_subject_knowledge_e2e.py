@@ -99,7 +99,8 @@ def _index_als_ku(db):
         knowledge_type="GUIDELINE",
         normalized_statement=(
             "Amyotrophic lateral sclerosis ALS also called Lou Gehrig's disease. "
-            "ALS care education covers breathing, nutrition, and daily monitoring."
+            "ALS care education covers breathing, nutrition, and daily monitoring. "
+            f"(record s01-als-{int(ts)})"
         ),
         evidence_strength="MODERATE",
         medical_safety_state="CLEARED",
