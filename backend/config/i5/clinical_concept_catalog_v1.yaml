@@ -194,7 +194,7 @@ concepts:
     preferred_name: "Back pain"
     concept_type: SYMPTOM
     root_category: MUSCULOSKELETAL
-    url_needles: ["conditions/back-pain", "medlineplus.gov/backpain", "medlineplus.gov/sciatica", "nhs.uk/conditions/sciatica", "nhs.uk/conditions/slipped-disc"]
+    url_needles: ["conditions/back-pain", "medlineplus.gov/backpain", "medlineplus.gov/sciatica", "nhs.uk/conditions/sciatica", "nhs.uk/conditions/slipped-disc", "medlineplus.gov/backinjuries"]
     labels:
       - {language: en, kind: PREFERRED, text: "back pain", status: OFFICIAL_SOURCE_TITLE, source: "nhs.uk"}
       - {language: fa, kind: PREFERRED, text: "کمردرد", status: FOUNDER_APPROVED, approved_on: "2026-10-18"}
@@ -271,7 +271,7 @@ concepts:
     preferred_name: "Physical activity and exercise"
     concept_type: INTERVENTION
     root_category: HEALTHY_POPULATION
-    url_needles: ["live-well/exercise", "physical-activity", "physicalactivity"]
+    url_needles: ["live-well/exercise", "physical-activity", "physicalactivity", "medlineplus.gov/exerciseforseniors", "medlineplus.gov/exerciseandphysicalfitness"]
     labels:
       - {language: en, kind: PREFERRED, text: "physical activity", status: OFFICIAL_SOURCE_TITLE, source: "cdc.gov"}
       - {language: fa, kind: PREFERRED, text: "فعالیت بدنی", status: MODEL_ASSISTED_DRAFT}

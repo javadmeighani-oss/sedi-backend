@@ -30,6 +30,10 @@ _WAVE02_URL_COVERAGE: tuple[tuple[str, Wave02CoverageIdentity], ...] = (
     ("medlineplus.gov/nursinghomes.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
     ("medlineplus.gov/pressuresores.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
     ("medlineplus.gov/falls.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/seniorshealth.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/balanceproblems.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/caregivers.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
+    ("medlineplus.gov/exerciseforseniors.html", Wave02CoverageIdentity("", "lifestyle_prevention_routines", "elder_care", "caring for older adults")),
     # R-044 open-licence library (nutrition / exercise / lifestyle sources): explicit topics instead of the sleep default.
     ("medlineplus.gov/antioxidants.html", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "antioxidants")),
     ("medlineplus.gov/bvitamins.html", Wave02CoverageIdentity("", "nutrition", "healthy_eating", "bvitamins")),

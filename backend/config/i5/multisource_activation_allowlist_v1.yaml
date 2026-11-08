@@ -220,6 +220,14 @@ sources:
       - https://medlineplus.gov/muscledisorders.html
       - https://medlineplus.gov/osteoporosis.html
       - https://medlineplus.gov/osteoarthritis.html
+      # R-074 step 4b: more reviewed musculoskeletal topics (D05)
+      - https://medlineplus.gov/backinjuries.html
+      - https://medlineplus.gov/fibromyalgia.html
+      - https://medlineplus.gov/gout.html
+      - https://medlineplus.gov/jointdisorders.html
+      - https://medlineplus.gov/rheumatoidarthritis.html
+      - https://medlineplus.gov/rotatorcuffinjuries.html
+      - https://medlineplus.gov/sportsinjuries.html
       - https://medlineplus.gov/sciatica.html
       - https://medlineplus.gov/alzheimersdisease.html
       - https://medlineplus.gov/dementia.html
@@ -234,7 +242,7 @@ sources:
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_130_urls"
+    rate_limit: "weekly_controlled_max_137_urls"
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19, D23]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]  # specialty_domain is varchar(128): D23 comes from specialized_serving_eligibility
     activation: YES
@@ -1058,13 +1066,18 @@ sources:
       - https://medlineplus.gov/nursinghomes.html
       - https://medlineplus.gov/pressuresores.html
       - https://medlineplus.gov/falls.html
+      # R-074 step 4b: healthy ageing, balance, caregiving and exercise for older adults
+      - https://medlineplus.gov/seniorshealth.html
+      - https://medlineplus.gov/balanceproblems.html
+      - https://medlineplus.gov/caregivers.html
+      - https://medlineplus.gov/exerciseforseniors.html
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
-      - "^https://medlineplus\\.gov/(mobilityaids|alzheimerscaregivers|elderabuse|homecareservices|nursinghomes|pressuresores|falls)\\.html$"
+      - "^https://medlineplus\\.gov/(mobilityaids|alzheimerscaregivers|elderabuse|homecareservices|nursinghomes|pressuresores|falls|seniorshealth|balanceproblems|caregivers|exerciseforseniors)\\.html$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_7_urls"
+    rate_limit: "weekly_controlled_max_11_urls"
     entity_coverage: [D12]
     knowledge_domains: [lifestyle_prevention_routines]
     activation: YES
