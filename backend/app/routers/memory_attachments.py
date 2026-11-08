@@ -4,7 +4,9 @@
 JWT identity only; every call is ownership-scoped and consent-gated inside ``services/i7/attachments``.
 The whole surface answers 404 FEATURE_DISABLED until SEDI_ATTACHMENTS_ENABLED is set.
 """
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from backend.app import models
@@ -95,3 +97,27 @@ def delete_my_attachment(
         return APIResponse(ok=True, data={"deleted": att.delete_attachment(db, auth_user.id, attachment_id)})
     except att.AttachmentError as exc:
         raise _http(exc)
+
+
+@router.post("/attachments/{attachment_id}/accept-next-visit", response_model=APIResponse)
+def accept_next_visit(
+    attachment_id: int,
+    time: Optional[str] = Query(None, pattern=r"^\d{2}:\d{2}$"),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """«Yes, add the next visit printed on this document to my schedule» (confirmed documents only)."""
+    _guard()
+    try:
+        return APIResponse(ok=True, data=att.accept_next_visit(db, auth_user.id, attachment_id, language=_lang(auth_user), time=time))
+    except att.AttachmentError as exc:
+        raise _http(exc)
+
+
+@router.get("/previsit-checklist", response_model=APIResponse)
+def previsit_checklist(auth_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """What to bring and say at a doctor visit, built only from the user's own recorded picture."""
+    _guard()
+    from backend.app.services.i7.health_documents import previsit_checklist as build
+
+    return APIResponse(ok=True, data=build(db, auth_user.id, _lang(auth_user)))

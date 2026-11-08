@@ -15791,6 +15791,71 @@
         ]
       }
     },
+    "/memory/attachments/{attachment_id}/accept-next-visit": {
+      "post": {
+        "description": "«Yes, add the next visit printed on this document to my schedule» (confirmed documents only).",
+        "operationId": "accept_next_visit_memory_attachments__attachment_id__accept_next_visit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "title": "Attachment Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "time",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{2}:\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept Next Visit",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
     "/memory/attachments/{attachment_id}/confirm": {
       "post": {
         "description": "«Yes, remember this»: the document is added to my life timeline.",
@@ -16760,6 +16825,33 @@
           }
         ],
         "summary": "Get Period Summary",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/previsit-checklist": {
+      "get": {
+        "description": "What to bring and say at a doctor visit, built only from the user's own recorded picture.",
+        "operationId": "previsit_checklist_memory_previsit_checklist_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Previsit Checklist",
         "tags": [
           "Memory"
         ]
