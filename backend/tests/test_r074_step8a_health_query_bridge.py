@@ -195,3 +195,23 @@ def test_the_requested_aspect_is_kept_in_the_english_search(query, first):
 def test_an_aspect_already_in_the_topic_name_is_not_repeated():
     out = hb.health_bridge_alternatives("رژیم غذایی سالم")  # healthy_eating: «eating a balanced diet» already says diet
     assert "eating a balanced diet diet" not in out and out[0] == "eating a balanced diet"
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["آسم دارم", "درد پاشنه پا", "درد شانه", "کشیدگی عضله", "نقرس", "ام اس", "أعاني من الربو", "ألم الكتف"],
+)
+def test_a_bridged_question_always_offers_four_alternatives_for_breadth(query):
+    """Measured after PR 167: the adapter takes <=2 units per alternative, so 1-2 short names retrieved far too little."""
+    out = hb.health_bridge_alternatives(query)
+    assert len(out) == 4 and len({o.lower() for o in out}) == 4
+    assert out[0] in hb.health_bridge_alternatives(query)
+
+
+def test_padding_never_repeats_an_aspect_already_asked_or_named():
+    out = hb.health_bridge_alternatives("علائم آسم")
+    assert out[0] == "asthma symptoms" and "asthma symptoms symptoms" not in out
+    assert sum(1 for o in out if o.endswith("symptoms")) == 1
+    diet = hb.health_bridge_alternatives("رژیم دیابت")
+    assert all("diet diet" not in o for o in diet)
+

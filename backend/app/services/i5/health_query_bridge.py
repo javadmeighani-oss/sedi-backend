@@ -90,6 +90,9 @@ def _aspect_of(text: str) -> str:
     return ""
 
 
+_PAD_ASPECTS = ("symptoms", "treatment", "causes", "prevention", "diet", "exercise")
+
+
 def _longest_hit(entry: _Entry, text: str) -> int:
     best = 0
     for pat, length in entry.markers:
@@ -140,4 +143,17 @@ def health_bridge_alternatives(query: str) -> list[str]:
                     out.append(cand)
                 if len(out) == MAX_ALTERNATIVES:
                     return out
+    # Breadth (measured after PR 167): the retrieval adapter takes only a couple of distinct units from EACH alternative, so
+    # one or two short names retrieve far less than the model's broader queries did (asthma: 8 units -> 2). Widen the net with
+    # the main topic plus the usual aspects, up to MAX_ALTERNATIVES, never repeating an aspect already asked or named.
+    for e in chosen:
+        head = e.alternatives[0]
+        words = set(head.lower().split())
+        for aspect in _PAD_ASPECTS:
+            if len(out) >= MAX_ALTERNATIVES:
+                return out
+            cand = f"{head} {aspect}"
+            if aspect not in words and cand.lower() not in seen:
+                seen.add(cand.lower())
+                out.append(cand)
     return out
