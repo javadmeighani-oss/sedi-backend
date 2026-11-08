@@ -1332,6 +1332,66 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'سُجّلت هذه الأدوية في صورتك العامة؛ أخبرني بوقت كل دواء لأضع لك تذكيراً.',
         'en': 'These medicines are recorded in your overall picture; tell me when you take each one and I will set the reminders.',
     },
+    'doc.analysis.next_visit': {
+        'fa': 'توی مدرک، نوبت یا پیگیری بعدی روز {date} نوشته شده؛ بعد از تأیید مدرک، در برنامه‌ات ثبتش می‌کنم.',
+        'ar': 'ورد في المستند موعد أو متابعة بتاريخ {date}؛ بعد تأكيد المستند أسجّله في جدولك.',
+        'en': 'The document mentions the next visit or follow-up on {date}; once you confirm it, I add it to your schedule.',
+    },
+    'doc.analysis.next_visit.ask': {
+        'fa': 'نوبت یا پیگیری بعدی روز {date} نوشته شده. در برنامه‌ات ثبتش کنم و یک ساعت قبلش یادآوری بفرستم؟',
+        'ar': 'ورد موعد أو متابعة بتاريخ {date}. أسجّله في جدولك وأرسل تذكيراً قبله بساعة؟',
+        'en': 'The next visit or follow-up is on {date}. Shall I add it to your schedule with a reminder an hour before?',
+    },
+    'doc.analysis.instructions': {
+        'fa': 'دستورهای چاپ‌شده در مدرک: {items}.',
+        'ar': 'التعليمات المكتوبة في المستند: {items}.',
+        'en': 'Instructions printed on the document: {items}.',
+    },
+    'doc.next_visit.title': {
+        'fa': 'نوبت پزشک',
+        'ar': 'موعد الطبيب',
+        'en': 'Doctor visit',
+    },
+    'previsit.head': {
+        'fa': 'پیش از ویزیت، اینها را همراه ببر:',
+        'ar': 'قبل الزيارة، خذ معك:',
+        'en': 'Before the visit, bring:',
+    },
+    'previsit.bring.labs': {
+        'fa': 'آخرین نتایج آزمایش‌هایت',
+        'ar': 'آخر نتائج تحاليلك',
+        'en': 'your latest lab results',
+    },
+    'previsit.bring.meds': {
+        'fa': 'داروهایت (یا فهرستشان): {names}',
+        'ar': 'أدويتك (أو قائمتها): {names}',
+        'en': 'your medicines (or their list): {names}',
+    },
+    'previsit.bring.generic': {
+        'fa': 'نسخه و گزارش‌های ویزیت‌های قبلی',
+        'ar': 'الوصفات وتقارير الزيارات السابقة',
+        'en': 'previous prescriptions and visit reports',
+    },
+    'previsit.say': {
+        'fa': 'به پزشک بگو:',
+        'ar': 'أخبر الطبيب:',
+        'en': 'Tell the doctor:',
+    },
+    'previsit.ask.change': {
+        'fa': 'از ویزیت قبلی تا حالا چه چیزی در بدن یا حالت عوض شده است',
+        'ar': 'ما الذي تغيّر في جسمك أو حالتك منذ الزيارة السابقة',
+        'en': 'what has changed in your body or mood since the last visit',
+    },
+    'previsit.ask.meds': {
+        'fa': 'داروها را چطور مصرف می‌کنی و آیا عارضه‌ای دیده‌ای',
+        'ar': 'كيف تتناول أدويتك وهل لاحظت أعراضاً جانبية',
+        'en': 'how you take your medicines and whether you noticed side effects',
+    },
+    'previsit.ask.questions': {
+        'fa': 'سؤال‌هایی را که داری از قبل بنویس تا در مطب فراموش نشود',
+        'ar': 'اكتب أسئلتك مسبقاً حتى لا تنساها في العيادة',
+        'en': 'write your questions down beforehand so none is forgotten',
+    },
     'doc.analysis.other': {
         'fa': 'مدرک خوانده شد. با تأیید تو در تصویر کلی‌ات ثبت می‌شود.',
         'ar': 'قُرئ المستند. بعد تأكيدك يُسجَّل في صورتك العامة.',

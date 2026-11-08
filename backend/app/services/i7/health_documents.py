@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -187,7 +188,20 @@ def analyse(db: Session, user_id: int, parsed: dict[str, Any], *, attachment_id:
     else:
         lines.append(t("doc.analysis.other.saved" if confirmed else "doc.analysis.other", lang))
 
+    suggestions: list[dict[str, Any]] = []
+    visit = _future_date(parsed.get("next_visit_date"))
+    if visit is not None:
+        key = "doc.analysis.next_visit.ask" if confirmed else "doc.analysis.next_visit"
+        lines.append(t(key, lang, date=_show(visit.isoformat(), lang)))
+        suggestions.append({"kind": "next_visit", "date": visit.isoformat()})
+    instr = [str(i) for i in (parsed.get("instructions") or []) if str(i).strip()][:5]
+    if instr:
+        lines.append(t("doc.analysis.instructions", lang, items=("؛ " if lang in ("fa", "ar") else "; ").join(instr)))
+    if meds:
+        suggestions.append({"kind": "medication_times", "names": meds[:MAX_MEDS]})
+
     return {
+        "suggestions": suggestions,
         "document_type": doc_type,
         "flagged": [{"name": str(f.get("name")), "value": str(f.get("value")), "unit": str(f.get("unit") or ""), "flag": f.get("flag")} for f in flagged],
         "trends": trends,
@@ -250,3 +264,76 @@ def record_into_picture(db: Session, user_id: int, parsed: dict[str, Any], *, at
 def forget_from_picture(db: Session, user_id: int) -> dict[str, bool]:
     """After a document is deleted: the picture is rebuilt from the documents that remain (or forgotten when none do)."""
     return _sync_picture(db, user_id, _previous_docs(db, user_id, None))
+
+
+def _future_date(value: Any) -> Optional[date]:
+    try:
+        d = datetime.strptime(str(value or ""), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    return d if d >= (datetime.utcnow().date() - timedelta(days=1)) else None
+
+
+def create_next_visit_event(db: Session, user_id: int, parsed: dict[str, Any], *, language: str) -> Optional[dict[str, Any]]:
+    """The next appointment printed on a confirmed document becomes a doctor-visit event with a reminder (event owner: gate2)."""
+    visit = _future_date(parsed.get("next_visit_date"))
+    if visit is None:
+        return None
+    lang = _lang(language)
+    day_start = datetime(visit.year, visit.month, visit.day)
+    dup = (
+        db.query(models.UserEvent)
+        .filter(
+            models.UserEvent.user_id == user_id,
+            models.UserEvent.event_type == "doctor_visit",
+            models.UserEvent.status == "scheduled",
+            models.UserEvent.starts_at >= day_start,
+            models.UserEvent.starts_at < day_start + timedelta(days=1),
+        )
+        .first()
+    )
+    if dup is not None:
+        return {"created": False, "duplicate": True, "event_id": int(dup.id), "date": visit.isoformat()}
+    from backend.app.schemas.gate2 import EventCreateIn
+    from backend.app.services.gate2_data_service import create_event
+    from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+
+    try:
+        tz = resolve_validated_user_timezone(db, user_id)
+    except Exception:
+        tz = None
+    body = EventCreateIn(
+        title=sedi_copy.t("doc.next_visit.title", lang),
+        event_domain="medical",
+        event_type="doctor_visit",
+        starts_at=day_start.replace(hour=9),
+        timezone=tz,
+        status="scheduled",
+        importance="high",
+        reminder_enabled=True,
+        reminder_offsets=[60],
+        source="system",
+    )
+    ev = create_event(db, user_id, body)
+    return {"created": True, "duplicate": False, "event_id": ev.get("id"), "date": visit.isoformat()}
+
+
+def previsit_checklist(db: Session, user_id: int, language: str) -> dict[str, Any]:
+    """Deterministic «before the visit» list built ONLY from what the user's own picture holds (no invented values, no advice)."""
+    from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+
+    lang = _lang(language)
+    t = sedi_copy.t
+    facts = {f.key: str(f.value_json) for f in list_facts_readonly_or_empty(db, user_id, domain="medical")}
+    bring = [t("previsit.bring.generic", lang)]
+    if facts.get("lab_results"):
+        bring.insert(0, t("previsit.bring.labs", lang))
+    meds = facts.get("prescribed_medications")
+    if meds:
+        bring.insert(0, t("previsit.bring.meds", lang, names=meds[:200]))
+    ask = [t("previsit.ask.change", lang)]
+    if meds:
+        ask.append(t("previsit.ask.meds", lang))
+    ask.append(t("previsit.ask.questions", lang))
+    text = "\n".join([t("previsit.head", lang)] + ["• " + b for b in bring] + [t("previsit.say", lang)] + ["• " + a for a in ask])
+    return {"bring": bring, "say": ask, "text": text}
