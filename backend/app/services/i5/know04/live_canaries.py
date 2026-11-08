@@ -182,7 +182,7 @@ def run_pmc_live_canary(*, http_get=None, max_records: int = 1) -> LiveCanaryEvi
     pmcid = records[0]["pmcid"] if records else ""
     # The canary proves the OAI-PMH discovery call; the OA license lookup below is supplementary evidence only (measured 2026-11-08: NCBI answers 404
     # from the oa.fcgi service, so its status must not decide the OAI result).
-    oai_status, oai_bytes = obs.last_status, obs.total_bytes
+    oai_status, oai_bytes, oai_ctype = obs.last_status, obs.total_bytes, obs.last_content_type
     license_obs = None
     if pmcid:
         pmc = PmcConnector(http_get=obs)
@@ -199,7 +199,7 @@ def run_pmc_live_canary(*, http_get=None, max_records: int = 1) -> LiveCanaryEvi
         request_purpose="bounded_oai_listrecords+oa_license",
         timestamp_utc=_utc_now(),
         http_status=oai_status,
-        content_type=obs.last_content_type or "application/xml",
+        content_type=oai_ctype or "application/xml",
         record_count=len(records),
         external_ids=tuple(r.get("pmcid", "") for r in records),
         bytes_received=obs.total_bytes,
