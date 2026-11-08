@@ -7,6 +7,8 @@ PERSONAL != GOVERNED. SELF != MANAGED.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Mapping, Optional, Sequence, Tuple
 
@@ -103,6 +105,45 @@ def _lang_root(language: Optional[str]) -> str:
     if lang.startswith("ar") or lang in {"arabic"}:
         return "ar"
     return "en"
+
+
+# R-074 step 4c: a governed-knowledge question such as «how can I look after my elderly mother» binds NO personal data, so
+# a kinship word in it needs no referent. Follow-ups about the person's own record («how was my mother?») still do.
+_GENERAL_CARE = {
+    "en": re.compile(
+        r"\b(?:look(?:ing)? after|take care of|taking care of|care for|caring for|looking out for|help(?:ing)? (?:my|an?|her|him)|"
+        r"support(?:ing)? (?:my|an?|her|him)|keep(?:ing)? (?:her|him|them|my \w+) safe|prevent(?:ing)?|fall prevention|falls?|falling|"
+        r"tips|advice|exercises?|diet|nutrition|feed(?:ing)?|bath(?:e|ing)|lift(?:ing)?|home care|caregiv\w*)\b"
+    ),
+    "fa": re.compile(r"مراقبت|نگهداری|پرستاری|کمک به|ورزش|تغذیه|پیشگیری|ایمن|زمین\W*(?:می\W*)?خور|افتاد|رژیم|سالمند"),
+    "ar": re.compile(r"أعتني|اعتني|رعاية|العناية|أساعد|اساعد|مساعدة|تمارين|تغذية|الوقاية|سقوط|تسقط|أرعى|ارعى|المسن"),
+}
+_FOLLOW_UP_ABOUT_RECORD = {
+    "en": re.compile(r"\bhow (?:was|is|were)\b|\b(?:result|results|record|test|tests|medication|medicine|last visit)\b"),
+    "fa": re.compile(r"چطور بود|حالش چطور|نتیجه|آزمایش|دارو|ویزیت"),
+    "ar": re.compile(r"كيف كانت|كيف حالها|نتيجة|نتائج|تحليل|دواء|زيارة"),
+}
+
+
+def is_general_care_question(query: str, *, language: Optional[str]) -> bool:
+    """True for a self-contained care/knowledge question that merely MENTIONS a relative (no personal record is asked for)."""
+    root = _lang_root(language)
+    norm = normalize_for_language(query or "", language)
+    hay = f"{norm} {(query or '').casefold()}"
+    if _FOLLOW_UP_ABOUT_RECORD[root].search(hay):
+        return False
+    return bool(_GENERAL_CARE[root].search(hay))
+
+
+def coreference_blocks_retrieval(coref: "CoreferenceResolution", query: str, *, language: Optional[str]) -> bool:
+    """Whether an unresolved/ambiguous cue must stop governed (public-library) retrieval for this query."""
+    if coref.state not in {STATE_AMBIGUOUS, STATE_UNRESOLVED}:
+        return False
+    if coref.cue_kind in {"GENERIC", "HEALTH_SUBJECT_SELF"}:
+        return False
+    if coref.cue_kind == TYPE_HEALTH_SUBJECT and is_general_care_question(query, language=language):
+        return False
+    return True
 
 
 def _contains_any(hay: str, needles: Tuple[str, ...]) -> Optional[str]:
