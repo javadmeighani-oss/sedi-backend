@@ -305,6 +305,14 @@ D05 = SpecializedEntitySpec(
         "nhs.uk/conditions/frozen-shoulder",
         "nhs.uk/conditions/plantar-fasciitis",
         "nhs.uk/conditions/slipped-disc",
+        # R-074 step 4b: more reviewed MedlinePlus musculoskeletal topics (same lane, same gates)
+        "medlineplus.gov/backinjuries.html",
+        "medlineplus.gov/fibromyalgia.html",
+        "medlineplus.gov/gout.html",
+        "medlineplus.gov/jointdisorders.html",
+        "medlineplus.gov/rheumatoidarthritis.html",
+        "medlineplus.gov/rotatorcuffinjuries.html",
+        "medlineplus.gov/sportsinjuries.html",
     ),
     clinical_tokens=("arthritis", "joint", "musculoskeletal", "bone", "rheumat",
         "osteoporosis",
@@ -313,6 +321,7 @@ D05 = SpecializedEntitySpec(
         "spine",
         "sprain", "strain", "sciatica", "muscle", "tendon", "ligament", "shoulder", "knee", "neck", "hip", "elbow", "wrist", "foot",
         "heel", "disc", "osteoarthritis",
+        "gout", "rotator", "cuff", "sports injur", "fibromyalg",
     ),
     disease_label="musculoskeletal health and pain",
 )
