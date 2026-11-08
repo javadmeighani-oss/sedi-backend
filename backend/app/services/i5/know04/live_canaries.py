@@ -187,8 +187,8 @@ def run_pmc_live_canary(*, http_get=None, max_records: int = 1) -> LiveCanaryEvi
             oa = pmc.fetch_oa_metadata(pmcid)
             for rec in oa.get("records") or []:
                 license_obs = rec.get("license")
-        except Exception:
-            license_obs = "UNKNOWN"
+        except Exception as exc:  # noqa: BLE001 - evidence only; the reason is kept (type + short text, no secrets)
+            license_obs = f"UNKNOWN:{type(exc).__name__}:{str(exc)[:160]}:last_status={obs.last_status}"
     ok = bool(records) and obs.last_status and 200 <= obs.last_status < 300 and obs.total_bytes > 0
     return LiveCanaryEvidence(
         connector="pmc_oai_pmh",
