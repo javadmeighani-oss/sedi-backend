@@ -122,16 +122,20 @@ class TemporalQueryIntent:
 # temporal only when a time reference (number, day word, month, week/month/year...) follows it within a few words.
 _TIME_OBJECT = {
     "en": re.compile(
-        r"\b(?:\d{1,4}|today|yesterday|tomorrow|tonight|last|this|next|week|weeks|month|months|year|years|day|days|hour|hours|"
-        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|"
+        r"\b(?:\d{1,4}\s*(?:days?|weeks?|months?|years?|hours?|minutes?|am|pm)\b|(?:19|20)\d{2}\b|\d{1,2}[/-]\d{1,2}|"
+        r"today|yesterday|tomorrow|tonight|(?:last|this|next|past)\s+(?:week|weekend|month|year|day|night)|"
+        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|"
         r"september|october|november|december)\b"
     ),
     "fa": re.compile(
-        r"(?:\d|[\u06f0-\u06f9]|امروز|دیروز|فردا|هفته|ماه|سال|روز|ساعت|شنبه|جمعه|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|بهمن|اسفند|پارسال|امسال)"
+        r"(?:(?:\d|[\u06f0-\u06f9])+|یک|دو|سه|چهار|پنج|شش|هفت|ده|چند)\s*(?:روز|هفته|ماه|سال|ساعت)|"
+        r"امروز|دیروز|فردا|پارسال|امسال|(?:هفته|ماه|سال)\s*(?:گذشته|قبل|آینده|پیش)|"
+        r"شنبه|جمعه|فروردین|اردیبهشت|خرداد|مرداد|شهریور|آبان|آذر|بهمن|اسفند"
     ),
     "ar": re.compile(
-        r"(?:\d|[\u0660-\u0669]|اليوم|أمس|امس|غدا|غداً|أسبوع|اسبوع|شهر|سنة|عام|يوم|ساعة|يناير|فبراير|مارس|أبريل|مايو|يونيو|"
-        r"يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر|الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)"
+        r"(?:(?:\d|[\u0660-\u0669])+\s*(?:يوم|أيام|ايام|اسبوع|أسبوع|أسابيع|شهر|أشهر|سنة|سنوات|ساعة|ساعات))|"
+        r"يومين|أسبوعين|شهرين|سنتين|اليوم|أمس|امس|غدا|غداً|(?:الأسبوع|الشهر|العام|السنة)\s*(?:الماضي|الماضية|القادم|القادمة)|"
+        r"يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر|الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت"
     ),
 }
 

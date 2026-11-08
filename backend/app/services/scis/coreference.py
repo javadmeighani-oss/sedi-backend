@@ -119,9 +119,9 @@ _GENERAL_CARE = {
     "ar": re.compile(r"أعتني|اعتني|رعاية|العناية|أساعد|اساعد|مساعدة|تمارين|تغذية|الوقاية|سقوط|تسقط|أرعى|ارعى|المسن"),
 }
 _FOLLOW_UP_ABOUT_RECORD = {
-    "en": re.compile(r"\bhow (?:was|is|were)\b|\b(?:result|results|record|test|tests|medication|medicine|last visit)\b"),
-    "fa": re.compile(r"چطور بود|حالش چطور|نتیجه|آزمایش|دارو|ویزیت"),
-    "ar": re.compile(r"كيف كانت|كيف حالها|نتيجة|نتائج|تحليل|دواء|زيارة"),
+    "en": re.compile(r"\bhow (?:was|is|were|many|often|much|long)\b|\bwhen (?:did|was|were)\b|\b(?:has|had|did|does|have) (?:my|she|he|her|his)\b|\b(?:she|he|mother|mom|father|dad|grandmother|grandfather) (?:has|had) (?:had|been)\b|\b(?:result|results|record|history|test|tests|medication|medicine|last visit|last time)\b"),
+    "fa": re.compile(r"چطور بود|حالش چطور|چند بار|چند وقت|کی |سابقه|تاریخچه|آخرین بار|نتیجه|آزمایش|دارو|ویزیت"),
+    "ar": re.compile(r"كيف كانت|كيف حالها|كم مرة|متى|سجل|تاريخ|آخر مرة|نتيجة|نتائج|تحليل|دواء|زيارة"),
 }
 
 
