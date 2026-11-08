@@ -254,8 +254,8 @@ def main() -> int:
 
     vers = list((ROOT / "alembic/versions").glob("*.py"))
     check(
-        "28_no_081_migration",
-        any("080_i9" in p.name for p in vers) and not any(p.name.startswith("081_") for p in vers),
+        "28_080_migration_anchor",
+        any("080_i9" in p.name for p in vers),  # later releases legitimately add 081+ (now 090); only the 080 anchor is pinned
     )
 
     # serialize PERSONAL plane marker without DB
