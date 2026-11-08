@@ -128,9 +128,20 @@ class _CountingClient:
         self.chat = _Chat()
 
 
-def test_disease_question_still_goes_to_the_model_path():
+def test_disease_question_is_not_a_psychology_bridge_question():
+    assert bridge_alternatives("علائم دیابت چیست؟") == []  # a disease word keeps the psychology bridge silent
+
+
+def test_disease_question_is_bridged_by_the_health_lexicon_without_the_model():
+    """R-074 step 8a: the library's disease topics are answered by the health lexicon (no model call)."""
     query_translation._CACHE.clear()
     client = _CountingClient()
     out = query_translation.translate_query_alternatives("علائم دیابت چیست؟", "fa", client=client)
-    assert client.calls == 1
-    assert out == ["diabetes symptoms", "diabetes"]
+    assert client.calls == 0 and "diabetes" in out
+
+
+def test_unknown_disease_question_still_goes_to_the_model_path():
+    query_translation._CACHE.clear()
+    client = _CountingClient()
+    out = query_translation.translate_query_alternatives("علائم بیماری ویلسون چیست؟", "fa", client=client)
+    assert client.calls == 1 and out == ["diabetes symptoms", "diabetes"]  # the fake client always answers this way

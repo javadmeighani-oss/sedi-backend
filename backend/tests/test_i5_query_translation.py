@@ -23,9 +23,10 @@ def setup_function(_):
 
 
 def test_translates_persian_and_caches():
-    c = _Client('"ALS amyotrophic lateral sclerosis care and prevention"')
-    q = "در مورد بیماری ALS و شیوه‌ی مراقبتی و پیشگیری آن توضیح بده"
-    assert qt.translate_query_to_english(q, "fa", c) == "ALS amyotrophic lateral sclerosis care and prevention"
+    # R-074 step 8a: topics of the library are bridged deterministically; this test pins the MODEL path with a topic outside it
+    c = _Client('"Wilson disease care and prevention"')
+    q = "در مورد بیماری ویلسون و شیوه‌ی مراقبتی و پیگیری آن توضیح بده"
+    assert qt.translate_query_to_english(q, "fa", c) == "Wilson disease care and prevention"
     assert qt.translate_query_to_english(q, "fa", c) is not None and len(c.calls) == 1
     assert c.calls[0]["messages"][1]["content"] == "Question: " + q + " ->"  # only the question text, nothing else
 
@@ -70,7 +71,7 @@ def test_adapter_falls_through_when_no_translation_or_no_items(monkeypatch):
 
 def test_alternatives_are_parsed_deduped_and_limited():
     c = _Client("1. multiple sclerosis" + chr(10) + "- Multiple Sclerosis" + chr(10) + "neurological disease" + chr(10) + "extra query four")
-    alts = qt.translate_query_alternatives("علائم ام اس چیست؟", "fa", c)
+    alts = qt.translate_query_alternatives("علائم بیماری ویلسون چیست؟", "fa", c)  # outside the lexicon: model path
     assert alts == ["multiple sclerosis", "neurological disease", "extra query four"]
 
 
