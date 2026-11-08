@@ -168,3 +168,30 @@ def test_a_broken_lexicon_fails_open(monkeypatch):
 def test_generic_words_do_not_pull_in_an_unrelated_topic(query, forbidden):
     """Generic words («care», «child») are not topic markers; only the specific phrases are."""
     assert forbidden not in hb.matched_topics(query)
+
+
+@pytest.mark.parametrize(
+    "query,first",
+    [
+        ("علائم آسم چیست", "asthma symptoms"),
+        ("درمان کمردرد", "back pain treatment"),
+        ("علت میگرن چیست", "migraine causes"),
+        ("پیشگیری از پوکی استخوان", "osteoporosis prevention"),
+        ("رژیم مناسب برای نقرس", "gout diet"),
+        ("ورزش برای آرتروز زانو", "arthritis exercise"),  # the longer marker (آرتروز) names the main topic
+        ("أعراض الربو", "asthma symptoms"),
+        ("علاج هشاشة العظام", "osteoporosis treatment"),
+        ("أسباب الصداع النصفي", "migraine causes"),
+        ("الوقاية من السكتة الدماغية", "stroke prevention"),
+    ],
+)
+def test_the_requested_aspect_is_kept_in_the_english_search(query, first):
+    """Codex P2 (PR 167): symptoms / treatment / causes / prevention / diet / exercise are not dropped."""
+    out = hb.health_bridge_alternatives(query)
+    assert out[0] == first and len(out) <= 4 and len({o.lower() for o in out}) == len(out)
+    assert first.rsplit(" ", 1)[0] in out or any(first.split()[0] in o for o in out[1:])  # the plain topic name stays too
+
+
+def test_an_aspect_already_in_the_topic_name_is_not_repeated():
+    out = hb.health_bridge_alternatives("رژیم غذایی سالم")  # healthy_eating: «eating a balanced diet» already says diet
+    assert "eating a balanced diet diet" not in out and out[0] == "eating a balanced diet"

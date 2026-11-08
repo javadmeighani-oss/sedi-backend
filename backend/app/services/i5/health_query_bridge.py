@@ -64,6 +64,32 @@ def _entries() -> tuple[_Entry, ...]:
         return ()
 
 
+# Codex P2 (PR 167): the aspect asked about (symptoms, treatment ...) is kept: «علائم آسم» -> "asthma symptoms", then the plain names.
+_ASPECT_WORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("symptoms", ("علائم", "نشانه", "اعراض", "أعراض", "علامات")),
+    ("treatment", ("درمان", "معالجه", "علاج", "معالجة")),
+    ("causes", ("علت", "دلیل", "دلایل", "اسباب", "أسباب", "سبب")),
+    ("prevention", ("پیشگیری", "جلوگیری", "الوقاية", "وقاية", "الوقايه")),
+    ("diet", ("رژیم", "غذا", "تغذیه", "حمیه", "حمية", "غذاء", "نظام غذائي")),
+    ("exercise", ("ورزش", "تمرین", "تمارين", "تمارین", "رياضة", "الرياضة")),
+    ("tests", ("آزمایش", "تحلیل", "تحاليل", "تحليل")),
+)
+
+
+@lru_cache(maxsize=1)
+def _aspects() -> tuple[tuple[str, re.Pattern], ...]:
+    return tuple(
+        (term, re.compile("|".join(re.escape(_norm(w)) for w in words))) for term, words in _ASPECT_WORDS
+    )
+
+
+def _aspect_of(text: str) -> str:
+    for term, pat in _aspects():
+        if pat.search(text):
+            return term
+    return ""
+
+
 def _longest_hit(entry: _Entry, text: str) -> int:
     best = 0
     for pat, length in entry.markers:
@@ -96,6 +122,15 @@ def health_bridge_alternatives(query: str) -> list[str]:
         return []
     out: list[str] = []
     seen: set[str] = set()
+    aspect = _aspect_of(s)
+    if aspect:  # topic + the aspect the user asked about, most specific topic first
+        for e in chosen:
+            head = e.alternatives[0]
+            if aspect not in head.lower().split():
+                cand = f"{head} {aspect}"
+                if cand.lower() not in seen:
+                    seen.add(cand.lower())
+                    out.append(cand)
     for depth in range(max(len(e.alternatives) for e in chosen)):  # most specific name of each topic first
         for e in chosen:
             if depth < len(e.alternatives):
