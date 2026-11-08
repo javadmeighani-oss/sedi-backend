@@ -446,7 +446,7 @@ def test_k04_fa_query_against_eligible_english_evidence_characterization(db):
         fa_served = retrieve_knowledge_context(
             db, fa_query, language="fa", limit=5, enqueue_gap_on_empty=False
         )
-        assert all(i.knowledge_unit_id != unit.id for i in fa_served.items), (unit.id, repr(fa_served)[:1500])
+        assert all(i.knowledge_unit_id != unit.id for i in fa_served.items), (unit.id, repr(fa_served)[:1500])
         assert all(i.canonical_unit_id != unit.canonical_unit_id for i in fa_served.items)
         assert fa_served.gap_id is None
         if not fa_served.items:
