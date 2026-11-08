@@ -539,19 +539,19 @@ def test_concept_boundary_blocks_unrelated_and_ineligible_evidence(db, monkeypat
     concept = _concept(db, key="disease:k81b:serve", name="K81B Serve")
     _label(db, concept, language="fa", text="k81bfaserve", verified=True)
     _label(db, concept, language="ar", text="k81barserve", verified=True)
-    linked = _ku(db, canonical="k81b-serve-en", statement="Authorized English unit.")
-    unrelated = _ku(db, canonical="k81b-serve-other", statement="Unrelated English unit.")
+    linked = _ku(db, canonical="k81b-serve-en", statement="Authorized English unit in this synthetic serving test.")
+    unrelated = _ku(db, canonical="k81b-serve-other", statement="Unrelated English unit in this synthetic serving test.")
     withdrawn = _ku(
         db,
         canonical="k81b-serve-withdrawn",
-        statement="Withdrawn linked unit.",
+        statement="Withdrawn linked unit in this synthetic serving test.",
         publication_state="WITHDRAWN",
         runtime_eligibility="NOT_ELIGIBLE",
     )
     retracted = _ku(
         db,
         canonical="k81b-serve-retracted",
-        statement="Retracted linked unit.",
+        statement="Retracted linked unit in this synthetic serving test.",
         retraction_reason="TEST_RETRACTED",
         runtime_eligibility="REVOKED",
         publication_state="WITHDRAWN",
@@ -609,7 +609,7 @@ def test_concept_authority_overfetch_recovers_rank7(db, monkeypatch):
 
     concept = _concept(db, key="disease:k81b:recall", name="K81B Recall")
     _label(db, concept, language="fa", text="k81bfarecall", verified=True)
-    linked = _ku(db, canonical="k81b-recall-linked", statement="Authorized rank-seven unit.")
+    linked = _ku(db, canonical="k81b-recall-linked", statement="Authorized rank-seven unit in this synthetic serving test.")
     link_ku_concept(db, knowledge_unit_id=linked.id, concept_id=concept.id)
     negatives = [
         _ku(db, canonical=f"k81b-recall-neg-{i}", statement=f"Unrelated eligible unit {i}.")
@@ -674,7 +674,7 @@ def test_zero_links_fail_closed_and_same_language_unchanged(db, monkeypatch):
 
     empty = _concept(db, key="disease:k81b:empty", name="K81B Empty")
     _label(db, empty, language="en", text="k81bemptyconcept", verified=True)
-    bystander = _ku(db, canonical="k81b-bystander", statement="Unrelated same-language unit.")
+    bystander = _ku(db, canonical="k81b-bystander", statement="Unrelated same-language unit in this synthetic serving test.")
     calls = _patch_retrieve(monkeypatch, [_evidence(bystander, language="en")])
     items, meta = retrieve_scis_governed_runtime_items(
         db,
@@ -718,7 +718,7 @@ def test_context_aware_cannot_leak_cross_language_without_concept(db, monkeypatc
     from backend.app.services.scis.context_resolver import PURPOSE_GOVERNED_RETRIEVAL
     from backend.app.services.scis.sedi_retrieval_context import SediRetrievalContext, SubjectMode
 
-    en_ku = _ku(db, canonical="k81b-context-en", statement="English evidence only.")
+    en_ku = _ku(db, canonical="k81b-context-en", statement="English evidence only in this synthetic serving test.")
     calls = _patch_retrieve(monkeypatch, [_evidence(en_ku, language="en")])
     ctx = SediRetrievalContext(
         requester_account_id=1,
