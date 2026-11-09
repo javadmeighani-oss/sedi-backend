@@ -91,7 +91,7 @@ class PublicWebFetchAdapter(SourceAdapter):
             timeout=timeout,
             http_get=http_get,
         )
-        return build_fetch_envelope(
+        envelope = build_fetch_envelope(
             request_id=request_id,
             adapter_id=ADAPTER_ID,
             adapter_version=ADAPTER_VERSION,
@@ -100,3 +100,8 @@ class PublicWebFetchAdapter(SourceAdapter):
             max_bytes=max_bytes,
             allowed_domain=governance.allowed_domain,
         )
+        # R-082 phase 1: read the page's own rights signals (shadow log by default; SEDI_I5_PAGE_RIGHTS_ENFORCE=on blocks).
+        from backend.app.services.i5.page_rights import apply_page_rights_gate
+
+        apply_page_rights_gate(envelope, url=url)
+        return envelope
