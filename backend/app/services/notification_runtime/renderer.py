@@ -218,6 +218,34 @@ def _render_engagement(lang: str, name: Optional[str], inputs: Dict[str, Any]) -
     return title, body
 
 
+def engagement_variant(body: Optional[str], lang: str, name: Optional[str]) -> Optional[str]:
+    """Which engagement push this body is: "plain" (a how-are-you check-in), "low" (the gentler wellbeing wording), "topic"
+    (continues a topic) or None (unknown). Javad 2026-11-09: opening the chat from the push must CONTINUE the push, so the app
+    side needs to know what the push said. Deterministic, compares against the catalog wording only (no raw chat)."""
+    text = " ".join(str(body or "").split())
+    if not text:
+        return None
+    lang = lang if lang in ("fa", "ar", "en") else "en"
+    prefix = _engagement_prefix(lang, name)
+
+    def _same(candidate: str) -> bool:
+        cand = candidate.format(p=prefix)
+        if lang == "en" and not prefix:
+            cand = cand[:1].upper() + cand[1:]
+        return " ".join(cand.split()) == text
+
+    for variant, pairs in (("low", _ENGAGEMENT_LOW_PAIRS), ("plain", _ENGAGEMENT_PAIRS)):
+        for _title, short_body in pairs.get(lang, pairs["en"]):
+            if _same(short_body):
+                return variant
+    topic_tpl = _ENGAGEMENT_TOPIC_BODY.get(lang, _ENGAGEMENT_TOPIC_BODY["en"])
+    head, _, tail = topic_tpl.format(p=prefix, t="\u0000").partition("\u0000")
+    head, tail = " ".join(head.split()), " ".join(tail.split())
+    if text.lower().startswith(head.lower()) and text.lower().endswith(tail.lower()) and len(text) > len(head) + len(tail):
+        return "topic"
+    return None
+
+
 def _engagement_short(lang: str, name: Optional[str]) -> str:
     """Presence re-engagement body (warm, human; rotates daily)."""
     pairs = _ENGAGEMENT_PAIRS.get(lang, _ENGAGEMENT_PAIRS["en"])
