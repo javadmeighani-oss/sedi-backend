@@ -153,6 +153,9 @@ def test_no_low_risk_source_declares_discovery_and_every_discovering_source_has_
         if not row.get("link_discovery"):
             continue
         assert str(row.get("governed_low_risk_eligibility")).upper() not in {"YES", "TRUE", "1"}, row["source_key"]
+        if row["link_discovery"].get("candidate_only") is True:  # R-083 phase 2: lane-less book source, never served (own guard tests)
+            assert not row.get("specialized_serving_eligibility"), row["source_key"]
+            continue
         assert row.get("specialized_serving_eligibility"), row["source_key"]
 
 

@@ -38,7 +38,7 @@ def test_allowlist_wave01_qualified_activation_version_and_count():
     assert str(data["allowlist_version"]).startswith("i5-multisource-v1")
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 25  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
+    assert len(rows) == 27  # R-083 phase 2: + openstax_anatomy_physiology_2e, openstax_sociology_3e; was 25 (+ openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
     assert AUTHORIZED_NEW.issubset(keys)
     assert COVERAGE_CLOSURE.issubset(keys)
     assert not (keys & WHO_INACTIVE)
@@ -156,8 +156,8 @@ def test_breadth_sources_are_governed_and_every_url_is_served_by_its_authority()
                 cov = resolve_wave02_coverage_from_url(url)
                 domain = spec.domain if spec else (cov.domain if cov else "lifestyle")
                 assert domain_is_recognized_low_risk(domain), (key, url, domain)
-            elif url not in PRE_EXISTING_UNSPECIALIZED:
-                assert spec is not None, (key, url)
+            elif url not in PRE_EXISTING_UNSPECIALIZED and (row.get("link_discovery") or {}).get("candidate_only") is not True:
+                assert spec is not None, (key, url)  # R-083 phase 2: lane-less candidate book sources are exempt (never served)
                 assert spec.entity_id in specialized_allowed_entities_for_source(key), (key, url)
 
 

@@ -92,11 +92,11 @@ def test_new_pages_are_in_the_right_existing_sources_and_match_their_patterns():
 
 def test_no_new_source_and_the_low_risk_source_is_untouched():
     rows = _rows()
-    assert len(rows) == 25  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
+    assert len(rows) == 27  # R-083 phase 2: + openstax_anatomy_physiology_2e, openstax_sociology_3e (candidate-only books); was 25: + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
     live_well = rows["nhs_uk_live_well"]
     assert len([live_well["exact_url"], *live_well["additional_urls"]]) == 23
     assert not any("every-mind-matters" in u for u in live_well["additional_urls"])
-    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189 + 28 + 37 + 13 + 13 + 89 + 31 + 11  # R-074 step 4b: +11 (7 MSK, 4 elder care); + OpenStax Psychology 2e, MedlinePlus wellness, ODPHP, R-074 step 5 (+20 MedlinePlus, +10 NHS, +1 elder care), NHS conditions
+    assert sum(1 + len(r.get("additional_urls") or []) for r in rows.values()) == 189 + 28 + 37 + 13 + 13 + 89 + 31 + 11 + 1 + 1  # R-074 step 4b: +11 (7 MSK, 4 elder care); + OpenStax Psychology 2e, MedlinePlus wellness, ODPHP, R-074 step 5 (+20 MedlinePlus, +10 NHS, +1 elder care), NHS conditions
 
 
 def test_rate_limit_labels_of_the_changed_sources_match_their_url_counts():
