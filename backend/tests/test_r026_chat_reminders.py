@@ -216,8 +216,9 @@ def test_medical_reminder_is_lock_screen_safe_and_localized(chain_patch, db):
     _event(db, user, etype="doctor_visit", domain="medical", title="دکتر قلب بیمارستان X", starts_in_min=60, offsets=(60,))
     assert process_event_reminders(db) == 1
     n = db.query(models.Notification).one()
-    assert "دکتر قلب" not in n.body and "بیمارستان" not in n.body  # the user's own medical text never hits the lock screen
-    assert "یه ساعت دیگه" in n.body and "نوبت دکتر" in n.body
+    # R-084 (Javad 2026-11-09): the FULL name the user gave the plan is in every reminder, medical ones and the lock screen included
+    assert "دکتر قلب بیمارستان X" in n.body
+    assert "یه ساعت دیگه" in n.body
 
 
 def test_unknown_language_falls_back_to_english(chain_patch, db):

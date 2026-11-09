@@ -264,7 +264,8 @@ def test_a_plain_one_off_reminder_gets_an_assurance_with_the_generic_text(db):
     assert ad.create_due_assurance_tasks(db, now=_NOW) == 1
     process_due_follow_up_tasks(db, now=_NAIVE_NOW)
     sent = db.query(models.Notification).filter_by(user_id=u.id, template_key="assurance_follow_up").one()
-    assert sent.body == sedi_copy.t("assurance.body.other", "fa")
+    # R-084 (Javad 2026-11-09): the follow-up names what it follows up - here the user's own plan name
+    assert sent.body == sedi_copy.t("assurance.body.other_named", "fa", name="زنگ به مادر")
 
 
 def test_a_late_assurance_is_dropped_and_an_answered_assurance_marks_the_original(db):

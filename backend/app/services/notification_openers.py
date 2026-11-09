@@ -125,6 +125,17 @@ def family_opener(
             from backend.app.services.i10.event_outcome import opener as post_event_opener
 
             body = post_event_opener(db, user_id, notification, lang) or sedi_copy.t("session.origin.post_event", lang)
+        elif key == "assurance":
+            body = sedi_copy.t("session.origin.assurance", lang)
+            try:
+                from backend.app.services.i10.action_done import resolve_target, subject_name
+
+                target = resolve_target(db, notification, user_id)
+                subject = subject_name(db, target.original, user_id) if target is not None else ""
+            except Exception:
+                subject = ""
+            if subject:  # R-084: the chat names again what the push followed up
+                body = sedi_copy.t("session.origin.assurance_named", lang, name=subject)
         else:
             body = sedi_copy.t(f"session.origin.{key}", lang)
         return (_prefix(name, lang) + body).strip()

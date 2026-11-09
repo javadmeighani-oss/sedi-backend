@@ -165,16 +165,16 @@ def _reminder_copy(
 ) -> Tuple[str, str, str]:
     """Warm, localized reminder copy (R-011/R-026).
 
-    Lock-screen safe: medical reminders never repeat the user's own title; generic ones show the user's own
-    reminder text because they asked for exactly that text.
+    Javad 2026-11-09 (R-084): EVERY reminder - medical ones too - carries the full name the user gave the plan (the lock screen
+    included); only the generic default titles («یادآوری», «نوبت دکتر»...) are not repeated because the user did not write them.
     """
     lang = lang if lang in _TITLES else "en"
     title = _TITLES[lang]
     lead = _lead_phrase(offset_min, lang)
+    label = (event.title or "").strip()
+    if label in _DEFAULT_LABELS:
+        label = ""
     if not medical:
-        label = (event.title or "").strip()
-        if label in _DEFAULT_LABELS:
-            label = ""
         key = "reminder.event.generic" if label else "reminder.event.generic_nolabel"
         return title, sedi_copy.t(key, lang, lead=lead, label=label), "generic_event_reminder"
     if event.event_type == DOCTOR_EVENT_TYPE:
@@ -183,6 +183,8 @@ def _reminder_copy(
         template_key, copy_key = "lab_appointment_reminder", "reminder.event.lab"
     else:
         template_key, copy_key = "medical_event_reminder", "reminder.event.medical"
+    if label:  # the user's own name for this appointment, shown in full (the semantic family / template stay medical)
+        return title, sedi_copy.t("reminder.event.generic", lang, lead=lead, label=label), template_key
     return title, sedi_copy.t(copy_key, lang, lead=lead), template_key
 
 

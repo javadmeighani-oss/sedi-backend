@@ -1826,6 +1826,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'أريد فقط أن أطمئن أنك تناولت دواء هذه الجرعة.',
         'en': 'I only want to be sure you took your medicine for this dose.',
     },
+    'assurance.body.medication_named': {
+        'fa': 'فقط می‌خواهم مطمئن شوم «{name}» را مصرف کرده‌ای.',
+        'ar': 'أريد فقط أن أطمئن أنك تناولت «{name}».',
+        'en': 'I only want to be sure you took {name}.',
+    },
+    'assurance.body.other_named': {
+        'fa': 'فقط می‌خواهم مطمئن شوم «{name}» انجام شد.',
+        'ar': 'أريد فقط أن أطمئن أن «{name}» قد تم.',
+        'en': 'I only want to be sure {name} got done.',
+    },
     'assurance.body.plan': {
         'fa': 'فقط می\u200cخواهم مطمئن شوم قدم امروز برنامه\u200cات انجام شد.',
         'ar': 'أريد فقط أن أطمئن أن خطوة اليوم من خطتك قد تمت.',
@@ -1840,6 +1850,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': 'فقط می\u200cخواستم مطمئن شوم آن کار انجام شد. انجامش دادی؟ اگر نشد، چه چیزی مانع شد؟',
         'ar': 'أردت فقط أن أطمئن أن ذلك الأمر قد تم. هل أنجزته؟ وإن لم يتم، فما الذي أعاق؟',
         'en': 'I only wanted to be sure that got done. Did you do it? If not, what got in the way?',
+    },
+    'session.origin.assurance_named': {
+        'fa': 'فقط می‌خواستم مطمئن شوم «{name}» انجام شد. انجامش دادی؟ اگر نشد، چه چیزی مانع شد؟',
+        'ar': 'أردت فقط أن أطمئن أن «{name}» قد تم. هل أنجزته؟ وإن لم يتم، فما الذي أعاق؟',
+        'en': 'I only wanted to be sure {name} got done. Did you do it? If not, what got in the way?',
     },
     'session.origin.post_event.visit': {
         'fa': 'ویزیت «{title}» چطور پیش رفت: پزشک چه گفت و چه چیزی تجویز کرد یا خواست؟',
