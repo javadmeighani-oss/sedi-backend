@@ -306,6 +306,49 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
         print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
 
 
+_CONTINUITY_WINDOW_MIN = 30
+_CONTINUITY_REPLY_CHARS = 360
+
+
+def _recent_turns(memory, user_id: int, limit: int = 2) -> list:
+    """The user's last turns within 30 minutes, newest first ([] on any problem or without a memory reader).
+
+    Reads ONLY through ``ConversationMemory.get_recent_messages`` - the I6 ``memory.read`` consent and the I7 retention gate apply
+    (Codex P1, PR 181): without consent nothing is read, so nothing reaches the prompt."""
+    if memory is None:
+        return []
+    try:
+        from datetime import datetime, timedelta
+
+        rows = list(memory.get_recent_messages(user_id, limit=limit) or [])
+        now = datetime.utcnow()
+        return [
+            r for r in rows
+            if getattr(r, "created_at", None) is not None
+            and now - r.created_at.replace(tzinfo=None) <= timedelta(minutes=_CONTINUITY_WINDOW_MIN)
+        ]
+    except Exception:
+        return []
+
+
+def _continuity_block(turns: list) -> Optional[str]:
+    """Javad 2026-11-09 (screenshots 1-3): every turn repeated the same advice and the same red-flag paragraph. When Sedi has just
+    answered on this topic, tell the model what it already said and require a step forward (new information, no repeats)."""
+    try:
+        last = str(getattr(turns[0], "sedi_response", "") or "").strip() if turns else ""
+        if not last or any(m in last for m in _HISTORY_SKIP_MARKERS):
+            return None
+        digest = " ".join(last.split())[:_CONTINUITY_REPLY_CHARS]
+        return (
+            "[CONTINUITY - same conversation] You answered a moment ago: «" + digest + "». Do NOT repeat that advice, those warnings or that "
+            "question. Use the NEW fact the user just gave, add NEW practical information from the knowledge block that you have not "
+            "said yet (causes that fit this fact, what helps for it, what to avoid), and move one step forward. Repeat the danger-sign "
+            "warning only if the user reports a new danger sign. End with ONE new question that has not been asked before."
+        )
+    except Exception:
+        return None
+
+
 def _carry_topic_into_query(db, user_id: int, user_message: str, language: str) -> str:
     """Follow-ups like "برنامه غذایی مناسب این بیماری" keep the disease named earlier (I1 helper, read-only)."""
     try:
@@ -358,6 +401,7 @@ def _maybe_append_structured_governed_knowledge(
     user_id: int,
     user_message: str,
     language: str,
+    memory=None,
 ) -> None:
     """Structured path: one I5 knowledge retrieval + renderer. No care packs / I2-I6 reload.
 
@@ -393,9 +437,14 @@ def _maybe_append_structured_governed_knowledge(
             # R-074 step 2: the shape of a complete answer for this topic (sleep, plans, muscle pain, labs, elder care, chronic care)
             from backend.app.core.conversation.domain_guides import answer_guide_block
 
-            _guide = answer_guide_block(user_message) if getattr(grounded, "status", "") == "OK" else None
+            _turns = _recent_turns(memory, user_id)
+            _previous_users = [str(getattr(r, "user_message", "") or "") for r in _turns]
+            _guide = answer_guide_block(user_message, _previous_users) if getattr(grounded, "status", "") == "OK" else None
             if _guide:
                 messages.append({"role": "system", "content": _guide})
+                _cont = _continuity_block(_turns)
+                if _cont:
+                    messages.append({"role": "system", "content": _cont})
     except Exception as e:
         # Clear the aborted transaction so later Brain/I6 writes still proceed.
         # Do not retrieve again and do not supply invented evidence.
@@ -762,6 +811,7 @@ class ConversationBrain:
                         user_id,
                         user_message,
                         lang,
+                        memory=self.memory,
                     )
             else:
                 # User Knowledge: stable baseline + facts (compact, after main system, before history)

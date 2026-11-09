@@ -72,7 +72,7 @@ def test_the_chat_asks_for_up_to_ten_units_and_a_wider_block():
     brain = (ROOT / "backend/app/core/conversation/brain.py").read_text(encoding="utf-8")
     assert "_KNOWLEDGE_LIMIT = 10" in brain and "_KNOWLEDGE_BLOCK_CHARS = 8200" in brain
     assert "limit=_KNOWLEDGE_LIMIT" in brain and "max_chars=_KNOWLEDGE_BLOCK_CHARS" in brain
-    assert "answer_guide_block(user_message)" in brain
+    assert "answer_guide_block(user_message, _previous_users)" in brain  # BE-A: the previous turns keep the topic
     assert MAX_LIMIT == 10
     retrieval = (ROOT / "backend/app/services/i5/runtime_knowledge_retrieval.py").read_text(encoding="utf-8")
     assert "serving_lim = min(lim, MAX_LIMIT)" in retrieval
@@ -99,7 +99,7 @@ def test_guides_hold_no_medical_specifics_and_follow_only_ok_knowledge():
             assert word not in low, (word, text)
         assert "knowledge block" in low
     brain = (ROOT / "backend/app/core/conversation/brain.py").read_text(encoding="utf-8")
-    assert 'answer_guide_block(user_message) if getattr(grounded, "status", "") == "OK" else None' in brain
+    assert 'answer_guide_block(user_message, _previous_users) if getattr(grounded, "status", "") == "OK" else None' in brain
 
 
 def test_every_cap_in_the_serving_path_agrees_with_the_chat_request():
