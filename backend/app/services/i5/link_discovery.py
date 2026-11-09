@@ -44,6 +44,12 @@ LINK_DISCOVERY_ENV = "SEDI_I5_LINK_DISCOVERY_ENABLED"
 MAX_NEW_URLS_PER_RUN = 25
 DEFAULT_MAX_NEW_URLS_PER_CYCLE = 10
 DEFAULT_MAX_DISCOVERED_URLS = 40
+# R-083 phase 2 (Javad: «دانلود کتاب‌های مرجع»): a BOOK source (``candidate_only``) lists a whole open book from the
+# sitemap its publisher announces in robots.txt. Own, higher but still bounded ceilings; the lane sources keep the old ones.
+MAX_BOOK_NEW_URLS_PER_CYCLE = 150
+MAX_BOOK_DISCOVERED_URLS = 400
+MAX_BOOK_URLS_PER_RUN = 150
+CANDIDATE_ONLY_LANE = "CANDIDATE_ONLY"
 MAX_HUBS_PER_SOURCE = 8
 MAX_HUB_BYTES = 1_048_576
 
@@ -120,6 +126,9 @@ class DiscoveryConfig:
     # R-074 step 5: a hub feed may be scoped to certain lanes (the MedlinePlus mental-health hub = D23 only), so adding
     # reviewed pages of other lanes to the SOURCE never widens what a hub feed admits.
     lane_entities: tuple[str, ...] = ()
+    # R-083 phase 2: a book source with NO safety lane. Pages are stored as candidates (REVIEW_REQUIRED) and NEVER served; the
+    # manifest guard test requires such a row to hold neither the low-risk flag nor a specialized lane.
+    candidate_only: bool = False
 
 
 def discovery_config(row: Mapping[str, Any]) -> Optional[DiscoveryConfig]:
@@ -142,12 +151,16 @@ def discovery_config(row: Mapping[str, Any]) -> Optional[DiscoveryConfig]:
             value = default
         return max(0, min(value, ceiling))
 
+    candidate_only = raw.get("candidate_only") is True
     return DiscoveryConfig(
         hub_urls=tuple(hubs[:MAX_HUBS_PER_SOURCE]),
-        max_new_urls_per_cycle=_int("max_new_urls_per_cycle", DEFAULT_MAX_NEW_URLS_PER_CYCLE, MAX_NEW_URLS_PER_RUN),
-        max_discovered_urls=_int("max_discovered_urls", DEFAULT_MAX_DISCOVERED_URLS, 200),
+        max_new_urls_per_cycle=_int(
+            "max_new_urls_per_cycle", DEFAULT_MAX_NEW_URLS_PER_CYCLE, MAX_BOOK_NEW_URLS_PER_CYCLE if candidate_only else MAX_NEW_URLS_PER_RUN
+        ),
+        max_discovered_urls=_int("max_discovered_urls", DEFAULT_MAX_DISCOVERED_URLS, MAX_BOOK_DISCOVERED_URLS if candidate_only else 200),
         exclude_url_tokens=tuple(str(t).strip().lower() for t in (raw.get("exclude_url_tokens") or []) if str(t).strip()),
         lane_entities=tuple(str(e).strip() for e in (raw.get("lane_entities") or []) if str(e).strip()),
+        candidate_only=candidate_only,
     )
 
 
@@ -190,6 +203,36 @@ def extract_links(html: str, base_url: str) -> list[str]:
     return out
 
 
+_SITEMAP_LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.I)
+
+
+def is_sitemap_hub(url: str, content_type: str = "") -> bool:
+    """A hub that is an XML sitemap (the publisher announces it in robots.txt) instead of an HTML page."""
+    path = urlparse(url or "").path.lower()
+    return path.endswith(".xml") or "xml" in (content_type or "").lower()
+
+
+def extract_sitemap_urls(xml_text: str, base_url: str) -> list[str]:
+    """Absolute https page URLs of a sitemap, in order, without query/fragment, de-duplicated (no entity expansion: regex only)."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for loc in _SITEMAP_LOC.findall(xml_text or ""):
+        absolute = urljoin(base_url, loc.strip())
+        parsed = urlparse(absolute)
+        if parsed.scheme.lower() != "https" or not parsed.hostname:
+            continue
+        try:
+            url = canonical_url(parsed._replace(query="", fragment="").geturl())
+        except AdapterFrameworkError:
+            continue
+        key = url_key(url)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(url)
+    return out
+
+
 def _host_allowed(url: str, row: Mapping[str, Any]) -> bool:
     host = (urlparse(url).hostname or "").lower()
     domain = str(row.get("allowed_domain") or "").strip().lower().lstrip(".")
@@ -213,8 +256,9 @@ def admit_discovered_url(
     allowed_entities: Iterable[str],
     known_keys: Iterable[str] = (),
     exclude_url_tokens: Iterable[str] = (),
+    candidate_only: bool = False,
 ) -> tuple[bool, str, Optional[str]]:
-    """(admitted, reason, lane entity id). Pure: no network, no DB."""
+    """(admitted, reason, lane entity id). Pure: no network, no DB. ``candidate_only`` = a book source without a lane (R-083)."""
     if not url or not url.startswith("https://"):
         return False, "NOT_HTTPS", None
     if not _host_allowed(url, row):
@@ -228,6 +272,11 @@ def admit_discovered_url(
         return False, "CHROME_DENY", None
     if any(token in low for token in exclude_url_tokens):
         return False, "SOURCE_EXCLUDE", None
+    if candidate_only:
+        # No lane to check: the page can only become a candidate (never served). Every other gate above still applies.
+        if url_key(url) in set(known_keys):
+            return False, "ALREADY_KNOWN", CANDIDATE_ONLY_LANE
+        return True, "ADMITTED", CANDIDATE_ONLY_LANE
     spec = resolve_specialized_entity_from_url(url)
     if spec is None or spec.entity_id not in set(allowed_entities):
         return False, "NO_SAFETY_LANE", None
@@ -314,7 +363,7 @@ def discover_for_row(
     allowed = specialized_allowed_entities_for_source(key)
     if cfg.lane_entities:
         allowed = {e for e in allowed if e in cfg.lane_entities}
-    if not allowed:
+    if not allowed and not cfg.candidate_only:
         return SourceDiscovery(key, "NO_SAFETY_LANE_FOR_SOURCE")
     if budget <= 0:
         return SourceDiscovery(key, "BUDGET_EXHAUSTED")
@@ -351,17 +400,21 @@ def discover_for_row(
         except Exception:  # noqa: BLE001
             _reject("HUB_FETCH_FAILED")
             continue
-        if status != 200 or "html" not in (content_type or "").lower():
+        sitemap = is_sitemap_hub(hub, content_type)
+        if status != 200 or ("html" not in (content_type or "").lower() and not sitemap):
             _reject(f"HUB_HTTP_{status}")
             continue
         result.hubs_checked += 1
-        for link in extract_links(body.decode("utf-8", errors="replace"), final_url or hub):
+        text = body.decode("utf-8", errors="replace")
+        links = extract_sitemap_urls(text, final_url or hub) if sitemap else extract_links(text, final_url or hub)
+        for link in links:
             ok, reason, entity = admit_discovered_url(
                 link,
                 row,
                 allowed_entities=allowed,
                 known_keys=known,
                 exclude_url_tokens=cfg.exclude_url_tokens,
+                candidate_only=cfg.candidate_only,
             )
             if ok and not _robots_allows(robots, link):
                 ok, reason = False, "ROBOTS_DISALLOW"
@@ -426,7 +479,7 @@ def discovered_urls_for_cycle(row: Mapping[str, Any], policy: Mapping[str, Any])
     allowed = specialized_allowed_entities_for_source(str(row.get("source_key") or ""))
     if cfg.lane_entities:
         allowed = {e for e in allowed if e in cfg.lane_entities}
-    if not allowed:
+    if not allowed and not cfg.candidate_only:
         return []
     controlled = {url_key(u) for u in (policy.get("controlled_urls") or [])}
     out: list[str] = []
@@ -438,6 +491,7 @@ def discovered_urls_for_cycle(row: Mapping[str, Any], policy: Mapping[str, Any])
             allowed_entities=allowed,
             known_keys=controlled,
             exclude_url_tokens=cfg.exclude_url_tokens,
+            candidate_only=cfg.candidate_only,
         )
         if ok and url_key(url) not in {url_key(u) for u in out}:
             out.append(url)
@@ -478,6 +532,7 @@ def run_link_discovery(
     robots_cache: dict[str, Any] = {}
     report = LinkDiscoveryReport()
     remaining = max(0, int(max_new_urls_per_run))
+    remaining_books = MAX_BOOK_URLS_PER_RUN  # R-083: book sources have their own per-run budget (lane sources keep the old one)
     stamp = (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat()
     for row in active_manifest_rows():
         cfg = discovery_config(row)
@@ -491,7 +546,8 @@ def run_link_discovery(
         policy = _load_policy(ks.crawl_policy_json)
         stored = keep_in_lane_scope(discovered_entries(policy), cfg)
         known = {url_key(u) for u in (policy.get("controlled_urls") or [])} | {url_key(str(e["url"])) for e in stored}
-        budget = min(cfg.max_new_urls_per_cycle, cfg.max_discovered_urls - len(stored), remaining)
+        pool = remaining_books if cfg.candidate_only else remaining
+        budget = min(cfg.max_new_urls_per_cycle, cfg.max_discovered_urls - len(stored), pool)
         found = discover_for_row(
             row,
             known_keys=known,
@@ -505,7 +561,10 @@ def run_link_discovery(
         policy["discovered_urls"] = stored + found.admitted
         policy["link_discovery_last"] = {"at": stamp, **{k: v for k, v in summary.items() if k != "source_key"}}
         ks.crawl_policy_json = json.dumps(policy, sort_keys=True)
-        remaining -= len(found.admitted)
+        if cfg.candidate_only:
+            remaining_books -= len(found.admitted)
+        else:
+            remaining -= len(found.admitted)
         report.admitted_total += len(found.admitted)
         report.sources.append(summary)
     db.flush()
@@ -555,6 +614,9 @@ __all__ = [
     "discovered_urls_for_cycle",
     "discovery_config",
     "extract_links",
+    "extract_sitemap_urls",
+    "is_sitemap_hub",
+    "CANDIDATE_ONLY_LANE",
     "link_discovery_enabled",
     "maybe_run_link_discovery",
     "merge_discovery_state",

@@ -1086,3 +1086,65 @@ sources:
     reject_resource_lists: true
     reject_medicine_talk: true
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
+
+  # R-083 phase 2 (Javad 2026-11-08: reference books of every field are downloaded into the library): WHOLE open books as
+  # CANDIDATES. OpenStax announces one sitemap per book in its robots.txt (measured 2026-11-08: Anatomy and Physiology 2e = 336
+  # pages, Introduction to Sociology 3e = 243), so the weekly link discovery lists the book from that sitemap (a few pages per
+  # week, polite caps). These rows hold NO safety lane (no low-risk flag, no specialized lane): every page is stored as a
+  # candidate (REVIEW_REQUIRED) and is NEVER served until a lane is approved for it (guard test: test_r083_phase2_book_sources).
+  # CC BY 4.0 text (OpenStax; some figures carry other licences - the page-rights detector, R-082 phase 1, reads each page).
+  - source_key: openstax_anatomy_physiology_2e
+    publisher: OpenStax (Rice University) - Anatomy and Physiology 2e
+    publisher_family: openstax.org
+    authority_class: OPEN_TEXTBOOK_PEER_REVIEWED
+    authority_tier: university
+    jurisdiction_country_code: US
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://openstax.org/books/anatomy-and-physiology-2e/pages/1-introduction
+    allowed_domain: openstax.org
+    allowed_url_patterns:
+      - "^https://openstax\\.org/books/anatomy-and-physiology-2e/pages/.*"
+      - "^https://openstax\\.org/rex/sitemaps/anatomy-and-physiology-2e\\.xml$"
+    rights_terms_state: APPROVED
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_150_urls"
+    entity_coverage: []
+    knowledge_domains: [anatomy_physiology]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    link_discovery:
+      hub_urls:
+        - https://openstax.org/rex/sitemaps/anatomy-and-physiology-2e.xml
+      candidate_only: true
+      max_new_urls_per_cycle: 60
+      max_discovered_urls: 400
+    license_notes: "CC BY 4.0 - OpenStax (Rice University), Anatomy and Physiology 2e, openstax.org/details/books/anatomy-and-physiology-2e; attribution required; stored as candidates only"
+
+  - source_key: openstax_sociology_3e
+    publisher: OpenStax (Rice University) - Introduction to Sociology 3e
+    publisher_family: openstax.org
+    authority_class: OPEN_TEXTBOOK_PEER_REVIEWED
+    authority_tier: university
+    jurisdiction_country_code: US
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://openstax.org/books/introduction-sociology-3e/pages/1-introduction
+    allowed_domain: openstax.org
+    allowed_url_patterns:
+      - "^https://openstax\\.org/books/introduction-sociology-3e/pages/.*"
+      - "^https://openstax\\.org/rex/sitemaps/introduction-sociology-3e\\.xml$"
+    rights_terms_state: APPROVED
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_150_urls"
+    entity_coverage: []
+    knowledge_domains: [sociology_behavioral_science]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    link_discovery:
+      hub_urls:
+        - https://openstax.org/rex/sitemaps/introduction-sociology-3e.xml
+      candidate_only: true
+      max_new_urls_per_cycle: 60
+      max_discovered_urls: 400
+    license_notes: "CC BY 4.0 - OpenStax (Rice University), Introduction to Sociology 3e, openstax.org/details/books/introduction-sociology-3e; attribution required; stored as candidates only"
