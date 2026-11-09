@@ -17,13 +17,14 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 PACKAGE_ID = "I5-R074-WEEKLY-LAYERS-REPORT-V1"
 WINDOW_DAYS = 7
+MAX_LEDGER_USERS = 5000  # bound of the weekly aggregation
 DEPTH_AUDIT_NOTE = "measured by workflow i5-depth-audit-readonly (CI, read-only battery); not computable in-app"
 
 
@@ -49,10 +50,10 @@ def _l3_knowledge(db: Any, m: Any) -> dict[str, Any]:
 
 
 def _l4_notifications(db: Any, m: Any, since: datetime) -> dict[str, Any]:
-    q = db.query(m.Notification).filter(m.Notification.created_at >= since)
-    created = q.count()
-    sent = q.filter(m.Notification.is_sent.is_(True)).count()
-    opened = q.filter(m.Notification.opened_at.isnot(None)).count()
+    # Each count uses its own event time (Codex P2): created by created_at, delivered by sent_at, opened by opened_at.
+    created = db.query(m.Notification).filter(m.Notification.created_at >= since).count()
+    sent = db.query(m.Notification).filter(m.Notification.is_sent.is_(True), m.Notification.sent_at >= since).count()
+    opened = db.query(m.Notification).filter(m.Notification.opened_at >= since.replace(tzinfo=timezone.utc)).count()
     by_category = Counter(str(r[0] or "none") for r in db.query(m.Notification.category).filter(m.Notification.created_at >= since).all())
     return {
         "state": "ok",
@@ -67,23 +68,45 @@ def _l4_notifications(db: Any, m: Any, since: datetime) -> dict[str, Any]:
 def _l4_ledger(db: Any, m: Any, since: datetime) -> dict[str, Any]:
     from backend.app.services.i7 import user_done
 
-    base = db.query(m.InteractionEvent).filter(
-        m.InteractionEvent.source == user_done.LEDGER_SOURCE, m.InteractionEvent.created_at >= since
-    )
-    done = base.filter(m.InteractionEvent.event_type == user_done.DONE_EVENT).count()
-    not_done = base.filter(m.InteractionEvent.event_type == user_done.NOTDONE_EVENT).count()
-    return {"state": "ok", "done": done, "not_done": not_done, "done_rate": _rate(done, done + not_done)}
+    # Resolved outcomes (Codex P2): a done-then-undone occurrence must not count twice, so every user's days go through the
+    # I7 helpers that resolve the CURRENT state of each occurrence.
+    user_ids = [
+        int(r[0])
+        for r in db.query(m.InteractionEvent.user_id)
+        .filter(m.InteractionEvent.source == user_done.LEDGER_SOURCE, m.InteractionEvent.created_at >= since)
+        .distinct()
+        .limit(MAX_LEDGER_USERS)
+        .all()
+    ]
+    days = [(since + timedelta(days=i)).date() for i in range(WINDOW_DAYS + 1)]
+    done = not_done = 0
+    for uid in user_ids:
+        for day in days:
+            done += sum(user_done.done_counts_for_day(db, uid, day).values())
+            nd = user_done.not_done_counts_for_day(db, uid, day)
+            not_done += sum(v for k, v in nd.items() if not k.startswith("reason."))
+    return {"state": "ok", "users": len(user_ids), "done": done, "not_done": not_done, "done_rate": _rate(done, done + not_done)}
 
 
 def _l4_commitments(db: Any, m: Any, since: datetime) -> dict[str, Any]:
-    rows = db.query(m.CareFollowUpTask.status, m.CareFollowUpTask.source).filter(m.CareFollowUpTask.created_at >= since).all()
+    from backend.app.services.i10.commitment_followup import _OPEN_STATUSES, COMMITMENT_KIND
+
+    # Commitments only (Codex P2): assurance / post-event tasks share the table, so filter by the follow-up kind marker.
+    rows = (
+        db.query(m.CareFollowUpTask.status, m.CareFollowUpTask.source)
+        .filter(
+            m.CareFollowUpTask.created_at >= since,
+            m.CareFollowUpTask.description.contains(f'"follow_up_kind":"{COMMITMENT_KIND}"'),
+        )
+        .all()
+    )
     by_status = Counter(str(r[0] or "none") for r in rows)
     by_source = Counter(str(r[1] or "none") for r in rows)
     opened = sum(by_status.values())
     return {
         "state": "ok",
         "opened_this_week": opened,
-        "still_open": by_status.get("open", 0),
+        "still_open": sum(by_status.get(s, 0) for s in _OPEN_STATUSES),  # open + notified (awaiting the user's answer)
         "by_status": dict(sorted(by_status.items())),
         "by_source": dict(sorted(by_source.items())),
     }

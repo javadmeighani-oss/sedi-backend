@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -19,29 +19,44 @@ def _user(db, name="layers"):
     return u
 
 
-def test_the_report_counts_the_last_seven_days_only(db):
+def test_the_report_counts_the_last_seven_days_by_event_time_and_resolved_outcomes(db):
+    from backend.app.services.i7 import user_done
+
+    now = datetime.utcnow()
     u = _user(db)
-    old, fresh = NOW - timedelta(days=10), NOW - timedelta(days=1)
-    for when, sent, opened in ((fresh, True, True), (fresh, True, False), (fresh, False, False), (old, True, True)):
-        db.add(
-            models.Notification(
-                user_id=u.id, type="INSIGHT", body="x", is_sent=sent, created_at=when, category="care",
-                opened_at=when if opened else None,
-            )
-        )
-    for when, kind in ((fresh, "user_schedule_done"), (fresh, "user_schedule_done"), (fresh, "user_schedule_notdone"), (old, "user_schedule_done")):
-        db.add(models.InteractionEvent(user_id=u.id, source="schedule", event_type=kind, source_id=f"x:{when.timestamp()}", created_at=when))
-    for when, status in ((fresh, "open"), (fresh, "done"), (old, "open")):
-        db.add(models.CareFollowUpTask(user_id=u.id, title="t", status=status, source="commitment", created_at=when))
+    old, fresh = now - timedelta(days=10), now - timedelta(days=1)
+    # created old but delivered/opened inside the window counts as sent/opened this week (Codex P2: event time)
+    rows = [
+        dict(created_at=fresh, is_sent=True, sent_at=fresh, opened_at=fresh.replace(tzinfo=timezone.utc)),
+        dict(created_at=fresh, is_sent=True, sent_at=fresh, opened_at=None),
+        dict(created_at=fresh, is_sent=False, sent_at=None, opened_at=None),
+        dict(created_at=old, is_sent=True, sent_at=fresh, opened_at=fresh.replace(tzinfo=timezone.utc)),
+        dict(created_at=old, is_sent=True, sent_at=old, opened_at=old.replace(tzinfo=timezone.utc)),
+    ]
+    for r in rows:
+        db.add(models.Notification(user_id=u.id, type="INSIGHT", body="x", category="care", **r))
+    today = now.date()
+    # two done, one done-then-undone (must NOT count), one not-done
+    user_done.record(db, u.id, kind="medication", ref_id=1, day=today, hhmm="0800", domain="medication", done=True)
+    user_done.record(db, u.id, kind="medication", ref_id=2, day=today, hhmm="0800", domain="medication", done=True)
+    user_done.record(db, u.id, kind="medication", ref_id=3, day=today, hhmm="0800", domain="medication", done=True)
+    user_done.record(db, u.id, kind="medication", ref_id=3, day=today, hhmm="0800", domain="medication", done=False)
+    user_done.record_not_done(db, u.id, kind="medication", ref_id=4, day=today, hhmm="0800", domain="medication", reason="tired")
+    marker = '"follow_up_kind":"commitment"'
+    for status, desc in (("open", marker), ("notified", marker), ("done", marker), ("open", '"follow_up_kind":"post_event"'), ("open", None)):
+        db.add(models.CareFollowUpTask(user_id=u.id, title="t", status=status, source="general_contextual", description=desc, created_at=fresh))
+    db.add(models.CareFollowUpTask(user_id=u.id, title="t", status="open", source="x", description=marker, created_at=old))
     db.flush()
 
-    r = lr.build_weekly_layers_report(db, models, now_utc=NOW)
+    r = lr.build_weekly_layers_report(db, models, now_utc=now)
     hands = r["layers"]["L4_agent_hands"]
-    assert hands["notifications"]["created"] == 3 and hands["notifications"]["sent"] == 2 and hands["notifications"]["opened"] == 1
-    assert hands["notifications"]["open_rate_of_sent"] == 0.5 and hands["notifications"]["by_category"] == {"care": 3}
-    assert hands["user_done"] == {"state": "ok", "done": 2, "not_done": 1, "done_rate": 0.667}
-    assert hands["commitments"]["opened_this_week"] == 2 and hands["commitments"]["still_open"] == 1
-    assert hands["commitments"]["by_source"] == {"commitment": 2}
+    n = hands["notifications"]
+    assert n["created"] == 3 and n["sent"] == 3 and n["opened"] == 2 and n["open_rate_of_sent"] == 0.667
+    assert n["by_category"] == {"care": 3}
+    assert hands["user_done"]["done"] == 2 and hands["user_done"]["not_done"] == 1 and hands["user_done"]["done_rate"] == 0.667
+    c = hands["commitments"]
+    assert c["opened_this_week"] == 3 and c["still_open"] == 2  # commitments only; open + notified
+    assert c["by_status"] == {"done": 1, "notified": 1, "open": 1}
 
 
 def test_the_report_has_no_user_text_or_ids(db):
