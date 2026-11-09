@@ -15578,6 +15578,33 @@
         ]
       }
     },
+    "/lifestyle/weekly-report": {
+      "get": {
+        "description": "R-074 step 5b: the user's own week in one report (done / not done by domain + plan reviews), read-only.",
+        "operationId": "lifestyle_weekly_report_lifestyle_weekly_report_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lifestyle Weekly Report",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
     "/lifestyle/weekly-review": {
       "get": {
         "description": "How the current week went, from what the user marked (read-only).",
