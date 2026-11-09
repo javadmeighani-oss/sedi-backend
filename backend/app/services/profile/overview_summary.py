@@ -87,14 +87,9 @@ def clean_value(text: Any, *, goal: bool = False) -> str:
 
 
 def _age_from_birth_year(year: Any) -> Optional[int]:
-    try:
-        y = int(year)
-    except (TypeError, ValueError):
-        return None
-    if y < 1700:  # Jalali year
-        y += 621
-    age = datetime.now(timezone.utc).year - y
-    return age if 3 <= age <= 110 else None
+    from backend.app.services.user_context.user_state import age_from_birth_year
+
+    return age_from_birth_year(year)  # R-074 step 5a: one shared implementation
 
 
 def build_overview(db: Session, user_id: int, facts: dict[str, str], plan_active: bool = False) -> str:
@@ -155,10 +150,13 @@ def build_overview(db: Session, user_id: int, facts: dict[str, str], plan_active
         try:
             from backend.app.services.user_context import UserContextService
 
-            pack = UserContextService(db).get_user_context(user_id)
-            name = (getattr(pack, "preferred_name", None) or name).strip()
-            sex = t["sex"].get(str(getattr(pack, "sex", "") or "").strip().lower())
-            age = _age_from_birth_year(getattr(pack, "birth_year", None))
+            from backend.app.services.user_context.user_state import user_state_from_pack
+
+            state = user_state_from_pack(UserContextService(db).get_user_context(user_id))
+            if state is not None:
+                name = (state.preferred_name or name).strip()
+                sex = t["sex"].get(state.sex or "")
+                age = state.age
         except Exception:
             pass
         if name and sex and age:

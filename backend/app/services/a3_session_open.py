@@ -435,16 +435,13 @@ def open_a3_session(
     preferred_name: Optional[str] = None
     try:
         pack = UserContextService(db).get_user_context(int(user.id))
-        if pack and getattr(pack, "preferred_name", None) and str(pack.preferred_name).strip():
-            preferred_name = str(pack.preferred_name).strip()
-        if pack and getattr(pack, "language", None) and str(pack.language).strip():
-            pl = str(pack.language).strip().lower()
-            if pl.startswith("fa"):
-                lang = "fa"
-            elif pl.startswith("ar"):
-                lang = "ar"
-            elif pl.startswith("en"):
-                lang = "en"
+        # R-074 step 5a: the shared UserState contract (same normalisation as notifications, profile and chat).
+        from backend.app.services.user_context.user_state import user_state_from_pack
+
+        _state = user_state_from_pack(pack)
+        if _state is not None:
+            preferred_name = _state.preferred_name or preferred_name
+            lang = _state.language or lang
     except Exception:
         pack = None
 
