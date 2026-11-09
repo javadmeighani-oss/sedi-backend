@@ -1202,6 +1202,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ' {name}',
         'en': ', {name}',
     },
+    'session.presence_checkin': {
+        'fa': '{prefix}پیامم رو دیدی؛ می‌خواستم بدونم امروز حالت چطوره. هرچی تو دلته بگو.',
+        'ar': '{prefix}رأيتَ رسالتي؛ أردتُ أن أعرف كيف حالك اليوم. قل لي ما في قلبك.',
+        'en': '{prefix}you saw my message; I wanted to know how you are today. Tell me whatever is on your heart.',
+    },
+    'session.presence_checkin_low': {
+        'fa': '{prefix}می‌خواستم بیشتر کنارت باشم. امروز چه حالی داری؟ آروم برام تعریف کن.',
+        'ar': '{prefix}أردتُ أن أكون إلى جانبك أكثر. كيف تشعر اليوم؟ أخبرني بهدوء.',
+        'en': '{prefix}I wanted to be a little closer to you. How are you feeling today? Tell me gently.',
+    },
     'session.presence_generic': {
         'fa': '{prefix}حالت چطوره؟ می\u200cتونیم از همون\u200cجا که موندیم ادامه بدیم یا درباره\u200cی یه چیز تازه حرف بزنیم.',
         'ar': '{prefix}كيف حالك؟ يمكننا أن نتابع من حيث توقفنا أو نتحدث عن شيء جديد.',

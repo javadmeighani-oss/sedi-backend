@@ -218,6 +218,31 @@ def _render_engagement(lang: str, name: Optional[str], inputs: Dict[str, Any]) -
     return title, body
 
 
+def engagement_variant(body: Optional[str], lang: str, name: Optional[str]) -> Optional[str]:
+    """Which engagement push this body is: "plain" (a how-are-you check-in), "low" (the gentler wellbeing wording), "topic"
+    (continues a topic) or None (unknown). Javad 2026-11-09: opening the chat from the push must CONTINUE the push, so the app
+    side needs to know what the push said. Deterministic: the catalog wording is looked for INSIDE the rendered body, because
+    render() may add a name prefix or append a short goals/lifestyle hint (Codex P2, PR 180). No raw chat is read."""
+    text = " ".join(str(body or "").split()).lower()
+    if not text:
+        return None
+    lang = lang if lang in ("fa", "ar", "en") else "en"
+
+    def _inside(template: str, **fmt: str) -> bool:
+        return " ".join(template.format(p="", **fmt).split()).lower() in text
+
+    for variant, pairs in (("low", _ENGAGEMENT_LOW_PAIRS), ("plain", _ENGAGEMENT_PAIRS)):
+        for _title, short_body in pairs.get(lang, pairs["en"]):
+            if _inside(short_body):
+                return variant
+    topic_tpl = _ENGAGEMENT_TOPIC_BODY.get(lang, _ENGAGEMENT_TOPIC_BODY["en"])
+    head, _, tail = topic_tpl.format(p="", t="@@T@@").partition("@@T@@")
+    head, tail = " ".join(head.split()).lower(), " ".join(tail.split()).lower()
+    if head and head in text and tail in text[text.index(head) + len(head):]:
+        return "topic"
+    return None
+
+
 def _engagement_short(lang: str, name: Optional[str]) -> str:
     """Presence re-engagement body (warm, human; rotates daily)."""
     pairs = _ENGAGEMENT_PAIRS.get(lang, _ENGAGEMENT_PAIRS["en"])

@@ -241,6 +241,14 @@ def _notification_name_prefix(name: Optional[str], lang: str) -> str:
     return sedi_copy.t("address.plain", lang if lang in ("fa", "ar") else "en", name=cleaned)
 
 
+def _presence_checkin_opener(*, lang: str, name: Optional[str], low: bool = False) -> str:
+    """The user opened the chat from Sedi's how-are-you push: Sedi continues THAT question, in the push's tone."""
+    prefix = _notification_name_prefix(name, lang)
+    key = "session.presence_checkin_low" if low else "session.presence_checkin"
+    body = sedi_copy.t(key, lang, prefix=prefix).strip()
+    return body[:1].upper() + body[1:] if lang == "en" and not prefix else body
+
+
 def _presence_continuation_opener(
     *,
     lang: str,
@@ -323,6 +331,16 @@ def build_notification_origin_opener(
         return _care_checkin_opener(lang=lang, name=name)
 
     if family == I10SemanticFamily.PRESENCE_REENGAGEMENT.value:
+        # Javad 2026-11-09 (R-052): the push asked «how are you today?» - the chat must CONTINUE that question, not jump to the
+        # last topic («آخرین بار درباره‌ی یادآورها حرف زدیم…»). Only a push that itself named a topic continues a topic.
+        try:
+            from backend.app.services.notification_runtime.renderer import engagement_variant
+
+            variant = engagement_variant(getattr(notification, "body", None), lang, name)
+        except Exception:
+            variant = None
+        if variant in ("plain", "low"):
+            return _presence_checkin_opener(lang=lang, name=name, low=(variant == "low"))
         topic_phrase = None
         try:
             from backend.app.services.i7.privacy_safe_recent_topic import (
