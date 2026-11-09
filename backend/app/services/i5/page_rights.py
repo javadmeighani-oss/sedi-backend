@@ -118,22 +118,35 @@ def _meta_license_text(s: str) -> str:
 
 def _declared(s: str, core: "re.Pattern") -> bool:
     """The page DECLARES the licence: a declaration phrase ("licensed under ...", "License: ...") followed by it."""
-    return any(core.search(s[m.end(): m.end() + 220]) for m in _DECL.finditer(s))
+    return any(core.search(s[m.end(): m.end() + 220].split(". ", 1)[0]) for m in _DECL.finditer(s))
 
 
 def classify_page_rights(body: Any, url: str = "", *, strict: bool = False, charset: str = "utf-8") -> RightsVerdict:
     """Read the page's own rights signals. The stricter signal always wins; see the module docstring."""
     s = _text(body, charset)
     signals: list[str] = []
+    s_text = re.sub(r"(?:href|src)\s*=\s*[\"'][^\"']*[\"']", " ", s)  # visible text: URLs are judged separately
     cc_kinds = {m.group(2) for m in _CC_URL.finditer(s)}  # anywhere on the page: only used for the STRICT checks
     declared = " ".join(_REL_LICENSE_TAG.findall(s)) + " " + _meta_license_text(s)
     declared_kinds = {m.group(2) for m in _CC_URL.finditer(declared)}
-    nc = bool(_NC.search(s)) or any("nc" in k.split("-") for k in cc_kinds)
-    nd = bool(_ND.search(s)) or any("nd" in k.split("-") for k in cc_kinds)
-    sa = bool(_SA_TEXT.search(s)) or any("sa" in k.split("-") for k in cc_kinds)
     by = ("by" in declared_kinds) or _declared(s, _BY_CORE) or bool(_BY_VERSIONED.search(s))
     ogl = bool(_OGL_CORE.search(declared)) or _declared(s, _OGL_CORE)
     pd = bool(_CC_PD_URL.search(declared)) or bool(_PD_STATEMENT.search(s)) or _declared(s, _PD_CORE)
+    permissive = by or ogl or pd
+    # Restrictive signals: a DECLARED NC / ND / SA always blocks. A restrictive licence only LINKED from the page (image credits,
+    # figure captions - measured on OpenStax books, 2026-11-08: CC BY text with NC/SA-licensed images) blocks only when the
+    # page declares no permissive licence of its own.
+    decl_kinds = declared_kinds
+    nc_decl = bool(_NC.search(declared)) or any("nc" in k.split("-") for k in decl_kinds) or _declared(s_text, _NC)
+    nd_decl = bool(_ND.search(declared)) or any("nd" in k.split("-") for k in decl_kinds) or _declared(s_text, _ND)
+    sa_decl = bool(_SA_TEXT.search(declared)) or any("sa" in k.split("-") for k in decl_kinds) or _declared(s_text, _SA_TEXT)
+    nc_url = any("nc" in k.split("-") for k in cc_kinds)
+    nd_url = any("nd" in k.split("-") for k in cc_kinds)
+    sa_url = any("sa" in k.split("-") for k in cc_kinds)
+    # a TEXT label ("CC BY-NC", "non-commercial") always counts; a bare link to a restrictive licence only without an open declaration
+    nc = nc_decl or bool(_NC.search(s_text)) or (nc_url and not permissive)
+    nd = nd_decl or bool(_ND.search(s_text)) or (nd_url and not permissive)
+    sa = sa_decl or bool(_SA_TEXT.search(s_text)) or (sa_url and not permissive)
     tdm = _tdm_meta(s) or bool(_TDM_TEXT.search(s))
     reserved = bool(_RESERVED.search(s))
     notice = bool(_COPYRIGHT_MARK.search(s))
