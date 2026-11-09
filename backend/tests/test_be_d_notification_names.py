@@ -89,10 +89,14 @@ def _medication_notification(db, u, name="Metformin"):
     )
     db.add(occ)
     db.flush()
+    # the real linkage (NotificationEngine.create_medication_reminder): source_id is NOT the occurrence id; the occurrence points at the
+    # notification through source_notification_id
     n = models.Notification(
-        user_id=u.id, type="HEALTH", body="x", template_key="medication_reminder", source_id=str(occ.id), status="sent"
+        user_id=u.id, type="HEALTH", body="x", template_key="medication_reminder", source_id=str(um.id + 5000), status="sent"
     )
     db.add(n)
+    db.flush()
+    occ.source_notification_id = n.id
     db.flush()
     return n
 

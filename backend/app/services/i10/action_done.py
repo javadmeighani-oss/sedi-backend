@@ -464,11 +464,15 @@ def subject_name(db: Session, original: Optional[models.Notification], user_id: 
         if original is None:
             return ""
         kind = kind_of(original)
-        ref = str(original.source_id or "").strip()
-        if kind == "medication" and ref.isdigit():
+        if kind == "medication":
+            # Codex P2 (PR 182): the dose occurrence is linked to its reminder through source_notification_id (the same link
+            # confirm_dose_taken_by_notification uses), NOT through the notification's source_id.
             occ = (
                 db.query(models.MedicationDoseOccurrence)
-                .filter(models.MedicationDoseOccurrence.id == int(ref), models.MedicationDoseOccurrence.user_id == user_id)
+                .filter(
+                    models.MedicationDoseOccurrence.source_notification_id == int(original.id),
+                    models.MedicationDoseOccurrence.user_id == user_id,
+                )
                 .first()
             )
             um = (

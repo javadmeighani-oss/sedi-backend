@@ -219,7 +219,8 @@ def test_an_ignored_medication_notification_gets_one_assurance_with_new_text_and
     assert len(tasks) == 1 and tasks[0].status == "open"
     assert process_due_follow_up_tasks(db, now=_NAIVE_NOW) == 1
     sent = db.query(models.Notification).filter_by(user_id=u.id, template_key="assurance_follow_up").one()
-    assert sent.body == sedi_copy.t("assurance.body.medication", "fa") and sent.id != n.id
+    # R-084 (Javad 2026-11-09): the follow-up names the drug of THIS dose
+    assert sent.body == sedi_copy.t("assurance.body.medication_named", "fa", name="TestMed") and sent.id != n.id
     assert json.loads(sent.context_json)["assured_notification_id"] == str(n.id)
     from backend.app.services.gate4.push_payload import PLAN_FOLLOWUP_TEMPLATE_KEYS
 
@@ -284,7 +285,7 @@ def test_a_late_assurance_is_dropped_and_an_answered_assurance_marks_the_origina
 
 @pytest.mark.parametrize("lang", _LANGS)
 @pytest.mark.parametrize("domain", ["medication", "plan", "event", None])
-def test_the_assurance_text_exists_in_every_language_and_never_names_anything(lang, domain):
+def test_the_assurance_text_exists_in_every_language_and_names_nothing_without_a_subject(lang, domain):
     title, body = ad.assurance_copy(lang, domain)
     assert title and body and "{" not in body
     assert (lang == "en") or all(ord(ch) < 128 for ch in body) is False  # fa / ar are written in their own script
