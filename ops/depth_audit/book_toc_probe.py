@@ -40,6 +40,21 @@ def _extra() -> None:
             print("BOOK|" + json.dumps({"sitemap": u, "status": st, "bytes": len(body), "loc": len(re.findall("<loc>", txt)), "anatomy_pages": len(re.findall("/books/anatomy-and-physiology-2e/pages/", txt))}))
     except Exception as exc:  # noqa: BLE001
         print("BOOK|" + json.dumps({"sitemap_error": type(exc).__name__}))
+    try:
+        idx = _get("https://openstax.org/rex/sitemaps/index.xml")[2].decode("utf-8", errors="replace")
+        locs = re.findall(r"<loc>([^<]+)</loc>", idx)
+        print("BOOK|" + json.dumps({"rex_index_sample": locs[:4], "rex_total": len(locs)}))
+        for slug in ("anatomy-and-physiology-2e", "introduction-sociology-3e", "psychology-2e"):
+            hit = next((u for u in locs if slug in u), None)
+            if not hit:
+                print("BOOK|" + json.dumps({"rex_book": slug, "found": False}))
+                continue
+            st, _f, body = _get(hit)
+            txt = body.decode("utf-8", errors="replace")
+            pages = re.findall(r"<loc>([^<]+/pages/[^<]+)</loc>", txt)
+            print("BOOK|" + json.dumps({"rex_book": slug, "sitemap": hit, "status": st, "pages": len(pages), "first": pages[:2]}))
+    except Exception as exc:  # noqa: BLE001
+        print("BOOK|" + json.dumps({"rex_error": type(exc).__name__}))
     for repo in ("openstax/osbooks-anatomy-physiology-bundle", "openstax/osbooks-psychology-bundle"):
         try:
             st, _f, body = _get(f"https://api.github.com/repos/{repo}")
