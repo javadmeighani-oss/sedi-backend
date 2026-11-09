@@ -236,3 +236,9 @@ def test_scheduler_runs_every_minute_and_uses_generic_path():
     assert "minutes=1," in src[i : i + 120]  # 2026-10-28: was 5 (a reminder arrived 7 min late), see test_reminder_delivery_latency
     sched = (root / "backend" / "app" / "services" / "section10" / "event_reminder_scheduler.py").read_text(encoding="utf-8")
     assert "is_remindable_event" in sched and "is_medical_remindable_event(event)" not in sched
+
+
+@pytest.fixture(autouse=True)
+def _legacy_bare_hours(monkeypatch):
+    """These tests pin other behaviour with bare hours («ساعت ۱۰»); the ask-the-period rule (BE-C) has its own test file."""
+    monkeypatch.setenv("SEDI_REMINDER_ASK_PERIOD", "0")

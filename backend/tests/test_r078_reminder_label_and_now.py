@@ -52,3 +52,9 @@ def test_vocalized_arabic_notification_word_leaves_no_residue(spelling):
     d, _ = parse_reminder_event_draft(message=f"أرسل لي {spelling} الآن", timezone_name="Asia/Tehran", now_utc=NOW, language="ar")
     assert d.title.strip("اًٌٍَُِّْ ") != "" and "ا" != d.title.replace("ً", "").strip()
     assert not any(ch in d.title for ch in "ًٌٍ")
+
+
+@pytest.fixture(autouse=True)
+def _legacy_bare_hours(monkeypatch):
+    """These tests pin other behaviour with bare hours («ساعت ۱۰»); the ask-the-period rule (BE-C) has its own test file."""
+    monkeypatch.setenv("SEDI_REMINDER_ASK_PERIOD", "0")
