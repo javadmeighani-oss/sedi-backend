@@ -134,3 +134,23 @@ def test_the_env_switch_restores_the_old_heuristic(monkeypatch):
 def test_copy_catalog_has_the_three_language_pair():
     for key in ("reminder.clarify.period", "reminder.clarify_opening.period"):
         assert set(sedi_copy.by_lang(key)) >= {"fa", "ar", "en"}
+
+
+def test_a_period_answer_that_makes_the_time_past_keeps_the_original_request():
+    """Codex P2: «today at 5» + «morning» at 15:30 is 05:00 = past; the combined request must still be what readiness evaluates."""
+    prior = "امروز ساعت ۵ یادم بنداز جلسه دارم"
+    combined = period_answer_as_request(prior, "صبح")
+    assert combined and prior in combined
+    draft, missing = _parse(combined)
+    assert draft is None and missing == "past"  # 05:00 today already passed at 15:30 Tehran time
+
+
+def test_the_orchestrator_returns_the_combined_request_without_requiring_it_to_be_ready():
+    import inspect
+
+    from backend.app.services.intelligence import orchestrator
+
+    src = inspect.getsource(orchestrator.IntelligenceOrchestrator._continue_reminder_clarification)
+    block = src[src.index("is_period_clarification(getattr"):src.index("asked = is_reminder_clarification")]
+    assert "return combined" in block and "parse_reminder_event_draft" not in block
+

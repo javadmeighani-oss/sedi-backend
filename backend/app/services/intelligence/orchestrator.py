@@ -480,9 +480,9 @@ class IntelligenceOrchestrator:
             if is_period_clarification(getattr(fresh[0], "sedi_response", None)):
                 combined = period_answer_as_request(getattr(fresh[0], "user_message", None) or "", message)
                 if combined:
-                    done, still_missing = parse_reminder_event_draft(message=combined, timezone_name=tz_name, language=lang)
-                    if done is not None and still_missing is None:
-                        return combined
+                    # Codex P2 (PR 179): the combined request is ALWAYS the thing to evaluate next, even when it is now in the
+                    # past («today at 5» answered «morning»): readiness then asks for another time instead of losing the original.
+                    return combined
             asked = is_reminder_clarification(getattr(fresh[0], "sedi_response", None))
             if not asked:
                 # Javad 2026-10-28: after an unfinished reminder request ("نوتیف بفرست ساعت ۲۱:۳۵" with no day) a short answer
