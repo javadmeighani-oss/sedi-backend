@@ -1407,6 +1407,10 @@ def run_weekly_scheduled_job(
             from backend.app.services.i5.weekly_growth_report import log_weekly_growth_report
 
             log_weekly_growth_report(session, loaded_models, baseline_counts=baseline)
+            # R-074 step 5b: the weekly layer report (aggregate counts, fail-open) next to the growth report.
+            from backend.app.services.i5.weekly_layers_report import log_weekly_layers_report
+
+            log_weekly_layers_report(session, loaded_models)
         return outcome
     except Exception:
         if owns_session:

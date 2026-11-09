@@ -227,6 +227,18 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'Your exercise week',
     },
 
+    # ---- weekly_report (R-074 step 5b: one weekly progress report from what the user marked) -----------------
+    'weekly_report.summary.active': {
+        'fa': 'این هفته {done} کار را انجام دادی و {not_done} مورد انجام نشد. از همین‌جا ادامه می‌دهیم.',
+        'ar': 'هذا الأسبوع أنجزتَ {done} مهمة و{not_done} لم تُنجَز. نكمل من هنا.',
+        'en': 'This week you did {done} things and {not_done} did not happen. We carry on from here.',
+    },
+    'weekly_report.summary.quiet': {
+        'fa': 'این هفته هنوز کاری را علامت نزده‌ای. از امروز با یک کار کوچک شروع می‌کنیم.',
+        'ar': 'لم تضع علامة على أي مهمة هذا الأسبوع بعد. نبدأ اليوم بمهمة صغيرة.',
+        'en': 'You have not marked anything this week yet. We start today with one small task.',
+    },
+
     # ---- motivation ------------------------------------------------------------
     'motivation.title': {
         'fa': {

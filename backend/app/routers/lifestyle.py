@@ -188,6 +188,18 @@ def lifestyle_plan_build(
     return APIResponse(ok=True, data=data)
 
 
+@router.get("/weekly-report", response_model=APIResponse)
+def lifestyle_weekly_report(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """R-074 step 5b: the user's own week in one report (done / not done by domain + plan reviews), read-only."""
+    from backend.app.services.i8.weekly_user_report import build_weekly_user_report
+
+    lang = (getattr(auth_user, "preferred_language", None) or "fa")
+    return APIResponse(ok=True, data=build_weekly_user_report(db, auth_user.id, language=lang))
+
+
 @router.get("/weekly-review", response_model=APIResponse)
 def lifestyle_weekly_review(
     domain: str = Query("nutrition", description="nutrition|exercise"),
