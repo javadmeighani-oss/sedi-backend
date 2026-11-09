@@ -98,15 +98,40 @@ def test_no_continuity_block_without_a_usable_last_reply(turns):
 
 def test_recent_turns_is_fail_open():
     class _Boom:
-        def query(self, *a, **k):
+        def get_recent_messages(self, *a, **k):
             raise RuntimeError("db down")
 
     assert brain._recent_turns(_Boom(), 1) == []
+    assert brain._recent_turns(None, 1) == []
+
+
+def test_recent_turns_goes_only_through_the_consent_gated_memory_reader():
+    """Codex P1 (PR 181): no memory.read consent -> the reader returns [] -> nothing reaches the prompt; the code never queries the table itself."""
+    import inspect
+    from datetime import datetime
+
+    class _NoConsent:
+        calls = 0
+
+        def get_recent_messages(self, user_id, limit=10):
+            _NoConsent.calls += 1
+            return []
+
+    assert brain._recent_turns(_NoConsent(), 1) == [] and _NoConsent.calls == 1
+    src = inspect.getsource(brain._recent_turns)
+    assert "models.Memory" not in src and ".query(" not in src
+
+    class _Consent:
+        def get_recent_messages(self, user_id, limit=10):
+            return [SimpleNamespace(user_message="x", sedi_response="y", created_at=datetime.utcnow())]
+
+    assert len(brain._recent_turns(_Consent(), 1)) == 1
 
 
 def test_the_brain_wires_previous_turns_and_continuity_into_the_knowledge_step():
     import inspect
 
     src = inspect.getsource(brain._maybe_append_structured_governed_knowledge)
-    assert "_recent_turns(db, user_id)" in src and "answer_guide_block(user_message, _previous_users)" in src
+    assert "_recent_turns(memory, user_id)" in src and "answer_guide_block(user_message, _previous_users)" in src
     assert src.index("answer_guide_block") < src.index("_continuity_block")
+    assert "memory=self.memory" in inspect.getsource(brain)

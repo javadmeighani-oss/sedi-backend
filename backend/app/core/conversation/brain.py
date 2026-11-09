@@ -310,24 +310,22 @@ _CONTINUITY_WINDOW_MIN = 30
 _CONTINUITY_REPLY_CHARS = 360
 
 
-def _recent_turns(db, user_id: int, limit: int = 2) -> list:
-    """The user's last turns within 30 minutes, newest first ([] on any problem). Read-only, same table as the chat history."""
+def _recent_turns(memory, user_id: int, limit: int = 2) -> list:
+    """The user's last turns within 30 minutes, newest first ([] on any problem or without a memory reader).
+
+    Reads ONLY through ``ConversationMemory.get_recent_messages`` - the I6 ``memory.read`` consent and the I7 retention gate apply
+    (Codex P1, PR 181): without consent nothing is read, so nothing reaches the prompt."""
+    if memory is None:
+        return []
     try:
         from datetime import datetime, timedelta
 
-        from backend.app import models
-
-        rows = (
-            db.query(models.Memory)
-            .filter(models.Memory.user_id == user_id)
-            .order_by(models.Memory.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        rows = list(memory.get_recent_messages(user_id, limit=limit) or [])
         now = datetime.utcnow()
         return [
             r for r in rows
-            if r.created_at is not None and now - r.created_at.replace(tzinfo=None) <= timedelta(minutes=_CONTINUITY_WINDOW_MIN)
+            if getattr(r, "created_at", None) is not None
+            and now - r.created_at.replace(tzinfo=None) <= timedelta(minutes=_CONTINUITY_WINDOW_MIN)
         ]
     except Exception:
         return []
@@ -403,6 +401,7 @@ def _maybe_append_structured_governed_knowledge(
     user_id: int,
     user_message: str,
     language: str,
+    memory=None,
 ) -> None:
     """Structured path: one I5 knowledge retrieval + renderer. No care packs / I2-I6 reload.
 
@@ -438,7 +437,7 @@ def _maybe_append_structured_governed_knowledge(
             # R-074 step 2: the shape of a complete answer for this topic (sleep, plans, muscle pain, labs, elder care, chronic care)
             from backend.app.core.conversation.domain_guides import answer_guide_block
 
-            _turns = _recent_turns(db, user_id)
+            _turns = _recent_turns(memory, user_id)
             _previous_users = [str(getattr(r, "user_message", "") or "") for r in _turns]
             _guide = answer_guide_block(user_message, _previous_users) if getattr(grounded, "status", "") == "OK" else None
             if _guide:
@@ -812,6 +811,7 @@ class ConversationBrain:
                         user_id,
                         user_message,
                         lang,
+                        memory=self.memory,
                     )
             else:
                 # User Knowledge: stable baseline + facts (compact, after main system, before history)
