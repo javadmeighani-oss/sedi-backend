@@ -11,6 +11,7 @@ R-026 (2026-10-26): the parser understands how people really ask in Persian/Arab
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -146,7 +147,7 @@ _PM_WORDS = re.compile(
     re.IGNORECASE,
 )
 _NOON_WORDS = re.compile(r"(?<![\w])(?:ظهر|noon)(?![\w])", re.IGNORECASE)
-_AM_WORDS = re.compile(r"(?<![\w])(?:صبح|بامداد|صباح|am|morning)(?![\w])", re.IGNORECASE)
+_AM_WORDS = re.compile(r"(?<![\w])(?:صبح|بامداد|صباح|صباحا|صباحاً|am|morning)(?![\w])", re.IGNORECASE)
 
 _TIME_AFTER_WORD = re.compile(
     r"(?:ساعت|الساعة|at|around)\s*(?P<h>\d{1,2})(?:[:٫.](?P<min>\d{2}))?"
@@ -319,6 +320,7 @@ def _clarification(
     target_key: str,
     template_id: str,
     language: LanguageCode,
+    hour: Optional[int] = None,
 ) -> ClarificationResult:
     messages = {
         "tpl.reminder.datetime.v1": sedi_copy.by_lang("reminder.clarify.datetime"),
@@ -326,13 +328,17 @@ def _clarification(
         "tpl.reminder.timezone.v1": sedi_copy.by_lang("reminder.clarify.timezone"),
         "tpl.reminder.recurrence.v1": sedi_copy.by_lang("reminder.clarify.recurrence"),
         "tpl.reminder.title.v1": sedi_copy.by_lang("reminder.clarify.title"),
+        "tpl.reminder.period.v1": sedi_copy.by_lang("reminder.clarify.period"),
     }
     block = messages.get(template_id, messages["tpl.reminder.datetime.v1"])
+    text = block.get(language) or block["en"]
+    if template_id == "tpl.reminder.period.v1":
+        text = text.replace("{h}", str(hour if hour is not None else ""))
     return ClarificationResult(
         question_id=question_id,
         target_key=target_key,
         template_id=template_id,
-        localized_message=block.get(language) or block["en"],
+        localized_message=text,
     )
 
 
@@ -340,7 +346,7 @@ def _clarification(
 _CLARIFICATION_OPENINGS = tuple(
     sedi_copy.by_lang(f"reminder.clarify_opening.{which}")[lang]
     for lang in ("en", "fa", "ar")
-    for which in ("datetime", "past", "title")
+    for which in ("datetime", "past", "title", "period")
 )
 
 _ANSWER_PREFIX = sedi_copy.by_lang("reminder.answer_prefix")
@@ -490,8 +496,8 @@ def _apply_period(h: int, minute: int, text: str, explicit_ap: str) -> Optional[
         if h == 12 and re.search(r"شب|night|مساء", ap or text):
             h, day_shift = 0, 1  # "۱۲ شب" = midnight starting the next day
         elif 1 <= h <= 11:
-            if re.search(r"شب|night|مساء", ap or text) and h <= 5:
-                pass  # "ساعت ۲ شب" is after midnight, spoken as night
+            if re.search(r"شب|night", ap or text) and h <= 5:
+                pass  # "ساعت ۲ شب" is after midnight, spoken as night (Arabic «5 مساء» is 17:00, not 05:00)
             else:
                 h += 12
     elif noon:
@@ -523,6 +529,54 @@ def _resolve_time(text: str) -> Optional[tuple[int, int, int]]:
     if m:
         return _apply_period(int(m.group("h")), 0, text, m.group("ap") or "")
     return None
+
+
+_ANY_PERIOD_WORD = re.compile(
+    r"(?<![\w])(?:صبح|بامداد|صباح|صباحا|ظهر|عصر|بعد\s*از\s*ظهر|بعدازظهر|شب|شبانه|امشب|مساء|مساءً|ليلا|ليلاً|الليل|"
+    r"am|pm|morning|noon|afternoon|evening|night|tonight)(?![\w])",
+    re.IGNORECASE,
+)
+
+
+ASK_PERIOD_ENV = "SEDI_REMINDER_ASK_PERIOD"
+
+
+def ask_period_enabled() -> bool:
+    """Default ON (Javad 2026-11-09). The env value 0/false/off is the rollback switch back to the old silent heuristic."""
+    return os.getenv(ASK_PERIOD_ENV, "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def ambiguous_period_hour(text: str) -> Optional[int]:
+    """Javad 2026-11-09: «ساعت ۵» (or «at 5», «5:30») with NO morning/noon/afternoon/night word can be 05:00 or 17:00 - Sedi must
+    ASK, never guess. Returns the spoken 12-hour-clock hour (1..12) when the time is ambiguous, else None (24-hour forms such as 17,
+    14:30 or 0:30, and any time with a period word, are unambiguous)."""
+    if not ask_period_enabled() or _ANY_PERIOD_WORD.search(text or ""):
+        return None
+    for rx in (_TIME_AFTER_WORD, _TIME_H_AND_MIN, _TIME_COLON, _TIME_SUFFIX):
+        m = rx.search(text or "")
+        if m:
+            if (m.groupdict().get("ap") or "").strip():
+                return None
+            h = int(m.group("h"))
+            return h if 1 <= h <= 12 else None
+    return None
+
+
+def _normalized_message_hour(message: str) -> Optional[int]:
+    return ambiguous_period_hour(_normalize(message or ""))
+
+
+def is_period_clarification(sedi_text: Optional[str]) -> bool:
+    """True when [sedi_text] is Sedi's own «morning or evening?» question (the user's next word is the answer)."""
+    t = _plain(sedi_text or "")
+    return any(_plain(sedi_copy.by_lang("reminder.clarify_opening.period")[lang]) in t for lang in ("en", "fa", "ar"))
+
+
+def period_answer_as_request(prior_request: str, answer: str) -> Optional[str]:
+    """The earlier request + the user's period word («عصر») as ONE full request; None when the answer has no period word."""
+    if not prior_request or not _ANY_PERIOD_WORD.search(answer or ""):
+        return None
+    return f"{prior_request.strip()} {answer.strip()}"
 
 
 def _resolve_relative(text: str, local_now: datetime) -> Optional[datetime]:
@@ -625,7 +679,7 @@ def parse_reminder_event_draft(
 ) -> tuple[Optional[ReminderEventDraft], Optional[str]]:
     """
     Returns (draft, missing_slot_key).
-    missing_slot_key in {timezone, recurrence, datetime, past, title} or None when ready.
+    missing_slot_key in {timezone, recurrence, datetime, past, period, title} or None when ready.
     """
     raw = (message or "").strip()
     if not raw:
@@ -665,6 +719,8 @@ def parse_reminder_event_draft(
         time_hm = _resolve_time(text)
         if time_hm is None:
             return None, "datetime"
+        if ambiguous_period_hour(text) is not None:
+            return None, "period"
         hour, minute, day_shift = time_hm
         no_weekday = text.lower()
         for token in _WEEKDAY_TOKENS:
@@ -687,6 +743,8 @@ def parse_reminder_event_draft(
             day = local_now  # «تا ۲۱:۲۰ یادم بنداز»: no day said -> the next time that clock shows
         if day is None or time_hm is None:
             return None, "datetime"
+        if ambiguous_period_hour(text) is not None:
+            return None, "period"
         hour, minute, day_shift = time_hm
         starts_local = day.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=day_shift)
         if starts_local <= local_now:
@@ -827,6 +885,7 @@ def evaluate_reminder_event_readiness(
         "datetime": ("rem.datetime", "request.local.datetime", "tpl.reminder.datetime.v1", 10),
         "past": ("rem.datetime", "request.local.datetime", "tpl.reminder.past.v1", 10),
         "title": ("rem.title", "request.local.title", "tpl.reminder.title.v1", 30),
+        "period": ("rem.period", "request.local.period", "tpl.reminder.period.v1", 10),
     }
     req_id, ckey, tpl, prio = key_map.get(
         missing or "datetime", key_map["datetime"]
@@ -843,6 +902,7 @@ def evaluate_reminder_event_readiness(
             target_key=ckey,
             template_id=tpl,
             language=language,
+            hour=_normalized_message_hour(message) if missing == "period" else None,
         ),
     )
 

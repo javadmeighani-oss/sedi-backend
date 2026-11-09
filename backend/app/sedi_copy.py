@@ -1454,6 +1454,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'ماذا أضع في جدولك؟',
         'en': 'What should I put on your schedule?',
     },
+    'reminder.clarify.period': {
+        'fa': 'منظورت صبح است یا بعدازظهر و شب برای ساعت {h}؟ فقط بگو: صبح، ظهر، عصر یا شب.',
+        'ar': 'هل تقصد الصباح أم المساء للساعة {h}؟ أجبني بكلمة واحدة: صباحاً أو ظهراً أو عصراً أو ليلاً.',
+        'en': 'Do you mean the morning or the evening for {h}? Just say “morning”, “noon”, “afternoon” or “night”.',
+    },
+    'reminder.clarify_opening.period': {
+        'fa': 'منظورت صبح است یا بعدازظهر',
+        'ar': 'هل تقصد الصباح أم المساء',
+        'en': 'Do you mean the morning or the evening',
+    },
     'reminder.clarify_opening.datetime': {
         'fa': 'کِی یادت بندازم؟',
         'ar': 'متى أذكّرك؟',

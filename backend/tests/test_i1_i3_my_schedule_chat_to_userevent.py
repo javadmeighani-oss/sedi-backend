@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import os
 from datetime import datetime, timezone
 
@@ -272,3 +274,9 @@ def test_interact_no_legacy_parallel(client, db):
 
     src = open(interact_mod.__file__, encoding="utf-8").read()
     assert "create_user_chat_reminder" not in src
+
+
+@pytest.fixture(autouse=True)
+def _legacy_bare_hours(monkeypatch):
+    """These tests pin other behaviour with bare hours («ساعت ۱۰»); the ask-the-period rule (BE-C) has its own test file."""
+    monkeypatch.setenv("SEDI_REMINDER_ASK_PERIOD", "0")

@@ -471,6 +471,18 @@ class IntelligenceOrchestrator:
             if not fresh:
                 return message
             tz_name = self._reminder_timezone(ctx, user_id)
+            # Javad 2026-11-09: Sedi asked «صبح یا عصر؟» for an ambiguous hour; the one-word answer completes THAT request.
+            from backend.app.services.intelligence.reminder_event_readiness import (
+                is_period_clarification,
+                period_answer_as_request,
+            )
+
+            if is_period_clarification(getattr(fresh[0], "sedi_response", None)):
+                combined = period_answer_as_request(getattr(fresh[0], "user_message", None) or "", message)
+                if combined:
+                    # Codex P2 (PR 179): the combined request is ALWAYS the thing to evaluate next, even when it is now in the
+                    # past («today at 5» answered «morning»): readiness then asks for another time instead of losing the original.
+                    return combined
             asked = is_reminder_clarification(getattr(fresh[0], "sedi_response", None))
             if not asked:
                 # Javad 2026-10-28: after an unfinished reminder request ("نوتیف بفرست ساعت ۲۱:۳۵" with no day) a short answer

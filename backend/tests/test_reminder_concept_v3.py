@@ -108,3 +108,9 @@ def test_codex_125_a_talk_topic_followed_by_a_weekday_keeps_the_weekday_as_the_d
     draft, missing = _draft("ping me to talk about Saturday on Monday at 10", "en")
     assert missing is None and draft.title == "talk about Saturday"
     assert draft.starts_at_local.weekday() == 0  # Monday
+
+
+@pytest.fixture(autouse=True)
+def _legacy_bare_hours(monkeypatch):
+    """These tests pin other behaviour with bare hours («ساعت ۱۰»); the ask-the-period rule (BE-C) has its own test file."""
+    monkeypatch.setenv("SEDI_REMINDER_ASK_PERIOD", "0")
