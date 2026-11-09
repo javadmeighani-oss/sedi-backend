@@ -457,10 +457,51 @@ def assurance_still_needed(db: Session, task: models.CareFollowUpTask, now: Opti
         return False
 
 
-def assurance_copy(lang: str, domain: Optional[str]) -> tuple:
-    """(title, body) - lock-screen safe: it names the KIND of thing only, never an illness, a drug or a title."""
+def subject_name(db: Session, original: Optional[models.Notification], user_id: int) -> str:
+    """The name of the thing a notification is about: the drug of a dose reminder or the plan name the user gave an event.
+    '' when unknown or when it is only a generic default title. Never raises (Javad 2026-11-09, R-084)."""
+    try:
+        if original is None:
+            return ""
+        kind = kind_of(original)
+        if kind == "medication":
+            # Codex P2 (PR 182): the dose occurrence is linked to its reminder through source_notification_id (the same link
+            # confirm_dose_taken_by_notification uses), NOT through the notification's source_id.
+            occ = (
+                db.query(models.MedicationDoseOccurrence)
+                .filter(
+                    models.MedicationDoseOccurrence.source_notification_id == int(original.id),
+                    models.MedicationDoseOccurrence.user_id == user_id,
+                )
+                .first()
+            )
+            um = (
+                db.query(models.UserMedication)
+                .filter(models.UserMedication.id == occ.user_medication_id, models.UserMedication.user_id == user_id)
+                .first()
+                if occ is not None
+                else None
+            )
+            med = db.query(models.Medication).filter(models.Medication.id == um.medication_id).first() if um is not None else None
+            return (med.name or "").strip() if med is not None else ""
+        if kind == "event":
+            from backend.app.services.i10.event_reminder_i10_adapter import _DEFAULT_LABELS
+
+            ev = _event_of(db, user_id, original)
+            title = (ev.title or "").strip() if ev is not None else ""
+            return "" if title in _DEFAULT_LABELS else title
+    except Exception:
+        logger.exception("[R-084] subject name skipped")
+    return ""
+
+
+def assurance_copy(lang: str, domain: Optional[str], subject: str = "") -> tuple:
+    """(title, body). R-084 (Javad 2026-11-09): when the subject is known the text names it (the drug / the plan name the user gave)."""
     from backend.app import sedi_copy
 
     lang = lang if lang in ("fa", "ar", "en") else "en"
     key = domain if domain in ("medication", "plan") else "other"
+    name = (subject or "").strip()
+    if name and key in ("medication", "other"):  # R-084: the follow-up names what it follows up
+        return sedi_copy.t("assurance.title", lang), sedi_copy.t(f"assurance.body.{key}_named", lang, name=name)
     return sedi_copy.t("assurance.title", lang), sedi_copy.t(f"assurance.body.{key}", lang)

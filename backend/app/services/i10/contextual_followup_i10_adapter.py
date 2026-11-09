@@ -114,7 +114,7 @@ def _commitment_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[
 
 
 def _assurance_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[str, str, str]:
-    """R-070: ONE «I only want to be sure» message with NEW text; lock-screen safe (kind only)."""
+    """R-070: ONE «I only want to be sure» message with NEW text; R-084: it names the thing it follows up."""
     from backend.app.services.i10.action_done import ASSURANCE_TEMPLATE_KEY, assurance_copy
 
     lang = "fa"
@@ -124,7 +124,19 @@ def _assurance_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[s
         lang = raw if raw in ("fa", "en", "ar") else "en"
     except Exception:
         pass
-    title, body = assurance_copy(lang, meta.domain)
+    from backend.app.services.i10.action_done import subject_name
+
+    original = None
+    try:
+        ref = int(meta.source_notification_id or 0)
+        original = (
+            db.query(models.Notification).filter(models.Notification.id == ref, models.Notification.user_id == task.user_id).first()
+            if ref
+            else None
+        )
+    except Exception:
+        original = None
+    title, body = assurance_copy(lang, meta.domain, subject_name(db, original, int(task.user_id)))
     return title, body, ASSURANCE_TEMPLATE_KEY
 
 

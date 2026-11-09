@@ -128,7 +128,7 @@ def test_lab_reminder_routes_i10(gate4_patch, db):
         models.I10NotificationDecision.id == notif.i10_policy_decision_id
     ).one()
     assert decision.semantic_family == I10SemanticFamily.LAB_APPOINTMENT_REMINDER.value
-    assert "lab" in notif.body.lower()
+    assert "cbc" in notif.body.lower()  # R-084 (Javad 2026-11-09): the user's own name for the appointment is in the reminder
 
 
 def test_exactly_one_notification_per_stage(gate4_patch, db):
