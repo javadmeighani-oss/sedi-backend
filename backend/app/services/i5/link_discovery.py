@@ -233,6 +233,20 @@ def extract_sitemap_urls(xml_text: str, base_url: str) -> list[str]:
     return out
 
 
+def candidate_taxonomy_for_url(url: str) -> Optional[tuple[str, str, str]]:
+    """(domain, topic, jurisdiction) of the lane-less book source that owns this URL, else None.
+
+    Codex P2 (PR 178): the weekly path classifies a page by URL lane and otherwise falls back to lifestyle/sleep; a book
+    candidate must be filed under its own declared domain instead."""
+    for row in active_manifest_rows():
+        if (row.get("link_discovery") or {}).get("candidate_only") is not True:
+            continue
+        domains = [str(d) for d in (row.get("knowledge_domains") or []) if str(d).strip()]
+        if domains and _host_allowed(url, row) and _pattern_allowed(url, row):
+            return domains[0], domains[0], str(row.get("jurisdiction_country_code") or "US")
+    return None
+
+
 def _host_allowed(url: str, row: Mapping[str, Any]) -> bool:
     host = (urlparse(url).hostname or "").lower()
     domain = str(row.get("allowed_domain") or "").strip().lower().lstrip(".")
@@ -614,6 +628,7 @@ __all__ = [
     "discovered_urls_for_cycle",
     "discovery_config",
     "extract_links",
+    "candidate_taxonomy_for_url",
     "extract_sitemap_urls",
     "is_sitemap_hub",
     "CANDIDATE_ONLY_LANE",

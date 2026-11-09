@@ -823,6 +823,13 @@ def _apply_live_source(
                 jurisdiction = cov.jurisdiction
                 entity_id = cov.entity_id or None
                 disease_label = cov.disease_or_condition
+            else:
+                # R-083 phase 2: a lane-less BOOK candidate is filed under its own declared domain, not lifestyle/sleep.
+                from backend.app.services.i5.link_discovery import candidate_taxonomy_for_url
+
+                book = candidate_taxonomy_for_url(entity_url)
+                if book is not None:
+                    domain, topic, jurisdiction = book
     except Exception:  # noqa: BLE001 — fail closed to historical lifestyle defaults
         domain = "lifestyle"
         topic = "sleep"

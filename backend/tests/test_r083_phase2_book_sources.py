@@ -171,3 +171,27 @@ def test_the_sitemap_hub_is_inside_the_row_patterns_and_the_book_scope(key):
     assert cfg is not None and len(cfg.hub_urls) == 1 and cfg.hub_urls[0].endswith(".xml")
     assert row["allowed_domain"] == "openstax.org"
     assert all(u.startswith("https://openstax.org/rex/sitemaps/") for u in cfg.hub_urls)
+
+
+# ---- taxonomy (Codex P2): a book candidate is not filed under lifestyle/sleep ------------------------------------------------------
+@pytest.mark.parametrize(
+    "url,domain",
+    [(BASE + "1-introduction", "anatomy_physiology"), ("https://openstax.org/books/introduction-sociology-3e/pages/5-1-x", "sociology_behavioral_science")],
+)
+def test_book_candidates_are_filed_under_their_declared_domain(url, domain):
+    assert ld.candidate_taxonomy_for_url(url) == (domain, domain, "US")
+
+
+@pytest.mark.parametrize("url", ["https://openstax.org/books/psychology-2e/pages/1-introduction", "https://www.nhs.uk/conditions/insomnia/", "https://example.org/x"])
+def test_other_urls_have_no_book_taxonomy(url):
+    assert ld.candidate_taxonomy_for_url(url) is None
+
+
+def test_the_weekly_orchestrator_uses_the_book_taxonomy_before_the_lifestyle_fallback():
+    import inspect
+
+    from backend.app.services.i5 import weekly_orchestrator as wo
+
+    src = inspect.getsource(wo)
+    assert src.index("candidate_taxonomy_for_url(entity_url)") > src.index("resolve_wave02_coverage_from_url(entity_url)")
+

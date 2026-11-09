@@ -45,7 +45,7 @@ def test_new_urls_are_in_the_controlled_allowlist_and_match_patterns():
         for u in urls:
             assert u in controlled, (key, u)
             assert any(p.match(u) for p in pats), (key, u)
-    assert len(rows) == 25  # + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
+    assert len(rows) == 27  # R-083 phase 2: + 2 candidate-only OpenStax books; was 25: + openstax_psychology_2e, medlineplus_wellness, odphp_health_gov, medlineplus_eldercare (R-044/R-046 library)
 
 
 def test_agency_self_description_headings_are_boilerplate_but_guidance_is_not():
