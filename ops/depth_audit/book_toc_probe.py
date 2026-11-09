@@ -28,6 +28,27 @@ def _get(url: str):
         return r.status, r.geturl(), r.read(2_000_000)
 
 
+def _extra() -> None:
+    """Where can a WHOLE open book be listed legally and politely? robots Sitemap lines, sitemap size, GitHub source repos."""
+    try:
+        robots = _get("https://openstax.org/robots.txt")[2].decode("utf-8", errors="replace")
+        sm = [ln.split(":", 1)[1].strip() for ln in robots.splitlines() if ln.lower().startswith("sitemap")]
+        print("BOOK|" + json.dumps({"openstax_robots_sitemaps": sm[:5]}, ensure_ascii=False))
+        for u in sm[:2]:
+            st, _f, body = _get(u)
+            txt = body.decode("utf-8", errors="replace")
+            print("BOOK|" + json.dumps({"sitemap": u, "status": st, "bytes": len(body), "loc": len(re.findall("<loc>", txt)), "anatomy_pages": len(re.findall("/books/anatomy-and-physiology-2e/pages/", txt))}))
+    except Exception as exc:  # noqa: BLE001
+        print("BOOK|" + json.dumps({"sitemap_error": type(exc).__name__}))
+    for repo in ("openstax/osbooks-anatomy-physiology-bundle", "openstax/osbooks-psychology-bundle"):
+        try:
+            st, _f, body = _get(f"https://api.github.com/repos/{repo}")
+            d = json.loads(body.decode("utf-8", errors="replace"))
+            print("BOOK|" + json.dumps({"github": repo, "status": st, "license": (d.get("license") or {}).get("spdx_id"), "size_kb": d.get("size")}))
+        except Exception as exc:  # noqa: BLE001
+            print("BOOK|" + json.dumps({"github": repo, "error": type(exc).__name__}))
+
+
 def main() -> int:
     robots_cache: dict[str, robotparser.RobotFileParser] = {}
     for key, url, link_pat in CANDIDATES:
@@ -56,6 +77,7 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             row.update(error=type(exc).__name__)
         print("BOOK|" + json.dumps(row, sort_keys=True, ensure_ascii=False))
+    _extra()
     return 0
 
 
