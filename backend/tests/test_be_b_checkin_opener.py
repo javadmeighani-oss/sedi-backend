@@ -48,6 +48,16 @@ def test_a_topic_push_is_recognised_as_topic(lang, name):
     assert rd.engagement_variant(_push(lang, name, last_topic_hint="sleep"), lang, name) == "topic"
 
 
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("variant_inputs,expected", [({}, "plain"), ({"wellbeing_trend": "low"}, "low"), ({"last_topic_hint": "sleep"}, "topic")])
+def test_the_rendered_push_with_a_goals_hint_or_name_prefix_is_still_recognised(lang, variant_inputs, expected):
+    """Codex P2: render() appends a short goals hint after the catalog wording; the classification must survive it."""
+    ctx = {"goals_items": ["walk every day"], "preferred_name": "جواد"}
+    out = rd.render(channel="engagement", language=lang, inputs=variant_inputs, user_ctx=ctx)
+    assert out is not None and out["body"]
+    assert rd.engagement_variant(out["body"], lang, "جواد") == expected, out["body"]
+
+
 @pytest.mark.parametrize("body", [None, "", "سلام", "some unrelated text"])
 def test_unknown_bodies_are_none(body):
     assert rd.engagement_variant(body, "fa", "جواد") is None
