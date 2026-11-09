@@ -46,16 +46,18 @@ _CC_URL = re.compile(r"creativecommons\.org/(licenses|licences)/(by(?:-(?:nc|nd|
 _CC_PD_URL = re.compile(r"creativecommons\.org/publicdomain/(zero|mark)")
 _NC = re.compile(r"non-?commercial|\bby-nc\b|cc[- ]by-nc")
 _ND = re.compile(r"no[- ]?derivs|no derivatives|\bby-nd\b|cc[- ]by-nd|noderiv")
-_BY_TEXT = re.compile(r"creative commons attribution(?! ?-? ?(?:non|share|no))|\bcc[- ]by(?:[- ]4\.0| 3\.0| 2\.0)?\b(?![- ]?(?:nc|nd|sa))")
 _SA_TEXT = re.compile(r"attribution[- ]?share ?alike|\bcc[- ]by-sa\b")
-_OGL = re.compile(r"open[- ]government[- ]licen[cs]e|nationalarchives\.gov\.uk/doc/open-government-licence")
-_PD = re.compile(r"\bpublic domain\b|\bcc0\b|works? of the united states government")
-_TDM = re.compile(
-    r'name=["\']tdm-reservation["\'][^>]*content=["\']1|tdmrep|'
-    r'<meta[^>]+name=["\']robots["\'][^>]*content=["\'][^"\']*(?:noai|noimageai)|'
-    r"text and data mining[^.<]{0,80}(?:prohibit|not permitted|reserved|forbidden)|"
-    r"(?:prohibit|not permitted|reserved|forbidden)[^.<]{0,80}text and data mining"
-)
+# Permissive signals count only when the PAGE declares them (Codex P2): a link to a CC resource or a page ABOUT licences is not
+# the page's own licence. Restrictive signals (NC / ND / SA / TDM) count wherever they appear: the stricter signal always wins.
+_DECL = re.compile(r"(?:licen[cs]ed|released|published|available|distributed)\s+(?:freely\s+)?under|licen[cs]e\s*:")
+_REL_LICENSE_TAG = re.compile(r"<(?:a|link)\b[^>]*\brel\s*=\s*[\"'][^\"']*\blicen[cs]e\b[^\"']*[\"'][^>]*>")
+_BY_CORE = re.compile(r"creative commons attribution(?! ?-? ?(?:non|share|no))|\bcc[- ]by(?:[- ]4\.0|[- ]3\.0|[- ]2\.0)?\b(?![- ]?(?:nc|nd|sa))")
+_BY_VERSIONED = re.compile(r"\bcc[- ]by[- ]\d\.\d\b(?![- ]?(?:nc|nd|sa))")  # a versioned label ("CC BY 4.0") is a declaration on its own
+_OGL_CORE = re.compile(r"open[- ]government[- ]licen[cs]e|nationalarchives\.gov\.uk/doc/open-government-licence")
+_PD_CORE = re.compile(r"\bcc0\b|public domain")
+_PD_STATEMENT = re.compile(r"(?:is|are|was|were)\s+in the public domain|released into the public domain|dedicated to the public domain|works? of the united states government")
+_META_TAG = re.compile(r"<meta\b[^>]*>")
+_TDM_TEXT = re.compile(r"text and data mining[^.<]{0,80}(?:prohibit|not permitted|reserved|forbidden)|(?:prohibit|not permitted|reserved|forbidden)[^.<]{0,80}text and data mining|tdmrep")
 _RESERVED = re.compile(r"all rights reserved|کلیه حقوق|تمامی حقوق|حقوق این (?:سایت|وب ?سایت|اثر) محفوظ|حقوق محفوظ")
 _COPYRIGHT_MARK = re.compile(r"©|&copy;|\bcopyright\b|کپی ?رایت")  # a bare notice claims copyright but does not reserve everything
 
@@ -90,18 +92,49 @@ def _text(body: Any, charset: str = "utf-8") -> str:
     return str(body or "")[:MAX_SCAN_BYTES].lower()
 
 
+def _attr(tag: str, name: str) -> str:
+    m = re.search(r"\b" + re.escape(name) + r"\s*=\s*[\"']([^\"']*)[\"']", tag)
+    return m.group(1).strip() if m else ""
+
+
+def _tdm_meta(s: str) -> bool:
+    """TDM / AI reservation in a meta tag, whatever the attribute order (Codex P2)."""
+    for tag in _META_TAG.findall(s):
+        name, content = _attr(tag, "name"), _attr(tag, "content")
+        if name == "tdm-reservation" and content == "1":
+            return True
+        if name == "robots" and re.search(r"noai|noimageai", content):
+            return True
+    return False
+
+
+def _meta_license_text(s: str) -> str:
+    out = []
+    for tag in _META_TAG.findall(s):
+        if _attr(tag, "name") in {"license", "licence", "dc.rights", "dcterms.license", "dc.license"}:
+            out.append(_attr(tag, "content"))
+    return " ".join(out)
+
+
+def _declared(s: str, core: "re.Pattern") -> bool:
+    """The page DECLARES the licence: a declaration phrase ("licensed under ...", "License: ...") followed by it."""
+    return any(core.search(s[m.end(): m.end() + 220]) for m in _DECL.finditer(s))
+
+
 def classify_page_rights(body: Any, url: str = "", *, strict: bool = False, charset: str = "utf-8") -> RightsVerdict:
     """Read the page's own rights signals. The stricter signal always wins; see the module docstring."""
     s = _text(body, charset)
     signals: list[str] = []
-    cc_kinds = {m.group(2) for m in _CC_URL.finditer(s)}
+    cc_kinds = {m.group(2) for m in _CC_URL.finditer(s)}  # anywhere on the page: only used for the STRICT checks
+    declared = " ".join(_REL_LICENSE_TAG.findall(s)) + " " + _meta_license_text(s)
+    declared_kinds = {m.group(2) for m in _CC_URL.finditer(declared)}
     nc = bool(_NC.search(s)) or any("nc" in k.split("-") for k in cc_kinds)
     nd = bool(_ND.search(s)) or any("nd" in k.split("-") for k in cc_kinds)
     sa = bool(_SA_TEXT.search(s)) or any("sa" in k.split("-") for k in cc_kinds)
-    by = ("by" in cc_kinds) or bool(_BY_TEXT.search(s))
-    ogl = bool(_OGL.search(s))
-    pd = bool(_CC_PD_URL.search(s)) or bool(_PD.search(s))
-    tdm = bool(_TDM.search(s))
+    by = ("by" in declared_kinds) or _declared(s, _BY_CORE) or bool(_BY_VERSIONED.search(s))
+    ogl = bool(_OGL_CORE.search(declared)) or _declared(s, _OGL_CORE)
+    pd = bool(_CC_PD_URL.search(declared)) or bool(_PD_STATEMENT.search(s)) or _declared(s, _PD_CORE)
+    tdm = _tdm_meta(s) or bool(_TDM_TEXT.search(s))
     reserved = bool(_RESERVED.search(s))
     notice = bool(_COPYRIGHT_MARK.search(s))
     for name, on in (("copyright_notice", notice),("tdm_reservation", tdm), ("nc", nc), ("nd", nd), ("sa", sa), ("cc_by", by), ("ogl", ogl), ("public_domain", pd), ("reserved", reserved)):

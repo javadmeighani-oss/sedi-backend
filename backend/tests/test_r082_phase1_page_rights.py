@@ -22,7 +22,13 @@ CASES = [
     ("cc_by_link", _html('<a rel="license" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>'), OTHER, pr.OPEN_AUTOMATION_ALLOWED, True, "passage"),
     ("cc_by_text", _html("Licensed under Creative Commons Attribution 4.0"), OTHER, pr.OPEN_AUTOMATION_ALLOWED, True, "passage"),
     ("ogl", _html('All content is available under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>'), OTHER, pr.OPEN_AUTOMATION_ALLOWED, True, "passage"),
-    ("cc0", _html('<a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>'), OTHER, pr.PUBLIC_DOMAIN, True, "passage"),
+    ("cc0", _html('<a rel="license" href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a>'), OTHER, pr.PUBLIC_DOMAIN, True, "passage"),
+    ("license_label", _html("License: CC BY 4.0"), OTHER, pr.OPEN_AUTOMATION_ALLOWED, True, "passage"),
+    ("meta_license", _html("hello", head='<meta name="dc.rights" content="https://creativecommons.org/licenses/by/4.0/">'), OTHER, pr.OPEN_AUTOMATION_ALLOWED, True, "passage"),
+    ("only_links_to_cc_by_is_not_a_declaration", _html('See <a href="https://creativecommons.org/licenses/by/4.0/">this CC BY resource</a>. © 2026 Site. All rights reserved.'), OTHER, pr.ALL_RIGHTS_RESERVED, False, "none"),
+    ("page_about_cc_by_is_not_a_declaration", _html("Our guide explains what Creative Commons Attribution means."), OTHER, pr.UNKNOWN_RIGHTS, True, "passage"),
+    ("tdm_meta_content_first", _html("CC BY 4.0", head='<meta content="1" name="tdm-reservation">'), OTHER, pr.FULLTEXT_TDM_PROHIBITED, False, "none"),
+    ("noai_content_first", _html("hello", head='<meta content="noai, noimageai" name="robots">'), OTHER, pr.FULLTEXT_TDM_PROHIBITED, False, "none"),
     ("public_domain", _html("This work is in the public domain."), OTHER, pr.PUBLIC_DOMAIN, True, "passage"),
     ("us_gov", _html("Works of the United States Government are not subject to copyright."), OTHER, pr.PUBLIC_DOMAIN, True, "passage"),
     ("cc_by_nc_link", _html('<a href="https://creativecommons.org/licenses/by-nc/4.0/">x</a>'), OTHER, pr.OPEN_LICENSE_RESTRICTED, False, "none"),
@@ -115,6 +121,16 @@ def test_the_gate_is_fail_open_when_the_detector_breaks(monkeypatch):
     monkeypatch.setattr(pr, "classify_page_rights", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x")))
     assert pr.apply_page_rights_gate(_env(b"<html></html>"), url=OTHER) is None
     assert pr.apply_page_rights_gate(SimpleNamespace(body=b"", charset="utf-8"), url=OTHER) is None
+
+
+def test_index_only_content_is_short_at_serving_time_by_the_existing_cap():
+    """Codex P2 (rejected as a code change, pinned instead): the weekly path keeps only extracted statements with a citation
+    (raw retention is minimal evidence) and serving cuts every statement to MAX_SERVING_CONTEXT_CHARS, so an
+    OWNER_RIGHTS_INDEX_ONLY page can only ever reach a user as a short attributed passage."""
+    from backend.app.services.scis.governed_runtime_adapter import MAX_SERVING_CONTEXT_CHARS
+
+    assert MAX_SERVING_CONTEXT_CHARS <= 600
+    assert pr.classify_page_rights(_html("کلیه حقوق محفوظ است"), IR).serve_mode == "short_attributed_passage"
 
 
 def test_the_fetch_adapter_calls_the_gate_after_the_envelope():
