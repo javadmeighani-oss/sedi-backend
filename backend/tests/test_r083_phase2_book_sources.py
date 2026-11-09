@@ -195,3 +195,21 @@ def test_the_weekly_orchestrator_uses_the_book_taxonomy_before_the_lifestyle_fal
     src = inspect.getsource(wo)
     assert src.index("candidate_taxonomy_for_url(entity_url)") > src.index("resolve_wave02_coverage_from_url(entity_url)")
 
+
+# ---- speed (Javad: a whole book in about 3 weeks) --------------------------------------------------------------------------------------
+BOOK_PAGES = {"openstax_anatomy_physiology_2e": 336, "openstax_sociology_3e": 243}  # measured on production, 2026-11-08
+
+
+@pytest.mark.parametrize("key,pages", sorted(BOOK_PAGES.items()))
+def test_a_whole_book_is_listed_within_three_weekly_cycles(key, pages):
+    import math
+
+    cfg = ld.discovery_config(manifest_row_for_key(key))
+    assert math.ceil(pages / cfg.max_new_urls_per_cycle) <= 3
+    assert cfg.max_discovered_urls >= pages
+
+
+def test_the_per_run_book_budget_covers_all_book_sources_at_their_cycle_rate():
+    rows = [manifest_row_for_key(k) for k in BOOK_PAGES]
+    assert sum(ld.discovery_config(r).max_new_urls_per_cycle for r in rows) <= ld.MAX_BOOK_URLS_PER_RUN
+

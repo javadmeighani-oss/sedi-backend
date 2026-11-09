@@ -1117,7 +1117,7 @@ sources:
       hub_urls:
         - https://openstax.org/rex/sitemaps/anatomy-and-physiology-2e.xml
       candidate_only: true
-      max_new_urls_per_cycle: 60
+      max_new_urls_per_cycle: 120  # 336 / 243 pages -> a whole book in 3 weekly cycles (Javad 2026-11-08)
       max_discovered_urls: 400
     license_notes: "CC BY 4.0 - OpenStax (Rice University), Anatomy and Physiology 2e, openstax.org/details/books/anatomy-and-physiology-2e; attribution required; stored as candidates only"
 
@@ -1145,6 +1145,6 @@ sources:
       hub_urls:
         - https://openstax.org/rex/sitemaps/introduction-sociology-3e.xml
       candidate_only: true
-      max_new_urls_per_cycle: 60
+      max_new_urls_per_cycle: 120  # 336 / 243 pages -> a whole book in 3 weekly cycles (Javad 2026-11-08)
       max_discovered_urls: 400
     license_notes: "CC BY 4.0 - OpenStax (Rice University), Introduction to Sociology 3e, openstax.org/details/books/introduction-sociology-3e; attribution required; stored as candidates only"

@@ -48,7 +48,7 @@ DEFAULT_MAX_DISCOVERED_URLS = 40
 # sitemap its publisher announces in robots.txt. Own, higher but still bounded ceilings; the lane sources keep the old ones.
 MAX_BOOK_NEW_URLS_PER_CYCLE = 150
 MAX_BOOK_DISCOVERED_URLS = 400
-MAX_BOOK_URLS_PER_RUN = 150
+MAX_BOOK_URLS_PER_RUN = 240  # two 120-page cycles (Javad: a whole book in about 3 weeks)
 CANDIDATE_ONLY_LANE = "CANDIDATE_ONLY"
 MAX_HUBS_PER_SOURCE = 8
 MAX_HUB_BYTES = 1_048_576
