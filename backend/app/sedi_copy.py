@@ -1434,6 +1434,22 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'سُجّل المستند في صورتك العامة.',
         'en': 'The document is recorded in your overall picture.',
     },
+    # R-089 (D-381): finding a doctor / lab never ends in «I cannot help».
+    'care_nav.ask_location': {
+        'fa': 'برای اینکه پزشک یا مرکز نزدیک تو را پیدا کنم، در کدام شهر و چه محله‌ای هستی؟ مثلاً «تهران، نارمک».',
+        'ar': 'لأجد لك طبيباً أو مركزاً قريباً، في أي مدينة وأي حيّ أنت؟ مثلاً «طهران، نارمك».',
+        'en': 'To find a doctor or centre near you, which city and neighbourhood are you in? For example “Tehran, Narmak”.',
+    },
+    'care_nav.no_result.links': {
+        'fa': 'در جست‌وجوی همین حالا، {what} با نشانی تأییدشده در {where} پیدا نشد. فهرست کامل و به‌روز را در این صفحه‌ها می‌بینی:\n{links}\nکدام خیابان یا محله‌ی نزدیک‌تر برایت مناسب‌تر است تا دقیق‌تر بگردم؟',
+        'ar': 'في البحث الآن لم أجد {what} بعنوان مؤكَّد في {where}. القائمة الكاملة والمحدَّثة في هذه الصفحات:\n{links}\nأي شارع أو حيّ قريب يناسبك أكثر لأبحث بدقة أكبر؟',
+        'en': 'In this search I found no {what} with a verified address in {where}. The full, up-to-date listings are on these pages:\n{links}\nWhich nearby street or neighbourhood suits you better, so I can search more precisely?',
+    },
+    'care_nav.no_result.generic': {
+        'fa': 'برای پیدا کردن پزشک یا مرکز مناسب، شهر، محله و تخصص مورد نظرت را بگو؛ در سایت‌های نوبت‌دهی و فهرست‌های پزشکی برایت جست‌وجو می‌کنم و هیچ نامی را از خودم نمی‌سازم.',
+        'ar': 'لأجد لك طبيباً أو مركزاً مناسباً، أخبرني بالمدينة والحيّ والتخصص؛ سأبحث في مواقع الحجز والقوائم الطبية ولن أختلق أي اسم.',
+        'en': 'To find the right doctor or centre, tell me the city, neighbourhood and specialty; I will search the booking sites and medical listings and only share verified names, never invented ones.',
+    },
     'reminder.not_sent_say_when': {
         'fa': 'برای ارسال نوتیف زمان و موضوعش را بگو؛ مثلاً «الان نوتیف بفرست» یا «فردا ساعت ۱۰ یادم بینداز».',
         'ar': 'لإرسال إشعار أخبرني بالوقت والموضوع، مثل «أرسل لي إشعاراً الآن» أو «ذكّرني غداً الساعة 10».',

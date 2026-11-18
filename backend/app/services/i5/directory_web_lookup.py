@@ -20,6 +20,8 @@ from typing import Any, Optional, Sequence
 from urllib.parse import urlparse
 
 from backend.app.services.i5.iran_directory_p24 import clean_landline
+from backend.app.services.i5.iran_places import mentions as _mentions
+from backend.app.services.i5.iran_places import normalize as _norm_place
 
 WEB_LOOKUP_SOURCE = "web_lookup"
 FLAG = "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED"
@@ -100,15 +102,15 @@ _ENTITY_WORDS = {
 
 
 def build_query(entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
-                country: str = "IR") -> Optional[str]:
-    """Structured-only query. No city → no lookup (too broad, likely low quality)."""
+                country: str = "IR", area: Optional[str] = None) -> Optional[str]:
+    """Structured-only query. No city → no lookup (too broad, likely low quality). ``area`` = neighbourhood (R-089)."""
     if not city:
         return None
     en, fa = _ENTITY_WORDS.get(entity, _ENTITY_WORDS["SPECIALIST"])
     ir = country.upper() == "IR"
     word = fa if ir else en
     what = f"{specialty} {word}" if specialty else word
-    where = ", ".join(x for x in (city, province) if x)
+    where = ", ".join(x for x in (area, city, province) if x)
     return f"{what} {where}" if ir else f"{what} in {where}"
 
 
@@ -145,6 +147,7 @@ def _instructions(country: str) -> str:
         "Prefer official sites and well-known medical booking directories"
         + (" in Iran (e.g. paziresh24.com, drdr.ir, doctoreto.com, irimc.org, *.ac.ir hospitals)" if country == "IR" else "")
         + ", but a clinic's or doctor's own website is acceptable when it shows the address or phone. "
+        "When the query names a neighbourhood or district, return providers located in it or nearby first. "
         "Never invent providers, phones or addresses. Return at most 8 results."
     )
 
@@ -165,7 +168,8 @@ def _call_web_search(query: str, country: str, client: Any = None) -> list[dict[
     return [r for r in (data.get("results") or []) if isinstance(r, dict)]
 
 
-def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], country: str = "IR") -> list[dict[str, Any]]:
+def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], country: str = "IR",
+                     area: Optional[str] = None) -> list[dict[str, Any]]:
     """Real page link + the requested city + something actionable. Mobile numbers dropped.
 
     Any site is accepted (clinic and doctor sites are legitimate sources); results from known listing or
@@ -180,7 +184,15 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
             continue
         address = " ".join(str(it.get("address") or "").split())[:512] or None
         item_city = " ".join(str(it.get("city") or "").split()) or None
-        if city and city not in f"{item_city or ''} {address or ''}":
+        place_text = _norm_place(f"{item_city or ''} {address or ''}")
+        area_hit = bool(area and _norm_place(area) in place_text)
+        # spacing/half-space tolerant: «تهرانپارس» == «تهران‌پارس»; a neighbourhood match is enough (R-089)
+        if city and not _mentions(place_text, city) and not area_hit:
+            continue
+        # ...unless the result explicitly names ANOTHER city (e.g. «شیراز، منطقه ۸» for Tehran's district 8) - Codex P2
+        if city and item_city and not _mentions(_norm_place(item_city), city) and not (
+            area and _norm_place(area) in _norm_place(item_city)
+        ):
             continue
         phone = clean_landline(it.get("phone"))
         if not (address or phone):
@@ -201,15 +213,17 @@ def _query_variants(query: str, entity: str, country: str) -> list[str]:
     out = [query, query + (" آدرس و تلفن" if ir else " address phone")]
     if ir and entity == "LABORATORY":
         out.append(query.replace("آزمایشگاه", "آزمایشگاه تشخیص طبی", 1) + " آدرس")
+    if ir:  # R-089: last try aimed at the Iranian booking / listing sites
+        out.append(query + " نوبت‌دهی پذیرش۲۴ دکترتو دکتر دکتر")
     return out
 
 
 def search_web_providers(*, entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
-                         country: str = "IR", client: Any = None) -> list[dict[str, Any]]:
+                         country: str = "IR", client: Any = None, area: Optional[str] = None) -> list[dict[str, Any]]:
     """One guarded web search (cached 24h per structured query). Never raises, never writes to the DB."""
     if not web_lookup_enabled():
         return []
-    query = build_query(entity, specialty, city, province, country)
+    query = build_query(entity, specialty, city, province, country, area=area)
     if not query:
         return []
     now = time.time()
@@ -228,7 +242,7 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
             raw = _call_web_search(variant, country, client)
             if raw:
                 break
-        results = validate_results(raw, city=city, country=country)
+        results = validate_results(raw, city=city, country=country, area=area)
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
     with _lock:
