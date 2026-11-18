@@ -255,7 +255,13 @@ def _candidate_name(message: str) -> Optional[str]:
         return None
     cleaned = re.sub(r"^(?:اسمش|اسم\s*آن|نامش|اسم|نام|قرص|داروی|دارو|کپسول|its|it is|it's|called|name is)\s+", "", text, flags=re.I)
     cleaned = re.sub(r"\s+(?:است|هست|ه|می‌باشد)$", "", cleaned).strip()
-    return cleaned[:120] or None
+    if not cleaned:
+        return None
+    # Codex P1 (PR 185): only the leading medicine NAME is ever kept (it is stored in the catalog and sent to the lookup);
+    # «Metformin for my diabetes» -> «Metformin»; a reply that is a sentence / health detail / phone number -> None.
+    from backend.app.services.medication_care.drug_brief import name_from_reply
+
+    return name_from_reply(cleaned)
 
 
 def _recent_turns(db: Session, user_id: int, now: datetime) -> list[Any]:
@@ -365,7 +371,8 @@ def continue_interview(
         # a non-answer / insistence ends the interview now: the request is never lost
         if insists(message) or _NON_ANSWER.match(text):
             return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
-        answer = _candidate_name(message) if stage in ("ask_name", "confirm_name") else None
+        # «unrecognised»: Sedi asked for the correct name, so a short reply there is that correction (Codex P2, PR 185)
+        answer = _candidate_name(message) if stage in ("ask_name", "confirm_name", "unrecognised") else None
         if stage == "ask_name":
             return _reason_reply(answer, lang) if answer else None
         if stage in ("confirm_name", "unrecognised"):

@@ -214,3 +214,73 @@ def test_confirmed_name_from_the_first_message_is_introduced_once(monkeypatch, i
     monkeypatch.setattr(db, "lookup", lambda name, lang, client=None: brief)
     reply = _go(monkeypatch, sedi_copy.t("medication.chat.q.confirm_name", "fa", name="لووتیروکسین"), "بله")
     assert "medlineplus.gov" in reply and mc._stage_of(reply, "fa") == "ask_reason"
+
+
+# --- Codex review of PR 185 (P1 x2, P2 x2) ------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "reply, sent",
+    [
+        ("Metformin for my diabetes", "Metformin"),  # the reason never leaves
+        ("متفورمین برای دیابت", "متفورمین"),
+        ("Levothyroxine, I have thyroid problems", "Levothyroxine"),
+        ("گلیبن کلامید", "گلیبن کلامید"),
+        ("لووتیروکسین", "لووتیروکسین"),
+        ("I have HIV", None),  # starts with a sentence: nothing is sent
+        ("من دیابت دارم", None),
+        ("0912 123 4567", None),  # phone with separators
+        ("۰۹۱۲-۱۲۳-۴۵۶۷", None),
+        ("name@example.com", None),
+        ("diabetes", None),  # a health condition is not a medicine name
+    ],
+)
+def test_only_the_leading_medicine_name_can_leave_the_server(reply, sent):
+    assert db.name_from_reply(reply) == sent
+    client = _FakeClient(_payload())
+    db.lookup(db.name_from_reply(reply) or "I have HIV", "fa", client=client)
+    for call in client.calls:  # whatever was sent is only the name
+        assert call["input"] == sent
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Take 2 tablets daily for pain relief",
+        "Take 50 milligrams daily for thyroid replacement",
+        "It is used for pain, one tablet twice a day",
+        "هر روز دو قرص مصرف کنید برای درد",
+        "برای کم‌کاری تیروئید روزانه مصرف می‌شود",
+        "يؤخذ مرة يومياً لعلاج الغدة الدرقية",
+        "برای درد ۵۰۰ میلی‌گرم مصرف می‌شود",
+        "for pain 500 only",
+    ],
+)
+def test_dosing_and_instructions_never_pass_the_summary_guard(text):
+    assert db.clean_summary(text) is None
+    assert db.validate(_payload(summary=text)) is None  # falls back to the plain reason question
+
+
+def test_missing_or_malformed_recognition_is_a_failed_enrichment_not_a_negative_answer():
+    assert db.validate({}) is None
+    assert db.validate({"summary": GOOD, "sources": SRC2}) is None
+    assert db.validate({"recognized": "yes", "summary": GOOD, "sources": SRC2}) is None
+    assert db.validate({"recognized": False, "generic_name": "", "summary": "", "sources": []}).recognized is False
+    assert db.lookup("لووتیروکسین", "fa", client=_FakeClient({})) is None  # empty API answer = fail-open
+
+
+def test_correction_in_the_unrecognised_stage_advances_the_interview(monkeypatch, interview):
+    seen = []
+
+    def fake(name, lang, client=None):
+        seen.append(name)
+        return db.validate(_payload(), today="2026-11-18")
+
+    monkeypatch.setattr(db, "lookup", fake)
+    unrecognised = sedi_copy.t("medication.chat.q.unrecognised", "fa", name="ایکسزد")
+    reply = _go(monkeypatch, unrecognised, "لووتیروکسین")
+    assert seen == ["لووتیروکسین"] and mc._stage_of(reply, "fa") == "ask_reason" and "medlineplus.gov" in reply
+
+
+def test_a_reply_that_is_a_sentence_is_not_stored_as_a_medicine_name(monkeypatch, interview):
+    monkeypatch.setattr(db, "lookup", lambda name, lang, client=None: None)
+    assert _go(monkeypatch, sedi_copy.t("medication.chat.q.ask_name", "fa"), "من دیابت دارم") is None
+    assert mc._candidate_name("Metformin for my diabetes") == "Metformin"
