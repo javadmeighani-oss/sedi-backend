@@ -250,3 +250,28 @@ def test_request_completed_by_a_period_answer_is_reconstructed(monkeypatch, owne
     ]
     reply = _go(monkeypatch, rows, "برای کم‌کاری تیروئید مصرفش می‌کنم")
     assert owner == ["لووتیروکسین"] and reply and "14:00" in reply
+
+
+# --- Codex P2 (PR 185): the medication schedule has no start date -------------------------------------------------
+def _tehran_draft(start_local, rule="FREQ=DAILY"):
+    return _Draft(starts_at_local=start_local, recurrence_rule=rule, timezone_name="Asia/Tehran")
+
+
+@pytest.mark.parametrize(
+    "now_utc, start, future",
+    [
+        (datetime(2026, 11, 18, 10, 0), datetime(2026, 11, 19, 21, 0), True),   # 13:30 Tehran, «from tomorrow 21:00»: tonight would be a day early
+        (datetime(2026, 11, 18, 10, 0), datetime(2026, 11, 18, 21, 0), False),  # today 21:00 is simply the next occurrence
+        (datetime(2026, 11, 18, 19, 0), datetime(2026, 11, 19, 14, 0), False),  # 22:30 Tehran, «every day 14:00»: tomorrow IS the next occurrence
+        (datetime(2026, 11, 18, 10, 0), datetime(2026, 11, 21, 8, 0), True),    # a start three days away
+    ],
+)
+def test_future_start_dates_keep_the_generic_route(now_utc, start, future):
+    assert mc.has_future_start(_tehran_draft(start), now_utc) is future
+
+
+def test_a_future_start_pill_request_is_left_to_the_generic_event_route(monkeypatch, owner):
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
+    far = _tehran_draft(datetime(2030, 1, 5, 21, 0))
+    assert mc.start_interview(None, user_id=1, message="از ۱۵ دی هر شب ساعت ۹ قرصم را یادم بنداز", draft=far, language="fa", timezone_name=TZ) is None
+    assert owner == []

@@ -153,6 +153,27 @@ def _is_recurring(rule: Optional[str]) -> bool:
     return bool(rule) and ("FREQ=DAILY" in rule or "FREQ=WEEKLY" in rule)
 
 
+def has_future_start(draft: Any, now_utc: Optional[datetime] = None) -> bool:
+    """True when the request names a start DAY later than the next time the clock time occurs («از فردا ساعت ۹ شب» asked in the
+    afternoon). The medication schedule has no start date and would fire a day early, so such a request keeps the generic
+    event route, which knows its date (Codex P2, PR 185). Fail-closed: any doubt -> True (keep the generic route)."""
+    try:
+        import pytz
+
+        start = getattr(draft, "starts_at_local", None)
+        if not isinstance(start, datetime):
+            return True
+        zone = pytz.timezone(getattr(draft, "timezone_name", None) or "UTC")
+        moment = (now_utc or datetime.now(timezone.utc))
+        local_now = (moment if moment.tzinfo else moment.replace(tzinfo=pytz.UTC)).astimezone(zone).replace(tzinfo=None)
+        next_occurrence = local_now.replace(hour=start.hour, minute=start.minute, second=0, microsecond=0)
+        if next_occurrence <= local_now:
+            next_occurrence += timedelta(days=1)
+        return start.date() > next_occurrence.date()
+    except Exception:  # noqa: BLE001
+        return True
+
+
 def history_available(db: Session, user_id: int) -> bool:
     """The interview state lives in the consent-gated conversation memory (R-021)."""
     try:
@@ -209,7 +230,7 @@ def start_interview(
     try:
         if not enabled() or not is_medication_text(message) or not _is_recurring(getattr(draft, "recurrence_rule", None)):
             return None
-        if not _hhmm(draft):
+        if not _hhmm(draft) or has_future_start(draft):
             return None
         found = extract_pill_name(message)
         flow = None
@@ -343,7 +364,7 @@ def _original_request(turns: list[Any], language: Optional[str], timezone_name: 
         draft, missing = parse_reminder_event_draft(
             message=text, timezone_name=timezone_name or "UTC", now_utc=t.created_at, language=language
         )
-        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule):
+        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule) and not has_future_start(draft, t.created_at):
             return (draft,)
     return None
 
