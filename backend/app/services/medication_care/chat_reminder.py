@@ -1,19 +1,25 @@
-"""R-088 / R-091 (D-382..D-384), package A1: a pill reminder asked for IN CHAT goes to the MEDICATION OWNER.
+"""R-088 / R-091 (D-382..D-387), package A1 v2: a pill reminder asked for IN CHAT becomes a short CARE INTERVIEW and only then
+goes to the MEDICATION OWNER.
 
-Before: «هر روز ساعت ۲ یادم بنداز قرص بخورم» created a generic UserEvent, so Sedi never asked which pill, never counted doses
-and never reached the dose-confirmation / user_done machinery that already exists for medications.
+Before: «هر روز ساعت ۲ یادم بنداز قرص بخورم» created a generic UserEvent at once - Sedi never knew the medicine or the user's
+situation, and the pill notification was a fixed «Time to take X».
 
-Now (recurring pill reminders only):
-1. ``create_from_draft`` - UserMedication + schedule through ``user_medication_service`` (single owner, R-005). The reminder
-   exists at once, so nothing is lost; the name may still be provisional.
-2. The confirmation states WHAT/WHEN and asks ONE question: which pill (the exact name on the box, or a photo of the box /
-   prescription when unsure). The correct name is critical (R-088 amendment 3), so a name found in the message is also
-   confirmed against the box.
-3. ``bind_name_answer`` - the next short reply is read as the answer: a new name renames the user's medication, «yes»
-   keeps it. The introduction of the medicine (what it is used for) is package A2.
+Now (recurring pill reminders; Javad D-386 / D-387): the time is NOT set first. Sedi first learns the exact name of the
+medicine (spelling / a photo of the box when unsure), then the reason for taking it, and only then creates the reminder
+through ``user_medication_service`` (single owner, R-005) at the stated time, in harmony with what she learned.
 
-Fail-open: any error returns ``None`` and the caller keeps the old UserEvent path. Kill switch (code default ON, no env
-change needed): SEDI_MEDICATION_CHAT_OWNER_DISABLED=1.
+Escapes - the request is never lost:
+* the user insists («همین ساعت», «فقط یادم بنداز») or gives a non-answer -> create it at once with the stated time and say that
+  Sedi keeps caring for the user's health and is open to talk about it;
+* no consent / no conversation memory (the interview state lives in the consent-gated conversation) -> create it at once and ask
+  which pill (the A1 v1 behaviour).
+
+The interview state is DERIVED from the conversation (Sedi's last reply carries the stage marker, the original request is
+re-read from the recent turns): no new table. Medicine introduction via online search = package A2; varied pill notifications
+with a care suggestion = package A4.
+
+Fail-open: any error returns ``None`` and the caller keeps the old UserEvent path. Kill switch (code default ON, no env change):
+SEDI_MEDICATION_CHAT_OWNER_DISABLED=1.
 """
 from __future__ import annotations
 
@@ -33,11 +39,16 @@ DISABLED_ENV = "SEDI_MEDICATION_CHAT_OWNER_DISABLED"
 PROVISIONAL_KEY = "medication.chat.provisional_name"
 BIND_WINDOW = timedelta(hours=6)
 MAX_ANSWER_WORDS = 6
+STAGE_KEYS = {
+    "ask_name": "medication.chat.markers.ask_name",
+    "confirm_name": "medication.chat.markers.confirm_name",
+    "ask_reason": "medication.chat.markers.ask_reason",
+}
 
 _ARABIC_MARKS = re.compile("[ً-ٰٟـ‌‏‎]")
 _FOLD = (("ي", "ی"), ("ى", "ی"), ("ك", "ک"), ("ة", "ه"))
 
-# Medicine words (fa / ar / en). «داروخانه» / pharmacy is a place, not a medicine.
+# Medicine words (fa / ar / en) with common Persian/Arabic clitics. «داروخانه» / pharmacy is a place, not a medicine.
 _MED_WORD = re.compile(
     r"(?<![؀-ۿA-Za-z])[بلو]?(?:قرص|کپسول|آمپول|شربت|قطره|دارو|ویتامین|مکمل|حبوب|دوائ|دواء|ادویه|أدویه|كبسولة|كبسول|"
     r"pills?|tablets?|capsules?|medicines?|medications?|vitamins?|supplements?|meds?)"
@@ -47,6 +58,7 @@ _MED_WORD = re.compile(
 )
 _PHARMACY = re.compile(r"داروخانه|داروساز|pharmac|صيدلي", re.I)
 
+# «داروی فشارم» names a condition, not a medicine: only product-type words introduce a name.
 _NAME_AFTER = re.compile(
     r"(?:قرص|کپسول|آمپول|شربت|قطره|ویتامین|مکمل)\s+([A-Za-z؀-ۿ][A-Za-z0-9؀-ۿ\-]{1,30})"
     r"(?:\s+([0-9۰-۹]{1,4}\s*(?:mg|mcg|میلی‌?گرم|میکروگرم|iu|واحد)))?",
@@ -59,10 +71,23 @@ _NAME_BEFORE_EN = re.compile(
 _STOP = frozenset(
     "را رو های هام م ام مو بخورم بخورد بخور بخوری مصرف مصرفی هر روز ساعت صبح ظهر عصر شب یادم یادمه بنداز بندازی بهم "
     "من خودم لطفا لطفاً کن کنی بزن بگو بفرست نوتیف یک یه دو سه چهار بعد قبل از بعدازظهر نیمه وعده تا است هست باید "
-    "the my a an to at every day daily morning evening night noon please remind me take pill pills tablet tablets capsule capsules medicine medicines medication medications vitamin vitamins supplement supplements meds med".split()
+    "the my a an to at every day daily morning evening night noon please remind me take pill pills tablet tablets capsule "
+    "capsules medicine medicines medication medications vitamin vitamins supplement supplements meds med".split()
 )
 _YES = re.compile(r"^(?:بله|آره|اره|ایول|درسته|درست|همینه|همین|صحیح|اوهوم|yes|yeah|yep|correct|right|نعم|صحيح|أجل)\b", re.I)
 _NO = re.compile(r"^(?:نه|نخیر|خیر|no|nope|لا)\b", re.I)
+_INSIST = re.compile(
+    r"(?:همین\s+ساعت|فقط\s+(?:یادم\s+بنداز|یادآوری|یادآور)|بدون\s+(?:سوال|سؤال|پرسش)|سوال\s+نپرس|"
+    r"just\s+remind|no\s+questions|same\s+time|without\s+questions|فقط\s+ذكرني|بدون\s+أسئلة)",
+    re.I,
+)
+_NON_ANSWER = re.compile(
+    r"^(?:نمی\s*?دونم|نمی\s*?دانم|فرقی\s+نمی\s*?کنه|مهم\s+نیست|بی\s*?خیال|نمی\s*?خوام|نمیخوام|i\s+don'?t\s+know|skip|never\s+mind|"
+    r"لا\s+أعرف|لا\s+أريد)",
+    re.I,
+)
+_QUOTED = re.compile("[«\"“]([^»\"”]{2,120})[»\"”]")
+_BYDAY = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
 
 
 def _fold(text: str) -> str:
@@ -76,13 +101,25 @@ def enabled() -> bool:
     return os.getenv(DISABLED_ENV, "").strip().lower() not in {"1", "true", "yes", "on"}
 
 
+def _lang(language: Optional[str]) -> str:
+    return language if language in ("fa", "ar", "en") else "en"
+
+
+def provisional_name(language: Optional[str]) -> str:
+    return sedi_copy.t(PROVISIONAL_KEY, _lang(language))
+
+
 def is_medication_text(text: str) -> bool:
     folded = _fold(text)
     return bool(_MED_WORD.search(folded)) and not _PHARMACY.search(folded)
 
 
+def insists(text: str) -> bool:
+    return bool(_INSIST.search(_fold(text)))
+
+
 def extract_pill_name(text: str) -> Optional[str]:
-    """A medicine name written right after «قرص/کپسول/داروی…» (or «X pill»). None when uncertain - the user is then asked."""
+    """A medicine name written right after «قرص/کپسول/…» (or «X pill»). None when uncertain - the user is then asked."""
     folded = _fold(text)
     for m in _NAME_AFTER.finditer(folded):
         word = m.group(1).strip("-")
@@ -97,24 +134,13 @@ def extract_pill_name(text: str) -> Optional[str]:
     return None
 
 
-def _lang(language: Optional[str]) -> str:
-    return language if language in ("fa", "ar", "en") else "en"
-
-
-def provisional_name(language: Optional[str]) -> str:
-    return sedi_copy.t(PROVISIONAL_KEY, _lang(language))
-
-
 def _hhmm(draft: Any) -> Optional[str]:
     start = getattr(draft, "starts_at_local", None)
     return start.strftime("%H:%M") if isinstance(start, datetime) else None
 
 
-_BYDAY = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
-
-
 def _days_of_week(rule: Optional[str]) -> Optional[str]:
-    """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3»; daily -> None (every day)."""
+    """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily -> None (every day)."""
     m = re.search(r"BYDAY=([A-Z,]+)", rule or "")
     if not m:
         return None
@@ -126,30 +152,34 @@ def _is_recurring(rule: Optional[str]) -> bool:
     return bool(rule) and ("FREQ=DAILY" in rule or "FREQ=WEEKLY" in rule)
 
 
-def create_from_draft(
-    db: Session, *, user_id: int, message: str, draft: Any, language: Optional[str], timezone_name: Optional[str]
-) -> Optional[dict[str, Any]]:
-    """Create the medication + schedule for a recurring pill reminder; None = not applicable / fail-open."""
+def history_available(db: Session, user_id: int) -> bool:
+    """The interview state lives in the consent-gated conversation memory (R-021)."""
     try:
-        if not enabled() or not is_medication_text(message) or not _is_recurring(getattr(draft, "recurrence_rule", None)):
-            return None
-        hhmm = _hhmm(draft)
-        if not hhmm:
-            return None
+        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+
+        return bool(has_permission(db, user_id, PERM_READ))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _create(
+    db: Session, *, user_id: int, draft: Any, language: Optional[str], timezone_name: Optional[str], name: Optional[str]
+) -> Optional[dict[str, Any]]:
+    """The ONLY medication-owner write of this flow. ``name`` None -> provisional name (A4 keeps asking later)."""
+    try:
         from backend.app.schemas.medical import UserMedicationCreateIn
         from backend.app.services import user_medication_service as svc
 
-        lang = _lang(language)
-        found = extract_pill_name(message)
-        name = found or provisional_name(lang)
+        hhmm = _hhmm(draft)
+        if not hhmm:
+            return None
+        use_name = name or provisional_name(language)
         try:
             out = svc.create_user_medication(
-                db,
-                user_id,
-                UserMedicationCreateIn(name=name, reminder_times=[hhmm], timezone=timezone_name or None),
+                db, user_id, UserMedicationCreateIn(name=use_name, reminder_times=[hhmm], timezone=timezone_name or None)
             )
         except svc.DuplicateUserMedicationError:
-            return {"kind": "medication", "created": False, "duplicate": True, "name": name, "named": bool(found), "time": hhmm}
+            return {"kind": "medication", "created": False, "duplicate": True, "name": use_name, "named": bool(name), "time": hhmm}
         days = _days_of_week(getattr(draft, "recurrence_rule", None))
         if days:
             um = db.query(models.UserMedication).filter(models.UserMedication.id == out["id"]).first()
@@ -158,17 +188,11 @@ def create_from_draft(
                     row.days_of_week = days
                 db.commit()
         return {
-            "kind": "medication",
-            "created": True,
-            "duplicate": False,
-            "user_medication_id": out.get("id"),
-            "name": name,
-            "named": bool(found),
-            "time": hhmm,
-            "days": days,
+            "kind": "medication", "created": True, "duplicate": False, "user_medication_id": out.get("id"),
+            "name": use_name, "named": bool(name), "time": hhmm, "days": days,
         }
-    except Exception:  # noqa: BLE001 - chat must never break; the caller falls back to the UserEvent path
-        logger.exception("[R-088] chat medication create failed; falling back to UserEvent")
+    except Exception:  # noqa: BLE001 - chat must never break
+        logger.exception("[R-088] medication owner create failed")
         try:
             db.rollback()
         except Exception:  # noqa: BLE001
@@ -176,21 +200,54 @@ def create_from_draft(
         return None
 
 
+# --- turn 1: the request ------------------------------------------------------------------------------------------
+def start_interview(
+    db: Session, *, user_id: int, message: str, draft: Any, language: Optional[str], timezone_name: Optional[str]
+) -> Optional[dict[str, Any]]:
+    """First turn of a recurring pill request. None = not applicable (the generic UserEvent path stays)."""
+    try:
+        if not enabled() or not is_medication_text(message) or not _is_recurring(getattr(draft, "recurrence_rule", None)):
+            return None
+        if not _hhmm(draft):
+            return None
+        found = extract_pill_name(message)
+        flow = None
+        if insists(message):
+            flow = "insist"
+        elif not history_available(db, user_id):
+            flow = "no_history"
+        if flow:
+            out = _create(db, user_id=user_id, draft=draft, language=language, timezone_name=timezone_name, name=found)
+            if out is not None:
+                out["flow"] = flow
+            return out
+        return {
+            "kind": "medication", "created": False, "interview": "confirm_name" if found else "ask_name",
+            "name": found or "", "named": bool(found), "time": _hhmm(draft), "reason": "interview",
+        }
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-088] medication interview start failed")
+        return None
+
+
 def confirmation(dispatched: dict[str, Any], language: Optional[str], when: str) -> str:
-    """WHAT + WHEN + ONE question (which pill / exact name or a photo of the box)."""
+    """Sedi's text for a medication dispatch result: the next interview question, or the created reminder."""
     lang = _lang(language)
+    stage = dispatched.get("interview")
+    if stage == "confirm_name":
+        return sedi_copy.t("medication.chat.q.confirm_name", lang, name=dispatched.get("name", ""))
+    if stage == "ask_name":
+        return sedi_copy.t("medication.chat.q.ask_name", lang)
+    if dispatched.get("flow") == "insist":
+        key = "medication.chat.created.insist_named" if dispatched.get("named") else "medication.chat.created.insist_unnamed"
+        return sedi_copy.t(key, lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""))
+    # no-history fallback: the reminder exists, ask which pill
     if dispatched.get("named"):
         return sedi_copy.t("medication.chat.confirm_named", lang, name=dispatched.get("name", ""), when=when)
     return sedi_copy.t("medication.chat.confirm_unnamed", lang, when=when)
 
 
-# --- the answer to «which pill?» ----------------------------------------------------------------------------------
-def _asked_for_pill(last_sedi_reply: Optional[str], language: Optional[str]) -> bool:
-    text = _fold(last_sedi_reply or "")
-    markers = sedi_copy.variants("medication.chat.markers", _lang(language), "fa")
-    return any(_fold(mk) in text for mk in markers)
-
-
+# --- the next turns: continuing the interview from the conversation ------------------------------------------------
 def _candidate_name(message: str) -> Optional[str]:
     text = _fold(message).strip().strip("«»\"'.؟?!،, ")
     if not text or len(text.split()) > MAX_ANSWER_WORDS or _YES.match(text) or _NO.match(text):
@@ -200,79 +257,89 @@ def _candidate_name(message: str) -> Optional[str]:
     return cleaned[:120] or None
 
 
-def _latest_pending(db: Session, user_id: int, now: datetime) -> Optional[tuple[models.UserMedication, models.Medication]]:
-    since = now.replace(tzinfo=None) - BIND_WINDOW
-    row = (
-        db.query(models.UserMedication)
-        .filter(models.UserMedication.user_id == user_id, models.UserMedication.created_at >= since)
-        .order_by(models.UserMedication.created_at.desc())
-        .first()
-    )
-    if row is None:
-        return None
-    med = db.query(models.Medication).filter(models.Medication.id == row.medication_id).first()
-    return (row, med) if med is not None else None
-
-
-def last_sedi_reply(db: Session, user_id: int) -> Optional[str]:
-    """Sedi's previous reply (consent-gated raw turn, R-021). None without consent / history: the binding then simply does not apply."""
+def _recent_turns(db: Session, user_id: int, now: datetime) -> list[Any]:
     try:
-        from backend.app.services.i6.consent_service import PERM_READ, has_permission
         from backend.app.services.i7.retention import query_eligible_raw
 
-        if not has_permission(db, user_id, PERM_READ):
-            return None
-        for row in query_eligible_raw(db, user_id, limit=3):
-            reply = str(getattr(row, "sedi_response", "") or "").strip()
-            if reply:
-                return reply
+        since = now.replace(tzinfo=None) - BIND_WINDOW
+        return [t for t in query_eligible_raw(db, user_id, limit=12) if t.created_at is not None and t.created_at >= since]
     except Exception:  # noqa: BLE001
-        return None
+        return []
+
+
+def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
+    text = _fold(reply or "").lower()
+    lang = _lang(language)
+    for stage, key in STAGE_KEYS.items():
+        if any(_fold(m).lower() in text for m in sedi_copy.variants(key, lang, "fa")):
+            return stage
     return None
 
 
-def bind_name_answer(
-    db: Session, *, user_id: int, message: str, last_sedi_reply: Optional[str], language: Optional[str],
+def _original_request(turns: list[Any], language: Optional[str], timezone_name: Optional[str]) -> Optional[tuple[Any]]:
+    from backend.app.services.intelligence.reminder_event_readiness import parse_reminder_event_draft
+
+    for t in turns:  # newest first
+        text = str(getattr(t, "user_message", "") or "")
+        if not is_medication_text(text):
+            continue
+        draft, missing = parse_reminder_event_draft(
+            message=text, timezone_name=timezone_name or "UTC", now_utc=t.created_at, language=language
+        )
+        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule):
+            return (draft,)
+    return None
+
+
+def continue_interview(
+    db: Session, *, user_id: int, message: str, language: Optional[str], timezone_name: Optional[str],
     now: Optional[datetime] = None,
 ) -> Optional[str]:
-    """Read a short reply to «which pill?» as the answer. Returns Sedi's reply text or None when it does not apply."""
+    """Next step of the interview, or None when the message is not part of it (the normal flow handles it)."""
     try:
-        if not enabled() or not _asked_for_pill(last_sedi_reply, language):
+        if not enabled():
             return None
-        moment = now or datetime.now(timezone.utc)
-        pending = _latest_pending(db, user_id, moment)
-        if pending is None:
+        turns = _recent_turns(db, user_id, now or datetime.now(timezone.utc))
+        last = next((str(t.sedi_response) for t in turns if getattr(t, "sedi_response", None)), "")
+        stage = _stage_of(last, language)
+        if stage is None:
             return None
-        um, med = pending
         lang = _lang(language)
-        text = _fold(message).strip()
-        hhmm = None
-        sched = list(um.schedules)
-        if sched:
-            hhmm = sched[0].time_of_day.strftime("%H:%M")
-        if _YES.match(text):
-            if med.name == provisional_name(lang):  # «yes» to «which pill?» carries no name: ask once more
-                return sedi_copy.t("medication.chat.ask_again", lang)
-            return sedi_copy.t("medication.chat.kept", lang, name=med.name, time=hhmm or "")
-        name = _candidate_name(message)
-        if name is None:
+        original = _original_request(turns, language, timezone_name)
+        if original is None:
             return None
-        from backend.app.services import user_medication_service as svc
+        draft = original[0]
+        quoted = _QUOTED.search(last)
+        name = quoted.group(1).strip() if quoted else None
+        text = _fold(message).strip()
 
-        new_med = svc.find_or_create_medication(db, name)
-        if new_med.id != med.id:
-            clash = (
-                db.query(models.UserMedication)
-                .filter(models.UserMedication.user_id == user_id, models.UserMedication.medication_id == new_med.id)
-                .first()
-            )
-            if clash is not None:  # already tracked under that name: keep one owner row, tell the user
-                return sedi_copy.t("medication.chat.already_tracked", lang, name=new_med.name)
-            um.medication_id = new_med.id
-            db.commit()
-        return sedi_copy.t("medication.chat.bound", lang, name=new_med.name, time=hhmm or "")
+        def finish(final_name: Optional[str], key_named: str, key_unnamed: str) -> Optional[str]:
+            out = _create(db, user_id=user_id, draft=draft, language=lang, timezone_name=timezone_name, name=final_name)
+            if out is None:
+                return None
+            if out.get("duplicate"):
+                return sedi_copy.t("medication.chat.already_tracked", lang, name=out.get("name", ""))
+            return sedi_copy.t(key_named if final_name else key_unnamed, lang, name=out.get("name", ""), time=out.get("time", ""))
+
+        # a non-answer / insistence ends the interview now: the request is never lost
+        if insists(message) or _NON_ANSWER.match(text):
+            return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
+        answer = _candidate_name(message) if stage in ("ask_name", "confirm_name") else None
+        if stage == "ask_name":
+            return sedi_copy.t("medication.chat.q.ask_reason", lang, name=answer) if answer else None
+        if stage == "confirm_name":
+            if _YES.match(text) and name:
+                return sedi_copy.t("medication.chat.q.ask_reason", lang, name=name)
+            if _NO.match(text):
+                return sedi_copy.t("medication.chat.q.ask_name", lang)
+            return sedi_copy.t("medication.chat.q.ask_reason", lang, name=answer) if answer else None
+        if stage == "ask_reason":
+            if not text or len(text.split()) > 40:  # a long message is another topic: the normal flow answers it
+                return None
+            return finish(name, "medication.chat.created.after_reason", "medication.chat.created.after_reason_unnamed")
+        return None
     except Exception:  # noqa: BLE001
-        logger.exception("[R-088] medication name binding failed")
+        logger.exception("[R-088] medication interview continue failed")
         try:
             db.rollback()
         except Exception:  # noqa: BLE001

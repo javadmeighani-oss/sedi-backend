@@ -1456,7 +1456,7 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
-        # R-088 / R-091 (A1): the short answer to Sedi's «which pill?» names the user's medicine (medication owner).
+        # R-088 / R-091 (A1 v2): the next step of the pill care interview (name -> reason -> reminder at the end).
         # Needs the consent-gated previous reply; fail-open (None -> normal flow).
         reminder_message: Optional[str] = None
         if (
@@ -1470,18 +1470,12 @@ class IntelligenceOrchestrator:
                 from backend.app.services.medication_care import chat_reminder as _med_chat
 
                 if _med_chat.enabled():
-                    _med_reply = _med_chat.bind_name_answer(
-                        self._db,
-                        user_id=authenticated_user_id,
-                        message=message,
-                        last_sedi_reply=_med_chat.last_sedi_reply(self._db, authenticated_user_id),
-                        language=lang,
-                    )
+                    _med_reply = _med_chat.continue_interview(self._db, user_id=authenticated_user_id, message=message, language=lang, timezone_name=self._reminder_timezone(ctx, authenticated_user_id))
                     if _med_reply:
                         reminder_message = _med_reply
                         skip_generator = True
                         clarification_message = None
-                        extra_reason_codes.append("R088_MEDICATION_NAME_BOUND")
+                        extra_reason_codes.append("R088_MEDICATION_INTERVIEW_STEP")
             except Exception:  # noqa: BLE001
                 pass
 
