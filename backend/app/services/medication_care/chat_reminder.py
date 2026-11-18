@@ -141,24 +141,19 @@ def _hhmm(draft: Any) -> Optional[str]:
 
 
 def fire_times(draft: Any) -> Optional[list[str]]:
-    """The clock times the medication schedule must fire at. An EXPLICIT offset («نیم‌ساعت قبل», "30 minutes before") moves the
-    time earlier; the default offset the parser adds when the user used no reminder word is ignored (a pill is taken AT the time).
-    None = not representable (the offset crosses midnight and would change the weekday) -> the generic event route stays
-    (Codex P2, PR 185)."""
+    """The dose time for the medication schedule, or None when the medication route cannot represent the request.
+
+    The schedule time IS the dose time (the dose occurrence and the adherence record are created at that time), and the
+    medication schedule has no «advance reminder» field. A request with an EXPLICIT offset («نیم‌ساعت قبل», "30 minutes
+    before") therefore keeps the generic event route, which stores the offset correctly (Codex P2 x2, PR 185). The parser's
+    DEFAULT offset (added when the user used no reminder word) is ignored: a pill is taken AT the time.
+    """
     start = getattr(draft, "starts_at_local", None)
     if not isinstance(start, datetime):
         return None
-    offsets = () if getattr(draft, "offsets_defaulted", False) else tuple(getattr(draft, "reminder_offsets", None) or ())
-    minute_of_day = start.hour * 60 + start.minute
-    times: list[str] = []
-    for off in (offsets or (0,)):
-        at = minute_of_day - int(off or 0)
-        if at < 0:
-            return None
-        hhmm = f"{at // 60:02d}:{at % 60:02d}"
-        if hhmm not in times:
-            times.append(hhmm)
-    return sorted(times)
+    if not getattr(draft, "offsets_defaulted", False) and any(int(o or 0) for o in (getattr(draft, "reminder_offsets", None) or ())):
+        return None
+    return [f"{start.hour:02d}:{start.minute:02d}"]
 
 
 def _days_of_week(rule: Optional[str]) -> Optional[str]:

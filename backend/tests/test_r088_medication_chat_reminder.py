@@ -277,36 +277,37 @@ def test_a_future_start_pill_request_is_left_to_the_generic_event_route(monkeypa
     assert owner == []
 
 
-# --- Codex P2 (PR 185): explicit reminder offsets ---------------------------------------------------------------
+# --- Codex P2 x2 (PR 185): the schedule time IS the dose time; an explicit offset keeps the generic route ---------
 def _offset_draft(offsets, defaulted=False, start=datetime(2026, 11, 18, 21, 0)):
     return _Draft(starts_at_local=start, recurrence_rule="FREQ=DAILY", reminder_offsets=offsets, offsets_defaulted=defaulted)
 
 
 @pytest.mark.parametrize(
-    "offsets, defaulted, start, expected",
+    "offsets, defaulted, expected",
     [
-        ((30,), False, datetime(2026, 11, 18, 21, 0), ["20:30"]),            # «30 minutes before»
-        ((0,), False, datetime(2026, 11, 18, 21, 0), ["21:00"]),             # at the time
-        ((60,), True, datetime(2026, 11, 18, 21, 0), ["21:00"]),             # parser default (no reminder word) is ignored for a pill
-        ((30, 0), False, datetime(2026, 11, 18, 21, 0), ["20:30", "21:00"]),  # two explicit reminders
-        ((30,), False, datetime(2026, 11, 18, 0, 10), None),                 # crosses midnight -> weekday would change -> generic route
+        ((0,), False, ["21:00"]),            # at the time
+        ((), False, ["21:00"]),
+        ((60,), True, ["21:00"]),            # parser default (no reminder word) is ignored: a pill is taken AT the time
+        ((30,), False, None),                # «30 minutes before»: the schedule would move the DOSE to 20:30 -> generic route
+        ((30, 0), False, None),
+        ((10,), False, None),
     ],
 )
-def test_explicit_offsets_move_the_schedule_time(offsets, defaulted, start, expected):
-    assert mc.fire_times(_offset_draft(offsets, defaulted, start)) == expected
+def test_dose_time_is_never_moved_by_an_advance_reminder(offsets, defaulted, expected):
+    assert mc.fire_times(_offset_draft(offsets, defaulted)) == expected
 
 
-def test_the_owner_receives_the_offset_adjusted_times(monkeypatch):
+def test_a_request_with_an_advance_reminder_keeps_the_generic_route(monkeypatch, owner):
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
+    draft = _offset_draft((30,))
+    assert mc.start_interview(None, user_id=1, message="هر شب ساعت ۹ قرصم را نیم‌ساعت قبل یادم بنداز", draft=draft, language="fa", timezone_name=TZ) is None
+    assert owner == []
+
+
+def test_the_owner_write_keeps_the_stated_dose_time(monkeypatch):
     import backend.app.services.user_medication_service as svc
 
     seen = []
     monkeypatch.setattr(svc, "create_user_medication", lambda db, uid, body: seen.append(body) or {"id": 1})
-    out = mc._create(None, user_id=1, draft=_offset_draft((30,)), language="fa", timezone_name=TZ, name="لووتیروکسین")
-    assert out["created"] and out["time"] == "20:30" and seen[0].reminder_times == ["20:30"]
-
-
-def test_a_request_whose_offset_crosses_midnight_keeps_the_generic_route(monkeypatch, owner):
-    monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
-    draft = _Draft(starts_at_local=datetime(2026, 11, 18, 0, 10), recurrence_rule="FREQ=DAILY", reminder_offsets=(30,), offsets_defaulted=False)
-    assert mc.start_interview(None, user_id=1, message="هر شب ساعت ۱۲:۱۰ قرصم را نیم‌ساعت قبل یادم بنداز", draft=draft, language="fa", timezone_name=TZ) is None
-    assert owner == []
+    out = mc._create(None, user_id=1, draft=_offset_draft((0,)), language="fa", timezone_name=TZ, name="لووتیروکسین")
+    assert out["created"] and out["time"] == "21:00" and seen[0].reminder_times == ["21:00"]
