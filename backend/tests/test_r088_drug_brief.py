@@ -231,6 +231,9 @@ def test_confirmed_name_from_the_first_message_is_introduced_once(monkeypatch, i
         ("۰۹۱۲-۱۲۳-۴۵۶۷", None),
         ("name@example.com", None),
         ("diabetes", None),  # a health condition is not a medicine name
+        ("سردرد شدید", None),  # a symptom is a health detail too
+        ("pain in my back", None),
+        ("ألم", None),
     ],
 )
 def test_only_the_leading_medicine_name_can_leave_the_server(reply, sent):

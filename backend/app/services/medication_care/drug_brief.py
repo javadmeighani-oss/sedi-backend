@@ -98,9 +98,11 @@ _FUNCTION_WORDS = frozenset(
 # Common health conditions: a reply naming one is never sent (a health detail is not a medicine name).
 _CONDITION_WORDS = frozenset(
     "diabetes diabetic hiv aids cancer depression anxiety hypertension pressure asthma epilepsy thyroid cholesterol "
-    "pregnant pregnancy migraine arthritis hepatitis covid "
+    "pregnant pregnancy migraine arthritis hepatitis covid pain headache fever cough nausea dizziness bleeding insomnia "
+    "symptom symptoms sick ill "
     "دیابت قند فشار سرطان افسردگی اضطراب آسم صرع تیروئید کلسترول بارداری حاملگی میگرن آرتروز هپاتیت ایدز کرونا "
-    "سكري ضغط سرطان اكتئاب قلق ربو صرع غدة".split()
+    "درد سردرد دلدرد تب سرفه سرماخوردگی تهوع سرگیجه خونریزی بیخوابی علائم مریض بیمار "
+    "سكري ضغط سرطان اكتئاب قلق ربو صرع غدة ألم صداع حمى سعال غثيان دوخة نزيف أرق مريض".split()
 )
 
 
