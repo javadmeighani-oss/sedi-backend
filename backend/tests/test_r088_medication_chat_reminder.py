@@ -160,7 +160,8 @@ def _turns(*pairs, request=REQUEST):
     return rows
 
 
-def _go(monkeypatch, rows, message, lang="fa"):
+def _go(monkeypatch, rows, message, lang="fa", consent=True):
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: consent)
     monkeypatch.setattr(mc, "_recent_turns", lambda db, uid, now: rows)
     return mc.continue_interview(None, user_id=1, message=message, language=lang, timezone_name=TZ)
 
@@ -218,3 +219,26 @@ def test_no_original_request_in_the_window_means_nothing_happens(monkeypatch, ow
 def test_candidate_name_from_a_short_reply(reply, expected):
     got = mc._candidate_name(reply)
     assert (got.lower() if got else None) == expected
+
+
+def test_revoked_memory_consent_stops_the_interview_at_once(monkeypatch, owner):
+    """Codex P1 (PR 185): continuation must re-check the CURRENT memory-read permission, not only the first turn."""
+    ask_reason = sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")
+    rows = [SimpleNamespace(user_message="لووتیروکسین", sedi_response=ask_reason, created_at=datetime.utcnow())] + _turns()
+    assert _go(monkeypatch, rows, "برای کم‌کاری تیروئید", consent=False) is None
+    assert owner == []
+
+
+def test_request_completed_by_a_period_answer_is_reconstructed(monkeypatch, owner):
+    """Codex P2 (PR 185): «ساعت ۲» -> Sedi asks «صبح یا عصر؟» -> «عصر» -> medicine question: the stored messages are
+    separate, the interview must still find the complete request."""
+    period_question = sedi_copy.by_lang("reminder.clarify_opening.period")["fa"] + " ساعت ۲ صبح است یا عصر؟"
+    ask_name = sedi_copy.t("medication.chat.q.ask_name", "fa")
+    now = datetime.utcnow()
+    rows = [
+        SimpleNamespace(user_message="لووتیروکسین", sedi_response=sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین"), created_at=now),
+        SimpleNamespace(user_message="عصر", sedi_response=ask_name, created_at=now),
+        SimpleNamespace(user_message="هر روز ساعت ۲ یادم بنداز قرص بخورم", sedi_response=period_question, created_at=now),
+    ]
+    reply = _go(monkeypatch, rows, "برای کم‌کاری تیروئید مصرفش می‌کنم")
+    assert owner == ["لووتیروکسین"] and reply and "14:00" in reply

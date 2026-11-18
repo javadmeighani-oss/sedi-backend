@@ -276,11 +276,29 @@ def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
     return None
 
 
+def _request_candidates(turns: list[Any]) -> list[tuple[str, Any]]:
+    """Texts that may hold the original request, newest first: a turn's own message, and that message completed by the
+    clarification answer the user gave to Sedi's «morning or evening?» / «when?» question (Codex P2, PR 185)."""
+    from backend.app.services.intelligence.reminder_event_readiness import is_period_clarification, is_reminder_clarification
+
+    out: list[tuple[str, Any]] = []
+    for i, t in enumerate(turns):  # newest first
+        out.append((str(getattr(t, "user_message", "") or ""), t))
+        older = turns[i + 1] if i + 1 < len(turns) else None
+        if older is not None:
+            asked = getattr(older, "sedi_response", None)
+            if is_period_clarification(asked) or is_reminder_clarification(asked):
+                prior = str(getattr(older, "user_message", "") or "").strip()
+                answer = str(getattr(t, "user_message", "") or "").strip()
+                if prior and answer:
+                    out.append((prior + " " + answer, older))
+    return out
+
+
 def _original_request(turns: list[Any], language: Optional[str], timezone_name: Optional[str]) -> Optional[tuple[Any]]:
     from backend.app.services.intelligence.reminder_event_readiness import parse_reminder_event_draft
 
-    for t in turns:  # newest first
-        text = str(getattr(t, "user_message", "") or "")
+    for text, t in _request_candidates(turns):
         if not is_medication_text(text):
             continue
         draft, missing = parse_reminder_event_draft(
@@ -298,6 +316,9 @@ def continue_interview(
     """Next step of the interview, or None when the message is not part of it (the normal flow handles it)."""
     try:
         if not enabled():
+            return None
+        # P1 (Codex, PR 185): revoked / expired memory-read consent must stop the use of the retained conversation at once
+        if not history_available(db, user_id):
             return None
         turns = _recent_turns(db, user_id, now or datetime.now(timezone.utc))
         last = next((str(t.sedi_response) for t in turns if getattr(t, "sedi_response", None)), "")
