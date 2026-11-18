@@ -1496,6 +1496,31 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ('لأي سبب تتناوله',),
         'en': ('what do you take it for',),
     },
+    'medication.chat.brief.line': {
+        'fa': '«{name}»: {summary} (منبع: {sources}؛ {date}).',
+        'ar': '«{name}»: {summary} (المصدر: {sources}؛ {date}).',
+        'en': '“{name}”: {summary} (sources: {sources}; {date}).',
+    },
+    'medication.chat.brief.single': {
+        'fa': '«{name}»: {summary} (طبق {sources}؛ {date}).',
+        'ar': '«{name}»: {summary} (وفق {sources}؛ {date}).',
+        'en': '“{name}”: {summary} (according to {sources}; {date}).',
+    },
+    'medication.chat.q.ask_reason_after_brief': {
+        'fa': 'در کنار این دارو، مراقبت و پیشگیری و پیگیری موضوعش را هم با تو جلو می‌برم و همراهت هستم. برای چه موضوعی مصرفش می‌کنی؟ هر چه درباره‌ی وضعیتت مهم است بگو تا ساعت و مراقبت‌هایش را هماهنگ با تو تنظیم کنم.',
+        'ar': 'وبجانب هذا الدواء سأتابع معك الرعاية والوقاية ومتابعة موضوعه وأكون معك. لأي سبب تتناوله؟ أخبرني بما يهم في وضعك لأضبط الوقت والرعاية بما يناسبك.',
+        'en': 'Alongside this medicine I will go through care, prevention and follow-up of its subject with you, and I am with you. What do you take it for? Tell me what matters about your situation so I can set the time and the care around it in harmony with you.',
+    },
+    'medication.chat.q.unrecognised': {
+        'fa': '«{name}» را با اطمینان نشناختم. اسم دقیق روی جعبه همین است؟ اگر فرق دارد بنویس، یا عکس جعبه یا نسخه را بفرست.',
+        'ar': 'لم أتعرف بثقة على «{name}». هل هذا هو الاسم الدقيق على العلبة؟ إن كان مختلفاً فاكتبه، أو أرسل صورة العلبة أو الوصفة.',
+        'en': 'I could not recognise “{name}” with confidence. Is that the exact name on the box? If it differs, write it, or send a photo of the box or the prescription.',
+    },
+    'medication.chat.markers.unrecognised': {
+        'fa': ('را با اطمینان نشناختم',),
+        'ar': ('لم أتعرف بثقة',),
+        'en': ('could not recognise',),
+    },
     'medication.chat.created.after_reason': {
         'fa': 'ثبت شد: ساعت {time} برای «{name}» یادت می‌اندازم. موضوعت را در نظر گرفتم و در کنار این دارو، مراقبت و پیشگیری و پیگیری‌اش را با هم جلو می‌بریم تا مشکل برطرف شود؛ من همراهتم. اگر ساعت دیگری با روزت هماهنگ‌تر است، بگو تا عوضش کنم.',
         'ar': 'تم التسجيل: سأذكّرك الساعة {time} بـ«{name}». أخذت وضعك في الاعتبار، وبجانب هذا الدواء سنتابع معاً الرعاية والوقاية والمتابعة حتى تُحَلّ المشكلة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',

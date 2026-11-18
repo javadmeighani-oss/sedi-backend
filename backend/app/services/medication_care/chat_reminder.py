@@ -39,8 +39,9 @@ DISABLED_ENV = "SEDI_MEDICATION_CHAT_OWNER_DISABLED"
 PROVISIONAL_KEY = "medication.chat.provisional_name"
 BIND_WINDOW = timedelta(hours=6)
 MAX_ANSWER_WORDS = 6
-STAGE_KEYS = {
+STAGE_KEYS = {  # order matters: «unrecognised» also contains the confirm-name question, so it is tested first
     "ask_name": "medication.chat.markers.ask_name",
+    "unrecognised": "medication.chat.markers.unrecognised",
     "confirm_name": "medication.chat.markers.confirm_name",
     "ask_reason": "medication.chat.markers.ask_reason",
 }
@@ -267,6 +268,25 @@ def _recent_turns(db: Session, user_id: int, now: datetime) -> list[Any]:
         return []
 
 
+def _reason_reply(name: str, lang: str, *, introduce: bool = True) -> str:
+    """The reason question, preceded (A2) by Sedi's introduction of the medicine from the web: what it is used for, the sites and
+    the date, plus the offer to accompany the user. Not recognised -> ask for the exact name / a photo of the box (never a
+    guess). No result / error / kill switch -> the plain reason question (fail-open)."""
+    if introduce:
+        try:
+            from backend.app.services.medication_care import drug_brief
+
+            brief = drug_brief.lookup(name, lang)
+            if brief is not None:
+                if not brief.recognized:
+                    return sedi_copy.t("medication.chat.q.unrecognised", lang, name=name)
+                intro = drug_brief.compose(brief, name, lang)
+                return intro + chr(10) + sedi_copy.t("medication.chat.q.ask_reason_after_brief", lang)
+        except Exception:  # noqa: BLE001
+            pass
+    return sedi_copy.t("medication.chat.q.ask_reason", lang, name=name)
+
+
 def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
     text = _fold(reply or "").lower()
     lang = _lang(language)
@@ -347,13 +367,14 @@ def continue_interview(
             return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
         answer = _candidate_name(message) if stage in ("ask_name", "confirm_name") else None
         if stage == "ask_name":
-            return sedi_copy.t("medication.chat.q.ask_reason", lang, name=answer) if answer else None
-        if stage == "confirm_name":
+            return _reason_reply(answer, lang) if answer else None
+        if stage in ("confirm_name", "unrecognised"):
+            # «yes» to the unrecognised-name question confirms what is on the box: no second search for the same name
             if _YES.match(text) and name:
-                return sedi_copy.t("medication.chat.q.ask_reason", lang, name=name)
+                return _reason_reply(name, lang, introduce=(stage == "confirm_name"))
             if _NO.match(text):
                 return sedi_copy.t("medication.chat.q.ask_name", lang)
-            return sedi_copy.t("medication.chat.q.ask_reason", lang, name=answer) if answer else None
+            return _reason_reply(answer, lang) if answer else None
         if stage == "ask_reason":
             if not text or len(text.split()) > 40:  # a long message is another topic: the normal flow answers it
                 return None

@@ -15,6 +15,14 @@ TZ = "Asia/Tehran"
 REQUEST = "هر روز ساعت ۲ بعدازظهر یادم بنداز قرص بخورم"
 
 
+@pytest.fixture(autouse=True)
+def _no_real_web_search(monkeypatch):
+    """The interview tests never reach the real web: the drug introduction (package A2) is stubbed to «no result»."""
+    from backend.app.services.medication_care import drug_brief
+
+    monkeypatch.setattr(drug_brief, "lookup", lambda name, lang, client=None: None)
+
+
 @pytest.mark.parametrize(
     "text",
     [
