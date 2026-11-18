@@ -284,3 +284,28 @@ def test_a_reply_that_is_a_sentence_is_not_stored_as_a_medicine_name(monkeypatch
     monkeypatch.setattr(db, "lookup", lambda name, lang, client=None: None)
     assert _go(monkeypatch, sedi_copy.t("medication.chat.q.ask_name", "fa"), "من دیابت دارم") is None
     assert mc._candidate_name("Metformin for my diabetes") == "Metformin"
+
+
+@pytest.mark.parametrize(
+    "stage_text",
+    [
+        sedi_copy.t("medication.chat.q.ask_name", "fa"),
+        sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین"),
+        sedi_copy.t("medication.chat.q.confirm_name", "fa", name="لووتیروکسین"),
+    ],
+)
+@pytest.mark.parametrize(
+    "message",
+    ["فردا ساعت ۱۰ صبح جلسه‌ام را یادم بنداز", "Remind me tomorrow at 10am about my meeting", "یادم بنداز فردا ساعت ۸ شب برم باشگاه"],
+)
+def test_an_independent_reminder_request_is_never_swallowed_by_the_interview(monkeypatch, interview, stage_text, message):
+    """Codex P2 (PR 185): it must keep its normal routing (None), and nothing is created or stored."""
+    monkeypatch.setattr(db, "lookup", lambda name, lang, client=None: None)
+    assert _go(monkeypatch, stage_text, message) is None
+    assert interview == []
+
+
+def test_a_reason_that_mentions_a_time_without_reminder_words_still_completes_the_interview(monkeypatch, interview):
+    ask_reason = sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")
+    reply = _go(monkeypatch, ask_reason, "برای کم‌کاری تیروئید؛ صبح‌ها ساعت ۸ ناشتا می‌خورمش")
+    assert interview == ["لووتیروکسین"] and reply and "14:00" in reply

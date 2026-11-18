@@ -264,6 +264,19 @@ def _candidate_name(message: str) -> Optional[str]:
     return name_from_reply(cleaned)
 
 
+def _is_new_reminder_request(message: str, language: Optional[str], timezone_name: Optional[str]) -> bool:
+    """A message with reminder words AND a complete time is a request of its own, not an answer to the interview."""
+    try:
+        from backend.app.services.intelligence.reminder_event_readiness import _REMINDER_WORDS, parse_reminder_event_draft
+
+        if not _REMINDER_WORDS.search(_fold(message)):
+            return False
+        draft, missing = parse_reminder_event_draft(message=message, timezone_name=timezone_name or "UTC", language=language)
+        return draft is not None and missing is None
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _recent_turns(db: Session, user_id: int, now: datetime) -> list[Any]:
     try:
         from backend.app.services.i7.retention import query_eligible_raw
@@ -371,6 +384,10 @@ def continue_interview(
         # a non-answer / insistence ends the interview now: the request is never lost
         if insists(message) or _NON_ANSWER.match(text):
             return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
+        # an INDEPENDENT reminder request («فردا ساعت ۱۰ جلسه را یادم بنداز») is never taken as an interview answer: it keeps its
+        # normal routing, otherwise it would be swallowed and lost (Codex P2, PR 185)
+        if _is_new_reminder_request(message, lang, timezone_name):
+            return None
         # «unrecognised»: Sedi asked for the correct name, so a short reply there is that correction (Codex P2, PR 185)
         answer = _candidate_name(message) if stage in ("ask_name", "confirm_name", "unrecognised") else None
         if stage == "ask_name":
