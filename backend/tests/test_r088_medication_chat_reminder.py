@@ -275,3 +275,38 @@ def test_a_future_start_pill_request_is_left_to_the_generic_event_route(monkeypa
     far = _tehran_draft(datetime(2030, 1, 5, 21, 0))
     assert mc.start_interview(None, user_id=1, message="از ۱۵ دی هر شب ساعت ۹ قرصم را یادم بنداز", draft=far, language="fa", timezone_name=TZ) is None
     assert owner == []
+
+
+# --- Codex P2 (PR 185): explicit reminder offsets ---------------------------------------------------------------
+def _offset_draft(offsets, defaulted=False, start=datetime(2026, 11, 18, 21, 0)):
+    return _Draft(starts_at_local=start, recurrence_rule="FREQ=DAILY", reminder_offsets=offsets, offsets_defaulted=defaulted)
+
+
+@pytest.mark.parametrize(
+    "offsets, defaulted, start, expected",
+    [
+        ((30,), False, datetime(2026, 11, 18, 21, 0), ["20:30"]),            # «30 minutes before»
+        ((0,), False, datetime(2026, 11, 18, 21, 0), ["21:00"]),             # at the time
+        ((60,), True, datetime(2026, 11, 18, 21, 0), ["21:00"]),             # parser default (no reminder word) is ignored for a pill
+        ((30, 0), False, datetime(2026, 11, 18, 21, 0), ["20:30", "21:00"]),  # two explicit reminders
+        ((30,), False, datetime(2026, 11, 18, 0, 10), None),                 # crosses midnight -> weekday would change -> generic route
+    ],
+)
+def test_explicit_offsets_move_the_schedule_time(offsets, defaulted, start, expected):
+    assert mc.fire_times(_offset_draft(offsets, defaulted, start)) == expected
+
+
+def test_the_owner_receives_the_offset_adjusted_times(monkeypatch):
+    import backend.app.services.user_medication_service as svc
+
+    seen = []
+    monkeypatch.setattr(svc, "create_user_medication", lambda db, uid, body: seen.append(body) or {"id": 1})
+    out = mc._create(None, user_id=1, draft=_offset_draft((30,)), language="fa", timezone_name=TZ, name="لووتیروکسین")
+    assert out["created"] and out["time"] == "20:30" and seen[0].reminder_times == ["20:30"]
+
+
+def test_a_request_whose_offset_crosses_midnight_keeps_the_generic_route(monkeypatch, owner):
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
+    draft = _Draft(starts_at_local=datetime(2026, 11, 18, 0, 10), recurrence_rule="FREQ=DAILY", reminder_offsets=(30,), offsets_defaulted=False)
+    assert mc.start_interview(None, user_id=1, message="هر شب ساعت ۱۲:۱۰ قرصم را نیم‌ساعت قبل یادم بنداز", draft=draft, language="fa", timezone_name=TZ) is None
+    assert owner == []

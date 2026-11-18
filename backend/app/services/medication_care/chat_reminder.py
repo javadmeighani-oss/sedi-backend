@@ -140,6 +140,27 @@ def _hhmm(draft: Any) -> Optional[str]:
     return start.strftime("%H:%M") if isinstance(start, datetime) else None
 
 
+def fire_times(draft: Any) -> Optional[list[str]]:
+    """The clock times the medication schedule must fire at. An EXPLICIT offset («نیم‌ساعت قبل», "30 minutes before") moves the
+    time earlier; the default offset the parser adds when the user used no reminder word is ignored (a pill is taken AT the time).
+    None = not representable (the offset crosses midnight and would change the weekday) -> the generic event route stays
+    (Codex P2, PR 185)."""
+    start = getattr(draft, "starts_at_local", None)
+    if not isinstance(start, datetime):
+        return None
+    offsets = () if getattr(draft, "offsets_defaulted", False) else tuple(getattr(draft, "reminder_offsets", None) or ())
+    minute_of_day = start.hour * 60 + start.minute
+    times: list[str] = []
+    for off in (offsets or (0,)):
+        at = minute_of_day - int(off or 0)
+        if at < 0:
+            return None
+        hhmm = f"{at // 60:02d}:{at % 60:02d}"
+        if hhmm not in times:
+            times.append(hhmm)
+    return sorted(times)
+
+
 def _days_of_week(rule: Optional[str]) -> Optional[str]:
     """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily -> None (every day)."""
     m = re.search(r"BYDAY=([A-Z,]+)", rule or "")
@@ -192,13 +213,14 @@ def _create(
         from backend.app.schemas.medical import UserMedicationCreateIn
         from backend.app.services import user_medication_service as svc
 
-        hhmm = _hhmm(draft)
-        if not hhmm:
+        times = fire_times(draft)
+        if not times:
             return None
+        hhmm = times[0]
         use_name = name or provisional_name(language)
         try:
             out = svc.create_user_medication(
-                db, user_id, UserMedicationCreateIn(name=use_name, reminder_times=[hhmm], timezone=timezone_name or None)
+                db, user_id, UserMedicationCreateIn(name=use_name, reminder_times=times, timezone=timezone_name or None)
             )
         except svc.DuplicateUserMedicationError:
             return {"kind": "medication", "created": False, "duplicate": True, "name": use_name, "named": bool(name), "time": hhmm}
@@ -230,7 +252,7 @@ def start_interview(
     try:
         if not enabled() or not is_medication_text(message) or not _is_recurring(getattr(draft, "recurrence_rule", None)):
             return None
-        if not _hhmm(draft) or has_future_start(draft):
+        if not _hhmm(draft) or has_future_start(draft) or fire_times(draft) is None:
             return None
         found = extract_pill_name(message)
         flow = None
@@ -245,7 +267,7 @@ def start_interview(
             return out
         return {
             "kind": "medication", "created": False, "interview": "confirm_name" if found else "ask_name",
-            "name": found or "", "named": bool(found), "time": _hhmm(draft), "reason": "interview",
+            "name": found or "", "named": bool(found), "time": (fire_times(draft) or [_hhmm(draft)])[0], "reason": "interview",
         }
     except Exception:  # noqa: BLE001
         logger.exception("[R-088] medication interview start failed")
@@ -364,7 +386,7 @@ def _original_request(turns: list[Any], language: Optional[str], timezone_name: 
         draft, missing = parse_reminder_event_draft(
             message=text, timezone_name=timezone_name or "UTC", now_utc=t.created_at, language=language
         )
-        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule) and not has_future_start(draft, t.created_at):
+        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule) and fire_times(draft) is not None and not has_future_start(draft, t.created_at):
             return (draft,)
     return None
 
