@@ -1450,6 +1450,47 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'لأجد لك طبيباً أو مركزاً مناسباً، أخبرني بالمدينة والحيّ والتخصص؛ سأبحث في مواقع الحجز والقوائم الطبية ولن أختلق أي اسم.',
         'en': 'To find the right doctor or centre, tell me the city, neighbourhood and specialty; I will search the booking sites and medical listings and only share verified names, never invented ones.',
     },
+    # R-088 / R-091 (D-382..D-384): a pill reminder asked in chat goes to the medication owner and asks WHICH pill.
+    'medication.chat.provisional_name': {
+        'fa': 'قرص (نام ثبت نشده)',
+        'ar': 'دواء (الاسم غير مسجّل)',
+        'en': 'Pill (name not recorded)',
+    },
+    'medication.chat.confirm_unnamed': {
+        'fa': 'ثبت شد: {when} برای مصرف قرصت یادت می‌اندازم. کدام قرص را می‌خوری؟ اسمش را همان‌طور که روی جعبه نوشته بنویس؛ اگر مطمئن نیستی، عکس جعبه یا نسخه را بفرست تا دقیق ثبت کنم.',
+        'ar': 'تم التسجيل: سأذكّرك {when} بتناول دوائك. أي دواء تتناول؟ اكتب اسمه كما هو على العلبة؛ وإن لم تكن متأكداً فأرسل صورة العلبة أو الوصفة لأسجّله بدقة.',
+        'en': 'Done: I will remind you {when} to take your pill. Which pill is it? Write the name exactly as it appears on the box; if you are not sure, send a photo of the box or the prescription so I record it precisely.',
+    },
+    'medication.chat.confirm_named': {
+        'fa': 'ثبت شد: {when} برای «{name}» یادت می‌اندازم. اسم دقیق روی جعبه همین است؟ اگر فرق دارد بنویس، یا عکس جعبه یا نسخه را بفرست تا دقیق ثبت کنم.',
+        'ar': 'تم التسجيل: سأذكّرك {when} بـ«{name}». هل هذا هو الاسم الدقيق على العلبة؟ إن كان مختلفاً فاكتبه، أو أرسل صورة العلبة أو الوصفة لأسجّله بدقة.',
+        'en': 'Done: I will remind you {when} about “{name}”. Is that the exact name on the box? If it differs, write it, or send a photo of the box or the prescription so I record it precisely.',
+    },
+    'medication.chat.markers': {
+        'fa': ('کدام قرص را می‌خوری', 'اسم دقیق روی جعبه همین است'),
+        'ar': ('أي دواء تتناول', 'هل هذا هو الاسم الدقيق'),
+        'en': ('Which pill is it', 'Is that the exact name on the box'),
+    },
+    'medication.chat.bound': {
+        'fa': 'اسم قرص را «{name}» ثبت کردم و یادآور ساعت {time} روی همین قرص است. حالا درباره‌ی همین قرص و دلیل مصرفش با هم جلو می‌رویم.',
+        'ar': 'سجّلت اسم الدواء «{name}» وتذكير الساعة {time} مرتبط به. سنتابع الآن معاً بشأن هذا الدواء وسبب تناوله.',
+        'en': 'I recorded the pill as “{name}” and the {time} reminder is attached to it. Next we go through this pill and why you take it, together.',
+    },
+    'medication.chat.kept': {
+        'fa': 'پس «{name}» درست است و یادآور ساعت {time} روی همین قرص می‌ماند. حالا درباره‌ی همین قرص و دلیل مصرفش با هم جلو می‌رویم.',
+        'ar': 'إذن «{name}» صحيح ويبقى تذكير الساعة {time} على هذا الدواء. سنتابع الآن معاً بشأن هذا الدواء وسبب تناوله.',
+        'en': 'So “{name}” is right and the {time} reminder stays on this pill. Next we go through this pill and why you take it, together.',
+    },
+    'medication.chat.ask_again': {
+        'fa': 'برای اینکه قرص را درست ثبت کنم، اسمش را همان‌طور که روی جعبه نوشته بنویس، یا عکس جعبه یا نسخه را بفرست.',
+        'ar': 'لأسجّل الدواء بشكل صحيح، اكتب اسمه كما هو على العلبة أو أرسل صورة العلبة أو الوصفة.',
+        'en': 'To record the pill correctly, write its name exactly as on the box, or send a photo of the box or the prescription.',
+    },
+    'medication.chat.already_tracked': {
+        'fa': '«{name}» از قبل در داروهای تو ثبت است؛ همان را نگه می‌دارم و یادآورهایش را هم‌چنان انجام می‌دهم.',
+        'ar': '«{name}» مسجّل أصلاً في أدويتك؛ سأبقي عليه وأواصل تذكيراتك.',
+        'en': '“{name}” is already among your medicines; I keep that one and continue its reminders.',
+    },
     'reminder.not_sent_say_when': {
         'fa': 'برای ارسال نوتیف زمان و موضوعش را بگو؛ مثلاً «الان نوتیف بفرست» یا «فردا ساعت ۱۰ یادم بینداز».',
         'ar': 'لإرسال إشعار أخبرني بالوقت والموضوع، مثل «أرسل لي إشعاراً الآن» أو «ذكّرني غداً الساعة 10».',

@@ -1456,13 +1456,42 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
-        # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
-        # No direct Notification write; I10 scheduler consumes reminder fields.
+        # R-088 / R-091 (A1): the short answer to Sedi's «which pill?» names the user's medicine (medication owner).
+        # Needs the consent-gated previous reply; fail-open (None -> normal flow).
         reminder_message: Optional[str] = None
         if (
             not terminal_safety
             and not discovery_reply_active
             and not care_nav_handled
+            and not skip_generator
+            and self._db is not None
+        ):
+            try:
+                from backend.app.services.medication_care import chat_reminder as _med_chat
+
+                if _med_chat.enabled():
+                    _med_reply = _med_chat.bind_name_answer(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        message=message,
+                        last_sedi_reply=_med_chat.last_sedi_reply(self._db, authenticated_user_id),
+                        language=lang,
+                    )
+                    if _med_reply:
+                        reminder_message = _med_reply
+                        skip_generator = True
+                        clarification_message = None
+                        extra_reason_codes.append("R088_MEDICATION_NAME_BOUND")
+            except Exception:  # noqa: BLE001
+                pass
+
+        # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
+        # No direct Notification write; I10 scheduler consumes reminder fields.
+        if (
+            not terminal_safety
+            and not discovery_reply_active
+            and not care_nav_handled
+            and reminder_message is None
             and intent_meta is not None
             and readiness_meta is not None
             and readiness_meta.status is ReadinessStatus.READY
