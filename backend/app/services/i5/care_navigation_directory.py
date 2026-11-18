@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from backend.app.services.i5 import iran_directory_service as _governed_directory
 from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFEST
 from backend.app.services.i5 import directory_web_lookup as _web_lookup
+from backend.app.services.i5 import iran_places as _places
 
 PACKAGE_ID = "I5-DIRECTORY-CHAT-FAILSAFE-01"
 CANONICAL_AUTHORITY = "I5_GOVERNED_CARE_DIRECTORY"
@@ -55,6 +56,7 @@ class CareNavRequest:
     city: Optional[str] = None
     province: Optional[str] = None
     name_hint: Optional[str] = None
+    area: Optional[str] = None  # neighbourhood / district (R-089), e.g. «تهران‌پارس»
     language: str = "en"
     authenticated_user_id: Optional[int] = None
     target_health_subject_id: Optional[int] = None
@@ -202,12 +204,16 @@ _NOT_A_CITY = frozenset(
     {
         "مورد", "این", "آن", "اون", "همین", "همون", "حال", "واقع", "کل", "کنار", "مقابل", "برابر", "طول", "کجا",
         "من", "ما", "تو", "شما", "صدی", "خانه", "خونه", "منزل", "دست", "پی", "جریان", "اختیار", "کار",
+        "منطقه", "محله", "حوالی", "اطراف", "شهر", "سمت", "نزدیکی",
         "the", "my", "this", "that", "a", "an", "your", "case", "general", "mind",
     }
 )
 
 
 def _has_real_location(text: str) -> bool:
+    place = _places.find_place(text)
+    if place.city or place.area:
+        return True
     for m in _LOCATION_CITY.finditer(text):
         if m.group(1).strip().lower() not in _NOT_A_CITY:
             return True
@@ -264,10 +270,14 @@ def parse_care_nav_request(
 ) -> CareNavRequest:
     text = message or ""
     entity = detect_care_nav_entity(text)
-    city = None
-    m_city = _LOCATION_CITY.search(text)
-    if m_city:
-        city = m_city.group(1).strip()
+    place = _places.find_place(text)
+    city, area = place.city, place.area
+    if not city:
+        for m_city in _LOCATION_CITY.finditer(text):
+            word = m_city.group(1).strip()
+            if word.lower() not in _NOT_A_CITY:
+                city = word
+                break
     province = None
     m_prov = _PROVINCE_HINT.search(text)
     if m_prov:
@@ -282,6 +292,7 @@ def parse_care_nav_request(
         specialty_or_service=specialty,
         city=city,
         province=province,
+        area=area,
         language=(language or "en")[:8],
         wants_sources=wants_sources(text),
         authenticated_user_id=authenticated_user_id,
@@ -291,25 +302,46 @@ def parse_care_nav_request(
 
 
 def _no_result_message(entity: CareNavEntity, language: str) -> str:
-    lang = (language or "en").lower()
-    if lang.startswith("fa"):
-        return (
-            "فعلاً توی اطلاعاتی که دارم موردی برای همین شهر و تخصص پیدا نکردم. "
-            "اگه شهر یا تخصص دیگه‌ای رو امتحان کنیم، دوباره برات می‌گردم. "
-            "اسم هیچ پزشک یا مرکزی رو هم از خودم نمی‌سازم."
-        )
-    if lang.startswith("ar"):
-        return (
-            "لم أجد حالياً في معلوماتي نتيجة مناسبة لهذه المدينة وهذا التخصص. "
-            "جرّب مدينة أو تخصصاً آخر وسأبحث لك من جديد. "
-            "ولن أختلق اسم طبيب أو مركز من عندي."
-        )
-    return (
-        "Sedi currently has no verified matching provider or facility in the "
-        "governed directory for your criteria. You can broaden the location or "
-        "choose another specialty/service. I will not invent a provider or "
-        "facility identity without a verified directory record."
-    )
+    """Generic fallback (no request context, e.g. resolver error): never «I cannot help» (R-089)."""
+    from backend.app import sedi_copy
+
+    return sedi_copy.t("care_nav.no_result.generic", _lk((language or "en").lower()))
+
+
+_ENTITY_WORD = {
+    CareNavEntity.SPECIALIST: {"fa": "پزشک", "ar": "طبيب", "en": "doctor"},
+    CareNavEntity.HOSPITAL: {"fa": "بیمارستان", "ar": "مستشفى", "en": "hospital"},
+    CareNavEntity.SPECIALTY_CENTER: {"fa": "کلینیک", "ar": "عيادة", "en": "clinic"},
+    CareNavEntity.LABORATORY: {"fa": "آزمایشگاه", "ar": "مختبر", "en": "laboratory"},
+}
+_SITE_LABEL = {"p24": {"fa": "پذیرش۲۴", "ar": "Paziresh24", "en": "Paziresh24"},
+               "doctoreto": {"fa": "دکترتو", "ar": "Doctoreto", "en": "Doctoreto"}}
+
+
+def directory_search_links(request: "CareNavRequest") -> list[tuple[str, str]]:
+    """Direct search pages on Iranian booking/listing sites (patterns verified 2026-11-17). Never invented names."""
+    from urllib.parse import quote
+
+    k = _lk((request.language or "en").lower())
+    term_fa = request.specialty_or_service or _ENTITY_WORD.get(request.entity, _ENTITY_WORD[CareNavEntity.SPECIALIST])["fa"]
+    slug = _places.CITIES.get((request.city or "").replace("‌", " ")) if request.city else None
+    p24 = f"https://www.paziresh24.com/s/{slug + '/' if slug else ''}?text={quote(term_fa)}"
+    where = " ".join(x for x in (request.area, request.city) if x)
+    dto = f"https://doctoreto.com/search?q={quote((term_fa + ' ' + where).strip())}"
+    return [(_SITE_LABEL["p24"][k], p24), (_SITE_LABEL["doctoreto"][k], dto)]
+
+
+def no_result_message_for(request: "CareNavRequest") -> str:
+    """R-089: no city -> ONE question for the place; nothing found -> direct search links + ONE refining question."""
+    from backend.app import sedi_copy
+
+    k = _lk((request.language or "en").lower())
+    if not request.city and not request.area:
+        return sedi_copy.t("care_nav.ask_location", k)
+    what = request.specialty_or_service or _ENTITY_WORD.get(request.entity, _ENTITY_WORD[CareNavEntity.SPECIALIST])[k]
+    where = ("، " if k != "en" else ", ").join(x for x in (request.area, request.city) if x)
+    links = "\n".join(f"• {label}: {url}" for label, url in directory_search_links(request))
+    return sedi_copy.t("care_nav.no_result.links", k, what=what, where=where, links=links)
 
 
 def fail_safe_user_message(entity: CareNavEntity, language: str = "en") -> str:
@@ -545,6 +577,7 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
         specialty=request.specialty_or_service,
         city=request.city,
         province=request.province,
+        area=request.area,
     )
     kind = "DOCTOR" if request.entity is CareNavEntity.SPECIALIST else (
         "LABORATORY" if request.entity is CareNavEntity.LABORATORY else "HOSPITAL"
@@ -597,7 +630,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             status=STATUS_NO_VERIFIED,
             entity=entity,
             reason_code="LAB_POPULATION_NOT_AUTHORIZED",
-            user_message=_no_result_message(entity, request.language),
+            user_message=no_result_message_for(request),
             lab_population_authorized=False,
             identity_notes=tuple(notes + ["LAB_FAIL_SAFE"]),
         )
@@ -626,7 +659,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             status=STATUS_NO_VERIFIED,
             entity=entity,
             reason_code=STATUS_NO_VERIFIED,
-            user_message=_no_result_message(entity, request.language),
+            user_message=no_result_message_for(request),
             identity_notes=tuple(notes),
         )
 
