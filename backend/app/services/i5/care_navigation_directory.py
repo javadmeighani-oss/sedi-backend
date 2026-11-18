@@ -272,12 +272,15 @@ def parse_care_nav_request(
     entity = detect_care_nav_entity(text)
     place = _places.find_place(text)
     city, area = place.city, place.area
-    if not city:
+    if not city or place.city_inferred:
+        # an explicitly named city (even one outside the gazetteer) beats the Tehran guess from a neighbourhood
+        area_norm = _places.normalize(area or "")
         for m_city in _LOCATION_CITY.finditer(text):
             word = m_city.group(1).strip()
-            if word.lower() not in _NOT_A_CITY:
-                city = word
-                break
+            if word.lower() in _NOT_A_CITY or (area_norm and _places.normalize(word) in area_norm):
+                continue
+            city = word
+            break
     province = None
     m_prov = _PROVINCE_HINT.search(text)
     if m_prov:
@@ -324,7 +327,7 @@ def directory_search_links(request: "CareNavRequest") -> list[tuple[str, str]]:
 
     k = _lk((request.language or "en").lower())
     term_fa = request.specialty_or_service or _ENTITY_WORD.get(request.entity, _ENTITY_WORD[CareNavEntity.SPECIALIST])["fa"]
-    slug = _places.CITIES.get((request.city or "").replace("‌", " ")) if request.city else None
+    slug = _places.slug_for(request.city)
     p24 = f"https://www.paziresh24.com/s/{slug + '/' if slug else ''}?text={quote(term_fa)}"
     where = " ".join(x for x in (request.area, request.city) if x)
     dto = f"https://doctoreto.com/search?q={quote((term_fa + ' ' + where).strip())}"

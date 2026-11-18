@@ -20,6 +20,7 @@ from typing import Any, Optional, Sequence
 from urllib.parse import urlparse
 
 from backend.app.services.i5.iran_directory_p24 import clean_landline
+from backend.app.services.i5.iran_places import mentions as _mentions
 from backend.app.services.i5.iran_places import normalize as _norm_place
 
 WEB_LOOKUP_SOURCE = "web_lookup"
@@ -184,8 +185,14 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
         address = " ".join(str(it.get("address") or "").split())[:512] or None
         item_city = " ".join(str(it.get("city") or "").split()) or None
         place_text = _norm_place(f"{item_city or ''} {address or ''}")
+        area_hit = bool(area and _norm_place(area) in place_text)
         # spacing/half-space tolerant: «تهرانپارس» == «تهران‌پارس»; a neighbourhood match is enough (R-089)
-        if city and _norm_place(city) not in place_text and not (area and _norm_place(area) in place_text):
+        if city and not _mentions(place_text, city) and not area_hit:
+            continue
+        # ...unless the result explicitly names ANOTHER city (e.g. «شیراز، منطقه ۸» for Tehran's district 8) - Codex P2
+        if city and item_city and not _mentions(_norm_place(item_city), city) and not (
+            area and _norm_place(area) in _norm_place(item_city)
+        ):
             continue
         phone = clean_landline(it.get("phone"))
         if not (address or phone):

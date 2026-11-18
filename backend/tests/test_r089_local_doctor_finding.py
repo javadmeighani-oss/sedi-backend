@@ -29,8 +29,10 @@ def _reset():
         ("متخصص پوست در منطقه ۸", "تهران", "منطقه 8"),
         ("دکتر خوب در سعادت آباد", "تهران", "سعادت" + ZW + "آباد"),
         ("دندانپزشک در اصفهان", "اصفهان", None),
-        ("a cardiologist in Tehranpars", "تهران", TEHRANPARS),
-        ("heart doctor in Shiraz", "شیراز", None),
+        ("a cardiologist in Tehranpars", "Tehran", TEHRANPARS),  # English request keeps English city
+        ("heart doctor in Shiraz", "Shiraz", None),
+        ("دکتر قلب در منطقه تهرانپارس، کسی را می‌شناسی؟", "تهران", TEHRANPARS),  # «،» right after the name (Codex P2)
+        ("آزمایشگاه نارمک؟", "تهران", "نارمک"),
         ("طبيب في تهرانپارس", "تهران", TEHRANPARS),
         ("دکتر خوب معرفی کن", None, None),
     ],
@@ -132,3 +134,24 @@ def test_generic_fail_safe_never_says_cannot():
     for lang in ("fa", "ar", "en"):
         msg = cn.fail_safe_user_message(cn.CareNavEntity.SPECIALIST, lang)
         assert "نمی‌توانم" not in msg and "cannot" not in msg.lower()
+
+
+def test_explicit_city_beats_the_tehran_guess():
+    # a city outside the gazetteer + a Tehran-like neighbourhood word: the named city wins (Codex P2)
+    req = cn.parse_care_nav_request("دکتر قلب در بروجرد نزدیک نارمک معرفی کن", language="fa")
+    assert req.city == "بروجرد"
+    # shared street names are not Tehran neighbourhoods at all
+    assert ip.find_place("دکتر در خیابان شریعتی").area is None
+
+
+def test_result_naming_another_city_is_rejected_even_with_the_same_district():
+    item = {"name": "دکتر د", "specialty": "قلب", "city": "شیراز", "address": "شیراز، منطقه 8، خیابان زند",
+            "phone": "071-32345678", "source_url": "https://www.paziresh24.com/dr/d/"}
+    assert wl.validate_results([item], city="تهران", area="منطقه 8") == []
+
+
+def test_english_and_persian_city_names_are_the_same_city():
+    item = {"name": "دکتر ه", "specialty": "قلب", "city": "شیراز", "address": "شیراز، خیابان زند",
+            "phone": "071-32345678", "source_url": "https://www.paziresh24.com/dr/e/"}
+    assert len(wl.validate_results([item], city="Shiraz")) == 1
+    assert ip.slug_for("Shiraz") == "shiraz" and ip.slug_for("تهران") == "tehran" and ip.slug_for("بروجرد") is None
