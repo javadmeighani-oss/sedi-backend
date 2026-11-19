@@ -106,18 +106,28 @@ _CONDITION_WORDS = frozenset(
 )
 
 
+# Codex P2 (PR 185): «Vitamin A» - the letter after a vitamin word is part of the NAME, not the English article «a».
+_VITAMIN_WORDS = frozenset({"vitamin", "vitamins", "vit", "ویتامین", "فیتامین", "ويتامين", "فيتامين"})
+
+
+def _is_vitamin_letter(prev_low: str, low: str) -> bool:
+    return len(low) == 1 and prev_low in _VITAMIN_WORDS
+
+
 def name_from_reply(text: Optional[str]) -> Optional[str]:
     """The medicine NAME at the start of a free reply, nothing else: «Metformin for my diabetes» -> «Metformin».
     None when the reply starts with a function word / condition word, or the cleaned value is not a plausible name."""
     raw = " ".join((text or "").replace("‌", " ").split())
     tokens: list[str] = []
+    prev = ""
     for tok in re.split(r"[\s,;:.!?؟،؛]+", raw):
         low = tok.strip("«»\"'()").lower()
         if not low:
             continue
-        if low in _FUNCTION_WORDS or low in _CONDITION_WORDS:
+        if (low in _FUNCTION_WORDS or low in _CONDITION_WORDS) and not _is_vitamin_letter(prev, low):
             break
         tokens.append(tok.strip("«»\"'()"))
+        prev = low
         if len(tokens) == 3:
             break
     return clean_name(" ".join(tokens)) if tokens else None
@@ -128,11 +138,12 @@ def clean_name(name: Optional[str]) -> Optional[str]:
     Phones are caught even with separators («0912 123 4567»): digits are counted across the whole text."""
     text = " ".join((name or "").replace("‌", " ").split())
     digits = re.sub(r"\D", "", text.translate(_DIGIT_MAP))
-    words = {w.strip("«»\"'()").lower() for w in text.split()}
-    if (
-        not text or "@" in text or "://" in text or len(digits) >= 7 or len(text.split()) > 3
-        or words & _FUNCTION_WORDS or words & _CONDITION_WORDS
-    ):
+    ordered = [w.strip("«»\"'()").lower() for w in text.split()]
+    blocked = any(
+        (w in _FUNCTION_WORDS or w in _CONDITION_WORDS) and not _is_vitamin_letter(ordered[i - 1] if i else "", w)
+        for i, w in enumerate(ordered)
+    )
+    if not text or "@" in text or "://" in text or len(digits) >= 7 or len(text.split()) > 3 or blocked:
         return None
     return text if _NAME_OK.match(text) else None
 

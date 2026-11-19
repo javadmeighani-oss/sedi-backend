@@ -312,3 +312,19 @@ def test_a_reason_that_mentions_a_time_without_reminder_words_still_completes_th
     ask_reason = sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")
     reply = _go(monkeypatch, ask_reason, "برای کم‌کاری تیروئید؛ صبح‌ها ساعت ۸ ناشتا می‌خورمش")
     assert interview == ["لووتیروکسین"] and reply and "14:00" in reply
+
+
+@pytest.mark.parametrize(
+    "reply, expected",
+    [
+        ("Vitamin A", "Vitamin A"),
+        ("vitamin D for my bones", "vitamin D"),
+        ("ویتامین D", "ویتامین D"),
+        ("a headache", None),            # the article is still a function word elsewhere
+        ("take a pill", None),
+        ("Metformin for my diabetes", "Metformin"),
+    ],
+)
+def test_vitamin_letters_are_part_of_the_name(reply, expected):
+    """Codex P2 (PR 185): «Vitamin A» must not be cut to «Vitamin» by the article «a»."""
+    assert db.name_from_reply(reply) == expected
