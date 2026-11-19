@@ -329,3 +329,17 @@ def test_p2_a_current_occurrence_next_to_a_historical_one_still_escalates(text, 
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert triage(text, lang).red_flag is True
+
+
+@pytest.mark.parametrize("text", ["I passed outside the shop on my way home", "the faintedness of the colour"])
+def test_p2_english_red_flags_need_whole_words(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag is False
+
+
+@pytest.mark.parametrize("text", ["I passed out", "I fainted", "I have heavy bleeding", "I can't breathe", "slurred speech and face droop"])
+def test_p2_whole_word_english_red_flags_still_fire(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag is True

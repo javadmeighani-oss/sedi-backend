@@ -48,10 +48,10 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
         r"(?:صورت|لبم|دهانم).{0,15}(?:افتاده|کج شده)", r"ناگهان.{0,40}(?:ضعف|بی ?حس).{0,25}(?:دست|پا|صورت)",
         r"(?:حرف زدنم|تکلمم|گفتارم|زبانم)(?!.{0,15}(?:^|\s)با\s).{0,25}(?:مشکل|اختلال|سخت|گرفته|بند|نمی ?تونم|نمیتونم)", r"(?:ناگهان|یکدفعه|یهو).{0,25}(?:حرف زدن|تکلم|گفتار|حرف زدنم).{0,25}(?:مشکل|اختلال|سخت|نمی ?تونم|نمیتونم|گرفته)", r"(?:نمی ?تونم|نمیتونم) حرف بزنم",
         r"ناگهان.{0,25}(?:دستم|پایم|صورتم|بدنم|زبانم).{0,20}(?:بی ?حس|ضعیف|سست)",
-        r"(?:دستم|پایم|صورتم|بدنم).{0,15}(?:بی ?حس|ضعیف).{0,30}ناگهان", r"face droop|slurred speech|sudden weakness")),
-    ("worst_headache", _rx(r"بدترین سردرد", r"سردرد.{0,20}ناگهانی.{0,20}(?:شدید|وحشتناک)", r"worst headache of my life")),
-    ("heavy_bleeding", _rx(r"خونریزی.{0,10}(?:شدید|بند نمیاد|بند نمی ?آید|زیاد)", r"heavy bleeding", r"bleeding (?:won.?t|will not) stop")),
-    ("fainting", _rx(r"غش کردم", r"از حال رفتم", r"بیهوش شد", r"fainted|passed out|lost consciousness")),
+        r"(?:دستم|پایم|صورتم|بدنم).{0,15}(?:بی ?حس|ضعیف).{0,30}ناگهان", r"\b(?:face droop|slurred speech|sudden weakness)\b")),
+    ("worst_headache", _rx(r"بدترین سردرد", r"سردرد.{0,20}ناگهانی.{0,20}(?:شدید|وحشتناک)", r"\bworst headache of my life\b")),
+    ("heavy_bleeding", _rx(r"خونریزی.{0,10}(?:شدید|بند نمیاد|بند نمی ?آید|زیاد)", r"\bheavy bleeding\b", r"\bbleeding (?:won.?t|will not) stop\b")),
+    ("fainting", _rx(r"غش کردم", r"از حال رفتم", r"بیهوش شد", r"\b(?:fainted|passed out|lost consciousness)\b")),
     ("sudden_vision_loss", _rx(
         r"(?:چشمم|چشم ?ام|دیدم|بینایی ?ام|بینایی).{0,25}(?:ناگهان|یکدفعه|یهو|یک ?دفعه).{0,25}(?:سیاه|تار|از دست|رفت|کم شد|دوبین)",
         r"(?:ناگهان|یکدفعه|یهو).{0,25}(?:چشمم|دیدم|بینایی).{0,20}(?:سیاه|تار|از دست|رفت|کم شد)",
@@ -59,7 +59,7 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
         r"(?:ناگهان|یکدفعه|یهو).{0,25}چشم.{0,25}(?:از دست|سیاه|تار|نمی ?بین)", r"از دست دادم.{0,12}(?:بینایی|دید)",
         r"sudden.{0,20}(?:vision|sight).{0,15}(?:loss|blur|black)", r"suddenly (?:can.?t|cannot) see",
         r"(?:vision|sight|eyesight).{0,20}suddenly.{0,20}(?:went|gone|black|blur|lost|dark)", r"suddenly.{0,15}(?:lost (?:my |the |all )?(?:vision|sight|eyesight)|went blind)")),
-    ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"can.?t breathe")),
+    ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"\bcan.?t breathe\b")),
 )
 
 # urgent but not an emergency: the person should be seen soon
