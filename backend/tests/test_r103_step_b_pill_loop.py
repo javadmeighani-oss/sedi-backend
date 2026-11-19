@@ -451,3 +451,49 @@ def test_p1_a_series_that_starts_later_is_not_offered_for_promotion():
     db = MagicMock()
     db.query.side_effect = query
     assert [p["id"] for p in reg.existing_pills(db, 1) if p["kind"] == "event"] == [8]
+
+
+# --- Codex round 4 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def _promote_db(monkeypatch, ev, um):
+    from backend.app.services import user_medication_service as svc
+
+    q_event, q_um = MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = ev
+    q_um.filter.return_value.first.return_value = um
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
+    added = []
+    db.add.side_effect = lambda obj: added.append(obj)
+    return svc, db, added
+
+
+def _event_obj(rule="FREQ=WEEKLY;BYDAY=MO"):
+    return SimpleNamespace(id=15, starts_at=datetime(2026, 11, 9, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None,
+                           updated_at=None, recurrence_rule=rule, reminder_offsets_json=None)
+
+
+def test_p1_a_disabled_medication_is_re_enabled_by_the_promotion(monkeypatch):
+    um = SimpleNamespace(id=3, schedules=[], reminder_enabled=False, updated_at=None)
+    svc, db, added = _promote_db(monkeypatch, _event_obj(), um)
+    svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00", None)
+    assert um.reminder_enabled is True  # the working event is cancelled, so the pill must keep reminding
+
+
+def test_p2_two_doses_at_the_same_time_merge_their_weekdays(monkeypatch):
+    um = SimpleNamespace(id=3, schedules=[], reminder_enabled=True, updated_at=None)
+    svc, db, added = _promote_db(monkeypatch, _event_obj("FREQ=WEEKLY;BYDAY=MO"), um)
+    svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "14:00", None)  # the new request: daily 14:00; the older: Monday 14:00
+    rows = [o for o in added if hasattr(o, "time_of_day")]
+    assert len(rows) == 1 and rows[0].days_of_week is None  # daily wins; nothing is dropped
+    um2 = SimpleNamespace(id=3, schedules=[SimpleNamespace(time_of_day=time(14, 0), days_of_week="1")], reminder_enabled=True, updated_at=None)
+    svc2, db2, added2 = _promote_db(monkeypatch, _event_obj("FREQ=WEEKLY;BYDAY=MO"), um2)
+    svc2.promote_event_to_medication(db2, 1, 15, "قرص مکمل", "09:00", "2")
+    assert um2.schedules[0].days_of_week == "0,1"  # Monday (older event) + Tuesday (already there)
+
+
+def test_p2_merge_days_helper():
+    from backend.app.services import user_medication_service as svc
+
+    assert svc._merge_days("0", "3") == "0,3" and svc._merge_days(None, "3") is None and svc._merge_days("2", None) is None

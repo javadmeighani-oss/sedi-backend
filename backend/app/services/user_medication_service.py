@@ -293,6 +293,14 @@ def _days_from_rule(rule: Optional[str], starts_at: Optional[datetime] = None) -
     return ",".join(str(d) for d in days) or None
 
 
+def _merge_days(a: Optional[str], b: Optional[str]) -> Optional[str]:
+    """Weekday coverage of two schedules at the SAME time: daily (None) wins, otherwise the union (Codex P2, PR 193)."""
+    if a is None or b is None:
+        return None
+    days = sorted({int(x) for x in (a + "," + b).split(",") if x.strip().isdigit()})
+    return ",".join(str(d) for d in days) or None
+
+
 def promote_event_to_medication(
     db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None
 ) -> dict:
@@ -326,12 +334,19 @@ def promote_event_to_medication(
         )
         db.add(um)
         db.flush()
-    have = {r.time_of_day for r in (um.schedules or [])}
-    # each dose keeps ITS OWN weekdays: the older dose those of the older event, the new one those of the new request (Codex P1)
+    if not um.reminder_enabled:
+        um.reminder_enabled = True  # the user has an ACTIVE reminder for this pill (the event being promoted): it must keep working
+    have = {r.time_of_day: r for r in (um.schedules or [])}
+    # each dose keeps ITS OWN weekdays (older dose: the older event's; new dose: the new request's); two doses at the same time merge
+    # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)
     for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule, ev.starts_at)), (parse_hhmm(new_hhmm), days_of_week)):
-        if t not in have:
-            have.add(t)
-            db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days))
+        row = have.get(t)
+        if row is None:
+            row = models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days)
+            have[t] = row
+            db.add(row)
+        else:
+            row.days_of_week = _merge_days(row.days_of_week, days)
     now = datetime.utcnow()
     ev.status = "cancelled"
     ev.valid_to = now
