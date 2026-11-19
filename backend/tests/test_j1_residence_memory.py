@@ -111,3 +111,10 @@ def test_a_changed_city_drops_the_neighbourhood_of_the_old_city(monkeypatch):
 def test_the_same_city_or_a_first_city_keeps_the_area(monkeypatch):
     assert _promote(monkeypatch, "تهران", "تهران") == ["write"]
     assert _promote(monkeypatch, None, "تهران") == ["write"]
+
+
+def test_a_same_city_restated_in_another_alias_keeps_the_area(monkeypatch):
+    # Codex P2 (PR 188, 0b850f28): «تهران» then "Tehran" is the same city, the area stays
+    assert _promote(monkeypatch, "تهران", "Tehran") == ["write"]
+    assert _promote(monkeypatch, "Tehran", "تهران") == ["write"]
+    assert _promote(monkeypatch, "تهران", "Shiraz") == ["write", "drop_area"]

@@ -85,6 +85,16 @@ def _active_home_city(db: Session, user_id: int) -> Optional[str]:
         return None
 
 
+def _same_city(a: str, b: str) -> bool:
+    """Same city under any spelling/alias («تهران» == "Tehran"), via the gazetteer; unknown cities compare by normalised text."""
+    from backend.app.services.i5 import iran_places
+
+    sa, sb = iran_places.slug_for(a), iran_places.slug_for(b)
+    if sa and sb:
+        return sa == sb
+    return iran_places.normalize(a) == iran_places.normalize(b)
+
+
 def _drop_stale_home_area(db: Session, user_id: int) -> None:
     """The city changed: a neighbourhood remembered for the OLD city is no longer true (Codex P2, PR 188). An area written in the
     last few minutes belongs to the same statement and is kept. Fail-open: a failure leaves the old behaviour."""
@@ -180,7 +190,7 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
             )
         except ConsentDenied:
             return {"target": "skipped", "reason": "CONSENT_DENIED"}
-        if previous_city is not None and previous_city != str(value).strip():
+        if previous_city is not None and not _same_city(previous_city, str(value).strip()):
             _drop_stale_home_area(db, user_id)
         return {"target": "user_memory_facts", "domain": domain, "key": key}
 
