@@ -99,7 +99,7 @@ _SOON: tuple[re.Pattern, ...] = (
 # area key -> (patterns, specialties best-first)
 _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("heart_rhythm", _rx(r"ضربان", r"تپش قلب", r"طپش قلب", r"قلبم.{0,15}(?:می ?زنه|میزنه|نامنظم|تند)", r"palpitation", r"irregular heart"), ("قلب",)),
-    ("chest", _rx(r"قفسه(?: ?ی)? سینه", r"درد سینه", r"سینه ?ام", r"chest pain"), ("قلب", "داخلی")),
+    ("chest", _rx(r"قفسه(?: ?ی)? سینه", r"درد سینه", r"سینه ?ام", r"قلبم.{0,12}(?:درد|فشار|سنگین)", r"chest pain"), ("قلب", "داخلی")),
     ("head", _rx(r"سردرد", r"سر درد", r"میگرن", r"سرگیجه", r"سرم.{0,12}(?:درد|می ?زنه|میزنه)", r"headache", r"migraine", r"dizz"), ("مغز و اعصاب",)),
     ("back_joint", _rx(r"زانو", r"کمردرد", r"کمر درد", r"کمرم", r"مفصل", r"شانه ?ام", r"گردن ?درد", r"گردنم", r"پشتم", r"ستون فقرات", r"\bknee\b", r"back pain", r"joint"), ("ارتوپدی",)),
     ("skin", _rx(r"پوست", r"خارش", r"قرمزی", r"جوش", r"لکه", r"راش", r"کهیر", r"\brash\b", r"itch"), ("پوست",)),

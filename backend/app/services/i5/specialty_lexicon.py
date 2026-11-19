@@ -72,6 +72,8 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("internist", "اخصائی باطنیه")),
     Specialty("انکولوژی", "سرطان", ("سرطان", "آنکولوژی", "انکولوژی", "oncology", "cancer", "الاورام", "اورام"),
               ("oncologist", "انکولوژیست", "آنکولوژیست")),
+    Specialty("پزشک عمومی", "پزشک عمومی", ("پزشک عمومی", "دکتر عمومی", "general practitioner", "general physician", "family doctor", "طبیب عمومی", "طبیب عام", "الطبیب العام"),
+              ("general practitioner", "gp", "طبیب عمومی", "طبیب عام")),
     Specialty("جراحی عمومی", "جراحی", ("جراحی عمومی", "جراح عمومی", "جراحی", "general surgery", "surgery", "الجراحه العامه", "جراحه عامه"),
               ("surgeon", "جراح", "جراح عمومی")),
     Specialty("فیزیوتراپی", "فیزیوتراپی", ("فیزیوتراپی", "طب فیزیکی", "physiotherapy", "physical therapy", "العلاج الطبیعی", "علاج طبیعی"),
@@ -149,6 +151,9 @@ _HIGH_RATING = re.compile(fold(
     r"تقییم عالی|الاعلى تقییما|الافضل تقییما"))
 
 
+_URGENT = re.compile(fold(r"فوری|هر ?چه زودتر|زودتر ممکن|urgent|as soon as possible|asap|عاجل|بأسرع وقت|باسرع وقت"))
+
+
 def qualifiers(text: str) -> tuple[str, ...]:
     """Request qualifiers read from the text: ``24h`` and/or ``high_rating``."""
     t = fold(text)
@@ -157,6 +162,8 @@ def qualifiers(text: str) -> tuple[str, ...]:
         out.append("24h")
     if _HIGH_RATING.search(t):
         out.append("high_rating")
+    if _URGENT.search(t):
+        out.append("urgent")
     return tuple(out)
 
 

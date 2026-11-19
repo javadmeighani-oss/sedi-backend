@@ -558,11 +558,12 @@ def _serialize_hits_message(
             line += sep + sedi_copy.t("care_nav.hit.rating", k, avg=f"{float(h.rating_avg):g}", count=h.rating_count or 0)
         if with_sources:
             line += _feedback_phrase(h, lang)
-        if h.source_url:
+        # Source link, page-check date and «why this one» only when the user ASKED for the source (Javad, 2026-11-19: no clutter otherwise).
+        if h.source_url and with_sources:
             line += {"fa": f"؛ منبع: {h.source_url}", "ar": f"؛ المصدر: {h.source_url}", "en": f"; source: {h.source_url}"}[k]
             if h.checked_on:
                 line += sep + sedi_copy.t("care_nav.hit.checked", k, date=h.checked_on)
-        if h.why:
+        if h.why and with_sources:
             reasons = ("، " if k != "en" else ", ").join(sedi_copy.t(f"care_nav.why.{w}", k) for w in h.why if sedi_copy.has(f"care_nav.why.{w}"))
             if reasons:
                 line += "\n   " + sedi_copy.t("care_nav.hit.why", k, reasons=reasons)
@@ -718,6 +719,15 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
     )
 
 
+def _urgent(request: "CareNavRequest", message: str) -> str:
+    """A complaint that triage marked «see a doctor soon» keeps that guidance in the deterministic reply (Codex P2, PR 191)."""
+    if "urgent" not in (request.qualifiers or ()):
+        return message
+    from backend.app import sedi_copy
+
+    return sedi_copy.t("care_nav.urgent_note", _lk((request.language or "en").lower())) + "\n\n" + message
+
+
 def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavResult:
     """Resolve care-navigation via canonical I5 governed directory only."""
     notes: list[str] = []
@@ -736,7 +746,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
                 entity=entity,
                 identities=web_labs,
                 reason_code="WEB_SEARCH_RESULTS",
-                user_message=_serialize_hits_message(web_labs, request.language, request.wants_sources),
+                user_message=_urgent(request, _serialize_hits_message(web_labs, request.language, request.wants_sources)),
                 lab_population_authorized=False,
                 identity_notes=tuple(notes + ["WEB_SEARCH_ONLY"]),
             )
@@ -744,7 +754,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             status=STATUS_NO_VERIFIED,
             entity=entity,
             reason_code="LAB_POPULATION_NOT_AUTHORIZED",
-            user_message=no_result_message_for(request),
+            user_message=_urgent(request, no_result_message_for(request)),
             lab_population_authorized=False,
             identity_notes=tuple(notes + ["LAB_FAIL_SAFE"]),
         )
@@ -773,7 +783,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             status=STATUS_NO_VERIFIED,
             entity=entity,
             reason_code=STATUS_NO_VERIFIED,
-            user_message=no_result_message_for(request),
+            user_message=_urgent(request, no_result_message_for(request)),
             identity_notes=tuple(notes),
         )
 
@@ -782,7 +792,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         entity=entity,
         identities=identities,
         reason_code=STATUS_VERIFIED,
-        user_message=_serialize_hits_message(identities, request.language, request.wants_sources),
+        user_message=_urgent(request, _serialize_hits_message(identities, request.language, request.wants_sources)),
         identity_notes=tuple(notes),
     )
 
