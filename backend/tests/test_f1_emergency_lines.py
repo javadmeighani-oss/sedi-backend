@@ -381,3 +381,12 @@ def _db(phone, tz):
     (None, "Asia/Tehran", "en", "IR"), (None, None, "fa", "IR"), (None, None, "en", None)])
 def test_p1_explicit_foreign_evidence_is_never_overridden_by_the_language_fallback(phone, tz, lang, expected):
     assert el.region_for(_db(phone, tz), 1, lang) == expected
+
+
+@pytest.mark.parametrize("text, lang", [
+    ("I have had heavy bleeding since last month", "en"), ("I have heavy bleeding for the past year", "en"),
+    ("از ماه پیش خونریزی شدید دارم", "fa"), ("از پارسال غش می‌کنم و الان دوباره غش کردم", "fa")])
+def test_p1_a_historical_onset_of_an_ongoing_emergency_still_escalates(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, lang).red_flag is True

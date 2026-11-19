@@ -137,6 +137,10 @@ _HISTORICAL = re.compile(_fold(r"\blast (?:year|month|decade)|\b(?:years?|months
 _CURRENT = re.compile(_fold(r"\b(?:today|tonight|right now|just now|this morning|again|still)\b|دوباره|امروز|همین الان|امشب|دیشب|هنوز"), re.I)
 
 
+# a historical ONSET that is still going on («since last month», «for the past year») is current, not resolved (Codex P1)
+_ONGOING = re.compile(_fold(r"\b(?:since|for the (?:past|last)|ongoing|continu(?:es|ing|ed)|have had|has been|have been|keep|keeps)\b|از (?:ماه|سال|هفته|دیروز|چند)|مدتیه|ادامه دارد|ادامه داره|دارم|دارد"), re.I)
+
+
 def _live_match(rx: "re.Pattern", t: str) -> bool:
     for m in rx.finditer(t):
         left = _SENTENCE_BREAK.split(t[: m.start()])[-1]
@@ -145,7 +149,7 @@ def _live_match(rx: "re.Pattern", t: str) -> bool:
         # An explicitly historical / resolved report is not current danger (Codex P2) - unless the same sentence also reports a
         # current occurrence («I fainted last year and again today»).
         near = _last_clause(left) + " " + t[m.start(): m.end()] + " " + _CLAUSE_BREAK.split(right)[0]
-        if _HISTORICAL.search(near) and not _CURRENT.search(sentence):
+        if _HISTORICAL.search(near) and not (_CURRENT.search(sentence) or _ONGOING.search(sentence)):
             continue
         if _INFORMATIONAL.search(sentence) and not _FIRST_PERSON.search(sentence):
             continue
