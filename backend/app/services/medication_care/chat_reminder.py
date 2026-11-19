@@ -58,6 +58,16 @@ _MED_WORD = re.compile(
     re.I,
 )
 _PHARMACY = re.compile(r"داروخانه|داروساز|pharmac|صيدلي", re.I)
+# Codex P2 (PR 185): «every day at 9pm remind me to BUY pills» is an errand, not an intake schedule. An errand word
+# (buy / refill / count / order / renew) keeps the generic event route UNLESS an intake word is also present.
+_ERRAND = re.compile(
+    r"بخر|خرید|تمدید|بشمار|شمارش|سفارش|buy|purchase|pick\s*up|refill|re-?order|order\b|count|renew|اشتري|شراء|تجديد|اطلب",
+    re.I,
+)
+_INTAKE = re.compile(
+    r"بخور|خوردن|مصرف|\btake\b|\btaking\b|\bintake\b|\bdrink|تناول|آخذ|أخذ|اشرب|اخذ",
+    re.I,
+)
 
 # «داروی فشارم» names a condition, not a medicine: only product-type words introduce a name.
 _NAME_AFTER = re.compile(
@@ -112,7 +122,9 @@ def provisional_name(language: Optional[str]) -> str:
 
 def is_medication_text(text: str) -> bool:
     folded = _fold(text)
-    return bool(_MED_WORD.search(folded)) and not _PHARMACY.search(folded)
+    if not _MED_WORD.search(folded) or _PHARMACY.search(folded):
+        return False
+    return not (_ERRAND.search(folded) and not _INTAKE.search(folded))
 
 
 def insists(text: str) -> bool:
@@ -191,11 +203,12 @@ def has_future_start(draft: Any, now_utc: Optional[datetime] = None) -> bool:
 
 
 def history_available(db: Session, user_id: int) -> bool:
-    """The interview state lives in the consent-gated conversation memory (R-021)."""
+    """The interview state lives in the consent-gated conversation memory (R-021): it must be both WRITTEN (the question) and
+    READ back (the answer). Read-only consent cannot hold the state -> immediate-creation fallback (Codex P2, PR 185)."""
     try:
-        from backend.app.services.i6.consent_service import PERM_READ, has_permission
+        from backend.app.services.i6.consent_service import PERM_READ, PERM_WRITE, has_permission
 
-        return bool(has_permission(db, user_id, PERM_READ))
+        return bool(has_permission(db, user_id, PERM_READ) and has_permission(db, user_id, PERM_WRITE))
     except Exception:  # noqa: BLE001
         return False
 

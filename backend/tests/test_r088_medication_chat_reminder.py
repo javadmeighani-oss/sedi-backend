@@ -48,6 +48,38 @@ def test_other_reminders_are_not_medication(text):
 
 
 @pytest.mark.parametrize(
+    "text",
+    [
+        "Remind me every day at 9pm to buy pills",
+        "remind me daily at 8 to refill my medication",
+        "هر روز ساعت ۹ شب یادم بنداز قرص بخرم",
+        "هر ماه یادم بنداز داروهام رو بشمارم",
+        "كل يوم الساعة 9 ذكّرني بشراء الحبوب",
+    ],
+)
+def test_pill_errands_stay_on_the_generic_event_route(text):
+    """Codex P2 (PR 185): buying / counting / refilling pills is not an intake schedule."""
+    assert not mc.is_medication_text(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["remind me every day at 9pm to take the pills I bought", "remind me every day at 9pm to take my pills after the refill", "هر شب ساعت ۹ یادم بنداز قرصی که خریدم بخورم"],
+)
+def test_an_intake_word_keeps_the_medication_route(text):
+    assert mc.is_medication_text(text)
+
+
+@pytest.mark.parametrize("perms,expected", [(("memory.read", "memory.write"), True), (("memory.read",), False), (("memory.write",), False), ((), False)])
+def test_interview_needs_read_and_write_consent(monkeypatch, perms, expected):
+    """Codex P2 (PR 185): a read-only consent cannot save the interview question, so the interview must not start."""
+    from backend.app.services.i6 import consent_service
+
+    monkeypatch.setattr(consent_service, "has_permission", lambda db, uid, perm: perm in perms)
+    assert mc.history_available(None, 1) is expected
+
+
+@pytest.mark.parametrize(
     "text, name",
     [
         ("هر روز ساعت ۸ قرص متفورمین بخورم", "متفورمین"),
