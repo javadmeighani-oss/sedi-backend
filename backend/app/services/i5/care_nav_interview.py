@@ -98,6 +98,22 @@ def _place_in(answer: str) -> Optional[str]:
     return None  # only places the gazetteer knows: «pain in knee» must not turn «knee» into a city (Codex P2)
 
 
+_QUALIFIER_WORDS = {
+    "24h": ("شبانه‌روزی", "open 24 hours"),
+    "high_rating": ("با رضایت بالا", "highly rated"),
+    "urgent": ("هرچه زودتر", "as soon as possible"),
+}
+
+
+def _with_qualifiers(request_text: str, quals: set, language: str) -> str:
+    present = set(sl.qualifiers(request_text))
+    for q in ("24h", "high_rating", "urgent"):
+        if q in quals and q not in present:
+            fa, en = _QUALIFIER_WORDS[q]
+            request_text += " " + (fa if language == "fa" else en)
+    return request_text
+
+
 def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], answer: str, language: str) -> Optional[str]:
     """The completed doctor request when ``answer`` replies to the reason question, else None (the message stays as it is)."""
     try:
@@ -125,8 +141,10 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             done = f"{prior_request.strip()} متخصص {spec}"
         if cn.wants_sources(text) and not cn.wants_sources(done):  # «neurology, include sources»: the source request survives (Codex P2)
             done += " منبعش را هم بگو" if language == "fa" else " include the source"
+        quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text))
         if urgent:  # «high fever and cough»: the guidance «see a doctor within a day or two» must reach the reply (Codex P2)
-            done += " هرچه زودتر" if language == "fa" else " as soon as possible"
+            quals.add("urgent")
+        done = _with_qualifiers(done, quals, language)  # preferences from BOTH turns survive (24h, high rating, urgent) - Codex P2
         return done
     except Exception:  # noqa: BLE001
         return None

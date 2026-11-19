@@ -260,3 +260,20 @@ def test_p2_the_source_followup_goes_through_the_orchestrator(monkeypatch):
     orch, called = _orch(monkeypatch, last_row=last, seen=seen)
     out = orch.process(authenticated_user_id=42, message="منبعش چیه؟", language="fa")
     assert called["gen"] is False and seen  # the doctor search ran again instead of the canned source text
+
+
+# ---- Codex round 7 ---------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("prior, answer, lang, expected", [
+    ("find a doctor in Tehran", "neurology, highly rated please", "en", {"high_rating"}),
+    ("find a highly rated doctor in Tehran", "neurology in Shiraz", "en", {"high_rating"}),
+    ("یه دکتر خوب با رضایت بالا در پردیس معرفی کن", "نورولوژی در شیراز", "fa", {"high_rating"}),
+    ("یه دکتر شبانه‌روزی در پردیس معرفی کن", "سردرد دارم", "fa", {"24h"}),
+    ("find a doctor in Tehran", "high fever and cough, 24 hours", "en", {"24h", "urgent"})])
+def test_p2_qualifiers_from_both_turns_survive_the_completion(prior, answer, lang, expected):
+    done = ci.request_for_answer(prior, Q[lang], answer, lang)
+    assert done and expected <= set(cn.parse_care_nav_request(done, language=lang).qualifiers)
+
+
+def test_p2_no_qualifier_is_invented():
+    done = ci.request_for_answer(PRIOR, Q["fa"], "نورولوژی", "fa")
+    assert cn.parse_care_nav_request(done, language="fa").qualifiers == ()
