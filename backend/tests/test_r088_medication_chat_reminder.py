@@ -460,3 +460,25 @@ def test_the_reply_hook_still_extracts_a_promise_and_goes_through_the_same_gate(
     assert cf.capture_from_reply(None, 5, reply, "en", user_message="my back hurts") == "task"
     assert len(seen) == 1 and seen[0][0] == 5 and "walk" in seen[0][1] and seen[0][2] == "my back hurts"
     assert cf.capture_from_reply(None, 5, "Drink some water.", "en") is None and len(seen) == 1
+
+
+# --- Codex P2 (PR 185): an explicit cancellation at ANY stage creates nothing -----------------------------------------
+@pytest.mark.parametrize(
+    "lang,text",
+    [
+        ("en", "Don't set the reminder; cancel it"), ("en", "No, I do not want a reminder"), ("en", "cancel"),
+        ("fa", "یادآور رو نمی‌خوام"), ("fa", "لغو کن"), ("fa", "نمی‌خوام یادآوری بذاری"), ("ar", "لا أريد تذكير"), ("ar", "إلغاء"),
+    ],
+)
+def test_explicit_cancellation_at_the_reason_stage_creates_nothing(monkeypatch, owner, captured, lang, text):
+    reply = _go_db(monkeypatch, _reason_rows(lang=lang), text, _FakeDb(), lang=lang)
+    assert reply == sedi_copy.t("medication.chat.cancelled", lang)
+    assert owner == [] and captured == []
+    assert reply.count("?") + reply.count("؟") == 0
+    assert mc._stage_of(reply, lang) is None  # the interview is over
+
+
+def test_cancellation_also_ends_the_name_stage_and_a_bare_refusal_still_keeps_the_request(monkeypatch, owner, captured):
+    assert _go(monkeypatch, _turns(), "لغو کن") == sedi_copy.t("medication.chat.cancelled", "fa") and owner == []  # name stage
+    # «نمی‌خوام» alone is NOT a withdrawal: the existing safe escape creates the reminder with the requested time
+    assert _go_db(monkeypatch, _reason_rows(), "نمیخوام", _FakeDb()) and owner == ["لووتیروکسین"] and captured == []

@@ -1610,6 +1610,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم التسجيل: سأذكّرك الساعة {time} بتناول دوائك. أخذت وضعك في الاعتبار وسنتابع معاً الرعاية والوقاية والمتابعة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',
         'en': 'Done: I will remind you at {time} to take your medicine. I have your situation in mind and we will go through care, prevention and follow-up together; I am with you. If another time fits your day better, tell me and I will change it.',
     },
+    'medication.chat.cancelled': {
+        'fa': 'باشه، یادآوری را نگذاشتم. هر وقت خواستی بگو تا برایت تنظیمش کنم.',
+        'ar': 'حسناً، لم أضع التذكير. متى شئت أخبرني وسأضبطه لك.',
+        'en': 'Okay, I did not set the reminder. Tell me whenever you want it and I will set it up.',
+    },
     'medication.chat.commitment_step': {
         'fa': 'ادامه‌ی مراقبت و پیگیری موضوع سلامتی پشت دارویت «{name}»',
         'ar': 'متابعة الرعاية للموضوع الصحي وراء دوائك «{name}»',

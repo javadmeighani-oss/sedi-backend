@@ -92,6 +92,16 @@ _INSIST = re.compile(
     r"just\s+remind|no\s+questions|same\s+time|without\s+questions|فقط\s+ذكرني|بدون\s+أسئلة)",
     re.I,
 )
+# Codex P2 (PR 185): an explicit WITHDRAWAL of the request at any interview stage ends it with NO reminder and NO commitment
+# (a bare «نمی‌خوام» / «skip» stays a non-answer = the request is kept). Only wording that names the reminder/cancelling counts.
+_CANCEL = re.compile(
+    r"(?:لغو|کنسل|کنسله|نگذار|نذار|نزار|(?:یادآور\w*|یادآوری|یادم\s+بنداز)\s+(?:رو\s+|را\s+)?(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم|نه)|"
+    r"(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم)\s+(?:یادآور\w*|یادآوری)|"
+    r"\bcancel|\bdon'?t\s+(?:set|create|make|add)\b|\bdo\s+not\s+(?:set|create|make|add)\b|\bno\s+reminders?\b|"
+    r"\b(?:don'?t|do\s+not)\s+want\s+(?:a\s+|any\s+)?reminders?\b|"
+    r"إلغاء|الغ[اِ]|لا\s+(?:تضع|تنشئ|تسجّل|تسجل)|لا\s+أر[يی]د\s+(?:تذ[كک][يی]ر|تنب[يی]ه))",  # the text is folded first: ي->ی
+    re.I,
+)
 _NON_ANSWER = re.compile(
     r"^(?:نمی\s*?دونم|نمی\s*?دانم|فرقی\s+نمی\s*?کنه|مهم\s+نیست|بی\s*?خیال|نمی\s*?خوام|نمیخوام|i\s+don'?t\s+know|skip|never\s+mind|"
     r"لا\s+أعرف|لا\s+أريد)",
@@ -457,6 +467,9 @@ def continue_interview(
                 text = text + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)
             return text
 
+        # an explicit withdrawal («don't set the reminder», «یادآور رو نمی‌خوام») ends it: nothing is created (Codex P2, PR 185)
+        if _CANCEL.search(text):
+            return sedi_copy.t("medication.chat.cancelled", lang)
         # a non-answer / insistence ends the interview now: the request is never lost
         if insists(message) or _NON_ANSWER.match(text):
             return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
