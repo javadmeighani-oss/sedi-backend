@@ -146,6 +146,15 @@ def _live_match(rx: "re.Pattern", t: str) -> bool:
     return False
 
 
+# CLASS FIX (Codex P2, PR 187 - «period», «بینی», «چشم ممنون»...): a body-area word alone is never a medical complaint. The area stage runs only
+# when the message carries a complaint / doctor cue; otherwise ordinary chat («چشم، فردا انجام می‌دهم») gets no medical hint.
+_COMPLAINT_CUE = re.compile(_fold(
+    r"درد|ناراحت|مشکل|سوزش|می ?سوزه|ورم|تورم|خارش|عفونت|خون|تار|گرفته|بسته|ضعیف|ریزش|بی ?حس|گز ?گز|تهوع|سرگیجه|نفخ|یبوست|اسهال|التهاب|"
+    r"دکتر|پزشک|متخصص|معاینه|آزمایش|علائم|نشانه|اذیت|آزار|شکایت|تب|سرفه|عرق|تپش|ضربان|پریود|قاعدگی|حامله|بارداری|ترشح|دیر شده|نامنظم|اضطراب|افسرد|استرس|بی ?خوابی|خوابم|دلشوره|ناامید|غم گین|غمگین|قند|فشار خون|کلسترول|ادرار|می ?سوزد|کم شده|کم شد|خوب نیست|خوبی ندارد|یه چیزی|یک چیزی|حالم|مریض|بیمار|ناخوش|"
+    r"\b(?:pain|ache|aching|hurts?|sore|swollen|swelling|itch|itchy|rash|fever|infection|bleed|bleeding|blur|blurry|dizzy|dizziness|"
+    r"nausea|anxious|anxiety|depressed|unwell|sick|something wrong|problem|issue|symptoms?|doctor|specialist|trouble|cough|cramps?|numb|late|missed|irregular|painful|stuffy|blocked|runny)\b"), re.I)
+
+
 def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     """Never raises. Emergencies first; then area -> specialties; then ONE next question."""
     t = _fold(text)
@@ -162,6 +171,8 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
         if _live_match(rx, t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
                                 reasons={"اورژانس": key})
+    if not _COMPLAINT_CUE.search(t):
+        return TriageResult()
     areas: list[str] = []
     specialties: list[str] = []
     reasons: dict = {}

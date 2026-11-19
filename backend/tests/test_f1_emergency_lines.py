@@ -256,3 +256,20 @@ def test_p2_the_support_window_is_searched_by_time_not_by_the_last_few_turns(mon
     monkeypatch.setattr(ret, "query_eligible_raw", fake)
     msgs = cs._recent_user_messages(object(), 1)
     assert msgs == ["I want to die"] and seen["since"] is not None and seen["limit"] >= 100
+
+
+@pytest.mark.parametrize("text", ["چشم ممنون", "چشم، فردا انجامش می‌دهم", "ببینیم فردا چه می‌شود", "the trial period ends tomorrow",
+                                  "I like my knee-high boots", "سرم شلوغه امروز"])
+def test_p2_class_fix_ordinary_chat_with_a_body_word_gets_no_medical_hint(text):
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    r = triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en")
+    assert r.specialties == () and r.areas == () and llm_hint(r) is None
+
+
+@pytest.mark.parametrize("text, spec", [("چشمم درد می‌کنه", "چشم"), ("my knee hurts", "ارتوپدی"), ("بینی‌ام گرفته", "گوش و حلق و بینی"),
+                                        ("پوستم خارش دارد", "پوست"), ("I need a doctor for my eye", "چشم")])
+def test_p2_class_fix_real_complaints_still_route(text, spec):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert spec in triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").specialties
