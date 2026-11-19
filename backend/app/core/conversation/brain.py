@@ -466,6 +466,24 @@ def _maybe_append_structured_governed_knowledge(
         )
 
 
+def _maybe_append_crisis_support(messages: list, db, user_id, user_message: str, language: str) -> None:
+    """R-099 / S1: when this message or an earlier turn (last 24 h, consent-gated) was self-harm talk, hand the chat model the
+    psychology-informed SUPPORT protocol so Sedi keeps TALKING with the person. Fail-open; kill switch
+    SEDI_CRISIS_SUPPORT_DISABLED (code default ON, no env change)."""
+    try:
+        import os
+
+        if os.getenv("SEDI_CRISIS_SUPPORT_DISABLED", "").strip().lower() in {"1", "true", "yes", "on"}:
+            return
+        from backend.app.services.care_navigation import crisis_support as _cs
+
+        hint = _cs.hint_for_turn(db, user_id, user_message, language)
+        if hint:
+            messages.append({"role": "system", "content": hint})
+    except Exception:  # noqa: BLE001 - optional enrichment; never break the chat
+        pass
+
+
 def _maybe_append_symptom_triage(messages: list, user_message: str, language: str) -> None:
     """R-094 / J2: deterministic symptom -> body area -> kind of doctor hint (emergencies first). Fail-open; kill switch
     SEDI_SYMPTOM_TRIAGE_DISABLED (code default ON, no env change)."""
@@ -838,6 +856,7 @@ class ConversationBrain:
 
             _maybe_append_public_web_facts(messages, user_message, lang)
             _maybe_append_symptom_triage(messages, user_message, lang)
+            _maybe_append_crisis_support(messages, self.db, user_id, user_message, lang)
 
             if not structured_mode:
                 # Stage 17.5: Optional Local RAG context (gated)

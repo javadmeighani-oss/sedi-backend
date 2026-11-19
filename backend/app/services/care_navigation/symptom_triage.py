@@ -52,7 +52,6 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
     ("worst_headache", _rx(r"بدترین سردرد", r"سردرد.{0,20}ناگهانی.{0,20}(?:شدید|وحشتناک)", r"worst headache of my life")),
     ("heavy_bleeding", _rx(r"خونریزی.{0,10}(?:شدید|بند نمیاد|بند نمی ?آید|زیاد)", r"heavy bleeding", r"bleeding (?:won.?t|will not) stop")),
     ("fainting", _rx(r"غش کردم", r"از حال رفتم", r"بیهوش شد", r"fainted|passed out|lost consciousness")),
-    ("self_harm", _rx(r"خودکشی", r"می ?خوام بمیرم", r"میخوام بمیرم", r"می ?خواهم بمیرم", r"زندگی ام را تمام", r"suicid|kill myself|want to die")),
     ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"can.?t breathe")),
 )
 
@@ -113,6 +112,13 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     t = _fold(text)
     if not t:
         return TriageResult()
+    # R-099: self-harm talk is a SUPPORT conversation, not «call and leave». ONE definition of it (the I4 safety assessor, which also
+    # understands negations like «قصد خودکشی ندارم» and informational questions): care_navigation.crisis_support.
+    from backend.app.services.care_navigation.crisis_support import is_self_harm_text
+
+    if is_self_harm_text(text or "", language or "fa"):
+        return TriageResult(red_flag=True, urgency="crisis", red_flag_key="self_harm", specialties=("روانپزشکی",),
+                            reasons={"روانپزشکی": "self_harm"}, next_question="care_nav.q.what_hurts")
     for key, rx in _RED_FLAGS:
         if rx.search(t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
@@ -154,6 +160,7 @@ _QUESTION_MEANING = {
     "care_nav.q.palpitation_when": "when it happens (rest / effort), how long it lasts, and any dizziness",
     "care_nav.q.cough_since_fever": "since when, and whether there is fever or breathlessness",
     "care_nav.q.which_area": "which part of the body it is about and since when",
+    "care_nav.q.what_hurts": "what is hurting them the most right now (an open invitation to talk)",
 }
 
 
@@ -162,6 +169,8 @@ def llm_hint(result: TriageResult, language: Optional[str] = "fa") -> Optional[s
 
     Emergency -> urge help at once. Otherwise: name the kind of doctor that fits and WHY, ask ONE question, never diagnose,
     never advise a drug start / stop / change (R-014 / R-033 / R-074). Meant to be appended like the other context blocks."""
+    if result.red_flag_key == "self_harm":
+        return None  # handled by care_navigation.crisis_support (one source of the support protocol, no duplicate hint)
     if result.red_flag:
         return (
             "SYMPTOM TRIAGE (deterministic, safety-critical): the user describes a possible EMERGENCY. In the user's language, "

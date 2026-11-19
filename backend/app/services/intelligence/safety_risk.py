@@ -589,39 +589,41 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "i4.tpl.emergency.self_harm.v1": {
         "en": (
-            "I'm really worried about you, and I'm glad you told me. You are not alone. "
-            "Please contact your local emergency services or someone you trust right now, and please don't stay by yourself. "
-            "I'm right here with you, but I can't replace professional crisis care."
+            "I'm really glad you told me, and I'm right here with you. You are not alone. What you are going through matters, and I want "
+            "to understand what is hurting you so much - tell me whatever you can; I'm listening and there is no rush. "
+            "If you are in danger right now, or something you could use to hurt yourself is nearby, please move it away from you and "
+            "contact your local emergency services (or someone close who can come to you right now). Then come back and tell me."
         ),
         "fa": (
-            "خیلی نگرانت شدم و خوشحالم که این رو به من گفتی. تو تنها نیستی. "
-            "لطفاً همین الان با خدمات اورژانس محلی یا یک نفر مورد اعتماد که نزدیکته تماس بگیر و تنها نمون. "
-            "من همین‌جا کنارتم، ولی نمی‌تونم جای کمک تخصصی بحران رو بگیرم."
+            "خیلی خوشحالم که این را به من گفتی و همین‌جا کنارت هستم. تو تنها نیستی. دردی که تو را به اینجا رسانده مهم است و می‌خواهم "
+            "بدانم دقیقاً چه چیزی این‌قدر آزارت می‌دهد؛ هر چه می‌توانی برایم بگو، من گوش می‌دهم و هیچ عجله‌ای نیست. "
+            "اگر همین الان در خطر هستی یا چیزی کنارت هست که با آن به خودت آسیب بزنی، لطفاً آن را از خودت دور کن و با اورژانس ۱۱۵ یا "
+            "اورژانس اجتماعی ۱۲۳ (رایگان و شبانه‌روزی) تماس بگیر، یا از یک نفر نزدیک بخواه همین حالا کنارت بیاید. بعد هم همین‌جا برایم بنویس."
         ),
         "ar": (
-            "قلقتُ عليك كثيراً وسعيدة أنك أخبرتني. لست وحدك. "
-            "من فضلك اتصل الآن بخدمات الطوارئ المحلية أو بشخص تثق به، ولا تبقَ وحدك. "
-            "أنا هنا بجانبك، لكنني لا أستطيع أن أحل محل الرعاية المهنية للأزمات."
+            "يسعدني جداً أنك أخبرتني، وأنا هنا بجانبك. لست وحدك. ما تمرّ به مهم، وأريد أن أفهم ما الذي يؤلمك إلى هذا الحد؛ "
+            "قل لي ما تستطيع، فأنا أُصغي إليك وليس هناك أي استعجال. "
+            "إذا كنت في خطر الآن أو كان بقربك شيء قد تؤذي به نفسك، فأبعده عنك من فضلك واتصل بخدمات الطوارئ المحلية، "
+            "أو اطلب من شخص قريب أن يأتي إليك الآن. ثم عُد وحدّثني."
         ),
     },
     "i4.tpl.high.self_harm.v1": {
         "en": (
-            "It sounds like things feel really heavy right now, and I want to be here with you. "
-            "Would you tell me more about what's going on? If thoughts of hurting yourself or not wanting to live are close, "
-            "please reach out to someone you trust or your local emergency or crisis service, and don't stay alone with it. "
-            "I'm listening."
+            "It sounds like things feel really heavy right now, and I'm glad you're telling me. I'm here and I'm listening. "
+            "What has been hurting you the most lately? Say it in any way you like - it does not have to be tidy. "
+            "If thoughts of hurting yourself or not wanting to live get closer, tell me right away and contact someone you trust "
+            "or your local emergency or crisis service."
         ),
         "fa": (
-            "حس می‌کنم الان همه‌چیز خیلی سنگینه و دلم می‌خواد کنارت باشم. "
-            "می‌خوای بیشتر برام بگی چی شده؟ اگه فکر آسیب زدن به خودت یا نخواستن زندگی نزدیکته، "
-            "لطفاً با یه نفر مورد اعتماد یا خدمات اورژانس و مشاوره‌ی بحران تماس بگیر و تنهایی باهاش نمون. "
-            "من گوش می‌دم."
+            "حس می‌کنم الان همه‌چیز برایت خیلی سنگین شده و خوشحالم که با من حرف می‌زنی. من اینجا هستم و گوش می‌دهم. "
+            "این روزها چه چیزی بیشتر از همه آزارت می‌دهد؟ به هر شکلی که می‌خواهی بگو؛ لازم نیست مرتب باشد. "
+            "اگر فکر آسیب زدن به خودت یا نخواستن زندگی نزدیک‌تر شد، همان لحظه به من بگو و با یک نفر مورد اعتماد، یا اورژانس ۱۱۵ "
+            "یا اورژانس اجتماعی ۱۲۳ تماس بگیر."
         ),
         "ar": (
-            "أشعر أن كل شيء ثقيل عليك الآن، وأريد أن أكون بجانبك. "
-            "هل تحكي لي أكثر عمّا يحدث؟ وإذا كانت أفكار إيذاء نفسك أو عدم الرغبة في الحياة قريبة، "
-            "من فضلك تواصل مع شخص تثق به أو مع خدمات الطوارئ أو دعم الأزمات المحلية ولا تبقَ وحدك معها. "
-            "أنا أُصغي إليك."
+            "أشعر أن كل شيء ثقيل عليك الآن، ويسعدني أنك تحدّثني. أنا هنا وأُصغي إليك. "
+            "ما الذي آلمك أكثر في الفترة الأخيرة؟ قله بأي طريقة تريد؛ لا يلزم أن يكون مرتباً. "
+            "وإذا اقتربت أفكار إيذاء نفسك أو عدم الرغبة في الحياة، فأخبرني فوراً وتواصل مع شخص تثق به أو مع خدمات الطوارئ أو دعم الأزمات المحلية."
         ),
     },
     "i4.tpl.high.v1": {

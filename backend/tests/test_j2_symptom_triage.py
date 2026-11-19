@@ -15,7 +15,6 @@ from backend.app.services.care_navigation import symptom_triage as st
         ("این بدترین سردرد زندگی‌ام است", "worst_headache"),
         ("خونریزی شدید دارم", "heavy_bleeding"),
         ("غش کردم و نمی‌دانم چرا", "fainting"),
-        ("دیگر نمی‌خواهم زنده باشم و می‌خواهم خودکشی کنم", "self_harm"),
         ("I have chest pain and I am short of breath", "chest_pain_with_breathing"),
         ("sudden weakness in my arm and slurred speech", "stroke_signs"),
         ("I can't breathe", "severe_breathing"),
