@@ -34,8 +34,8 @@ def world(monkeypatch):
     state = SimpleNamespace(pills=[], added=[], promoted=[], created=[], history=True, once=[])
     monkeypatch.setattr(mc, "history_available", lambda db, uid: state.history)
     monkeypatch.setattr(reg, "existing_pills", lambda db, uid: list(state.pills))
-    monkeypatch.setattr(reg, "add_dose", lambda db, uid, pill, hhmm, days: state.added.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
-    monkeypatch.setattr(reg, "promote", lambda db, uid, pill, hhmm, days: state.promoted.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
+    monkeypatch.setattr(reg, "add_dose", lambda db, uid, pill, hhmm, days, from_tz=None: state.added.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
+    monkeypatch.setattr(reg, "promote", lambda db, uid, pill, hhmm, days, from_tz=None: state.promoted.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
     monkeypatch.setattr(reg, "times_of", lambda db, uid, name: ["09:00", "14:00"])
 
     def fake_create(db, *, user_id, draft, language, timezone_name, name):
@@ -497,3 +497,54 @@ def test_p2_merge_days_helper():
     from backend.app.services import user_medication_service as svc
 
     assert svc._merge_days("0", "3") == "0,3" and svc._merge_days(None, "3") is None and svc._merge_days("2", None) is None
+
+
+# --- Codex round 5 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def _um(rows, tz="Asia/Tehran"):
+    return SimpleNamespace(id=3, schedules=rows, updated_at=None, timezone=tz)
+
+
+def _svc(monkeypatch, um):
+    from backend.app.services import user_medication_service as svc
+
+    monkeypatch.setattr(svc, "get_user_medication_owned", lambda d, uid, umid: (um, SimpleNamespace(name="X")))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
+    return svc
+
+
+def test_p2_the_same_time_with_wider_weekdays_merges_instead_of_refusing(monkeypatch):
+    row = SimpleNamespace(time_of_day=time(9, 0), days_of_week="0")  # Monday only
+    svc = _svc(monkeypatch, _um([row]))
+    db = MagicMock()
+    svc.add_schedule_time(db, 1, 3, "09:00", None)  # the user now wants it DAILY
+    assert row.days_of_week is None and db.commit.call_count == 1 and db.add.call_count == 0
+    with pytest.raises(svc.ScheduleTimeCollisionError):  # nothing would change
+        svc.add_schedule_time(db, 1, 3, "09:00", None)
+    row2 = SimpleNamespace(time_of_day=time(9, 0), days_of_week="0")
+    svc2 = _svc(monkeypatch, _um([row2]))
+    svc2.add_schedule_time(db, 1, 3, "09:00", "2")
+    assert row2.days_of_week == "0,2"
+
+
+def test_p2_a_time_spoken_in_another_timezone_is_converted_into_the_medicines_own(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    # Tehran is UTC+3:30 (no DST since 2022): 09:00 UTC -> 12:30 Tehran
+    assert svc.convert_hhmm("09:00", "UTC", "Asia/Tehran") == "12:30"
+    assert svc.convert_hhmm("09:00", "Asia/Tehran", "Asia/Tehran") == "09:00" and svc.convert_hhmm("09:00", None, "Asia/Tehran") == "09:00"
+    assert svc.convert_hhmm("09:00", "Not/AZone", "Asia/Tehran") == "09:00"  # fail-open: unchanged
+    um = _um([SimpleNamespace(time_of_day=time(14, 0), days_of_week=None)], tz="Asia/Tehran")
+    added = []
+    s = _svc(monkeypatch, um)
+    db = MagicMock()
+    db.add.side_effect = lambda o: added.append(o)
+    s.add_schedule_time(db, 1, 3, "09:00", None, from_tz="UTC")
+    assert added and added[0].time_of_day == time(12, 30)
+
+
+def test_p2_the_request_timezone_reaches_the_owner_write(monkeypatch, world):
+    seen = []
+    monkeypatch.setattr(reg, "add_dose", lambda db, uid, pill, hhmm, days, from_tz=None: seen.append(from_tz) or [hhmm])
+    world.pills = [_pill(name="لووتیروکسین")]
+    _start("ساعت ۹ صبح یادم بنداز قرص لووتیروکسین بخورم")
+    assert seen == ["Asia/Tehran"]

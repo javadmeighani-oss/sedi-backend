@@ -198,19 +198,19 @@ def has_day_word(message: str, timezone_name: Optional[str], now_utc: Optional[d
         return False
 
 
-def add_dose(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Optional[str]) -> list[str]:
+def add_dose(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Optional[str], from_tz: Optional[str] = None) -> list[str]:
     """Another daily dose for a REGISTERED pill (medicine owner). Returns the doses; raises ScheduleTimeCollisionError."""
     from backend.app.services import user_medication_service as svc
 
-    out = svc.add_schedule_time(db, user_id, int(pill["id"]), hhmm, days)
+    out = svc.add_schedule_time(db, user_id, int(pill["id"]), hhmm, days, from_tz)
     return sorted(out.get("reminder_times") or [hhmm])
 
 
-def promote(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Optional[str]) -> list[str]:
+def promote(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Optional[str], from_tz: Optional[str] = None) -> list[str]:
     """An older repeating reminder becomes a registered pill with its old dose AND the new one; the older event is soft-cancelled."""
     from backend.app.services import user_medication_service as svc
 
-    out = svc.promote_event_to_medication(db, user_id, int(pill["id"]), pill["name"], hhmm, days)
+    out = svc.promote_event_to_medication(db, user_id, int(pill["id"]), pill["name"], hhmm, days, from_tz)
     return sorted(out.get("reminder_times") or [hhmm])
 
 

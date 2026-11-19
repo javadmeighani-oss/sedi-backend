@@ -259,16 +259,42 @@ def move_schedule_time(db: Session, user_id: int, um_id: int, old_hhmm: str, new
     return build_user_medication_out(um, med)
 
 
-def add_schedule_time(db: Session, user_id: int, um_id: int, hhmm: str, days_of_week: Optional[str] = None) -> dict:
+def convert_hhmm(hhmm: str, from_tz: Optional[str], to_tz: Optional[str]) -> str:
+    """The same instant (today) as a wall-clock time of ``to_tz``. A request made in another timezone than the medicine's own must
+    not be stored unchanged under the medicine's timezone (Codex P2, PR 193). Unknown/equal zones leave the time as it is."""
+    if not from_tz or not to_tz or from_tz == to_tz:
+        return hhmm
+    try:
+        t = parse_hhmm(hhmm)
+        src, dst = pytz.timezone(from_tz), pytz.timezone(to_tz)
+        local = src.localize(datetime.combine(datetime.now(src).date(), t))
+        return format_time_of_day(local.astimezone(dst).time())
+    except Exception:  # noqa: BLE001
+        return hhmm
+
+
+def add_schedule_time(
+    db: Session, user_id: int, um_id: int, hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None
+) -> dict:
     """Add ONE more dose time to a registered medicine, in one transaction (R-103 step B: «the same pill, a second time»).
-    Raises ScheduleTimeCollisionError when that time already exists and ValueError beyond the schedule limit."""
+    ``from_tz``: the timezone the time was spoken in (converted into the medicine's own). The SAME time with other weekdays merges
+    the weekday coverage (Codex P2, PR 193); raises ScheduleTimeCollisionError only when nothing would change, ValueError beyond the
+    schedule limit."""
     from backend.app.schemas.medical import MAX_REMINDER_TIMES
 
     um, med = get_user_medication_owned(db, user_id, um_id)
-    t = parse_hhmm(hhmm)
+    t = parse_hhmm(convert_hhmm(hhmm, from_tz, getattr(um, "timezone", None)))
     rows = list(um.schedules or [])
-    if any(r.time_of_day == t for r in rows):
-        raise ScheduleTimeCollisionError()
+    same = next((r for r in rows if r.time_of_day == t), None)
+    if same is not None:
+        merged = _merge_days(same.days_of_week, days_of_week)
+        if merged == same.days_of_week:
+            raise ScheduleTimeCollisionError()
+        same.days_of_week = merged
+        um.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(um)
+        return build_user_medication_out(um, med)
     if len(rows) >= MAX_REMINDER_TIMES:
         raise ValueError("too many reminder times")
     db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days_of_week))
@@ -302,7 +328,7 @@ def _merge_days(a: Optional[str], b: Optional[str]) -> Optional[str]:
 
 
 def promote_event_to_medication(
-    db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None
+    db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None
 ) -> dict:
     """An older repeating chat reminder (UserEvent) becomes a REGISTERED medicine with its old dose time AND the new one, and the
     older event is soft-cancelled (status cancelled + valid_to; the row is never deleted) - all in ONE transaction so the user is
@@ -339,7 +365,7 @@ def promote_event_to_medication(
     have = {r.time_of_day: r for r in (um.schedules or [])}
     # each dose keeps ITS OWN weekdays (older dose: the older event's; new dose: the new request's); two doses at the same time merge
     # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)
-    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule, ev.starts_at)), (parse_hhmm(new_hhmm), days_of_week)):
+    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule, ev.starts_at)), (parse_hhmm(convert_hhmm(new_hhmm, from_tz, ev.timezone)), days_of_week)):
         row = have.get(t)
         if row is None:
             row = models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days)

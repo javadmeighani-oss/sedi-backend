@@ -287,10 +287,10 @@ def _same_action(db: Session, *, user_id: int, pill: dict[str, Any], draft: Any,
         days = _days_of_week(getattr(draft, "recurrence_rule", None))
         try:
             if pill["kind"] == "med":
-                times = reg.add_dose(db, user_id, pill, time_, days)
+                times = reg.add_dose(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
                 return {"kind": "medication", "created": True, "flow": "dose_added", "name": pill["name"], "time": time_,
                         "times": reg.times_text(times, lang)}
-            times = reg.promote(db, user_id, pill, time_, days)
+            times = reg.promote(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
         except svc.ScheduleTimeCollisionError:
             return {"kind": "medication", "created": False, "flow": "dose_exists", "name": pill["name"], "time": time_}
         out: dict[str, Any] = {"kind": "medication", "name": pill["name"], "time": time_, "times": reg.times_text(times, lang)}
