@@ -160,7 +160,7 @@ def _lead_text(offset_min: int, lang: str) -> str:
 def confirmation_message(dispatched: dict[str, Any], lang: str) -> str:
     """Warm confirmation that states WHAT and WHEN (R-011/R-026) - never a vague "I'll remind you"."""
     when = dispatched.get("when") or ""
-    if dispatched.get("kind") == "medication" and (dispatched.get("created") or dispatched.get("interview")):
+    if dispatched.get("kind") == "medication" and (dispatched.get("created") or dispatched.get("interview") or dispatched.get("flow")):
         from backend.app.services.medication_care import chat_reminder as _med_chat
 
         return _med_chat.confirmation(dispatched, lang, when)

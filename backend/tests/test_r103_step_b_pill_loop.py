@@ -28,6 +28,14 @@ def _pill(kind="med", name="قرص مکمل", times=("14:00",), pid=3):
     return {"kind": kind, "id": pid, "name": name, "times": list(times), "rule": "FREQ=DAILY" if kind == "event" else None}
 
 
+@pytest.fixture(autouse=True)
+def _fixed_clock(monkeypatch):
+    """The promotion due-window check reads the clock; pin it to 03:00 Tehran so no older reminder time is «just fired»."""
+    from backend.app.services import user_medication_service as svc
+
+    monkeypatch.setattr(svc, "_now_in", lambda tz: datetime(2026, 11, 19, 3, 0, tzinfo=tz))
+
+
 @pytest.fixture
 def world(monkeypatch):
     """pills the user has + a log of owner writes."""
@@ -677,3 +685,31 @@ def test_a_repeat_that_starts_in_the_future_stays_a_plain_repeating_event(monkey
     world.future = True
     rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
     assert _go(monkeypatch, rows, "هر روز") == "ONCE-EVENT" and world.created == []
+
+
+# --- Codex round 12 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def test_p2_a_declined_dose_addition_is_confirmed_by_the_medication_text_not_the_generic_done(monkeypatch, world):
+    from backend.app.services.intelligence import reminder_event_dispatch as disp
+
+    for flow in ("interval_only", "dose_exists", "promote_later"):
+        text = disp.confirmation_message({"kind": "medication", "created": False, "flow": flow, "name": "لووتیروکسین", "time": "09:00", "when": "x"}, "fa")
+        assert "لووتیروکسین" in text and "یادآوری می‌کنم" not in text and "چیزی را تغییر ندادم" in text, (flow, text)
+
+
+def test_p2_promotion_waits_while_an_older_reminders_due_window_is_open(monkeypatch):
+    from datetime import timedelta
+
+    from backend.app.services import user_medication_service as svc
+
+    monkeypatch.setattr(svc, "_now_in", lambda tz: datetime(2026, 11, 19, 14, 5, tzinfo=tz))  # 14:05, the 14:00 dose fired 5 minutes ago
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 1, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None,
+                         updated_at=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    q_event, q_um = MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = ev
+    q_um.filter.return_value.first.return_value = None
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    with pytest.raises(svc.PromotionWindowError):
+        svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00")
+    assert db.commit.call_count == 0 and ev.status == "scheduled"

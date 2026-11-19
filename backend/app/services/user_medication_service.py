@@ -26,6 +26,10 @@ class ScheduleTimeCollisionError(Exception):
     """Moving a dose onto a time where the same medicine already has another dose."""
 
 
+class PromotionWindowError(Exception):
+    """An older reminder's dose time was reached minutes ago: promoting now would make the new schedule fire it AGAIN."""
+
+
 class IntervalOnlyScheduleError(Exception):
     """The medicine reminds by an hourly interval (no fixed times): adding the first fixed time would replace that cadence."""
 
@@ -333,6 +337,11 @@ def _merge_days(a: Optional[str], b: Optional[str]) -> Optional[str]:
     return ",".join(str(d) for d in days) or None
 
 
+def _now_in(tz: Any) -> datetime:
+    """The current time in ``tz`` (a seam so tests do not depend on the time of day)."""
+    return datetime.now(tz)
+
+
 def _hhmm_of(moment: datetime) -> str:
     return f"{moment.hour:02d}:{moment.minute:02d}"
 
@@ -383,6 +392,15 @@ def promote_event_to_medication(
         )
         if other is not None and other.starts_at is not None and not re.search(r"[1-9]", getattr(other, "reminder_offsets_json", None) or ""):
             events.append(other)
+    for e in events:  # the medication scheduler treats the first 15 minutes after a dose time as «due»: wait until that has passed
+        try:
+            tz = pytz.timezone(getattr(e, "timezone", None) or DEFAULT_TIMEZONE)
+        except pytz.UnknownTimeZoneError:
+            tz = pytz.timezone(DEFAULT_TIMEZONE)
+        now_local = _now_in(tz).replace(tzinfo=None)
+        due_today = datetime.combine(now_local.date(), time(e.starts_at.hour, e.starts_at.minute))
+        if 0 <= (now_local - due_today).total_seconds() < 20 * 60:
+            raise PromotionWindowError()
     have = {r.time_of_day: r for r in (um.schedules or [])}
     # each dose keeps ITS OWN weekdays (older dose: its event's; new dose: the new request's); two doses at the same time merge
     # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)

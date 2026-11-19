@@ -1702,6 +1702,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': '«{name}» يُذكَّر به بفاصل ساعات، ولإضافة الساعة {time} الثابتة حدّد أوقاته الثابتة أولاً في «برنامجي»؛ ولم أغيّر شيئاً.',
         'en': '“{name}” reminds you by an hourly interval; to add the fixed time {time}, first set its fixed times in “My schedule”. I changed nothing.',
     },
+    'medication.chat.promote_later': {
+        'fa': 'همین حالا نزدیک ساعت یادآوری فعلی «{name}» هستیم و اگر الان منتقلش کنم ممکن است دو بار یادآوری شود؛ چیزی را تغییر ندادم. چند دقیقه‌ی دیگر همین را بگو تا بدون تکرار منتقلش کنم.',
+        'ar': 'نحن الآن قرب موعد تذكير «{name}» الحالي، وقد يتكرر التذكير مرتين إن نقلته الآن؛ ولم أغيّر شيئاً. قلها لي بعد دقائق لأنقله بلا تكرار.',
+        'en': 'We are right at the current reminder time of “{name}”, and moving it now could remind you twice, so I changed nothing. Say it again in a few minutes and I will move it without a repeat.',
+    },
     'medication.chat.dose_exists': {
         'fa': '«{name}» از قبل نوبتی در ساعت {time} دارد و چیزی را تغییر ندادم.',
         'ar': 'لدى «{name}» جرعة في الساعة {time} أصلاً ولم أغيّر شيئاً.',
