@@ -624,3 +624,25 @@ def test_p2_promotion_cancels_every_older_reminder_of_the_pill_in_one_commit(mon
     assert e1.status == "cancelled" and e2.status == "cancelled" and db.commit.call_count == 1
     days = {o.time_of_day: o.days_of_week for o in added if hasattr(o, "time_of_day")}
     assert days == {time(9, 0): None, time(14, 0): "0", time(20, 0): None}
+
+
+def test_p2_each_promoted_event_is_converted_from_its_own_timezone(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    e1 = SimpleNamespace(id=1, starts_at=datetime(2026, 11, 1, 9, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None, updated_at=None,
+                         recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    e2 = SimpleNamespace(id=2, starts_at=datetime(2026, 11, 1, 14, 0), timezone="UTC", status="scheduled", valid_to=None, updated_at=None,
+                         recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    q_event, q_um, q_other = MagicMock(), MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = e1
+    q_um.filter.return_value.first.return_value = None
+    q_other.filter.return_value.first.return_value = e2
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um, q_other]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
+    added = []
+    db.add.side_effect = lambda o: added.append(o)
+    svc.promote_event_to_medication(db, 1, 1, "قرص مکمل", "21:00", None, "Asia/Tehran", also_event_ids=[2])
+    times = sorted(o.time_of_day for o in added if hasattr(o, "time_of_day"))
+    assert times == [time(9, 0), time(17, 30), time(21, 0)]  # 14:00 UTC is 17:30 in Tehran (the medicine's timezone)

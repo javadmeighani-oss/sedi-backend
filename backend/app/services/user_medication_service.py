@@ -327,6 +327,10 @@ def _merge_days(a: Optional[str], b: Optional[str]) -> Optional[str]:
     return ",".join(str(d) for d in days) or None
 
 
+def _hhmm_of(moment: datetime) -> str:
+    return f"{moment.hour:02d}:{moment.minute:02d}"
+
+
 def promote_event_to_medication(
     db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None,
     also_event_ids: Optional[list[int]] = None,
@@ -376,8 +380,13 @@ def promote_event_to_medication(
     have = {r.time_of_day: r for r in (um.schedules or [])}
     # each dose keeps ITS OWN weekdays (older dose: its event's; new dose: the new request's); two doses at the same time merge
     # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)
-    entries = [(time(e.starts_at.hour, e.starts_at.minute), _days_from_rule(e.recurrence_rule, e.starts_at)) for e in events]
-    entries.append((parse_hhmm(convert_hhmm(new_hhmm, from_tz, ev.timezone)), days_of_week))
+    # every wall-clock time is converted from ITS OWN timezone into the medicine's (Codex P2, PR 193)
+    um_tz = getattr(um, "timezone", None) or ev.timezone
+    entries = [
+        (parse_hhmm(convert_hhmm(_hhmm_of(e.starts_at), getattr(e, "timezone", None), um_tz)), _days_from_rule(e.recurrence_rule, e.starts_at))
+        for e in events
+    ]
+    entries.append((parse_hhmm(convert_hhmm(new_hhmm, from_tz, um_tz)), days_of_week))
     for t, days in entries:
         row = have.get(t)
         if row is None:
