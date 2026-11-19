@@ -98,20 +98,25 @@ def _facade(monkeypatch, local_rows, web_results):
     return cn
 
 
-def test_facade_adds_web_results_with_link_and_caveat_when_governed_has_none(monkeypatch):
+def test_facade_adds_web_results_with_caveat_and_the_link_only_when_asked(monkeypatch):
     web = wl.validate_results([_r(name="کلینیک قلب شیراز", source_url="https://dr-heart.ir/contact")], city="شیراز")
     cn = _facade(monkeypatch, [], web)
     res = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن", language="fa"))
     assert res.status == cn.STATUS_VERIFIED and "WEB_SEARCH_ENRICHED" in res.identity_notes
-    assert "کلینیک قلب شیراز" in res.user_message and "https://dr-heart.ir/contact" in res.user_message
+    # Javad 2026-11-19: the link is shown only when the user asks for the source; the unverified caveat always stays
+    assert "کلینیک قلب شیراز" in res.user_message and "https://dr-heart.ir/contact" not in res.user_message
     assert "تأیید نشده" in res.user_message  # unverified-site caveat
+    asked = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن و منبعش را هم بگو", language="fa"))
+    assert "https://dr-heart.ir/contact" in asked.user_message
 
 
-def test_facade_trusted_listing_has_link_without_caveat(monkeypatch):
+def test_facade_trusted_listing_has_link_only_when_asked_and_no_caveat(monkeypatch):
     web = wl.validate_results([_r()], city="شیراز")
     cn = _facade(monkeypatch, [], web)
     res = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن", language="fa"))
-    assert "https://www.paziresh24.com/dr/x/" in res.user_message and "تأیید نشده" not in res.user_message
+    assert "https://www.paziresh24.com/dr/x/" not in res.user_message and "تأیید نشده" not in res.user_message
+    asked = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن و منبعش را هم بگو", language="fa"))
+    assert "https://www.paziresh24.com/dr/x/" in asked.user_message and "تأیید نشده" not in asked.user_message
 
 
 def test_facade_does_not_search_when_governed_has_enough(monkeypatch):

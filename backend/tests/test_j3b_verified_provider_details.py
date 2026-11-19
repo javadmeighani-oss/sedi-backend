@@ -259,7 +259,7 @@ def _identity(**kw):
 def test_the_reply_shows_days_next_turn_rating_checked_date_and_why():
     h = _identity(phone_status="verified", visit_days=("شنبه", "چهارشنبه"), next_turn="یک‌شنبه ساعت 05:10", rating_avg=4.5, rating_count=120,
                   checked_on="2026-11-19", why=("spec", "area", "page_checked"))
-    msg = cn._serialize_hits_message([h], "fa")
+    msg = cn._serialize_hits_message([h], "fa", True)  # the source, the check date and «why» appear when the user asked for the source
     for needle in ("تلفن: 02122792694", "روزهای ویزیت طبق صفحه: شنبه، چهارشنبه", "نزدیک‌ترین نوبت طبق صفحه: یک‌شنبه ساعت 05:10",
                    "امتیاز 4.5 از ۵ (120 نظر)", "بررسی صفحه: 2026-11-19", "چرا این گزینه:", "تخصصش با درخواستت می‌خواند", "در محله‌ی مورد نظرت است"):
         assert needle in msg
@@ -428,3 +428,16 @@ def test_p2_closure_wordings_are_all_respected(page):
 
 def test_p2_an_open_day_with_a_closed_neighbour_stays_open():
     assert pf.days_on_page(["شنبه", "جمعه"], "شنبه ساعت ۹ تا ۱۲؛ جمعه تعطیل") == ("شنبه",)
+
+
+def test_the_source_the_check_date_and_why_are_hidden_unless_the_user_asked_for_the_source():
+    h = _identity(phone_status="verified", visit_days=("شنبه",), checked_on="2026-11-19", why=("spec", "area"))
+    quiet = cn._serialize_hits_message([h], "fa")
+    assert "https://" not in quiet and "منبع:" not in quiet and "بررسی صفحه" not in quiet and "چرا این گزینه" not in quiet
+    assert "تلفن: 02122792694" in quiet and "روزهای ویزیت طبق صفحه: شنبه" in quiet  # the useful facts stay
+    asked = cn._serialize_hits_message([h], "fa", True)
+    assert "https://www.paziresh24.com/dr/x" in asked and "بررسی صفحه: 2026-11-19" in asked and "چرا این گزینه" in asked
+
+
+def test_an_unchecked_phone_label_stays_even_when_the_source_is_hidden():
+    assert "تأییدنشده" in cn._serialize_hits_message([_identity(phone_status="unchecked", web_trusted=False)], "fa")

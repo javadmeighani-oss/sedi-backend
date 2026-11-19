@@ -558,11 +558,12 @@ def _serialize_hits_message(
             line += sep + sedi_copy.t("care_nav.hit.rating", k, avg=f"{float(h.rating_avg):g}", count=h.rating_count or 0)
         if with_sources:
             line += _feedback_phrase(h, lang)
-        if h.source_url:
+        # Source link, page-check date and «why this one» only when the user ASKED for the source (Javad, 2026-11-19: no clutter otherwise).
+        if h.source_url and with_sources:
             line += {"fa": f"؛ منبع: {h.source_url}", "ar": f"؛ المصدر: {h.source_url}", "en": f"; source: {h.source_url}"}[k]
             if h.checked_on:
                 line += sep + sedi_copy.t("care_nav.hit.checked", k, date=h.checked_on)
-        if h.why:
+        if h.why and with_sources:
             reasons = ("، " if k != "en" else ", ").join(sedi_copy.t(f"care_nav.why.{w}", k) for w in h.why if sedi_copy.has(f"care_nav.why.{w}"))
             if reasons:
                 line += "\n   " + sedi_copy.t("care_nav.hit.why", k, reasons=reasons)
