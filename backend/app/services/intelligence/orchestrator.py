@@ -545,21 +545,21 @@ class IntelligenceOrchestrator:
 
     def _continue_care_nav_interview(self, ctx, user_id: int, message: str, lang: str) -> str:
         """J3-c (D-410): Sedi asked «برای چه مشکل یا نیازی دنبال دکتر می‌گردی؟» and the user answers with a specialty, a complaint or
-        «نمی‌دانم» - that answer completes the earlier doctor request. Deterministic, fail-open, only within 30 minutes."""
+        «نمی‌دانم» - that answer completes the earlier doctor request. Deterministic, fail-open, only within 30 minutes. The earlier
+        turn is read ONLY through the consent-gated, eligibility-filtered raw reader (a revoked memory consent means no reuse)."""
         try:
             if self._db is None or not message or not message.strip():
                 return message
             from datetime import datetime, timedelta
 
-            from backend.app import models
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
             from backend.app.services.i5.care_nav_interview import request_for_answer
 
-            last = (
-                self._db.query(models.Memory)
-                .filter(models.Memory.user_id == user_id)
-                .order_by(models.Memory.created_at.desc())
-                .first()
-            )
+            if not has_permission(self._db, user_id, PERM_READ):
+                return message
+            rows = query_eligible_raw(self._db, user_id, limit=1)
+            last = rows[0] if rows else None
             if last is None or last.created_at is None:
                 return message
             if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):

@@ -67,14 +67,16 @@ def test_never_raises():
 
 
 # ---- through the orchestrator (the real chat path) --------------------------------------------------------------------
-def _orch(monkeypatch, last_row=None, seen=None):
+def _orch(monkeypatch, last_row=None, seen=None, consent_ok=True):
     from unittest.mock import MagicMock
 
     from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
 
     db = MagicMock()
-    if last_row is not None:
-        db.query.return_value.filter.return_value.order_by.return_value.first.return_value = last_row
+    import backend.app.services.i6.consent_service as consent
+    import backend.app.services.i7.retention as retention
+    monkeypatch.setattr(consent, "has_permission", lambda *a, **k: consent_ok)
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: [last_row] if last_row is not None else [])
 
     def search(db_, **k):
         if seen is not None:
@@ -193,3 +195,14 @@ def test_p2_a_source_request_in_the_answer_survives_the_completion(answer, lang)
 def test_p2_without_a_source_request_the_completed_request_stays_quiet():
     done = ci.request_for_answer(PRIOR, Q["fa"], "نورولوژی", "fa")
     assert cn.parse_care_nav_request(done, language="fa").wants_sources is False
+
+
+def test_p1_a_revoked_memory_consent_means_the_earlier_request_is_not_reused(monkeypatch):
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    last = SimpleNamespace(user_message=PRIOR, sedi_response=Q["fa"], created_at=datetime.utcnow())
+    seen = []
+    orch, _called = _orch(monkeypatch, last_row=last, seen=seen, consent_ok=False)
+    orch.process(authenticated_user_id=42, message="سردرد دارم", language="fa")
+    assert not any("اعصاب" in (x or "") for x in seen)  # no completion: the earlier turn was never read
