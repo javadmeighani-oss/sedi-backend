@@ -1523,6 +1523,45 @@ class IntelligenceOrchestrator:
             except Exception:  # noqa: BLE001
                 pass
 
+        # R-103 step A: «change the time of my reminder» REALLY changes it through the existing owners (UserEvent / UserMedication),
+        # or asks ONE question; never a model claim of a change that did not happen. Fail-open (None -> normal flow).
+        if (
+            reminder_message is None
+            and not terminal_safety
+            and not discovery_reply_active
+            and not care_nav_handled
+            and (not skip_generator or clarification_message is not None)
+            and self._db is not None
+        ):
+            try:
+                from datetime import datetime, timezone
+                from backend.app.services.intelligence import reminder_reschedule as _resched
+                from backend.app.services.medication_care import chat_reminder as _mc_turns
+
+                _turns_ctx: list = []
+                if _mc_turns.history_available(self._db, authenticated_user_id):
+                    _turns_ctx = _mc_turns._recent_turns(self._db, authenticated_user_id, datetime.now(timezone.utc))
+                _last_turn = _turns_ctx[0] if _turns_ctx else None
+                _resched_msg = message
+                if _last_turn is not None:
+                    _resched_msg = (
+                        _resched.pending_prior_request(
+                            getattr(_last_turn, "sedi_response", None), getattr(_last_turn, "user_message", None), message, lang
+                        )
+                        or message
+                    )
+                _resched_ctx = " ".join(str(getattr(t, "sedi_response", "") or "") for t in _turns_ctx[:2])
+                _resched_reply = _resched.handle(
+                    self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx
+                )
+                if _resched_reply:
+                    reminder_message = _resched_reply
+                    skip_generator = True
+                    clarification_message = None
+                    extra_reason_codes.append("R103_REMINDER_RESCHEDULE")
+            except Exception:  # noqa: BLE001
+                pass
+
         # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
         # No direct Notification write; I10 scheduler consumes reminder fields.
         if (

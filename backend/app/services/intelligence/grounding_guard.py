@@ -243,6 +243,39 @@ def strip_unverified_send_claims(reply: str, language: str = "fa") -> str:
     return block.get(language) or block["en"]
 
 
+# R-103: a model reply reaches the guards only when the deterministic reschedule path did NOT run in this turn, so «I changed /
+# moved the time of your reminder» is a claim of an action that did not happen (pilot 2026-11-19: the daily pill reminder kept its
+# old time while Sedi said «changed»). A DENIAL («I have not changed») is accurate and stays.
+_CHANGE_NOUN = re.compile(r"یادآور|نوتیف|اعلان|تذك[يی]ر|reminder|notification|alarm|تنبيه", re.IGNORECASE)
+_CHANGE_DONE = re.compile(
+    r"تغییر\s*دادم|عوض\s*کردم|جابه?\s*جا\s*کردم|منتقل\s*کردم|به\s*روز\s*کردم|ویرایش\s*کردم|"
+    r"\b(?:i(?:'ve| have)?\s+)?(?:changed|moved|updated|rescheduled|shifted)\b|غيّرت|غيرت|عدّلت|عدلت|نقلت|تم\s+تغيير|تم\s+تعديل",
+    re.IGNORECASE,
+)
+
+
+def strip_unverified_change_claims(reply: str, language: str = "fa") -> str:
+    """Remove «I changed the time of your reminder»-style sentences (no change was made). Every other sentence stays; if
+    nothing remains, one honest line asks which reminder and which time."""
+    text = (reply or "").strip()
+    if not text:
+        return text
+    parts = [p for p in _SENTENCE_SPLIT.split(text) if p and p.strip()]
+    kept = [
+        p.strip()
+        for p in parts
+        if not (_CHANGE_NOUN.search(p) and _CHANGE_DONE.search(p) and not _SEND_NEGATED.search(p))
+    ]
+    if len(kept) == len(parts):
+        return text
+    if kept:
+        return " ".join(kept)
+    from backend.app import sedi_copy
+
+    block = sedi_copy.by_lang("reminder.change_not_done")
+    return block.get(language) or block["en"]
+
+
 def strip_hedging_offers(reply: str, language: str = "fa") -> str:
     """R-049: remove «اگه دوست داری / if you like / إن أحببت» softeners and trailing offer-menu questions
     («می‌خوای بیشتر بگم؟»). Statements and recommendations stay; the R-033 specialist offer stays; never empties a reply."""

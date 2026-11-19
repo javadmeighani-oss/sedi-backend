@@ -1,0 +1,252 @@
+"""R-103 step A: «change the time of my reminder» from chat REALLY changes it (and Sedi never says «changed» when it did not).
+
+Pilot 2026-11-19: the user asked to move the daily pill reminder from 14:00 to 16:00; the model answered «I changed it» but no
+code path existed, the event kept 14:00. This module is that path. It owns NO storage: the change goes through the two existing
+owners (UserEvent -> ``gate2_data_service.update_event``; UserMedication schedule -> ``user_medication_service.update_user_medication``
+- the very services the «My schedule» page uses), so I10 simply reads the new time on its next tick (R-005).
+
+Honest by construction: the confirmation is built from what the owner returned (WHAT and the old/new time, R-026/R-103); when the
+reminder cannot be identified or the hour is ambiguous Sedi asks ONE question; a failed write says so and changes nothing.
+Deterministic, fail-open (None -> the normal flow), no DB schema, no flag.
+"""
+from __future__ import annotations
+
+import logging
+import re
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
+
+from sqlalchemy.orm import Session
+
+from backend.app import models, sedi_copy
+from backend.app.services.intelligence import reminder_event_readiness as _rer
+
+logger = logging.getLogger(__name__)
+
+_CHANGE = re.compile(
+    # explicit change verb (fa / ar / en); a bare «set a reminder at 5» is a NEW reminder and never matches here
+    r"(?:تغییر|عوض|جابه?\s*جا|منتقل|تعویض)\s*(?:بده|بدم|کن|کنی|کنید|بدین|شود|بشه|بشود|می\s*کنم|میکنم|بزن)|"
+    r"(?:زمان|ساعت|وقت)(?:ش|شو|شون|اش|ـش)?\s*(?:رو|را)?\s*(?:بکن|بذار|بزار|بگذار|ببر)|"
+    r"\b(?:change|move|shift|reschedule|postpone)\b.{0,40}\b(?:to|at|for)\b|"
+    r"\b(?:change|move|shift)\s+(?:it|its\s+time|the\s+time|the\s+reminder)\b|"
+    r"(?:غ[يی]ّ?ر|بدّل|بدل|انقل|عدّل|عدل)\w*\s+(?:ال)?(?:موعد|وقت|ساعة|تذك[يی]ر)",
+    re.I,
+)
+_STOP = frozenset(
+    "خوردن یادآوری یادآور هر روز ساعت را رو به برای و من تو با از در این آن همین بعد قبل صبح عصر شب ظهر "
+    "the a an to of my me at every day take remind reminder time for and "
+    "تذكير الساعة كل يوم".split()
+)
+_PRONOUN = re.compile(r"(?:زمان|ساعت|وقت)(?:ش|شو|شون|اش)\b|\b(?:it|its\s+time|that\s+one)\b|(?:موعده|وقته)")
+_TOKEN = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
+_MARK = {
+    "period": {"fa": "برای تغییر زمان", "ar": "لتغيير الموعد", "en": "For the time change"},
+    "which": {"fa": "کدام یادآوری را می‌گویی", "ar": "أي تذكير تقصد", "en": "Which reminder do you mean"},
+}
+
+
+def _lang(language: Optional[str]) -> str:
+    return language if language in ("fa", "ar", "en") else "en"
+
+
+def _norm(text: str) -> str:
+    return _rer._normalize(text or "")
+
+
+def is_change_request(message: str) -> bool:
+    """An explicit request to change the time of something that already exists (needs a change verb)."""
+    text = _norm(message)
+    return bool(text and _CHANGE.search(text))
+
+
+def _times_in(text: str) -> list[tuple[int, int, int]]:
+    """Every clock time named in the text, in order: (hour24, minute, day_shift). «from 2 to 4 pm» -> two items."""
+    found: list[tuple[int, int, tuple[int, int, int]]] = []
+    for rx in (_rer._TIME_AFTER_WORD, _rer._TIME_H_AND_MIN, _rer._TIME_COLON, _rer._TIME_SUFFIX):
+        for m in rx.finditer(text):
+            d = m.groupdict()
+            minute = int(d.get("min") or d.get("min2") or (30 if d.get("half") else 0) or 0)
+            resolved = _rer._apply_period(int(m.group("h")), minute, text, d.get("ap") or "")
+            if resolved is not None:
+                found.append((m.start(), m.end(), resolved))
+    ordered: list[tuple[int, int, int]] = []
+    taken: list[tuple[int, int]] = []
+    for start, end, value in sorted(found):
+        if any(start < b and a < end for a, b in taken):  # the same spoken time matched by two patterns counts once
+            continue
+        taken.append((start, end))
+        ordered.append(value)
+    return ordered
+
+
+def _hhmm(h: int, m: int) -> str:
+    return f"{h:02d}:{m:02d}"
+
+
+def _tokens(text: str) -> set[str]:
+    out: set[str] = set()
+    for raw in _TOKEN.findall(_norm(text).lower()):
+        tok = raw
+        for suffix in ("مو", "شو", "تو", "م", "ت", "ش"):
+            if len(tok) >= 4 and tok.endswith(suffix) and len(tok) - len(suffix) >= 3:
+                tok = tok[: -len(suffix)]
+                break
+        if tok not in _STOP:
+            out.add(tok)
+    return out
+
+
+def _candidates(db: Session, user_id: int, now_utc: datetime) -> list[dict[str, Any]]:
+    """Active reminders the user can mean: repeating events + future one-time events + medication schedules."""
+    out: list[dict[str, Any]] = []
+    now_naive = now_utc.replace(tzinfo=None)
+    for e in (
+        db.query(models.UserEvent)
+        .filter(
+            models.UserEvent.user_id == user_id,
+            models.UserEvent.reminder_enabled == True,  # noqa: E712
+            models.UserEvent.status.in_(["scheduled", "confirmed"]),
+        )
+        .order_by(models.UserEvent.id.desc())
+        .limit(30)
+        .all()
+    ):
+        if e.starts_at is None or (e.valid_to and e.valid_to <= now_naive):
+            continue
+        recurring = bool((e.recurrence_rule or "").strip())
+        if not recurring and e.starts_at < now_naive - timedelta(days=1):
+            continue
+        out.append({"kind": "event", "obj": e, "title": e.title, "hhmm": _hhmm(e.starts_at.hour, e.starts_at.minute), "recurring": recurring})
+    for um in (
+        db.query(models.UserMedication)
+        .filter(models.UserMedication.user_id == user_id, models.UserMedication.reminder_enabled == True)  # noqa: E712
+        .limit(20)
+        .all()
+    ):
+        med = db.query(models.Medication).filter(models.Medication.id == um.medication_id).first()
+        for row in um.schedules or []:
+            if row.time_of_day is None:
+                continue
+            out.append({"kind": "med", "obj": um, "row": row, "title": getattr(med, "name", "") or "", "hhmm": _hhmm(row.time_of_day.hour, row.time_of_day.minute), "recurring": True})
+    return out
+
+
+def _pick(cands: list[dict[str, Any]], context: str, old_hhmm: Optional[str]) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]]]:
+    """(chosen, shortlist). chosen is None when the reminder cannot be identified with confidence."""
+    pool = [c for c in cands if not old_hhmm or c["hhmm"] == old_hhmm] or cands
+    if len(pool) == 1:
+        return pool[0], pool
+    ctx = _tokens(context)
+    scored = sorted(((len(_tokens(c["title"]) & ctx), i, c) for i, c in enumerate(pool)), key=lambda x: (-x[0], x[1]))
+    if scored and scored[0][0] > 0 and (len(scored) == 1 or scored[0][0] > scored[1][0]):
+        return scored[0][2], pool
+    return None, pool
+
+
+def _day_word(lang: str, key: str) -> str:
+    return sedi_copy.t(f"reminder.reschedule.day_{key}", lang)
+
+
+def _apply_event(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int], now_utc: datetime) -> Optional[tuple[str, str]]:
+    from backend.app.schemas.gate2 import EventUpdateIn
+    from backend.app.services.gate2_data_service import update_event
+
+    e = cand["obj"]
+    start = e.starts_at.replace(hour=new[0], minute=new[1], second=0, microsecond=0)
+    day_key = ""
+    if not cand["recurring"]:
+        import pytz
+
+        try:
+            tz = pytz.timezone(e.timezone or "Asia/Tehran")
+        except pytz.UnknownTimeZoneError:
+            tz = pytz.timezone("Asia/Tehran")
+        now_local = now_utc.astimezone(tz).replace(tzinfo=None)
+        start = start + timedelta(days=new[2])
+        if start <= now_local:  # «no day = the next time that clock shows» (R-042)
+            start = start + timedelta(days=1)
+        day_key = "today" if start.date() == now_local.date() else "tomorrow" if start.date() == (now_local + timedelta(days=1)).date() else ""
+    update_event(db, user_id, int(e.id), EventUpdateIn(starts_at=start))
+    return _hhmm(start.hour, start.minute), day_key
+
+
+def _apply_med(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int]) -> str:
+    from backend.app.schemas.medical import UserMedicationUpdateIn
+    from backend.app.services import user_medication_service as svc
+
+    um, row = cand["obj"], cand["row"]
+    old_days = {svc.format_time_of_day(r.time_of_day): r.days_of_week for r in (um.schedules or []) if r.time_of_day is not None}
+    old_key = svc.format_time_of_day(row.time_of_day)
+    new_key = _hhmm(new[0], new[1])
+    times = [new_key if svc.format_time_of_day(r.time_of_day) == old_key else svc.format_time_of_day(r.time_of_day) for r in um.schedules if r.time_of_day is not None]
+    svc.update_user_medication(db, user_id, int(um.id), UserMedicationUpdateIn(reminder_times=times))
+    db.refresh(um)
+    for r in um.schedules or []:  # _replace_schedules drops the weekday filter; the changed dose keeps the old one
+        key = svc.format_time_of_day(r.time_of_day)
+        r.days_of_week = old_days.get(old_key if key == new_key else key)
+    db.commit()
+    return new_key
+
+
+def handle(
+    db: Session, *, user_id: int, message: str, language: Optional[str], now_utc: Optional[datetime] = None, context: str = ""
+) -> Optional[str]:
+    """Sedi's reply when [message] asks to change the time of an existing reminder; None = not applicable (normal flow)."""
+    try:
+        lang = _lang(language)
+        text = _norm(message)
+        if not text or not _CHANGE.search(text):
+            return None
+        now = now_utc or datetime.now(timezone.utc)
+        times = _times_in(text)
+        if not times:
+            return None  # a change without a new time is left to the normal conversation (it asks)
+        hour12 = _rer.ambiguous_period_hour(text)
+        if hour12 is not None:
+            return sedi_copy.t("reminder.reschedule.ask_period", lang, hour=hour12)
+        new = times[-1]
+        old_hhmm = _hhmm(times[0][0], times[0][1]) if len(times) >= 2 else None
+        cands = _candidates(db, user_id, now)
+        if not cands:
+            return None  # nothing to change: the normal flow answers (and the guard strips any «I changed it» claim)
+        ctx_tokens = _tokens(text + " " + (context or ""))
+        # «change my dinner to 8 pm» is not about a reminder: act only when the message points at one (reminder word, «its time»,
+        # or a word of a reminder's own title in the message / the last reply)
+        if not (_rer._REMINDER_WORDS.search(text) or _PRONOUN.search(text) or any(_tokens(c["title"]) & ctx_tokens for c in cands)):
+            return None
+        chosen, pool = _pick(cands, text + " " + (context or ""), old_hhmm)
+        if chosen is None:
+            lines = "؛ ".join(f"«{c['title']}» {c['hhmm']}" for c in pool[:3]) if lang != "en" else "; ".join(f"“{c['title']}” {c['hhmm']}" for c in pool[:3])
+            return sedi_copy.t("reminder.reschedule.ask_which", lang, list=lines)
+        old = chosen["hhmm"]
+        try:
+            if chosen["kind"] == "event":
+                new_hhmm, day_key = _apply_event(db, user_id, chosen, new, now)
+            else:
+                new_hhmm, day_key = _apply_med(db, user_id, chosen, new), ""
+        except Exception:  # noqa: BLE001 - nothing is claimed that did not happen
+            logger.exception("[R-103] reminder reschedule failed")
+            try:
+                db.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            return sedi_copy.t("reminder.reschedule.failed", lang)
+        day = _day_word(lang, day_key) if day_key else ""
+        return sedi_copy.t("reminder.reschedule.done", lang, title=chosen["title"], old=old, new=new_hhmm, day=day)
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-103] reminder reschedule skipped")
+        return None
+
+
+def pending_prior_request(last_reply: Optional[str], last_user_message: Optional[str], answer: str, language: Optional[str]) -> Optional[str]:
+    """The user's answer to Sedi's own «morning or evening?» / «which reminder?» question of THIS flow, joined to the original
+    request so ``handle`` can finish it. None when the last Sedi reply was not one of those two questions."""
+    reply = _norm(last_reply or "").lower()
+    if not reply or not (last_user_message or "").strip():
+        return None
+    for kind in ("period", "which"):
+        if any(_norm(m).lower() in reply for m in _MARK[kind].values()):
+            if kind == "period" and not _rer._ANY_PERIOD_WORD.search(answer or ""):
+                return None
+            return f"{last_user_message.strip()} {answer.strip()}"
+    return None
