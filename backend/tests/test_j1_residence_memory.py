@@ -56,6 +56,8 @@ def test_residence_is_extracted_from_a_first_person_statement(text, expected):
         "قبلا در شیراز زندگی می‌کردم",
         "I do not live in Tehran",
         "my brother lives in Tehran",
+        "خانه من در شیراز بود",  # Codex P2: a past home is not the current residence
+        "my home was in Shiraz",
     ],
 )
 def test_other_sentences_never_become_a_residence(text):
@@ -73,3 +75,8 @@ def test_no_profile_field_was_added_for_the_city():
 
     cols = {c.name for c in models.UserProfileCore.__table__.columns}
     assert not (cols & {"city", "home_city", "province", "address", "residence"})  # memory only (R-093 amendment 3)
+
+
+def test_a_past_home_followed_by_the_current_residence_keeps_only_the_current_one():
+    # Codex P2 (PR 188, 7b52653b): «my home was in Shiraz and now I live in Tehran» -> Tehran, never Shiraz
+    assert _facts("خانه من در شیراز بود و الان در تهران زندگی می‌کنم") == {("home_city", "تهران")}

@@ -192,7 +192,7 @@ _RES_FA_LIVE = re.compile(r"(?:^|\s)(?:در|توی|تو)\s+(?P<place>.{2,40}?)\s
 _RES_FA_SAKEN = re.compile(r"ساکن\s+(?P<place>.{2,40}?)\s+(?:هستم|هستیم)\b")
 _RES_FA_HOME = re.compile(r"(?:خونه|خانه|منزل)(?:[‌ ]?(?:ام|م)|[‌ ]?ی?\s*(?:ما|من))\s+(?:در|توی|تو)?\s*(?P<place>.{2,40}?)\s*(?:است|هست|ه)?\s*$")
 _RES_EN = re.compile(r"\b(?:i|we)\s+live\s+in\s+(?P<place>.{2,40}?)\s*$|\bmy\s+(?:home|house|place)\s+is\s+in\s+(?P<place2>.{2,40}?)\s*$", re.I)
-_RES_NEGATION = re.compile(r"نیستم|نیستیم|نمی[‌ ]?کنم|نمی[‌ ]?کنیم|نیست\b|ندارم|\bnot\b|n't\b|no\s+longer|\bnever\b|used\s+to|قبلا|سابق", re.I)
+_RES_NEGATION = re.compile(r"نیستم|نیستیم|نمی[‌ ]?کنم|نمی[‌ ]?کنیم|نیست\b|ندارم|\bnot\b|n't\b|no\s+longer|\bnever\b|used\s+to|قبلا|سابق|بود(?:م|یم)?\b|\bwas\b|\bwere\b", re.I)
 
 
 def _residence(sentence: str) -> List[Stated]:
