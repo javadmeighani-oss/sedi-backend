@@ -39,7 +39,8 @@ def test_the_first_reply_is_presence_plus_an_invitation_to_talk_never_a_dismissa
 @pytest.mark.parametrize("msg", [m for m, _ in ACTIVE if _ == "fa"])
 def test_the_emergency_reply_names_real_help_when_in_danger_and_keeps_the_old_guarantees(msg):
     fa = _text(msg, "fa")
-    assert "تنها نیستی" in fa and "اورژانس" in fa and "۱۱۵" in fa and "۱۲۳" in fa and "سدی" not in fa
+    assert "تنها نیستی" in fa and "اورژانس" in fa and "سدی" not in fa
+    assert "۱۱۵" not in fa and "۱۲۳" not in fa  # I4 templates stay country-neutral (R-098 / section15 guard); numbers live in crisis_support
     en = _text("I want to die", "en").lower()
     assert "not alone" in en and "emergency" in en
 
