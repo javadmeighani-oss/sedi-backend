@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-LOOKBACK = timedelta(hours=24)
+LOOKBACK = timedelta(hours=72)  # F2 (D-402): a gentle check-in on the first conversation of the next day(s)
 MAX_TURNS = 6
 
 _BASE = (
@@ -90,7 +90,7 @@ def is_self_harm_text(text: str, language: str = "fa") -> bool:
 
 
 def hint_for_turn(db: Any, user_id: Optional[int], user_message: str, language: str = "fa") -> Optional[str]:
-    """The support-mode hint for this chat turn, or None. Fires when this message or an earlier turn (last 24 h, consent-gated) was
+    """The support-mode hint for this chat turn, or None. Fires when this message or an earlier turn (last 72 h, consent-gated) was
     self-harm talk. Never raises."""
     try:
         if is_self_harm_text(user_message, language):

@@ -1435,6 +1435,18 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'The document is recorded in your overall picture.',
     },
     # R-089 (D-381): finding a doctor / lab never ends in «I cannot help».
+    # ---- safety: country-specific help lines (F1, D-402). The I4 templates stay country-neutral; these lines are added by
+    # ---- services/intelligence/emergency_lines.py only for a region whose numbers are verified.
+    'safety.lines.self_harm': {
+        'fa': 'اگر همین الان در خطر هستی، شماره‌ی اورژانس {emergency} و اورژانس اجتماعی {social} (رایگان و شبانه‌روزی) در دسترس است.',
+        'ar': 'إذا كنت في خطر الآن، فرقم الطوارئ {emergency} وخط الطوارئ الاجتماعية {social} (مجاني وعلى مدار الساعة) متاحان.',
+        'en': 'If you are in danger right now, the emergency number is {emergency} and the free 24-hour social emergency line is {social}.',
+    },
+    'safety.lines.medical': {
+        'fa': 'شماره‌ی اورژانس {emergency} است.',
+        'ar': 'رقم الطوارئ هو {emergency}.',
+        'en': 'The emergency number is {emergency}.',
+    },
     'care_nav.ask_location': {
         'fa': 'برای اینکه پزشک یا مرکز نزدیک تو را پیدا کنم، در کدام شهر و چه محله‌ای هستی؟ مثلاً «تهران، نارمک».',
         'ar': 'لأجد لك طبيباً أو مركزاً قريباً، في أي مدينة وأي حيّ أنت؟ مثلاً «طهران، نارمك».',

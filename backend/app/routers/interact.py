@@ -36,6 +36,16 @@ _PRESENTATION_WORD_PACE_S = 0.133
 _WORD_DELTA_RE = re.compile(r"\S+|\s+")
 
 
+def _with_local_lines(message, assessment, db, user_id):
+    """F1/F3 (D-402): country help line + anonymous crisis count on an I4 terminal reply; fail-open."""
+    try:
+        from backend.app.services.intelligence.emergency_lines import finalize_terminal_message
+
+        return finalize_terminal_message(message, assessment, db, user_id)
+    except Exception:
+        return message
+
+
 def presentation_word_deltas(approved: str) -> list[str]:
     """Split approved governed text at word/whitespace boundaries.
 
@@ -294,7 +304,7 @@ async def chat(
         except Exception:
             pass
         return InteractionResponse(
-            message=safety_resp.localized_message,
+            message=_with_local_lines(safety_resp.localized_message, safety_assessment, db, user_id),
             language=response_language,
             user_id=user_id,
             timestamp=datetime.utcnow(),
