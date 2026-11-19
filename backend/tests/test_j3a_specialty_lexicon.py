@@ -109,7 +109,7 @@ def test_p2_legacy_governed_rows_with_english_specialties_still_match(monkeypatc
     req = cn.parse_care_nav_request("Find a neurologist in Tehran", language="en")
     assert req.specialty_or_service == "مغز و اعصاب"
     rows = cn._dispatch_governed_search(None, req)
-    assert seen == ["مغز و اعصاب", "Neurology"] and len(rows) == 1
+    assert seen == ["اعصاب", "Neurology"] and len(rows) == 1
 
 
 def test_p2_the_governed_search_deduplicates_and_respects_the_limit(monkeypatch):
@@ -139,3 +139,10 @@ def test_p2_a_generic_surgeon_never_overrides_a_named_specialty(text, expected):
 def test_p2_the_legacy_persian_neurology_alias_still_matches_old_rows():
     assert "اعصاب" in sl.governed_terms("مغز و اعصاب") and "Neurology" in sl.governed_terms("مغز و اعصاب")
     assert "اعصاب" in "مغز و اعصاب"  # the stem is a substring of both legacy spellings
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Find a dentist for my child with diabetes in Tehran", "دندانپزشکی"), ("a cardiologist for my mother with kidney problems", "قلب"),
+    ("دندانپزشک برای بچه‌ام که دیابت دارد", "دندانپزشکی"), ("a doctor for diabetes", "غدد"), ("diabetes", "غدد")])
+def test_p2_the_requested_practitioner_beats_condition_words(text, expected):
+    assert sl.find_specialty(text) == expected

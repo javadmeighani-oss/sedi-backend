@@ -92,6 +92,7 @@ def _compile(words: tuple) -> Optional[re.Pattern]:
 _GENERIC = frozenset({"جراحی عمومی"})
 
 _ALIAS_RX = [(sp, _compile(sp.aliases + sp.persons)) for sp in _SPECIALTIES]
+_PERSON_RX_BY = [(sp, _compile(sp.persons)) for sp in _SPECIALTIES]
 _PERSON_RX = _compile(tuple(w for sp in _SPECIALTIES for w in sp.persons))
 _BY_NAME = {sp.canonical: sp for sp in _SPECIALTIES}
 
@@ -101,6 +102,16 @@ def find_specialty(text: str) -> Optional[str]:
     try:
         t = fold(text)
         # A generic practitioner word («surgeon») never overrides an explicitly named specialty («eye surgeon» -> چشم): Codex P2.
+        # An explicitly requested PRACTITIONER («dentist») beats condition words elsewhere in the message («with diabetes»): Codex P2.
+        best_person: tuple[int, Optional[str]] = (0, None)
+        for sp, prx in _PERSON_RX_BY:
+            if prx is None or sp.canonical in _GENERIC:
+                continue
+            for m in prx.finditer(t):
+                if len(m.group(0)) > best_person[0]:
+                    best_person = (len(m.group(0)), sp.canonical)
+        if best_person[1]:
+            return best_person[1]
         for generic in (False, True):
             best: tuple[int, Optional[str]] = (0, None)
             for sp, rx in _ALIAS_RX:
