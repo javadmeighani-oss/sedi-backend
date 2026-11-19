@@ -269,3 +269,16 @@ def test_p2_the_bare_destination_with_its_period_answer_finishes(monkeypatch, ow
     combined = rr.pending_request([turn], "pm", "en")
     reply = _go(monkeypatch, cands, combined)
     assert owners and owners[0][1].hour == 16 and "16:00" in reply
+
+
+@pytest.mark.parametrize(
+    "lang,answer,hour",
+    [("en", "evening", 16), ("en", "morning", 4), ("en", "pm", 16), ("fa", "عصر", 16), ("fa", "صبح", 4)],
+)
+def test_p2_any_period_word_after_a_bare_destination_is_honoured(monkeypatch, owners, lang, answer, hour):
+    cands = [_event(title="Supplement", hh=9, recurring=True)]
+    first = "change the reminder from 9 am to 4" if lang == "en" else "ساعت یادآوری را از ساعت ۹ صبح به ۴ تغییر بده"
+    turn = SimpleNamespace(user_message=first, sedi_response=sedi_copy.t("reminder.reschedule.ask_period", lang, hour=4))
+    combined = rr.pending_request([turn], answer, lang)
+    reply = _go(monkeypatch, cands, combined, lang)
+    assert owners and owners[0][1].hour == hour and f"{hour:02d}:00" in reply

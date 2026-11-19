@@ -118,8 +118,12 @@ def _times_in(text: str) -> list[tuple[int, int, int, str, int]]:
     if len(out) == 1 and kept and _FROM.search(text[: kept[0][0]]):
         bare = re.search(r"(?:\bto\b|\buntil\b|\btill\b|به|إلى|الى)\s*(?:ساعت\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?(?!\d)", text[kept[0][1]:], re.I)
         if bare and 0 <= int(bare.group(1)) <= 23:
-            h = int(bare.group(1))
-            out.append((h, int(bare.group(2) or 0), 0, f"at {h}", kept[0][1] + bare.start()))
+            h, minute = int(bare.group(1)), int(bare.group(2) or 0)
+            # its own window = «at 4» + whatever follows it («evening», «pm»...), so a period ANSWER is honoured (Codex P2, PR 192)
+            window = f"at {h} " + text[kept[0][1] + bare.end():]
+            resolved = _rer._apply_period(h, minute, window, "")
+            if resolved is not None:
+                out.append((resolved[0], resolved[1], resolved[2], window, kept[0][1] + bare.start()))
     return out
 
 
