@@ -78,6 +78,20 @@ def _hhmm(h: int, m: int) -> str:
     return f"{h:02d}:{m:02d}"
 
 
+def _starts_later(e: Any) -> bool:
+    """True when the series starts on a LOCAL day after today (Codex P1, PR 193)."""
+    try:
+        import pytz
+
+        try:
+            tz = pytz.timezone(getattr(e, "timezone", None) or "Asia/Tehran")
+        except pytz.UnknownTimeZoneError:
+            tz = pytz.timezone("Asia/Tehran")
+        return e.starts_at.date() > datetime.now(timezone.utc).astimezone(tz).date()
+    except Exception:  # noqa: BLE001
+        return True
+
+
 def _lead(e: Any) -> int:
     from backend.app.services.intelligence.reminder_reschedule import _lead_minutes
 
@@ -117,6 +131,8 @@ def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
         if e.starts_at is None or (e.valid_to and e.valid_to <= now) or not is_medication_text(e.title or ""):
             continue
         if _lead(e) > 0:  # an advance reminder (fires BEFORE the dose time) cannot become a dose schedule: it stays an event
+            continue
+        if _starts_later(e):  # the medicine schedule has no start date: a series that has not started yet stays an event
             continue
         name = pill_title_name(e.title or "")
         if not name or any(same_pill(name, p["name"]) for p in pills):

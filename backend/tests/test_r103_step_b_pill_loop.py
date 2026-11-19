@@ -423,3 +423,31 @@ def test_p2_the_registry_does_not_offer_an_event_with_a_lead_time(monkeypatch):
     db.query.side_effect = query
     pills = reg.existing_pills(db, 1)
     assert [p["id"] for p in pills if p["kind"] == "event"] == [1]
+
+
+# --- Codex round 3 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def test_p1_a_weekly_event_without_byday_keeps_the_weekday_of_its_first_occurrence(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    # 2026-11-09 is a Monday -> weekday 0
+    assert svc._days_from_rule("FREQ=WEEKLY", datetime(2026, 11, 9, 14, 0)) == "0"
+    assert svc._days_from_rule("FREQ=WEEKLY;BYDAY=TU,TH", datetime(2026, 11, 9, 14, 0)) == "1,3"
+    assert svc._days_from_rule("FREQ=DAILY", datetime(2026, 11, 9, 14, 0)) is None and svc._days_from_rule(None, None) is None
+
+
+def test_p1_a_series_that_starts_later_is_not_offered_for_promotion():
+    from datetime import timedelta
+
+    today = datetime.utcnow().replace(hour=14, minute=0, second=0, microsecond=0)
+    future = SimpleNamespace(id=7, title="قرص مکمل", starts_at=today + timedelta(days=7), timezone="Asia/Tehran", valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    started = SimpleNamespace(id=8, title="قرص مکمل دو", starts_at=today - timedelta(days=7), timezone="Asia/Tehran", valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+
+    def query(model):
+        q = MagicMock()
+        rows = [future, started] if getattr(model, "__name__", "") == "UserEvent" else []
+        q.filter.return_value.order_by.return_value.limit.return_value.all.return_value = rows
+        return q
+
+    db = MagicMock()
+    db.query.side_effect = query
+    assert [p["id"] for p in reg.existing_pills(db, 1) if p["kind"] == "event"] == [8]

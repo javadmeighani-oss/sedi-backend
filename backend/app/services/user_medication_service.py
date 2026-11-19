@@ -281,10 +281,13 @@ def add_schedule_time(db: Session, user_id: int, um_id: int, hhmm: str, days_of_
 _BYDAY_INDEX = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
 
 
-def _days_from_rule(rule: Optional[str]) -> Optional[str]:
-    """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily or no rule -> None (every day)."""
+def _days_from_rule(rule: Optional[str], starts_at: Optional[datetime] = None) -> Optional[str]:
+    """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily or no rule -> None (every day). A weekly rule WITHOUT BYDAY repeats
+    on the weekday of its first occurrence (the event scheduler does the same), so that weekday is kept (Codex P1, PR 193)."""
     m = re.search(r"BYDAY=([A-Z,]+)", rule or "")
     if not m:
+        if starts_at is not None and re.search(r"FREQ=WEEKLY", (rule or "").upper()):
+            return str(starts_at.weekday())
         return None
     days = sorted({_BYDAY_INDEX[d] for d in m.group(1).split(",") if d in _BYDAY_INDEX})
     return ",".join(str(d) for d in days) or None
@@ -325,7 +328,7 @@ def promote_event_to_medication(
         db.flush()
     have = {r.time_of_day for r in (um.schedules or [])}
     # each dose keeps ITS OWN weekdays: the older dose those of the older event, the new one those of the new request (Codex P1)
-    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule)), (parse_hhmm(new_hhmm), days_of_week)):
+    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule, ev.starts_at)), (parse_hhmm(new_hhmm), days_of_week)):
         if t not in have:
             have.add(t)
             db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days))
