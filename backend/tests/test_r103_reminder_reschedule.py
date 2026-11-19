@@ -199,9 +199,9 @@ def test_p1_a_negated_instruction_never_changes_a_reminder(monkeypatch, owners, 
 
 def test_p1_each_time_is_resolved_with_its_own_period(monkeypatch, owners):
     times = rr._times_in(rr._norm("ساعت یادآوری را از ساعت ۴ عصر به ساعت ۹ صبح تغییر بده"))
-    assert [(h, m) for h, m, _s, _w in times] == [(16, 0), (9, 0)]
+    assert [(h, m) for h, m, _s, _w, _p in times] == [(16, 0), (9, 0)]
     en = rr._times_in(rr._norm("change the reminder from 4 pm to 9 am"))
-    assert [(h, m) for h, m, _s, _w in en] == [(16, 0), (9, 0)]
+    assert [(h, m) for h, m, _s, _w, _p in en] == [(16, 0), (9, 0)]
     _with(monkeypatch, [_event(hh=16), _event(eid=20, title="جلسه‌ی هفتگی", hh=8)])
     reply = _go("ساعت یادآوری را از ساعت ۴ عصر به ساعت ۹ صبح تغییر بده")
     assert owners and owners[0][0] == 15 and owners[0][1].hour == 9 and "16:00" not in reply.split("به ساعت")[-1]

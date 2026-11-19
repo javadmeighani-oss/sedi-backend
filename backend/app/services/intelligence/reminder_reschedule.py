@@ -68,7 +68,7 @@ def is_change_request(message: str) -> bool:
     return bool(text and _CHANGE.search(text) and not _NEGATED.search(text))
 
 
-def _times_in(text: str) -> list[tuple[int, int, int, str]]:
+def _times_in(text: str) -> list[tuple[int, int, int, str, int]]:
     """Every clock time named in the text, in order: (hour24, minute, day_shift, own_words). «from 4 pm to 9 am» -> two items,
     each resolved with ITS OWN period words (the text between the previous time and the next one), never the whole sentence
     (Codex P1, PR 192)."""
@@ -81,7 +81,7 @@ def _times_in(text: str) -> list[tuple[int, int, int, str]]:
         if any(start < b and a < end for a, b, _m in kept):  # the same spoken time matched by two patterns counts once
             continue
         kept.append((start, end, m))
-    out: list[tuple[int, int, int, str]] = []
+    out: list[tuple[int, int, int, str, int]] = []
     for i, (start, end, m) in enumerate(kept):
         lo = start if i else 0  # a period word AFTER a time («۴ عصر») belongs to that time, not to the next one
         hi = kept[i + 1][0] if i + 1 < len(kept) else len(text)
@@ -90,8 +90,23 @@ def _times_in(text: str) -> list[tuple[int, int, int, str]]:
         minute = int(d.get("min") or d.get("min2") or (30 if d.get("half") else 0) or 0)
         resolved = _rer._apply_period(int(m.group("h")), minute, window, d.get("ap") or "")
         if resolved is not None:
-            out.append((resolved[0], resolved[1], resolved[2], window))
+            out.append((resolved[0], resolved[1], resolved[2], window, start))
     return out
+
+
+_FROM = re.compile(r"(?:\bfrom\b|(?:^|\s)از\s|(?:^|\s)من\s)", re.I)
+_INSTEAD = re.compile(r"(?:\binstead\s+of\b|\brather\s+than\b|به\s*جای|بجای|بدل|بدلا\s+من|بدلاً\s+من)", re.I)
+
+
+def _roles(text: str, times: list[tuple[int, int, int, str, int]]) -> tuple[tuple, Optional[tuple]]:
+    """(destination, old-or-identifying time). «from 2 to 4» -> old first; «to 4 pm instead of 2 pm» and a clarification answer that
+    names a reminder by its time («Dentist at 9 am») -> the FIRST time is the destination (Codex P2, PR 192)."""
+    if len(times) == 1:
+        return times[0], None
+    first, last = times[0], times[-1]
+    if _FROM.search(text[: first[4]]) and not _INSTEAD.search(text):
+        return last, first
+    return first, times[1]
 
 
 def _hhmm(h: int, m: int) -> str:
@@ -210,7 +225,7 @@ def _apply_event(
                 raise _PastTime()
         else:
             start = start + timedelta(days=new[2])
-            if start <= now_local:  # no day = the next time that clock shows (R-042)
+            while start <= now_local:  # no day = the next time that clock shows (R-042), also for a reminder that expired days ago
                 start = start + timedelta(days=1)
         day_key = "today" if start.date() == now_local.date() else "tomorrow" if start.date() == (now_local + timedelta(days=1)).date() else ""
     ends = getattr(e, "ends_at", None)
@@ -247,11 +262,12 @@ def handle(
         times = _times_in(text)
         if not times:
             return None  # a change without a new time is left to the normal conversation (it asks)
-        hour12 = _rer.ambiguous_period_hour(times[-1][3])  # the NEW time's own words decide whether it is ambiguous
+        dest, old_t = _roles(text, times)
+        hour12 = _rer.ambiguous_period_hour(dest[3])  # the NEW time's own words decide whether it is ambiguous
         if hour12 is not None:
             return sedi_copy.t("reminder.reschedule.ask_period", lang, hour=hour12)
-        new = times[-1][:3]
-        old_hhmm = _hhmm(times[0][0], times[0][1]) if len(times) >= 2 else None
+        new = dest[:3]
+        old_hhmm = _hhmm(old_t[0], old_t[1]) if old_t is not None else None
         cands = _candidates(db, user_id, now)
         if not cands:
             return None  # nothing to change: the normal flow answers (and the guard strips any «I changed it» claim)

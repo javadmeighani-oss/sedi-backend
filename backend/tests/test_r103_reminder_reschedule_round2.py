@@ -150,3 +150,33 @@ def test_p2_a_populated_end_time_moves_with_the_start(monkeypatch):
     ev2["obj"].ends_at = None
     _go(monkeypatch, [ev2], "move the reminder to 4 pm")
     assert seen == [(datetime(2026, 11, 19, 16, 0), None)]
+
+
+# --- round 4: roles of two clocks, and an expired one-time reminder -------------------------------------------------------------
+@pytest.mark.parametrize(
+    "lang,message",
+    [
+        ("en", "change the reminder to 4 pm instead of 2 pm"),
+        ("en", "change the reminder to 4 pm, the 2 pm one"),
+        ("fa", "ساعت یادآوری را به ۴ عصر تغییر بده به جای ۲ بعدازظهر"),
+        ("en", "change the reminder from 2 pm to 4 pm"),
+    ],
+)
+def test_p2_the_destination_is_found_by_its_role_not_by_position(monkeypatch, owners, lang, message):
+    cands = [_event(eid=1, title="Dentist", hh=14, recurring=True), _event(eid=2, title="Workout", hh=9, recurring=True)]
+    reply = _go(monkeypatch, cands, message, lang)
+    assert owners and owners[0][0] == 1 and owners[0][1].hour == 16 and "16:00" in reply
+
+
+def test_p2_an_identifying_time_in_a_clarification_answer_never_replaces_the_destination(monkeypatch, owners):
+    cands = [_event(eid=1, title="Dentist", hh=9, recurring=True), _event(eid=2, title="Workout", hh=18, recurring=True)]
+    combined = "change the reminder to 5 pm Dentist at 9 am"
+    reply = _go(monkeypatch, cands, combined)
+    assert owners and owners[0][0] == 1 and owners[0][1].hour == 17 and "17:00" in reply
+
+
+def test_p2_an_expired_one_time_reminder_moves_to_the_next_future_occurrence(monkeypatch, owners):
+    # yesterday 23:00 (still inside the 24 h candidate cutoff); 16:00 today is behind now (21:30 Tehran) -> tomorrow 16:00
+    ev = _event(title="Dentist", hh=23, recurring=False, day=datetime(2026, 11, 18))
+    reply = _go(monkeypatch, [ev], "move the reminder to 4 pm")
+    assert owners == [(1, datetime(2026, 11, 20, 16, 0))] and sedi_copy.t("reminder.reschedule.day_tomorrow", "en") in reply
