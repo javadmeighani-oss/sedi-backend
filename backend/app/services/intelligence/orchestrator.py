@@ -1544,12 +1544,7 @@ class IntelligenceOrchestrator:
                 _last_turn = _turns_ctx[0] if _turns_ctx else None
                 _resched_msg = message
                 if _last_turn is not None:
-                    _resched_msg = (
-                        _resched.pending_prior_request(
-                            getattr(_last_turn, "sedi_response", None), getattr(_last_turn, "user_message", None), message, lang
-                        )
-                        or message
-                    )
+                    _resched_msg = _resched.pending_request(_turns_ctx, message, lang) or message
                 _resched_ctx = _resched.context_of(_turns_ctx, _resched_msg != message)
                 _resched_reply = _resched.handle(
                     self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx

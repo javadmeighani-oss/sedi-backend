@@ -1615,6 +1615,21 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم: غيّرتُ تذكير «{title}» من الساعة {old} إلى الساعة {new}{day}.',
         'en': 'Done: I moved the reminder “{title}” from {old} to {new}{day}.',
     },
+    'reminder.reschedule.done_lead': {
+        'fa': 'انجام شد: «{title}» را از ساعت {old} به ساعت {new} بردم{day}؛ یادآوری‌اش هم همان {lead} دقیقه پیش از آن می‌ماند.',
+        'ar': 'تم: نقلتُ «{title}» من الساعة {old} إلى الساعة {new}{day}؛ ويبقى تذكيره قبله بـ{lead} دقيقة كما كان.',
+        'en': 'Done: I moved “{title}” from {old} to {new}{day}; its reminder stays {lead} minutes before it.',
+    },
+    'reminder.reschedule.past': {
+        'fa': 'آن روز و ساعت گذشته است و چیزی را تغییر ندادم. روز و ساعتی در آینده بگو.',
+        'ar': 'ذلك اليوم والساعة مضيا ولم أغيّر شيئاً. قل لي يوماً وساعة في المستقبل.',
+        'en': 'That day and time have already passed, so I changed nothing. Tell me a day and time in the future.',
+    },
+    'reminder.reschedule.collision': {
+        'fa': 'برای «{title}» از قبل نوبتی در ساعت {new} هست و چیزی را تغییر ندادم. اگر می‌خواهی دو نوبت یکی شوند، بگو.',
+        'ar': 'لدى «{title}» جرعة في الساعة {new} أصلاً ولم أغيّر شيئاً. إن أردت دمج الجرعتين فقل لي.',
+        'en': 'There is already a dose of “{title}” at {new}, so I changed nothing. Tell me if you want the two doses merged.',
+    },
     'reminder.reschedule.day_today': {'fa': ' (امروز)', 'ar': ' (اليوم)', 'en': ' (today)'},
     'reminder.reschedule.day_tomorrow': {'fa': ' (فردا)', 'ar': ' (غداً)', 'en': ' (tomorrow)'},
     'reminder.reschedule.ask_period': {

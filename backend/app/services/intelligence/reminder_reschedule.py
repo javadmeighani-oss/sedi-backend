@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -162,7 +162,28 @@ def _day_word(lang: str, key: str) -> str:
     return sedi_copy.t(f"reminder.reschedule.day_{key}", lang)
 
 
-def _apply_event(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int], now_utc: datetime) -> Optional[tuple[str, str]]:
+class _PastTime(Exception):
+    """The requested date + time is already behind: nothing is changed."""
+
+
+class _Collision(Exception):
+    """The new time is already another dose of the same medicine: nothing is changed."""
+
+
+def _lead_minutes(e: Any) -> int:
+    """The advance time the event keeps (its reminder fires this long BEFORE starts_at); 0 = at the time (pills, chat reminders)."""
+    import json
+
+    try:
+        raw = json.loads(getattr(e, "reminder_offsets_json", None) or "[]")
+        return max([int(x) for x in raw if isinstance(x, (int, float)) and x > 0] or [0])
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _apply_event(
+    db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int], now_utc: datetime, text: str = ""
+) -> tuple[str, str, int]:
     from backend.app.schemas.gate2 import EventUpdateIn
     from backend.app.services.gate2_data_service import update_event
 
@@ -177,12 +198,18 @@ def _apply_event(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int
         except pytz.UnknownTimeZoneError:
             tz = pytz.timezone("Asia/Tehran")
         now_local = now_utc.astimezone(tz).replace(tzinfo=None)
-        start = start + timedelta(days=new[2])
-        if start <= now_local:  # «no day = the next time that clock shows» (R-042)
-            start = start + timedelta(days=1)
+        said = _rer._resolve_date(text, now_local) if text else None
+        if said is not None:  # an explicit day (tomorrow, a weekday, a date) wins over the event's old date (Codex P2, PR 192)
+            start = datetime.combine(said.date(), time(new[0], new[1])) + timedelta(days=new[2])
+            if start <= now_local:
+                raise _PastTime()
+        else:
+            start = start + timedelta(days=new[2])
+            if start <= now_local:  # no day = the next time that clock shows (R-042)
+                start = start + timedelta(days=1)
         day_key = "today" if start.date() == now_local.date() else "tomorrow" if start.date() == (now_local + timedelta(days=1)).date() else ""
     update_event(db, user_id, int(e.id), EventUpdateIn(starts_at=start))
-    return _hhmm(start.hour, start.minute), day_key
+    return _hhmm(start.hour, start.minute), day_key, _lead_minutes(e)
 
 
 def _apply_med(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int]) -> str:
@@ -193,6 +220,8 @@ def _apply_med(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, 
     old_days = {svc.format_time_of_day(r.time_of_day): r.days_of_week for r in (um.schedules or []) if r.time_of_day is not None}
     old_key = svc.format_time_of_day(row.time_of_day)
     new_key = _hhmm(new[0], new[1])
+    if any(svc.format_time_of_day(r.time_of_day) == new_key for r in (um.schedules or []) if r is not row and r.time_of_day is not None):
+        raise _Collision()  # the owner would merge the two doses and silently drop one weekday filter (Codex P2, PR 192)
     times = [new_key if svc.format_time_of_day(r.time_of_day) == old_key else svc.format_time_of_day(r.time_of_day) for r in um.schedules if r.time_of_day is not None]
     svc.update_user_medication(db, user_id, int(um.id), UserMedicationUpdateIn(reminder_times=times))
     db.refresh(um)
@@ -234,11 +263,16 @@ def handle(
             lines = "؛ ".join(f"«{c['title']}» {c['hhmm']}" for c in pool[:3]) if lang != "en" else "; ".join(f"“{c['title']}” {c['hhmm']}" for c in pool[:3])
             return sedi_copy.t("reminder.reschedule.ask_which", lang, list=lines)
         old = chosen["hhmm"]
+        lead = 0
         try:
             if chosen["kind"] == "event":
-                new_hhmm, day_key = _apply_event(db, user_id, chosen, new, now)
+                new_hhmm, day_key, lead = _apply_event(db, user_id, chosen, new, now, text)
             else:
                 new_hhmm, day_key = _apply_med(db, user_id, chosen, new), ""
+        except _PastTime:
+            return sedi_copy.t("reminder.reschedule.past", lang)
+        except _Collision:
+            return sedi_copy.t("reminder.reschedule.collision", lang, title=chosen["title"], new=_hhmm(new[0], new[1]))
         except Exception:  # noqa: BLE001 - nothing is claimed that did not happen
             logger.exception("[R-103] reminder reschedule failed")
             try:
@@ -247,6 +281,8 @@ def handle(
                 pass
             return sedi_copy.t("reminder.reschedule.failed", lang)
         day = _day_word(lang, day_key) if day_key else ""
+        if lead > 0:  # the event itself moved; its advance reminder keeps its lead time (said honestly, Codex P2, PR 192)
+            return sedi_copy.t("reminder.reschedule.done_lead", lang, title=chosen["title"], old=old, new=new_hhmm, day=day, lead=lead)
         return sedi_copy.t("reminder.reschedule.done", lang, title=chosen["title"], old=old, new=new_hhmm, day=day)
     except Exception:  # noqa: BLE001
         logger.exception("[R-103] reminder reschedule skipped")
@@ -258,6 +294,23 @@ def context_of(turns: list[Any], answered_question: bool) -> str:
     reply is that question (with every option listed): it is left out, otherwise all options score alike (Codex P2, PR 192)."""
     use = turns[1:3] if answered_question else turns[:2]
     return " ".join(str(getattr(t, "sedi_response", "") or "") for t in use)
+
+
+def pending_request(turns: list[Any], answer: str, language: Optional[str]) -> Optional[str]:
+    """Like ``pending_prior_request`` but follows a CHAIN of this flow's questions (at 5 -> morning or evening? -> pm -> which
+    reminder? -> Dentist): the original request and every answer, oldest first, plus this answer (Codex P2, PR 192)."""
+    parts: list[str] = []
+    for t in turns:
+        reply = _norm(str(getattr(t, "sedi_response", "") or "")).lower()
+        if not reply or not any(_norm(m).lower() in reply for kind in _MARK.values() for m in kind.values()):
+            break
+        parts.append(str(getattr(t, "user_message", "") or "").strip())
+    if not parts or not parts[0]:
+        return None
+    newest_reply = _norm(str(getattr(turns[0], "sedi_response", "") or "")).lower()
+    if any(_norm(m).lower() in newest_reply for m in _MARK["period"].values()) and not _rer._ANY_PERIOD_WORD.search(answer or ""):
+        return None
+    return " ".join(reversed(parts)) + " " + answer.strip()
 
 
 def pending_prior_request(last_reply: Optional[str], last_user_message: Optional[str], answer: str, language: Optional[str]) -> Optional[str]:
