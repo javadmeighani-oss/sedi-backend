@@ -216,3 +216,17 @@ def test_p1_a_negation_directly_governing_the_symptom_still_denies_it(text):
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert triage(text, "en").red_flag is False
+
+
+@pytest.mark.parametrize("text", ["I suddenly lost my job", "I suddenly lost my keys", "suddenly lost my phone"])
+def test_p2_sudden_loss_of_a_thing_is_not_vision_loss(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag_key != "sudden_vision_loss"
+
+
+@pytest.mark.parametrize("text", ["I suddenly lost my sight", "I suddenly went blind", "suddenly lost vision in my left eye"])
+def test_p2_real_sudden_vision_loss_is_still_an_emergency(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag_key == "sudden_vision_loss"

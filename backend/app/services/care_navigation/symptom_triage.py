@@ -58,7 +58,7 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
         r"(?:چشمم|دیدم).{0,15}(?:سیاه شد|سیاه شده|را از دست)",
         r"(?:ناگهان|یکدفعه|یهو).{0,25}چشم.{0,25}(?:از دست|سیاه|تار|نمی ?بین)", r"از دست دادم.{0,12}(?:بینایی|دید)",
         r"sudden.{0,20}(?:vision|sight).{0,15}(?:loss|blur|black)", r"suddenly (?:can.?t|cannot) see",
-        r"(?:vision|sight|eyesight).{0,20}suddenly.{0,20}(?:went|gone|black|blur|lost|dark)", r"suddenly.{0,15}(?:lost|went blind)")),
+        r"(?:vision|sight|eyesight).{0,20}suddenly.{0,20}(?:went|gone|black|blur|lost|dark)", r"suddenly.{0,15}(?:lost (?:my |the |all )?(?:vision|sight|eyesight)|went blind)")),
     ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"can.?t breathe")),
 )
 
