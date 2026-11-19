@@ -142,3 +142,16 @@ def test_p2_a_place_named_in_the_answer_replaces_the_first_place(answer, spec, p
 def test_p2_without_a_place_in_the_answer_the_first_place_is_kept():
     done = ci.request_for_answer(PRIOR, Q["fa"], "نورولوژی", "fa")
     assert done.startswith(PRIOR) and "پردیس" in done
+
+
+# ---- Codex round 2 ---------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer", ["not sure why my vision suddenly went black", "نمی‌دانم چرا ناگهان چشمم سیاه شد", "I don't know, I fainted",
+                                    "فرقی نمی‌کند، خونریزی شدید دارم"])
+def test_p1_uncertainty_never_turns_an_emergency_into_a_general_practitioner_search(answer):
+    assert ci.request_for_answer(PRIOR, Q["fa"], answer, "fa") is None
+
+
+@pytest.mark.parametrize("answer, lang", [("pain in knee", "en"), ("pain in left knee", "en"), ("a rash in my arm", "en")])
+def test_p2_anatomy_after_in_is_not_a_city(answer, lang):
+    done = ci.request_for_answer("find a doctor in Tehran", Q["en"], answer, lang)
+    assert done and done.startswith("find a doctor in Tehran") and " in knee" not in done and " in left" not in done

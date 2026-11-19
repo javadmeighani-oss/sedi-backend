@@ -84,11 +84,7 @@ def _place_in(answer: str) -> Optional[str]:
         return place.area
     if place.city:
         return place.city
-    for m in cn._LOCATION_CITY.finditer(answer):
-        word = m.group(1).strip()
-        if word.lower() not in cn._NOT_A_CITY:
-            return word
-    return None
+    return None  # only places the gazetteer knows: «pain in knee» must not turn «knee» into a city (Codex P2)
 
 
 def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], answer: str, language: str) -> Optional[str]:
@@ -101,6 +97,10 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             return None
         if cn.is_care_navigation_query(text) and sl.find_specialty(text) and cn._has_real_location(text):
             return None  # a complete doctor request of its own (kind AND place)
+        from backend.app.services.care_navigation import symptom_triage
+
+        if symptom_triage.triage(text, language).red_flag:
+            return None  # an emergency is never completed into a routine search, whatever else the answer says (Codex P1)
         spec = _specialty_for_answer(text, language)
         if spec is None and _DONT_KNOW.search(text):
             spec = "پزشک عمومی"
