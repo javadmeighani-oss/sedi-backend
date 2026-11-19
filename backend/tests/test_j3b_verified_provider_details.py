@@ -407,3 +407,24 @@ def test_p2_the_tehran_claim_never_becomes_the_shiraz_contact():
     v2 = pf.verify_result(_item(phone="02122792694", city="تهران", source_url="https://www.paziresh24.com/dr/x"),
                           fetch=lambda url: sf.FetchResult(True, "https://www.paziresh24.com/dr/x", 200, only_shiraz))
     assert v2.phone != "07133334444" and v2.phone_status in ("rejected", "none")
+
+
+# ---- Codex round 3: closed days and ranges
+def test_p2_a_day_the_page_marks_closed_is_not_a_visit_day():
+    page = "ساعات کاری مطب: شنبه تا پنجشنبه ۹ تا ۱۷. جمعه تعطیل است."
+    assert pf.days_on_page(["جمعه"], page) == ()
+    assert pf.days_on_page(["شنبه", "پنجشنبه", "جمعه"], page) == ("شنبه", "پنجشنبه")
+
+
+def test_p2_a_range_on_the_page_opens_every_day_between():
+    page = "ویزیت: شنبه تا چهارشنبه ساعت ۱۶ تا ۲۰"
+    assert pf.days_on_page(["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه"], page) == ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه")
+
+
+@pytest.mark.parametrize("page", ["جمعه: تعطیل", "ویزیت جمعه ندارد، ساعت کاری ۹ تا ۱۲", "Friday closed, hours 9 to 12"])
+def test_p2_closure_wordings_are_all_respected(page):
+    assert pf.days_on_page(["جمعه"], page) == ()
+
+
+def test_p2_an_open_day_with_a_closed_neighbour_stays_open():
+    assert pf.days_on_page(["شنبه", "جمعه"], "شنبه ساعت ۹ تا ۱۲؛ جمعه تعطیل") == ("شنبه",)

@@ -156,7 +156,8 @@ _DAY_ORDER = (
 )  # LONGEST names first: «یکشنبه» must not also count as «شنبه»
 
 
-def _day_positions(squashed: str) -> dict[str, list[int]]:
+def _day_positions(squashed: str) -> dict[str, list[tuple[int, int]]]:
+    """Where each weekday name occurs in the squashed text: canon -> [(start, length)]. Longest names are masked first."""
     masked, out = squashed, {}
     for canon, variants in _DAY_ORDER:
         out[canon] = []
@@ -166,32 +167,45 @@ def _day_positions(squashed: str) -> dict[str, list[int]]:
                 pos = masked.find(v, start)
                 if pos < 0:
                     break
-                out[canon].append(pos)
+                out[canon].append((pos, len(v)))
                 masked = masked[:pos] + "#" * len(v) + masked[pos + len(v):]
                 start = pos + len(v)
     return out
 
 
+_CLOSED = re.compile(r"تعطیل|بسته|ویزیت ندار|نوبت ندار|نداریم|ندارد|ندارند|نیست|closed|day off|not available|no visits", re.I)
+_WEEK = tuple(c for c, _v in _DAYS)  # Saturday .. Friday
+
+
 def days_on_page(days: Any, page_text: str) -> tuple[str, ...]:
-    """The claimed weekday names that the page itself shows near a time / visit cue (canonical names, week order)."""
+    """The claimed weekday names that the page itself shows as AVAILABLE: next to a time / visit cue, inside a range («شنبه تا چهارشنبه»),
+    and never a day the page marks closed («جمعه تعطیل است») - Codex P2, PR 190. Canonical names, week order."""
     claimed = [days] if isinstance(days, str) else list(days or [])
-    claim_pos = _day_positions(_squash(" ".join(str(d) for d in claimed if d)))
-    wanted = {canon for canon, pos in claim_pos.items() if pos}
+    wanted = {canon for canon, pos in _day_positions(_squash(" ".join(str(d) for d in claimed if d))).items() if pos}
     if not wanted:
         return ()
-    squashed, idx = _squash_with_map(_fold(page_text))
     page = _fold(page_text)
+    squashed, idx = _squash_with_map(page)
     found = _day_positions(squashed)
-    out: list[str] = []
-    for canon, _variants in _DAYS:
-        if canon not in wanted:
+    mentions = sorted((pos, ln, canon) for canon, lst in found.items() for pos, ln in lst)
+    available: set[str] = set()
+    for n, (pos, ln, canon) in enumerate(mentions):
+        a, a_end = idx[pos], idx[pos + ln - 1] + 1
+        nxt = idx[mentions[n + 1][0]] if n + 1 < len(mentions) else len(page)
+        tail = page[a_end: min(a_end + 30, nxt)]
+        tail = re.split(r"[.؛;|•\n]", tail)[0]
+        head = re.split(r"[.؛;|•\n]", page[max(0, a - 16): a])[-1]
+        if _CLOSED.search(tail) or _CLOSED.search(head):
             continue
-        for pos in found.get(canon, []):
-            a = idx[pos]
-            if _TIME_CUE.search(page[max(0, a - 90): a + 90]):
-                out.append(canon)
-                break
-    return tuple(out)
+        if _TIME_CUE.search(page[max(0, a - 90): a + 90]):
+            available.add(canon)
+            # a range «X تا Y» also opens every day between them
+            m = re.match(r"(?:تا|الی|to|-)", squashed[pos + ln: pos + ln + 4])
+            if m and n + 1 < len(mentions) and mentions[n + 1][0] == pos + ln + len(m.group(0)):
+                lo, hi = _WEEK.index(canon), _WEEK.index(mentions[n + 1][2])
+                if lo <= hi:
+                    available.update(_WEEK[lo: hi + 1])
+    return tuple(c for c in _WEEK if c in available and c in wanted)
 
 
 def _squash_with_map(text: str) -> tuple[str, list[int]]:
