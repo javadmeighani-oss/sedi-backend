@@ -343,3 +343,120 @@ def test_the_owner_write_keeps_the_stated_dose_time(monkeypatch):
     monkeypatch.setattr(svc, "create_user_medication", lambda db, uid, body: seen.append(body) or {"id": 1})
     out = mc._create(None, user_id=1, draft=_offset_draft((0,)), language="fa", timezone_name=TZ, name="لووتیروکسین")
     assert out["created"] and out["time"] == "21:00" and seen[0].reminder_times == ["21:00"]
+
+
+# --- A3 (R-088 am.2 / R-051 / R-068): the companionship after the reason is ONE tracked commitment -----------------
+class _FakeDb:
+    def __init__(self):
+        self.commits = 0
+
+    def commit(self):
+        self.commits += 1
+
+    def rollback(self):
+        pass
+
+
+def _reason_rows(name="لووتیروکسین", lang="fa"):
+    ask_reason = sedi_copy.t("medication.chat.q.ask_reason", lang, name=name)
+    return [SimpleNamespace(user_message=name, sedi_response=ask_reason, created_at=datetime.utcnow())] + _turns()
+
+
+def _go_db(monkeypatch, rows, message, db, lang="fa"):
+    monkeypatch.setattr(mc, "history_available", lambda d, uid: True)
+    monkeypatch.setattr(mc, "_recent_turns", lambda d, uid, now: rows)
+    return mc.continue_interview(db, user_id=1, message=message, language=lang, timezone_name=TZ)
+
+
+@pytest.fixture
+def captured(monkeypatch):
+    calls = []
+
+    def fake_capture(db, user_id, step, *, user_message=""):
+        calls.append((user_id, step, user_message))
+        return SimpleNamespace(id=7)
+
+    from backend.app.services.i10 import commitment_followup as cf
+
+    monkeypatch.setattr(cf, "capture_step", fake_capture)
+    return calls
+
+
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+@pytest.mark.parametrize("name", ["لووتیروکسین", "Metformin 500 mg", "Zed"])
+def test_the_commitment_step_is_generic_named_and_never_cancels_another_subject(lang, name):
+    from backend.app.services.i10.commitment_followup import commitment_domain
+
+    step = sedi_copy.t("medication.chat.commitment_step", lang, name=name)
+    assert name in step and "{" not in step
+    assert commitment_domain(step) == "other"  # «other» chains are never superseded by domain: a 2nd medicine keeps the 1st
+
+
+@pytest.mark.parametrize("lang,reason", [("fa", "برای کم‌کاری تیروئید مصرفش می‌کنم"), ("ar", "لقصور الغدة الدرقية"), ("en", "for my thyroid")])
+def test_the_reason_creates_one_tracked_commitment_and_the_reply_promises_it(monkeypatch, owner, captured, lang, reason):
+    db = _FakeDb()
+    reply = _go_db(monkeypatch, _reason_rows(lang=lang), reason, db, lang=lang)
+    assert reply and sedi_copy.t("medication.chat.created.followup_promise", lang) in reply
+    assert len(captured) == 1 and captured[0][0] == 1 and captured[0][2] == reason
+    assert "لووتیروکسین" in captured[0][1]
+    assert db.commits == 1
+    assert reply.count("?") + reply.count("؟") == 0  # the companionship is a statement, one question per reply (R-020)
+
+
+def test_no_promise_when_the_commitment_could_not_be_created(monkeypatch, owner):
+    """Honest text: Sedi promises tomorrow's check-in only if the tracked commitment really exists (no consent / severe / error)."""
+    from backend.app.services.i10 import commitment_followup as cf
+
+    monkeypatch.setattr(cf, "capture_step", lambda db, uid, step, *, user_message="": None)
+    db = _FakeDb()
+    reply = _go_db(monkeypatch, _reason_rows(), "برای کم‌کاری تیروئید", db)
+    assert reply and "14:00" in reply
+    assert sedi_copy.t("medication.chat.created.followup_promise", "fa") not in reply and db.commits == 0
+
+
+def test_insistence_and_duplicates_create_no_commitment(monkeypatch, owner, captured):
+    assert _go_db(monkeypatch, _reason_rows(), "همین ساعت فقط", _FakeDb())  # the safe escape: created, no interview, no commitment
+    assert captured == []
+    monkeypatch.setattr(
+        mc, "_create", lambda db, **kw: {"kind": "medication", "created": False, "duplicate": True, "name": "X", "named": True, "time": "14:00"}
+    )
+    reply = _go_db(monkeypatch, _reason_rows(), "برای تیروئید", _FakeDb())
+    assert reply == sedi_copy.t("medication.chat.already_tracked", "fa", name="X") and captured == []
+
+
+def test_capture_step_is_the_single_gate(monkeypatch):
+    """Consent, severe-symptom floor, blank step and errors are all handled in ONE place (reply hook + A3 share it)."""
+    from backend.app.services.i10 import commitment_followup as cf
+    from backend.app.services.i6 import consent_service
+
+    created = []
+
+    class _Nested:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    db = SimpleNamespace(begin_nested=lambda: _Nested())
+    monkeypatch.setattr(cf, "create_commitment", lambda d, uid, step: created.append(step) or SimpleNamespace(id=1))
+    monkeypatch.setattr(consent_service, "has_permission", lambda d, uid, perm: True)
+    assert cf.capture_step(db, 1, "step one", user_message="برای تیروئید") is not None and created == ["step one"]
+    assert cf.capture_step(db, 1, "   ") is None and cf.capture_step(db, 1, "step", user_message="chest pain now") is None
+    monkeypatch.setattr(consent_service, "has_permission", lambda d, uid, perm: False)
+    assert cf.capture_step(db, 1, "step two") is None and created == ["step one"]
+    monkeypatch.setattr(consent_service, "has_permission", lambda d, uid, perm: True)
+    monkeypatch.setattr(cf, "create_commitment", lambda d, uid, step: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert cf.capture_step(db, 1, "step three") is None  # fail-open
+
+
+def test_the_reply_hook_still_extracts_a_promise_and_goes_through_the_same_gate(monkeypatch):
+    """R-068 hook refactor (A3): capture_from_reply extracts the step and hands it to capture_step; no promise -> no call."""
+    from backend.app.services.i10 import commitment_followup as cf
+
+    seen = []
+    monkeypatch.setattr(cf, "capture_step", lambda db, uid, step, *, user_message="": seen.append((uid, step, user_message)) or "task")
+    reply = "Try a ten minute walk after dinner tonight. I will ask tomorrow how it went."
+    assert cf.capture_from_reply(None, 5, reply, "en", user_message="my back hurts") == "task"
+    assert len(seen) == 1 and seen[0][0] == 5 and "walk" in seen[0][1] and seen[0][2] == "my back hurts"
+    assert cf.capture_from_reply(None, 5, "Drink some water.", "en") is None and len(seen) == 1

@@ -304,17 +304,28 @@ def capture_from_reply(
     """Chat hook: memory-consent gated, fail-open (chat must never break because of the loop). A severe-symptom message
     never becomes a commitment (the safety floor owns it)."""
     try:
-        from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
-
-        if _SEVERE.search(user_message or "") or not has_permission(db, user_id, PERM_WRITE):
-            return None
         found = extract_commitment(reply, language)
         if not found:
             return None
-        with db.begin_nested():
-            return create_commitment(db, user_id, found.step)
+        return capture_step(db, user_id, found.step, user_message=user_message)
     except Exception:
         logger.exception("[R-068] commitment capture skipped")
+        return None
+
+
+def capture_step(db: Session, user_id: int, step: str, *, user_message: str = "") -> Optional[models.CareFollowUpTask]:
+    """The ONE gate that turns a step into a tracked commitment: memory-write consent, never for a severe-symptom message,
+    fail-open. Used by the reply hook above and by deterministic flows that make their own promise (R-088 A3: the pill care
+    interview), so no flow keeps a second copy of the gate (R-005)."""
+    try:
+        from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
+
+        if not (step or "").strip() or _SEVERE.search(user_message or "") or not has_permission(db, user_id, PERM_WRITE):
+            return None
+        with db.begin_nested():
+            return create_commitment(db, user_id, step)
+    except Exception:
+        logger.exception("[R-068] commitment step skipped")
         return None
 
 

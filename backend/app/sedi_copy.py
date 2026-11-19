@@ -1610,6 +1610,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم التسجيل: سأذكّرك الساعة {time} بتناول دوائك. أخذت وضعك في الاعتبار وسنتابع معاً الرعاية والوقاية والمتابعة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',
         'en': 'Done: I will remind you at {time} to take your medicine. I have your situation in mind and we will go through care, prevention and follow-up together; I am with you. If another time fits your day better, tell me and I will change it.',
     },
+    'medication.chat.commitment_step': {
+        'fa': 'ادامه‌ی مراقبت و پیگیری موضوع سلامتی پشت دارویت «{name}»',
+        'ar': 'متابعة الرعاية للموضوع الصحي وراء دوائك «{name}»',
+        'en': 'Keep looking after the health matter behind your “{name}” medication and check in on it',
+    },
+    'medication.chat.created.followup_promise': {
+        'fa': 'فردا حالت را می‌پرسم و پیگیری را ادامه می‌دهم.',
+        'ar': 'غداً أسألك عن حالك وأتابع الأمر معك.',
+        'en': 'Tomorrow I will ask how you are doing and keep following up with you.',
+    },
     'medication.chat.created.insist_named': {
         'fa': 'حتماً، همان‌طور که گفتی انجام می‌دهم: ساعت {time} برای «{name}» یادت می‌اندازم. من مراقب سلامتی تو هستم و هر وقت خواستی درباره‌اش بیشتر صحبت کنیم، من هستم.',
         'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بـ«{name}». أنا أعتني بصحتك، ومتى شئت أن نتحدث عنه أكثر فأنا موجود.',

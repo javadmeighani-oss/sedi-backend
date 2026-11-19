@@ -399,6 +399,28 @@ def _original_request(turns: list[Any], language: Optional[str], timezone_name: 
     return None
 
 
+def _accompany(db: Session, user_id: int, lang: str, name: str, reason_message: str) -> bool:
+    """A3 (R-088 am.2 / R-051 / R-068): after the user told WHY the medicine is taken, Sedi's companionship becomes ONE tracked
+    commitment in the existing I10 loop (next local day 09:00, then every <=2 days, a new approach each time; the lock-screen
+    text of that loop never names an illness). The gate (memory-write consent, severe-symptom floor, fail-open) lives in
+    ``commitment_followup.capture_step``. True only when the commitment really exists, so the promise in the reply is honest."""
+    try:
+        from backend.app.services.i10.commitment_followup import capture_step
+
+        step = sedi_copy.t("medication.chat.commitment_step", lang, name=name)
+        if capture_step(db, user_id, step, user_message=reason_message) is None:
+            return False
+        db.commit()
+        return True
+    except Exception:  # noqa: BLE001 - chat must never break
+        logger.exception("[R-088] medication companionship commitment skipped")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return False
+
+
 def continue_interview(
     db: Session, *, user_id: int, message: str, language: Optional[str], timezone_name: Optional[str],
     now: Optional[datetime] = None,
@@ -424,13 +446,16 @@ def continue_interview(
         name = quoted.group(1).strip() if quoted else None
         text = _fold(message).strip()
 
-        def finish(final_name: Optional[str], key_named: str, key_unnamed: str) -> Optional[str]:
+        def finish(final_name: Optional[str], key_named: str, key_unnamed: str, *, accompany: bool = False) -> Optional[str]:
             out = _create(db, user_id=user_id, draft=draft, language=lang, timezone_name=timezone_name, name=final_name)
             if out is None:
                 return None
             if out.get("duplicate"):
                 return sedi_copy.t("medication.chat.already_tracked", lang, name=out.get("name", ""))
-            return sedi_copy.t(key_named if final_name else key_unnamed, lang, name=out.get("name", ""), time=out.get("time", ""))
+            text = sedi_copy.t(key_named if final_name else key_unnamed, lang, name=out.get("name", ""), time=out.get("time", ""))
+            if accompany and _accompany(db, user_id, lang, out.get("name", ""), message):
+                text = text + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)
+            return text
 
         # a non-answer / insistence ends the interview now: the request is never lost
         if insists(message) or _NON_ANSWER.match(text):
@@ -453,7 +478,9 @@ def continue_interview(
         if stage == "ask_reason":
             if not text or len(text.split()) > 40:  # a long message is another topic: the normal flow answers it
                 return None
-            return finish(name, "medication.chat.created.after_reason", "medication.chat.created.after_reason_unnamed")
+            return finish(
+                name, "medication.chat.created.after_reason", "medication.chat.created.after_reason_unnamed", accompany=True
+            )
         return None
     except Exception:  # noqa: BLE001
         logger.exception("[R-088] medication interview continue failed")
