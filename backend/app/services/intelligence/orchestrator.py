@@ -1504,7 +1504,10 @@ class IntelligenceOrchestrator:
             not terminal_safety
             and not discovery_reply_active
             and not care_nav_handled
-            and not skip_generator
+            # Codex P2 (PR 185): «just remind me» / «فقط یادم بنداز» is classified as a reminder WITHOUT a time, so the generic
+            # clarification («what time?») has already set skip_generator; the interview owns that reply, so it runs when ONLY
+            # the clarification is pending (it returns None for every message that is not an answer of an open interview).
+            and (not skip_generator or clarification_message is not None)
             and self._db is not None
         ):
             try:
