@@ -108,7 +108,7 @@ def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
         db.query(models.UserMedication)
         .filter(models.UserMedication.user_id == user_id, models.UserMedication.reminder_enabled == True)  # noqa: E712
         .order_by(models.UserMedication.id.asc())
-        .limit(10)
+        .limit(200)
         .all()
     ):
         med = db.query(models.Medication).filter(models.Medication.id == um.medication_id).first()
@@ -126,7 +126,7 @@ def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
             models.UserEvent.recurrence_rule.isnot(None),
         )
         .order_by(models.UserEvent.id.asc())
-        .limit(20)
+        .limit(200)
         .all()
     ):
         if e.starts_at is None or (e.valid_to and e.valid_to <= now) or not is_medication_text(e.title or ""):
