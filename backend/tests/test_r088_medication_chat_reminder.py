@@ -482,3 +482,24 @@ def test_cancellation_also_ends_the_name_stage_and_a_bare_refusal_still_keeps_th
     assert _go(monkeypatch, _turns(), "لغو کن") == sedi_copy.t("medication.chat.cancelled", "fa") and owner == []  # name stage
     # «نمی‌خوام» alone is NOT a withdrawal: the existing safe escape creates the reminder with the requested time
     assert _go_db(monkeypatch, _reason_rows(), "نمیخوام", _FakeDb()) and owner == ["لووتیروکسین"] and captured == []
+
+
+@pytest.mark.parametrize(
+    "lang,text",
+    [
+        ("en", "For anxiety after my surgery was cancelled"), ("en", "I take it because my appointment was cancelled"),
+        ("fa", "برای اضطراب چون عملم لغو شد"), ("fa", "قرارم کنسل شد برای همین مصرفش می‌کنم"),
+        ("ar", "بسبب القلق بعد إلغاء العملية"),
+    ],
+)
+def test_a_cancelled_event_in_the_reason_is_not_a_withdrawal(monkeypatch, owner, captured, lang, text):
+    """Codex P2 round 5 (PR 185): «cancel» inside a REASON must not end the interview; the reminder is created."""
+    reply = _go_db(monkeypatch, _reason_rows(lang=lang), text, _FakeDb(), lang=lang)
+    assert reply != sedi_copy.t("medication.chat.cancelled", lang) and "14:00" in reply
+    assert owner == ["لووتیروکسین"]
+
+
+@pytest.mark.parametrize("lang,text", [("en", "Please cancel it"), ("en", "cancel the reminder"), ("fa", "کنسلش کن"), ("fa", "لغو یادآور"), ("ar", "ألغِ التذكير"), ("ar", "لا تضع تذكير")])
+def test_imperative_withdrawals_still_end_the_interview(monkeypatch, owner, captured, lang, text):
+    assert _go_db(monkeypatch, _reason_rows(lang=lang), text, _FakeDb(), lang=lang) == sedi_copy.t("medication.chat.cancelled", lang)
+    assert owner == [] and captured == []

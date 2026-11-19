@@ -95,11 +95,18 @@ _INSIST = re.compile(
 # Codex P2 (PR 185): an explicit WITHDRAWAL of the request at any interview stage ends it with NO reminder and NO commitment
 # (a bare «نمی‌خوام» / «skip» stays a non-answer = the request is kept). Only wording that names the reminder/cancelling counts.
 _CANCEL = re.compile(
-    r"(?:لغو|کنسل|کنسله|نگذار|نذار|نزار|(?:یادآور\w*|یادآوری|یادم\s+بنداز)\s+(?:رو\s+|را\s+)?(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم|نه)|"
-    r"(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم)\s+(?:یادآور\w*|یادآوری)|"
-    r"\bcancel|\bdon'?t\s+(?:set|create|make|add)\b|\bdo\s+not\s+(?:set|create|make|add)\b|\bno\s+reminders?\b|"
+    # an IMPERATIVE / explicit withdrawal of THIS reminder only: «my surgery was cancelled» / «عملم لغو شد» / «تم إلغاء العملية» are
+    # reasons for taking the medicine, not a withdrawal (Codex P2 round 5). The text is folded first (ي->ی, ك->ک).
+    r"(?:^\s*(?:please\s+)?cancel(?:\s+(?:it|this|that|the\s+reminder|my\s+reminder|the\s+request))?[\s.!]*$|"
+    r"\bcancel\s+(?:it|this|that|the\s+reminder|my\s+reminder|the\s+request)\b|"
+    r"\bdon'?t\s+(?:set|create|make|add)\b|\bdo\s+not\s+(?:set|create|make|add)\b|\bno\s+reminders?\b|"
     r"\b(?:don'?t|do\s+not)\s+want\s+(?:a\s+|any\s+)?reminders?\b|"
-    r"إلغاء|الغ[اِ]|لا\s+(?:تضع|تنشئ|تسجّل|تسجل)|لا\s+أر[يی]د\s+(?:تذ[كک][يی]ر|تنب[يی]ه))",  # the text is folded first: ي->ی
+    r"^\s*(?:لغو|کنسل)(?:ش|اش)?(?:\s+(?:کن|کنید|کنین|بکن|بکنید))?[\s.!]*$|(?:لغو|کنسل)(?:ش|اش)?\s+(?:کن|کنید|کنین|بکن|بکنید)\b|"
+    r"(?:لغو|کنسل)\s+(?:این\s+)?(?:یادآور\w*|یادآوری)|نگذار|نذار|نزار|"
+    r"(?:یادآور\w*|یادآوری|یادم\s+بنداز)\s+(?:رو\s+|را\s+)?(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم|نه)\b|"
+    r"(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم)\s+(?:یادآور\w*|یادآوری)|"
+    r"^\s*(?:إلغاء|الغاء)(?:\s+(?:ال)?تذ[كک][يی]ر)?[\s.!]*$|(?:ألغ|الغ)[يیِ]?(?:ه|ها)?\s+(?:ال)?تذ[كک][يی]ر|"
+    r"لا\s+(?:تضع|تنشئ|تسجّل|تسجل)|لا\s+أر[يی]د\s+(?:تذ[كک][يی]ر|تنب[يی]ه))",
     re.I,
 )
 _NON_ANSWER = re.compile(
