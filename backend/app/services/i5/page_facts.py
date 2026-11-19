@@ -62,12 +62,15 @@ def visible_text(html: str) -> str:
 
 
 def page_digit_runs(raw: str) -> set[str]:
-    """Every digit run on the page (phone-looking), digits only, in ASCII, from the visible text AND the embedded JSON."""
+    """Every digit run on the page (phone-looking), digits only, in ASCII, from the visible text AND the embedded JSON. A run that is
+    two numbers written next to each other is also split at wide gaps."""
     runs: set[str] = set()
     for m in _PHONE_RUN.finditer(_html.unescape(raw or "")):
-        digits = re.sub(r"\D", "", m.group(0).translate(_DIGITS))
-        if 8 <= len(digits) <= 14:
-            runs.add(digits)
+        pieces = [m.group(0)] + [p for p in re.split(r"\s{2,}|[،,/]", m.group(0)) if p.strip()]
+        for piece in pieces:
+            digits = re.sub(r"\D", "", piece.translate(_DIGITS))
+            if 8 <= len(digits) <= 30:
+                runs.add(digits)
     return runs
 
 
@@ -80,12 +83,46 @@ def _claimed_digits(phone: Optional[str]) -> str:
     return digits.lstrip("0")
 
 
+def _national(digits: str) -> str:
+    """The number without the country code and the trunk 0: 0098 21 2279 2694 / +98 21... / 021... all -> 2122792694."""
+    d = re.sub(r"\D", "", digits or "")
+    if d.startswith("0098"):
+        d = d[4:]
+    elif d.startswith("98") and len(d) >= 11:
+        d = d[2:]
+    return d.lstrip("0")
+
+
 def phone_on_page(phone: Optional[str], runs: set[str]) -> bool:
-    d = _claimed_digits(phone)
-    if len(d) < 8:
+    """The COMPLETE number (area code included) is on the page - never a mere suffix match (Codex P2, PR 190). A digit run that is
+    two numbers written next to each other is tolerated: the claimed number may be its first or its last part."""
+    want = _national(_claimed_digits(phone))
+    if len(want) < 8:
         return False
-    tail = d[-8:]
-    return any(run.endswith(tail) or tail in run for run in runs)
+    for run in runs:
+        got = _national(run)
+        if got == want:
+            return True
+        if len(got) > len(want) and (got.startswith(want) or got.endswith(want)):
+            rest = got[len(want):] if got.startswith(want) else got[: len(got) - len(want)]
+            if len(rest) >= 8:
+                return True
+    return False
+
+
+_NEGATION_AFTER = re.compile(r"^.{0,24}?(?:نیست|ندارد|ندارند|نمی ?باشد|نمیباشد|not|n't|no longer|closed)", re.I)
+_NEGATION_BEFORE = re.compile(r"(?:^|[\s،,.])(?:غیر|نه|not|no|never|without|بدون)\s+(?:\w+\s+){0,2}$|(?:^|[\s،,.])(?:غیر|بدون)\s*$", re.I)
+
+
+def _affirmative_24h(folded_text: str) -> bool:
+    """«شبانه‌روزی» counts only when it is stated, not negated: «مطب شبانه‌روزی نیست» is the opposite (Codex P2, PR 190)."""
+    for m in _OPEN_24H.finditer(folded_text):
+        after = folded_text[m.end(): m.end() + 40]
+        before = folded_text[max(0, m.start() - 14): m.start()]
+        if _NEGATION_AFTER.search(after) or _NEGATION_BEFORE.search(before):
+            continue
+        return True
+    return False
 
 
 def published_phone(*values: Any) -> Optional[str]:
@@ -199,6 +236,22 @@ def _p24(raw: bytes) -> dict[str, Any]:
         return {}
 
 
+_RATING_CUE = re.compile(r"امتیاز|رضایت|نمره|ستاره|rating|rated|stars?|score|of 5|out of 5|از 5|/ ?5", re.I)
+_COUNT_CUE = re.compile(r"نظر|رای|رأی|بازخورد|بیمار|دیدگاه|review|rating|vote|feedback|patients?", re.I)
+
+
+def _rating_evidence(text: str, avg: float, count: str) -> bool:
+    """The score and the review count must each stand NEXT TO rating words on the page; unrelated digits («512 Main St») are not
+    evidence (Codex P2, PR 190)."""
+    t = _fold(text).replace("\u066b", ".").replace(",", ".")
+    avg_s = f"{avg:g}"
+    score_ok = any(_RATING_CUE.search(t[max(0, m.start() - 40): m.end() + 40])
+                   for m in re.finditer(r"(?<![\d.])" + re.escape(avg_s) + r"(?![\d])", t))
+    count_ok = any(_COUNT_CUE.search(t[max(0, m.start() - 40): m.end() + 40])
+                   for m in re.finditer(r"(?<![\d.])" + re.escape(count) + r"(?![\d])", t))
+    return score_ok and count_ok
+
+
 def _num(value: Any) -> Optional[float]:
     try:
         v = float(str(value).translate(_DIGITS).replace(",", "."))
@@ -252,13 +305,11 @@ def verify_result(item: dict[str, Any], *, fetch: Optional[Callable[[str], "safe
         else:
             claimed_avg = _num(item.get("rating"))
             claimed_cnt = str(item.get("rating_count") or "").translate(_DIGITS).strip()
-            norm_text = text.translate(_DIGITS)
-            if claimed_avg and claimed_cnt.isdigit() and str(claimed_avg).rstrip("0").rstrip(".") in norm_text.replace("٫", ".") \
-                    and claimed_cnt in norm_text:
+            if claimed_avg and claimed_cnt.isdigit() and _rating_evidence(text, claimed_avg, claimed_cnt):
                 r_avg, r_cnt = claimed_avg, int(claimed_cnt)
         if r_avg is None:
             r_cnt = None
-        open24 = bool(_OPEN_24H.search(_fold(text)))
+        open24 = _affirmative_24h(_fold(text))
         return Verification(read=True, open_24h=open24, phone=phone, phone_status=status, address=address, address_verified=addr_ok,
                             visit_days=days, next_turn=next_turn, rating_avg=r_avg, rating_count=r_cnt, checked_on=today_s)
     except Exception as exc:  # noqa: BLE001

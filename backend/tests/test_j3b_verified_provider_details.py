@@ -48,7 +48,7 @@ def _fetch_with(monkeypatch, pages, resolver=None):
     """pages: url -> (status, headers, body, ctype); robots.txt answers 404 unless listed."""
     calls = []
 
-    def fake_once(host, ip, path, timeout):
+    def fake_once(host, ip, path, timeout, deadline=None):
         calls.append((host, ip, path))
         key = f"https://{host}{path}"
         if path == "/robots.txt" and key not in pages:
@@ -274,3 +274,99 @@ def test_an_unchecked_phone_is_labelled_not_verified_in_every_language():
 def test_the_reply_without_the_new_facts_is_unchanged():
     msg = cn._serialize_hits_message([_identity()], "fa")
     assert "چرا این گزینه" not in msg and "روزهای ویزیت" not in msg and "تأییدنشده): " not in msg
+
+
+# ---------------------------------------------------------------- Codex review of PR 190
+def test_p2_a_different_area_code_is_never_verified_by_a_suffix_match():
+    runs = pf.page_digit_runs("تلفن: 02122792694")
+    assert pf.phone_on_page("02122792694", runs)
+    assert not pf.phone_on_page("03122792694", runs)  # same last 8 digits, another city
+    assert not pf.phone_on_page("02522792694", runs)
+
+
+@pytest.mark.parametrize("claimed", ["02122792694", "+982122792694", "00982122792694", "2122792694", "021 2279 2694"])
+def test_p2_every_equivalent_format_of_the_full_number_verifies(claimed):
+    assert pf.phone_on_page(claimed, pf.page_digit_runs("تماس: ۰۲۱-۲۲۷۹۲۶۹۴"))
+
+
+def test_p2_two_numbers_written_next_to_each_other_do_not_break_verification():
+    runs = pf.page_digit_runs("تلفن: 02122792694  02133445566")
+    assert pf.phone_on_page("02122792694", runs) and pf.phone_on_page("02133445566", runs)
+    assert not pf.phone_on_page("02144445555", runs)
+
+
+def test_p2_a_mobile_number_is_compared_in_full_too():
+    runs = pf.page_digit_runs("موبایل: 0912 345 6789")
+    assert pf.phone_on_page("09123456789", runs) and not pf.phone_on_page("09223456789", runs)
+
+
+def test_p2_unrelated_digits_are_not_a_rating():
+    html = "<html>Telephone: 02122792694. Address: 512 Main St. Open 5 days.</html>"
+    v = pf.verify_result(_item(rating="5", rating_count="12", address="512 Main St"), fetch=_ok(html))
+    assert v.rating_avg is None and v.rating_count is None
+
+
+def test_p2_a_rating_next_to_rating_words_is_evidence():
+    v = pf.verify_result(_item(rating="4.5", rating_count="120"), fetch=_ok(PAGE))
+    assert v.rating_avg == 4.5 and v.rating_count == 120
+
+
+@pytest.mark.parametrize("text", ["مطب شبانه‌روزی نیست", "این مرکز شبانه‌روزی ندارد", "not open 24 hours", "غیر شبانه‌روزی"])
+def test_p2_a_negated_24h_statement_is_not_24h(text):
+    assert not pf._affirmative_24h(pf._fold(text))
+
+
+@pytest.mark.parametrize("text", ["این داروخانه شبانه‌روزی است", "open 24 hours", "خدمات ۲۴ ساعته", "درمانگاه شبانه‌روزی"])
+def test_p2_an_affirmative_24h_statement_is_24h(text):
+    assert pf._affirmative_24h(pf._fold(text))
+
+
+def test_p2_the_test_fixture_page_that_says_not_24h_does_not_boost_24h():
+    v = pf.verify_result(_item(), fetch=_ok(PAGE))
+    assert v.open_24h is False
+
+
+def test_p2_a_slow_body_is_cut_by_the_absolute_deadline(monkeypatch):
+    """A server trickling bytes must not hold the reply: the whole read has ONE deadline."""
+    import time
+
+    class Resp:
+        status = 200
+
+        def getheaders(self):
+            return [("Content-Type", "text/html")]
+
+        def read(self, n):
+            time.sleep(0.05)
+            return b"x" * 10
+
+    class Conn:
+        def __init__(self, *a, **k): pass
+        def request(self, *a, **k): pass
+        def getresponse(self): return Resp()
+        def close(self): pass
+
+    monkeypatch.setattr(sf, "_PinnedHTTPS", Conn)
+    start = time.time()
+    status, _h, body, ctype = sf._get_once("a.example.ir", "93.184.216.34", "/", 5.0, deadline=time.time() + 0.2)
+    assert ctype == "timeout" and body == b"" and time.time() - start < 1.5
+
+
+def test_p2_the_robots_request_shares_the_deadline(monkeypatch):
+    seen = []
+
+    def fake_once(host, ip, path, timeout, deadline=None):
+        seen.append((path, deadline))
+        return (404, {}, b"", "text/plain") if path == "/robots.txt" else (200, {}, b"ok", "text/html")
+
+    monkeypatch.setattr(sf, "_get_once", fake_once)
+    sf._robots_cache.clear()
+    out = sf.fetch_page("https://a.example.ir/p", resolver=_res("93.184.216.34"))
+    assert out.ok and all(d is not None for _p, d in seen)
+
+
+def test_p2_a_timeout_during_the_body_is_a_clean_failure(monkeypatch):
+    monkeypatch.setattr(sf, "_get_once", lambda *a, **k: (200, {}, b"", "timeout") if a[2] != "/robots.txt" else (404, {}, b"", "text/plain"))
+    sf._robots_cache.clear()
+    out = sf.fetch_page("https://a.example.ir/p", resolver=_res("93.184.216.34"))
+    assert not out.ok and out.reason == "timeout"

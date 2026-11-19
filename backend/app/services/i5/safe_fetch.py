@@ -105,8 +105,10 @@ class _PinnedHTTPS(http.client.HTTPSConnection):
         self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
 
 
-def _get_once(host: str, ip: str, path: str, timeout: float) -> tuple[int, dict, bytes, str]:
-    conn = _PinnedHTTPS(host, ip, timeout)
+def _get_once(host: str, ip: str, path: str, timeout: float, deadline: Optional[float] = None) -> tuple[int, dict, bytes, str]:
+    """One GET. ``deadline`` (absolute time) bounds connection, headers AND the whole body read (Codex P2, PR 190)."""
+    deadline = deadline if deadline is not None else time.time() + timeout
+    conn = _PinnedHTTPS(host, ip, max(0.5, min(timeout, deadline - time.time())))
     try:
         conn.request("GET", path or "/", headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.5",
                                                    "Accept-Encoding": "identity", "Connection": "close"})
@@ -120,10 +122,19 @@ def _get_once(host: str, ip: str, path: str, timeout: float) -> tuple[int, dict,
         length = headers.get("content-length")
         if length and length.isdigit() and int(length) > MAX_BYTES:
             return resp.status, headers, b"", "too_large"
-        body = resp.read(MAX_BYTES + 1)
-        if len(body) > MAX_BYTES:
-            return resp.status, headers, b"", "too_large"
-        return resp.status, headers, body, ctype
+        chunks: list[bytes] = []
+        size = 0
+        while True:
+            if time.time() > deadline:
+                return resp.status, headers, b"", "timeout"
+            chunk = resp.read(65536)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > MAX_BYTES:
+                return resp.status, headers, b"", "too_large"
+            chunks.append(chunk)
+        return resp.status, headers, b"".join(chunks), ctype
     finally:
         try:
             conn.close()
@@ -134,13 +145,14 @@ def _get_once(host: str, ip: str, path: str, timeout: float) -> tuple[int, dict,
 _robots_cache: dict[str, tuple[float, Optional[urllib.robotparser.RobotFileParser]]] = {}
 
 
-def _allowed_by_robots(host: str, ip: str, url: str, timeout: float) -> bool:
+def _allowed_by_robots(host: str, ip: str, url: str, timeout: float, deadline: Optional[float] = None) -> bool:
     now = time.time()
     hit = _robots_cache.get(host)
     if hit is None or now - hit[0] > 6 * 3600:
         parser: Optional[urllib.robotparser.RobotFileParser] = None
         try:
-            status, _h, body, _c = _get_once(host, ip, "/robots.txt", min(timeout, 4.0))
+            soon = time.time() + min(timeout, 4.0)
+            status, _h, body, _c = _get_once(host, ip, "/robots.txt", min(timeout, 4.0), min(soon, deadline) if deadline else soon)
             if status == 200 and body:
                 parser = urllib.robotparser.RobotFileParser()
                 parser.parse(body.decode("utf-8", "replace").splitlines())
@@ -168,17 +180,20 @@ def fetch_page(url: str, *, resolver: Resolver = _default_resolver) -> FetchResu
                 return FetchResult(False, current, reason="timeout")
             parts = urlparse(current)
             path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-            if not _allowed_by_robots(host, ip, current, remaining):
+            if not _allowed_by_robots(host, ip, current, remaining, deadline):
                 return FetchResult(False, current, reason="robots_disallow")
-            status, headers, body, ctype = _get_once(host, ip, path, max(remaining, 1.0))
+            remaining = deadline - time.time()
+            if remaining <= 0.5:
+                return FetchResult(False, current, reason="timeout")
+            status, headers, body, ctype = _get_once(host, ip, path, remaining, deadline)
             if status in (301, 302, 303, 307, 308):
                 location = headers.get("location")
                 if not location:
                     return FetchResult(False, current, status, reason="redirect_without_location")
                 current = urljoin(current, location)
                 continue
-            if ctype == "too_large":
-                return FetchResult(False, current, status, reason="too_large")
+            if ctype in ("too_large", "timeout"):
+                return FetchResult(False, current, status, reason=ctype)
             if ctype and ctype not in _ALLOWED_TYPES:
                 return FetchResult(False, current, status, reason="content_type")
             if status != 200:
