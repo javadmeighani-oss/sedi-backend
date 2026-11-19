@@ -229,7 +229,7 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
         if _live_match(rx, t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
                                 reasons={"اورژانس": key})
-    soon_now = any(rx.search(t) for rx in _SOON)
+    soon_now = any(_live_match(rx, t) for rx in _SOON)
     if not (_COMPLAINT_CUE.search(t) or _AR_CUE.search(t) or _UNAMBIGUOUS_SYMPTOM.search(t) or soon_now):
         return TriageResult()
     areas: list[str] = []
@@ -246,7 +246,7 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
         if area in areas and rx.search(t) and extra not in specialties:
             specialties.append(extra)
             reasons[extra] = area
-    soon = any(rx.search(t) for rx in _SOON) or "chest" in areas  # chest pain is never «routine»
+    soon = any(_live_match(rx, t) for rx in _SOON) or "chest" in areas  # chest pain is never «routine»
     if soon and "چشم" in specialties:
         specialties.remove("چشم")
         specialties.insert(0, "چشم")

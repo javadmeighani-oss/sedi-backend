@@ -57,3 +57,13 @@ def test_a_denied_or_resolved_complaint_gets_no_hint(text, lang):
                                         ("no cough, however I have a headache", "en")])
 def test_an_independent_complaint_next_to_a_denial_still_gets_a_hint(text, lang):
     assert llm_hint(triage(text, lang)) is not None
+
+
+@pytest.mark.parametrize("text, lang", [("I don't have a high fever", "en"), ("تب بالا ندارم", "fa"), ("what does a high fever mean?", "en")])
+def test_a_denied_or_informational_fever_is_not_urgent(text, lang):
+    assert triage(text, lang).urgency != "soon" and llm_hint(triage(text, lang)) is None
+
+
+@pytest.mark.parametrize("text, lang", [("I have a high fever", "en"), ("تب بالا دارم", "fa"), ("لدي حمى شديدة", "ar")])
+def test_a_real_high_fever_is_still_urgent(text, lang):
+    assert triage(text, lang).urgency == "soon"
