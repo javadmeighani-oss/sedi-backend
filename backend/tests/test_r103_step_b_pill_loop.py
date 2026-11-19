@@ -548,3 +548,19 @@ def test_p2_the_request_timezone_reaches_the_owner_write(monkeypatch, world):
     world.pills = [_pill(name="لووتیروکسین")]
     _start("ساعت ۹ صبح یادم بنداز قرص لووتیروکسین بخورم")
     assert seen == ["Asia/Tehran"]
+
+
+# --- Codex round 6 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def test_p1_a_partly_overlapping_name_never_selects_the_only_pill():
+    only_c = [_pill(name="Vitamin C", pid=1)]
+    assert reg.pick("Vitamin D", only_c) is None and reg.pick("vitamin d please", only_c) is None
+    assert reg.pick("same", only_c)["id"] == 1 and reg.pick("همان", [_pill()])["id"] == 3
+    assert reg.pick("same one", only_c)["id"] == 1 and reg.pick("vitamin c", only_c)["id"] == 1
+
+
+def test_p1_through_the_interview_vitamin_d_does_not_add_a_dose_to_vitamin_c(monkeypatch, world):
+    world.pills = [_pill(name="Vitamin C", pid=1)]
+    ask = sedi_copy.t("medication.chat.q.ask_same", "en", names="“Vitamin C”")
+    rows = _rows(("remind me every day at 9 am to take a pill", ask))
+    reply = _go(monkeypatch, rows, "Vitamin D", "en")
+    assert world.added == [] and world.promoted == [] and mc._stage_of(reply, "en") == "ask_same"

@@ -50,6 +50,7 @@ def pill_title_name(title: str) -> Optional[str]:
     return " ".join(out).strip() or None
 
 
+_AFFIRM = frozenset("همان همون همین بله آره اره درسته همینه اون آن نفس same yes that one it is the نعم هو نفسه هم".split())
 _UNITS = frozenset("mg mcg g ml iu میلی گرم میکروگرم واحد میلیگرم".split())
 
 
@@ -158,10 +159,9 @@ def pick(answer: str, pills: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     exact = [p for p in pills if _split(p["name"])[0] and _split(p["name"])[0] <= toks] if toks else []
     if len(exact) == 1:  # the answer contains ALL identity words of exactly one pill («vitamin d» -> Vitamin D, not Vitamin C)
         return exact[0]
-    named = [p for p in pills if (_name_tokens(p["name"]) - _KIND) & toks] if toks else []
-    if len(named) == 1:
-        return named[0]
-    if len(pills) == 1 and (named or _SAME.search(text)):
+    # a plain «same / همان» (no other name word) with exactly one pill. A partly overlapping name («Vitamin D» for «Vitamin C») is
+    # NEVER a match (Codex P1, PR 193).
+    if len(pills) == 1 and not (toks - _AFFIRM) and _SAME.search(text):
         return pills[0]
     return None
 
