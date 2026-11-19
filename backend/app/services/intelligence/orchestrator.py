@@ -1550,7 +1550,7 @@ class IntelligenceOrchestrator:
                         )
                         or message
                     )
-                _resched_ctx = " ".join(str(getattr(t, "sedi_response", "") or "") for t in _turns_ctx[:2])
+                _resched_ctx = _resched.context_of(_turns_ctx, _resched_msg != message)
                 _resched_reply = _resched.handle(
                     self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx
                 )

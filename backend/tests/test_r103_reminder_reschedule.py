@@ -180,3 +180,46 @@ def test_the_orchestrator_answers_the_pilot_request_with_a_real_change(monkeypat
     out = orch.process(authenticated_user_id=42, message="میخواهم زمانشو تغییر بدم به ساعت ۴ عصر", language="fa")
     assert owners and owners[0][1].hour == 16 and called["gen"] is False
     assert "R103_REMINDER_RESCHEDULE" in out.reason_codes and "16:00" in out.message
+
+
+# --- Codex review of PR 192 -------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "lang,message",
+    [
+        ("en", "don't change my reminder to 4 pm"), ("en", "please do not move the reminder to 4 pm"), ("en", "never change it to 4 pm"),
+        ("fa", "زمانش را ساعت ۴ عصر تغییر نده"), ("fa", "نمی‌خوام ساعت یادآوری رو به ۴ عصر تغییر بدم"),
+        ("ar", "لا تغيّر التذكير إلى الساعة 4 مساء"),
+    ],
+)
+def test_p1_a_negated_instruction_never_changes_a_reminder(monkeypatch, owners, lang, message):
+    _with(monkeypatch, [_event()])
+    assert rr.is_change_request(message) is False
+    assert _go(message, lang, context=PILL_CTX) is None and owners == []
+
+
+def test_p1_each_time_is_resolved_with_its_own_period(monkeypatch, owners):
+    times = rr._times_in(rr._norm("ساعت یادآوری را از ساعت ۴ عصر به ساعت ۹ صبح تغییر بده"))
+    assert [(h, m) for h, m, _s, _w in times] == [(16, 0), (9, 0)]
+    en = rr._times_in(rr._norm("change the reminder from 4 pm to 9 am"))
+    assert [(h, m) for h, m, _s, _w in en] == [(16, 0), (9, 0)]
+    _with(monkeypatch, [_event(hh=16), _event(eid=20, title="جلسه‌ی هفتگی", hh=8)])
+    reply = _go("ساعت یادآوری را از ساعت ۴ عصر به ساعت ۹ صبح تغییر بده")
+    assert owners and owners[0][0] == 15 and owners[0][1].hour == 9 and "16:00" not in reply.split("به ساعت")[-1]
+    assert "09:00" in reply
+
+
+def test_p1_an_ambiguous_new_time_is_judged_by_its_own_words_only(monkeypatch, owners):
+    _with(monkeypatch, [_event()])
+    ask = _go("ساعت یادآوری را از ساعت ۲ عصر به ساعت ۵ تغییر بده")  # «عصر» belongs to the OLD time; 5 is still ambiguous
+    assert ask == sedi_copy.t("reminder.reschedule.ask_period", "fa", hour=5) and owners == []
+
+
+def test_p2_the_clarification_options_are_not_part_of_the_selection_context(monkeypatch, owners):
+    cands = [_event(eid=1, title="Dentist", hh=9), _event(eid=2, title="Workout", hh=18)]
+    _with(monkeypatch, cands)
+    ask = _go("change the reminder time to 5 pm", "en")
+    assert ask.startswith("Which reminder do you mean?") and "Dentist" in ask and "Workout" in ask
+    turns = [SimpleNamespace(user_message="change the reminder time to 5 pm", sedi_response=ask)]
+    assert rr.context_of(turns, answered_question=True) == ""  # the question (all options) is excluded
+    combined = rr.pending_prior_request(ask, "change the reminder time to 5 pm", "Dentist", "en")
+    assert "17:00" in _go(combined, "en", context=rr.context_of(turns, True)) and owners[0][0] == 1

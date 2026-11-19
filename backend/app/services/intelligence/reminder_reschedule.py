@@ -32,6 +32,15 @@ _CHANGE = re.compile(
     r"(?:غ[يی]ّ?ر|بدّل|بدل|انقل|عدّل|عدل)\w*\s+(?:ال)?(?:موعد|وقت|ساعة|تذك[يی]ر)",
     re.I,
 )
+# Codex P1 (PR 192): «don't change my reminder to 4 pm» / «تغییرش نده» is the opposite of a request.
+_NEGATED = re.compile(
+    r"(?:نه\s+|لازم\s+نیست\s+|نمی\s*?خوام\s+|نمیخوام\s+)?(?:تغییر|عوض|جابه?\s*جا|منتقل)\w*\s+(?:نده|نکن|نکنید|ندین|نشه|نشود)|"
+    r"(?:نمی\s*?خوام|نمیخوام|نمی\s*?خواهم|لازم\s+نیست)\b.{0,40}(?:تغییر|عوض|جابه?\s*جا)|"
+    r"\b(?:don'?t|do\s+not|never|no\s+need\s+to|please\s+don'?t|stop|without)\b.{0,25}\b(?:change|move|shift|reschedule|postpone)\b|"
+    r"\bno\s+need\s+to\s+(?:change|move)\b|"
+    r"لا\s+(?:تغ[يی]ّ?ر|تبدّ?ل|تنقل|تعدّ?ل)|ما\s+(?:بدي|أريد|اريد)\s+(?:أغ[يی]ّ?ر|تغ[يی]ير)",
+    re.I,
+)
 _STOP = frozenset(
     "خوردن یادآوری یادآور هر روز ساعت را رو به برای و من تو با از در این آن همین بعد قبل صبح عصر شب ظهر "
     "the a an to of my me at every day take remind reminder time for and "
@@ -56,27 +65,33 @@ def _norm(text: str) -> str:
 def is_change_request(message: str) -> bool:
     """An explicit request to change the time of something that already exists (needs a change verb)."""
     text = _norm(message)
-    return bool(text and _CHANGE.search(text))
+    return bool(text and _CHANGE.search(text) and not _NEGATED.search(text))
 
 
-def _times_in(text: str) -> list[tuple[int, int, int]]:
-    """Every clock time named in the text, in order: (hour24, minute, day_shift). «from 2 to 4 pm» -> two items."""
-    found: list[tuple[int, int, tuple[int, int, int]]] = []
+def _times_in(text: str) -> list[tuple[int, int, int, str]]:
+    """Every clock time named in the text, in order: (hour24, minute, day_shift, own_words). «from 4 pm to 9 am» -> two items,
+    each resolved with ITS OWN period words (the text between the previous time and the next one), never the whole sentence
+    (Codex P1, PR 192)."""
+    spans: list[tuple[int, int, Any, Any]] = []
     for rx in (_rer._TIME_AFTER_WORD, _rer._TIME_H_AND_MIN, _rer._TIME_COLON, _rer._TIME_SUFFIX):
         for m in rx.finditer(text):
-            d = m.groupdict()
-            minute = int(d.get("min") or d.get("min2") or (30 if d.get("half") else 0) or 0)
-            resolved = _rer._apply_period(int(m.group("h")), minute, text, d.get("ap") or "")
-            if resolved is not None:
-                found.append((m.start(), m.end(), resolved))
-    ordered: list[tuple[int, int, int]] = []
-    taken: list[tuple[int, int]] = []
-    for start, end, value in sorted(found):
-        if any(start < b and a < end for a, b in taken):  # the same spoken time matched by two patterns counts once
+            spans.append((m.start(), m.end(), m, rx))
+    kept: list[tuple[int, int, Any]] = []
+    for start, end, m, _rx in sorted(spans, key=lambda x: (x[0], -(x[1] - x[0]))):
+        if any(start < b and a < end for a, b, _m in kept):  # the same spoken time matched by two patterns counts once
             continue
-        taken.append((start, end))
-        ordered.append(value)
-    return ordered
+        kept.append((start, end, m))
+    out: list[tuple[int, int, int, str]] = []
+    for i, (start, end, m) in enumerate(kept):
+        lo = start if i else 0  # a period word AFTER a time («۴ عصر») belongs to that time, not to the next one
+        hi = kept[i + 1][0] if i + 1 < len(kept) else len(text)
+        window = text[lo:hi]
+        d = m.groupdict()
+        minute = int(d.get("min") or d.get("min2") or (30 if d.get("half") else 0) or 0)
+        resolved = _rer._apply_period(int(m.group("h")), minute, window, d.get("ap") or "")
+        if resolved is not None:
+            out.append((resolved[0], resolved[1], resolved[2], window))
+    return out
 
 
 def _hhmm(h: int, m: int) -> str:
@@ -195,16 +210,16 @@ def handle(
     try:
         lang = _lang(language)
         text = _norm(message)
-        if not text or not _CHANGE.search(text):
+        if not text or not _CHANGE.search(text) or _NEGATED.search(text):
             return None
         now = now_utc or datetime.now(timezone.utc)
         times = _times_in(text)
         if not times:
             return None  # a change without a new time is left to the normal conversation (it asks)
-        hour12 = _rer.ambiguous_period_hour(text)
+        hour12 = _rer.ambiguous_period_hour(times[-1][3])  # the NEW time's own words decide whether it is ambiguous
         if hour12 is not None:
             return sedi_copy.t("reminder.reschedule.ask_period", lang, hour=hour12)
-        new = times[-1]
+        new = times[-1][:3]
         old_hhmm = _hhmm(times[0][0], times[0][1]) if len(times) >= 2 else None
         cands = _candidates(db, user_id, now)
         if not cands:
@@ -236,6 +251,13 @@ def handle(
     except Exception:  # noqa: BLE001
         logger.exception("[R-103] reminder reschedule skipped")
         return None
+
+
+def context_of(turns: list[Any], answered_question: bool) -> str:
+    """The Sedi replies that give a reminder its context. When the user is ANSWERING one of this flow's questions, the newest
+    reply is that question (with every option listed): it is left out, otherwise all options score alike (Codex P2, PR 192)."""
+    use = turns[1:3] if answered_question else turns[:2]
+    return " ".join(str(getattr(t, "sedi_response", "") or "") for t in use)
 
 
 def pending_prior_request(last_reply: Optional[str], last_user_message: Optional[str], answer: str, language: Optional[str]) -> Optional[str]:
