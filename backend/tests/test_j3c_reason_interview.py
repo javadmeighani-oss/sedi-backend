@@ -155,3 +155,28 @@ def test_p1_uncertainty_never_turns_an_emergency_into_a_general_practitioner_sea
 def test_p2_anatomy_after_in_is_not_a_city(answer, lang):
     done = ci.request_for_answer("find a doctor in Tehran", Q["en"], answer, lang)
     assert done and done.startswith("find a doctor in Tehran") and " in knee" not in done and " in left" not in done
+
+
+# ---- Codex round 3 ---------------------------------------------------------------------------------------------------------
+def test_p2_the_general_practitioner_search_term_is_not_a_substring_of_general_surgery():
+    from backend.app.services.i5 import specialty_lexicon as sl
+
+    assert sl.governed_stem("پزشک عمومی") == "پزشک عمومی" and sl.governed_stem("پزشک عمومی") not in "جراحی عمومی"
+
+
+@pytest.mark.parametrize("answer, spec", [("not skin, my knee hurts", "ارتوپدی"), ("نه پوست، زانوم درد می‌کند", "ارتوپدی"),
+                                          ("no dentist, I have a headache", "مغز و اعصاب")])
+def test_p2_a_rejected_specialty_is_not_chosen(answer, spec):
+    done = ci.request_for_answer("find a doctor in Tehran", Q["en"], answer, "fa" if any("؀" <= c <= "ۿ" for c in answer) else "en")
+    assert done and f"متخصص {spec}" in done
+
+
+@pytest.mark.parametrize("answer", ["many thanks", "any news today?", "company policy", "هر کیلو چند است؟", "thanks a lot"])
+def test_p2_unrelated_replies_are_not_read_as_dont_know(answer):
+    assert ci.request_for_answer(PRIOR, Q["fa"], answer, "fa") is None
+
+
+@pytest.mark.parametrize("answer", ["any doctor", "I don't know", "not sure", "anyone is fine", "mmm, no idea", "هر دکتری", "نمی‌دانم", "عمومی"])
+def test_p2_real_dont_know_phrases_still_work(answer):
+    done = ci.request_for_answer(PRIOR, Q["fa"], answer, "fa")
+    assert done and "پزشک عمومی" in done

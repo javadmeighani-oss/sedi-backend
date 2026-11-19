@@ -24,8 +24,10 @@ ASK_KEY = "care_nav.ask_reason"
 MAX_ANSWER_WORDS = 30
 _NON_LETTERS = re.compile(r"[\W_]+", re.UNICODE)
 _DONT_KNOW = re.compile(
-    r"نمی ?دانم|نمیدونم|نمی ?دونم|نمیدانم|فرقی ?(?:نمی ?کند|نمی ?کنه|نمیکنه|نداره|ندارد)|هر ?کدام|هر ?کی|هر ?دکتری|عمومی|"
-    r"i don.?t know|not sure|no idea|any(?:one| doctor)?|general|لا أعرف|أي طبيب|عام",
+    r"(?<!\S)(?:نمی ?دانم|نمیدانم|نمی ?دونم|نمیدونم)(?!\S)|فرقی ?(?:نمی ?کند|نمی ?کنه|نمیکنه|نداره|ندارد)|"
+    r"(?<!\S)هر ?(?:کدام|کدوم|دکتری|کی)(?!\S)|(?<!\S)عمومی(?!\S)|"
+    r"\bi don.?t know\b|\bnot sure\b|\bno idea\b|\bany (?:doctor|one|will do|is fine)\b|\banyone\b|\bwhichever\b|\bgeneral\b|"
+    r"لا أعرف|أي طبيب|(?<!\S)عام(?!\S)",
     re.I,
 )
 _NEVERMIND = re.compile(r"ولش ?کن|بیخیال|نمی ?خواهم|نمیخوام|نمی ?خوام|لازم ?نیست|never ?mind|forget it|cancel|لا أريد|لا حاجة", re.I)
@@ -58,13 +60,22 @@ def is_reason_question(sedi_reply: Optional[str]) -> bool:
         return False
 
 
+_NEGATED = re.compile(
+    r"(?:\b(?:not|no|never|neither|nor|except)\b|(?<!\S)(?:نه|غیر از|به جز|بجز)(?!\S))\s+(?:\w+\s*){1,2}", re.I)
+
+
+def _strip_negated(text: str) -> str:
+    """«not skin, my knee hurts»: the specialty the person REJECTS is not the specialty they ask for (Codex P2)."""
+    return _NEGATED.sub(" ", text)
+
+
 def _specialty_for_answer(answer: str, language: str) -> Optional[str]:
     from backend.app.services.care_navigation import symptom_triage
 
     result = symptom_triage.triage(answer, language)
     if result.red_flag:
         return None  # an emergency (even one that names a body part) stays on the normal safety path, never a routine search (Codex P1)
-    named = sl.find_specialty(answer)
+    named = sl.find_specialty(_strip_negated(answer))
     if named:
         return named
     for spec in result.specialties:

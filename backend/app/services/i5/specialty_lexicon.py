@@ -72,7 +72,7 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("internist", "اخصائی باطنیه")),
     Specialty("انکولوژی", "سرطان", ("سرطان", "آنکولوژی", "انکولوژی", "oncology", "cancer", "الاورام", "اورام"),
               ("oncologist", "انکولوژیست", "آنکولوژیست")),
-    Specialty("پزشک عمومی", "عمومی", ("پزشک عمومی", "دکتر عمومی", "general practitioner", "general physician", "family doctor", "طبیب عمومی", "طبیب عام", "الطبیب العام"),
+    Specialty("پزشک عمومی", "پزشک عمومی", ("پزشک عمومی", "دکتر عمومی", "general practitioner", "general physician", "family doctor", "طبیب عمومی", "طبیب عام", "الطبیب العام"),
               ("general practitioner", "gp", "طبیب عمومی", "طبیب عام")),
     Specialty("جراحی عمومی", "جراحی", ("جراحی عمومی", "جراح عمومی", "جراحی", "general surgery", "surgery", "الجراحه العامه", "جراحه عامه"),
               ("surgeon", "جراح", "جراح عمومی")),
