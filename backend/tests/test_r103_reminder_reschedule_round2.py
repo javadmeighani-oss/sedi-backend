@@ -247,3 +247,25 @@ def test_p1_an_explicit_target_still_counts_as_a_reschedule(monkeypatch, owners,
     assert rr.is_change_request(message) is True
     assert _go(monkeypatch, [_event(title="Supplement", hh=9, recurring=True)], message, lang)
     assert owners and owners[0][1].hour == 16
+
+
+# --- round 7: «from 9 am to 4» - the bare destination is ambiguous, never replaced by the source ------------------------------------
+@pytest.mark.parametrize(
+    "lang,message,hour",
+    [
+        ("en", "change the reminder from 9 am to 4", 4),
+        ("fa", "ساعت یادآوری را از ساعت ۹ صبح به ۴ تغییر بده", 4),
+    ],
+)
+def test_p2_a_bare_destination_after_from_asks_for_the_period(monkeypatch, owners, lang, message, hour):
+    reply = _go(monkeypatch, [_event(title="Supplement", hh=9, recurring=True)], message, lang)
+    assert reply == sedi_copy.t("reminder.reschedule.ask_period", lang, hour=hour) and owners == []
+
+
+def test_p2_the_bare_destination_with_its_period_answer_finishes(monkeypatch, owners):
+    cands = [_event(title="Supplement", hh=9, recurring=True)]
+    ask = _go(monkeypatch, cands, "change the reminder from 9 am to 4")
+    turn = SimpleNamespace(user_message="change the reminder from 9 am to 4", sedi_response=ask)
+    combined = rr.pending_request([turn], "pm", "en")
+    reply = _go(monkeypatch, cands, combined)
+    assert owners and owners[0][1].hour == 16 and "16:00" in reply

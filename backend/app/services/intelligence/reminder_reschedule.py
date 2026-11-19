@@ -113,6 +113,13 @@ def _times_in(text: str) -> list[tuple[int, int, int, str, int]]:
         resolved = _rer._apply_period(int(m.group("h")), minute, window, d.get("ap") or "")
         if resolved is not None:
             out.append((resolved[0], resolved[1], resolved[2], window, start))
+    # «from 9 am to 4»: the bare destination has no time word or period, so no pattern recognised it. It is still the destination
+    # and is AMBIGUOUS (morning or evening?), never silently replaced by the source time (Codex P2, PR 192).
+    if len(out) == 1 and kept and _FROM.search(text[: kept[0][0]]):
+        bare = re.search(r"(?:\bto\b|\buntil\b|\btill\b|به|إلى|الى)\s*(?:ساعت\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?(?!\d)", text[kept[0][1]:], re.I)
+        if bare and 0 <= int(bare.group(1)) <= 23:
+            h = int(bare.group(1))
+            out.append((h, int(bare.group(2) or 0), 0, f"at {h}", kept[0][1] + bare.start()))
     return out
 
 
