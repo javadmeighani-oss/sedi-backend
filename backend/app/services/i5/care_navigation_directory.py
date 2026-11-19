@@ -93,6 +93,12 @@ class VerifiedDirectoryIdentity:
     satisfaction_percent: Optional[int] = None
     source_url: Optional[str] = None  # set only for transient web-search results
     web_trusted: Optional[bool] = None
+    # J3-b (D-407): facts confirmed against the result's own page
+    phone_status: Optional[str] = None  # verified | unchecked (page unreadable) | None
+    visit_days: tuple = ()
+    next_turn: Optional[str] = None
+    checked_on: Optional[str] = None
+    why: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -524,6 +530,8 @@ def _serialize_hits_message(
     with_sources: bool = False,
 ) -> str:
     """Sedi-voice reply: no ids, no links, no source tags unless the user asked."""
+    from backend.app import sedi_copy
+
     lang = (language or "en").lower()
     k = _lk(lang)
     lines = [{
@@ -537,12 +545,27 @@ def _serialize_hits_message(
         line = "• " + head + (f"، {loc}" if loc else "")
         if h.address:
             line += {"fa": f"؛ آدرس: {h.address}", "ar": f"؛ العنوان: {h.address}", "en": f"; address: {h.address}"}[k]
-        if h.phone:
+        sep = "؛ " if k != "en" else "; "
+        if h.phone and h.phone_status == "unchecked":
+            line += sep + sedi_copy.t("care_nav.hit.phone_unverified", k, phone=h.phone)
+        elif h.phone:
             line += {"fa": f"؛ تلفن: {h.phone}", "ar": f"؛ الهاتف: {h.phone}", "en": f"; phone: {h.phone}"}[k]
+        if h.visit_days:
+            line += sep + sedi_copy.t("care_nav.hit.days", k, days=("، " if k != "en" else ", ").join(h.visit_days))
+        if h.next_turn:
+            line += sep + sedi_copy.t("care_nav.hit.next_turn", k, when=h.next_turn)
+        if h.source_url and h.rating_avg:  # web rows: the page's own rating (governed rows use the feedback phrase below)
+            line += sep + sedi_copy.t("care_nav.hit.rating", k, avg=f"{float(h.rating_avg):g}", count=h.rating_count or 0)
         if with_sources:
             line += _feedback_phrase(h, lang)
         if h.source_url:
             line += {"fa": f"؛ منبع: {h.source_url}", "ar": f"؛ المصدر: {h.source_url}", "en": f"; source: {h.source_url}"}[k]
+            if h.checked_on:
+                line += sep + sedi_copy.t("care_nav.hit.checked", k, date=h.checked_on)
+        if h.why:
+            reasons = ("، " if k != "en" else ", ").join(sedi_copy.t(f"care_nav.why.{w}", k) for w in h.why if sedi_copy.has(f"care_nav.why.{w}"))
+            if reasons:
+                line += "\n   " + sedi_copy.t("care_nav.hit.why", k, reasons=reasons)
         lines.append(line)
     if any(h.source_url and not h.web_trusted for h in hits):
         lines.append({
@@ -683,6 +706,13 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
             address=r.get("address"),
             source_url=r["source_url"],
             web_trusted=bool(r.get("trusted")),
+            rating_avg=r.get("rating_avg"),
+            rating_count=r.get("rating_count"),
+            phone_status=r.get("phone_status"),
+            visit_days=tuple(r.get("visit_days") or ()),
+            next_turn=r.get("next_turn"),
+            checked_on=r.get("checked_on"),
+            why=tuple(r.get("why") or ()),
         )
         for r in results
     )

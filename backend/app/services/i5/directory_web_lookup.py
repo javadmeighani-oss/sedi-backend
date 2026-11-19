@@ -13,13 +13,15 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import threading
 import time
 from datetime import date, datetime, timedelta
 from typing import Any, Optional, Sequence
 from urllib.parse import urlparse
 
-from backend.app.services.i5.iran_directory_p24 import clean_landline
+from backend.app.services.i5 import page_facts as _page_facts
+from backend.app.services.i5.iran_directory_p24 import clean_landline  # noqa: F401  (kept for importers)
 from backend.app.services.i5.iran_places import mentions as _mentions
 from backend.app.services.i5.iran_places import normalize as _norm_place
 
@@ -129,7 +131,7 @@ _SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["name", "specialty", "city", "address", "phone", "source_url"],
+                "required": ["name", "specialty", "city", "address", "phone", "source_url", "visit_days", "rating", "rating_count"],
                 "properties": {
                     "name": {"type": "string"},
                     "specialty": {"type": "string"},
@@ -137,6 +139,9 @@ _SCHEMA = {
                     "address": {"type": "string"},
                     "phone": {"type": "string"},
                     "source_url": {"type": "string"},
+                    "visit_days": {"type": "array", "items": {"type": "string"}},
+                    "rating": {"type": "string"},
+                    "rating_count": {"type": "string"},
                 },
             },
         }
@@ -147,8 +152,10 @@ _SCHEMA = {
 def _instructions(country: str) -> str:
     return (
         "Search the web and return real, currently listed healthcare providers matching the query. "
-        "Copy name, specialty, city, address and landline phone exactly as shown on the source page; "
-        "use an empty string when a field is not shown. source_url must be the exact page the data came from. "
+        "Copy name, specialty, city, address and phone number exactly as the source page publishes them; "
+        "visit_days = the weekdays the page says the doctor visits (empty list when not shown); rating = the average score shown "
+        "(e.g. 4.5 of 5) and rating_count = the number of patient reviews, both as plain numbers. "
+        "Use an empty string (or empty list) when a field is not shown. source_url must be the exact page the data came from. "
         "Prefer official sites and well-known medical booking directories"
         + (" in Iran (e.g. paziresh24.com, drdr.ir, doctoreto.com, irimc.org, *.ac.ir hospitals)" if country == "IR" else "")
         + ", but a clinic's or doctor's own website is acceptable when it shows the address or phone. "
@@ -199,18 +206,89 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
             area and _norm_place(area) in _norm_place(item_city)
         ):
             continue
-        phone = clean_landline(it.get("phone"))
+        phone = _page_facts.published_phone(it.get("phone"))
         if not (address or phone):
             continue
         key = name + "|" + (item_city or city or "")
         if key in seen:
             continue
         seen.add(key)
+        days = it.get("visit_days")
         out.append({"name": name, "specialty": " ".join(str(it.get("specialty") or "").split()) or None,
                     "city": item_city or city, "address": address, "phone": phone, "source_url": url,
-                    "trusted": is_trusted_url(url, country)})
+                    "trusted": is_trusted_url(url, country),
+                    "visit_days": [str(d)[:24] for d in days][:7] if isinstance(days, list) else [],
+                    "rating": str(it.get("rating") or "")[:8], "rating_count": str(it.get("rating_count") or "")[:8]})
     out.sort(key=lambda r: not r["trusted"])  # stable: trusted listings first
     return out[:MAX_RESULTS]
+
+
+_VERIFY_WORKERS = 5
+
+
+def _score(r: dict[str, Any], *, specialty: Optional[str], area: Optional[str], qualifiers: Sequence[str]) -> float:
+    score = 3.0 if r.get("trusted") else 0.0
+    score += 1.0 if r.get("page_read") else 0.0
+    score += 2.0 if r.get("phone_status") == "verified" else 0.0
+    score += 1.0 if r.get("address_verified") else 0.0
+    score += 2.0 if "area" in (r.get("why") or ()) else 0.0
+    score += 1.0 if "spec" in (r.get("why") or ()) else 0.0
+    score += 0.5 if r.get("visit_days") or r.get("next_turn") else 0.0
+    avg, cnt = r.get("rating_avg"), r.get("rating_count") or 0
+    if avg:
+        weight = 1.5 if "high_rating" in qualifiers else 0.2
+        score += weight * float(avg) * (1.0 if cnt >= 10 else 0.4)
+    if "24h" in qualifiers:
+        score += 3.0 if r.get("open_24h") else (-2.0 if r.get("page_read") else 0.0)
+    return score
+
+
+def verify_and_rank(results: list[dict[str, Any]], *, specialty: Optional[str] = None, area: Optional[str] = None,
+                    qualifiers: Sequence[str] = (), fetch: Any = None) -> list[dict[str, Any]]:
+    """J3-b: read each result's own page (SSRF-safe, parallel, capped), keep only what the page confirms, rank, and say WHY.
+
+    A page that was read and does NOT contain the claimed number/address is dropped (likely mis-copied or invented); a page that
+    could not be read keeps the claim but marked unchecked (never silently trusted). Never raises."""
+    if not results:
+        return results
+    if os.getenv("SEDI_DIRECTORY_PAGE_VERIFY_DISABLED", "").strip().lower() in {"1", "true", "yes", "on"}:  # kill switch (code default ON)
+        return [dict(r, phone_status="unchecked" if r.get("phone") else None) for r in results]
+    from concurrent.futures import ThreadPoolExecutor
+
+    kwargs = {"fetch": fetch} if fetch is not None else {}
+    try:
+        with ThreadPoolExecutor(max_workers=min(_VERIFY_WORKERS, len(results))) as pool:
+            checks = list(pool.map(lambda r: _page_facts.verify_result(r, **kwargs), results))
+    except Exception:  # noqa: BLE001
+        return results
+    out: list[dict[str, Any]] = []
+    for r, v in zip(results, checks):
+        row = dict(r)
+        if v.read and not v.phone and not v.address_verified:
+            continue  # the page was read and confirms neither the number nor the address: not shown
+        row.update(phone=v.phone, phone_status=v.phone_status, address=v.address, address_verified=v.address_verified,
+                   visit_days=list(v.visit_days), next_turn=v.next_turn, rating_avg=v.rating_avg, rating_count=v.rating_count,
+                   checked_on=v.checked_on, page_read=v.read)
+        row["open_24h"] = bool(v.open_24h)
+        why: list[str] = []
+        place = _norm_place(f"{row.get('city') or ''} {row.get('address') or ''}")
+        if specialty and _norm_place(specialty)[:4] and (
+            _norm_place(specialty)[:4] in _norm_place(str(row.get("specialty") or "")) or _norm_place(specialty) in _norm_place(row["name"])
+        ):
+            why.append("spec")
+        if area and _norm_place(area) in place:
+            why.append("area")
+        if row.get("rating_avg") and (row.get("rating_count") or 0) >= 10 and float(row["rating_avg"]) >= 4.0:
+            why.append("rating")
+        if "24h" in qualifiers and row["open_24h"]:
+            why.append("open24")
+        if row["phone_status"] == "verified" or row["address_verified"]:
+            why.append("page_checked")
+        row["why"] = tuple(why)
+        out.append(row)
+    out.sort(key=lambda r: -_score(r, specialty=specialty, area=area, qualifiers=qualifiers))
+    return out[:MAX_RESULTS]
+
 
 
 def _query_variants(query: str, entity: str, country: str) -> list[str]:
@@ -249,6 +327,7 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
             if raw:
                 break
         results = validate_results(raw, city=city, country=country, area=area)
+        results = verify_and_rank(results, specialty=specialty, area=area, qualifiers=tuple(qualifiers or ()))
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
     with _lock:

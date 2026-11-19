@@ -52,7 +52,7 @@ def test_any_real_site_is_accepted_but_trust_is_marked_and_ranked():
     assert out[2]["source_url"] == "https://dr-heart.ir/contact"
 
 
-def test_validation_drops_search_engines_city_mismatch_mobile_only_and_bad_urls():
+def test_validation_drops_search_engines_city_mismatch_and_bad_urls_but_keeps_a_published_mobile():
     items = [
         _r(source_url="https://www.google.com/search?q=x"),
         _r(name="ب", city="تهران", address="تهران"),
@@ -61,7 +61,8 @@ def test_validation_drops_search_engines_city_mismatch_mobile_only_and_bad_urls(
         _r(name="ه", source_url="https://clinic.example.ir/", phone="071-33334444"),
     ]
     out = wl.validate_results(items, city="شیراز")
-    assert [o["name"] for o in out] == ["ه"] and out[0]["phone"] == "07133334444"
+    # D-393 / J3-b: a number the page itself publishes is shown even when it is a mobile (it is checked against the page later)
+    assert [o["name"] for o in out] == ["ج", "ه"] and out[0]["phone"] == "09121234567" and out[1]["phone"] == "07133334444"
 
 
 def test_flag_off_means_no_call(monkeypatch):
@@ -176,3 +177,10 @@ def test_laboratory_gets_a_third_wording_before_giving_up(monkeypatch):
     monkeypatch.setattr(wl, "_call_web_search", fake)
     out = wl.search_web_providers(entity="LABORATORY", specialty=None, city="شیراز", province=None)
     assert len(out) == 1 and "تشخیص طبی" in calls[2] and len(calls) == 3
+
+
+@pytest.fixture(autouse=True)
+def _no_network_for_page_checks(monkeypatch):
+    """Unit tests never read real pages: the page check sees an unreadable page (claims stay «unchecked»)."""
+    from backend.app.services.i5 import safe_fetch
+    monkeypatch.setattr(safe_fetch, "fetch_page", lambda url, **k: safe_fetch.FetchResult(False, url, reason="test"))
