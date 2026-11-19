@@ -466,6 +466,23 @@ def _maybe_append_structured_governed_knowledge(
         )
 
 
+def _maybe_append_symptom_triage(messages: list, user_message: str, language: str) -> None:
+    """R-094 / J2: deterministic symptom -> body area -> kind of doctor hint (emergencies first). Fail-open; kill switch
+    SEDI_SYMPTOM_TRIAGE_DISABLED (code default ON, no env change)."""
+    try:
+        import os
+
+        if os.getenv("SEDI_SYMPTOM_TRIAGE_DISABLED", "").strip().lower() in {"1", "true", "yes", "on"}:
+            return
+        from backend.app.services.care_navigation import symptom_triage as _st
+
+        hint = _st.llm_hint(_st.triage(user_message, language), language)
+        if hint:
+            messages.append({"role": "system", "content": hint})
+    except Exception:  # noqa: BLE001 - optional enrichment; never break the chat
+        pass
+
+
 def _maybe_append_public_web_facts(messages: list, user_message: str, language: str) -> None:
     """R-074 step 7 (D-208): public facts (price, hours, availability) from the open web. Flag-gated (default OFF), fail-open."""
     try:
@@ -820,6 +837,7 @@ class ConversationBrain:
                     messages.append({"role": "system", "content": user_knowledge_str})
 
             _maybe_append_public_web_facts(messages, user_message, lang)
+            _maybe_append_symptom_triage(messages, user_message, lang)
 
             if not structured_mode:
                 # Stage 17.5: Optional Local RAG context (gated)

@@ -80,7 +80,7 @@ def test_a_a_request_without_a_place_must_ask_for_it_not_guess():
     assert req.city is None and req.area is None  # the answer then is the ONE location question (R-089)
 
 
-# --- B. symptom -> body area -> specialist (J2: the module does not exist yet) -------------------------------------
+# --- B. symptom -> body area -> specialist (J2: services/care_navigation/symptom_triage.py) -------------------------------------
 # (message, expected specialties (any), red_flag)
 B = [
     ("چند وقته سردرد شدیدی دارم که یک طرف سرم می‌زند", ("مغز و اعصاب",), False),
@@ -110,7 +110,6 @@ def _triage(text):
     return mod.triage(text, language="fa")
 
 
-@pytest.mark.xfail(reason="J2: symptom -> body area -> specialist module is not built yet", strict=False)
 @pytest.mark.parametrize("message, specialties, red_flag", B, ids=[b[0][:30] for b in B])
 def test_b_symptom_to_specialist(message, specialties, red_flag):
     out = _triage(message)
