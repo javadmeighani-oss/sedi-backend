@@ -121,6 +121,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
     ],
     "social": [
         "household_context",
+        "home_city",  # J1 (R-094/R-093): where the user lives, stated in conversation - memory only, no profile field
+        "home_area",  # neighbourhood / district («تهران‌پارس», «منطقه 8»)
         "support_network",
         "important_relationships",
         "social_activity_preference",
