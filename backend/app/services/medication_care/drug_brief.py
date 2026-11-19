@@ -162,6 +162,17 @@ _BAD_SUMMARY = re.compile(
     r"جرعة|يومياً|يوميا|ملغ|ملليغرام|غرام|تناول|حبة)",
     re.I,
 )
+# Codex P1 (PR 185): a summary only DESCRIBES what the medicine is used for. Any instruction about starting / stopping / changing
+# a treatment («Stop warfarin before surgery», «Start insulin», «قطع کنید», «أوقف») is rejected here, not left to the model prompt:
+# the caller then falls back to the plain reason question.
+_DIRECTIVE = re.compile(
+    r"(\b(?:stop|start|begin|discontinue|quit|skip|double|increase|decrease|reduce|lower|raise|switch|adjust|change|resume|avoid|"
+    r"should|must|need\s+to|do\s+not|don'?t|never|always|ask\s+your|consult|talk\s+to)\b|"
+    r"قطع\s+کن|متوقف|شروع\s+کن|شروع\s+نمای|ترک\s+کن|کم\s+کن|زیاد\s+کن|افزایش\s+ده|کاهش\s+ده|نباید|باید|هرگز|همیشه|پرهیز|اجتناب|"
+    r"مشورت\s+کن|با\s+پزشک|"
+    r"أوقف|اوقف|توقف\s+عن|ابدأ|ابدا\s|قلل|زد\s|لا\s+تتناول|يجب|ينبغي|تجنب|استشر)",
+    re.I,
+)
 _COUNT_WORD = re.compile(
     r"\b(?:one|two|three|four|five|six|a|an)\s+(?:tablets?|capsules?|pills?)\b|(?:یک|دو|سه|چهار|پنج|شش)\s+(?:قرص|کپسول|عدد)",
     re.I,
@@ -173,7 +184,8 @@ def clean_summary(text: Any) -> Optional[str]:
     """One plain sentence as inert data: no links, no numbers with units, no dose words, bounded."""
     s = " ".join(re.sub(r"[\u0000-\u001f\u007f]", " ", str(text or "")).split())
     if (
-        not 15 <= len(s) <= 260 or _BAD_SUMMARY.search(s) or _COUNT_WORD.search(s) or not _ALLOWED_CHARS.match(s)
+        not 15 <= len(s) <= 260 or _BAD_SUMMARY.search(s) or _DIRECTIVE.search(s) or _COUNT_WORD.search(s)
+        or not _ALLOWED_CHARS.match(s)
         or re.search(r"\d", s.translate(_DIGIT_MAP))  # no digit of any script: dosing never reaches the user
         or any(unicodedata.category(ch) == "Nd" for ch in s)
     ):

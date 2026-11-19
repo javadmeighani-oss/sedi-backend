@@ -328,3 +328,31 @@ def test_a_reason_that_mentions_a_time_without_reminder_words_still_completes_th
 def test_vitamin_letters_are_part_of_the_name(reply, expected):
     """Codex P2 (PR 185): «Vitamin A» must not be cut to «Vitamin» by the article «a»."""
     assert db.name_from_reply(reply) == expected
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        "Stop warfarin before surgery to reduce bleeding risk.",
+        "Start insulin treatment to control your blood sugar.",
+        "You should not skip this medicine before an operation.",
+        "قبل از جراحی این دارو را قطع کنید تا خونریزی کمتر شود",
+        "درمان با این دارو را باید همین امروز شروع کرد و ادامه داد",
+        "أوقف هذا الدواء قبل العملية الجراحية لتقليل النزيف",
+    ],
+)
+def test_treatment_instructions_never_pass_as_a_medicine_summary(summary):
+    """Codex P1 (PR 185): a summary describes use; start/stop/change-treatment advice is rejected locally (fail to the reason question)."""
+    assert db.clean_summary(summary) is None
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        "Levothyroxine is a thyroid hormone replacement medicine used for an underactive thyroid.",
+        "لووتیروکسین یک داروی جایگزین هورمون تیروئید برای کم‌کاری تیروئید است",
+        "الميتفورمين دواء يستخدم في علاج مرض السكري من النوع الثاني",
+    ],
+)
+def test_plain_descriptions_still_pass(summary):
+    assert db.clean_summary(summary) == summary
