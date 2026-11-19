@@ -626,7 +626,7 @@ def test_p2_promotion_cancels_every_older_reminder_of_the_pill_in_one_commit(mon
     q_um.filter.return_value.first.return_value = None
     q_other.filter.return_value.first.return_value = e2
     db = MagicMock()
-    db.query.side_effect = [q_event, q_um, q_other]
+    db.query.side_effect = [q_event, q_other, q_um]  # the other events are read first: the window check precedes any write
     monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
     monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
     added = []
@@ -649,7 +649,7 @@ def test_p2_each_promoted_event_is_converted_from_its_own_timezone(monkeypatch):
     q_um.filter.return_value.first.return_value = None
     q_other.filter.return_value.first.return_value = e2
     db = MagicMock()
-    db.query.side_effect = [q_event, q_um, q_other]
+    db.query.side_effect = [q_event, q_other, q_um]  # the other events are read first: the window check precedes any write
     monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
     monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
     added = []
@@ -713,3 +713,30 @@ def test_p2_promotion_waits_while_an_older_reminders_due_window_is_open(monkeypa
     with pytest.raises(svc.PromotionWindowError):
         svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00")
     assert db.commit.call_count == 0 and ev.status == "scheduled"
+
+
+def test_p1_a_declined_promotion_writes_nothing_and_the_chat_rolls_back(monkeypatch, world):
+    from backend.app.services import user_medication_service as svc
+
+    db = MagicMock()
+    monkeypatch.setattr(reg, 'promote', lambda *a, **k: (_ for _ in ()).throw(svc.PromotionWindowError()))
+    pill = _pill(kind='event', name='قرص مکمل', pid=15)
+    out = mc._same_action(db, user_id=1, pill=pill, draft=_draft_of(NO_DAY_REQ), lang='fa')
+    assert out['flow'] == 'promote_later' and db.rollback.call_count == 1
+
+
+def test_p1_the_window_check_precedes_every_write(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    monkeypatch.setattr(svc, '_now_in', lambda tz: datetime(2026, 11, 19, 14, 5, tzinfo=tz))
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 1, 14, 0), timezone='Asia/Tehran', status='scheduled', valid_to=None, updated_at=None,
+                         recurrence_rule='FREQ=DAILY', reminder_offsets_json=None)
+    q_event = MagicMock()
+    q_event.filter.return_value.first.return_value = ev
+    db = MagicMock()
+    db.query.side_effect = [q_event]  # nothing else may even be queried
+    created = []
+    monkeypatch.setattr(svc, 'find_or_create_medication', lambda *a, **k: created.append(1))
+    with pytest.raises(svc.PromotionWindowError):
+        svc.promote_event_to_medication(db, 1, 15, 'قرص مکمل', '09:00')
+    assert created == [] and db.add.call_count == 0 and db.flush.call_count == 0 and db.commit.call_count == 0

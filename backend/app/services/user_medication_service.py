@@ -363,6 +363,25 @@ def promote_event_to_medication(
         raise UserMedicationNotFoundError()
     if re.search(r"[1-9]", getattr(ev, "reminder_offsets_json", None) or ""):
         raise UserMedicationNotFoundError()  # an advance reminder would silently fire at the dose time instead of before it
+    # the OTHER active repeating reminders of the same pill are promoted with it, so none keeps reminding next to the registered pill
+    events = [ev]
+    for oid in (also_event_ids or []):
+        other = (
+            db.query(models.UserEvent)
+            .filter(models.UserEvent.id == oid, models.UserEvent.user_id == user_id, models.UserEvent.status.in_(["scheduled", "confirmed"]))
+            .first()
+        )
+        if other is not None and other.starts_at is not None and not re.search(r"[1-9]", getattr(other, "reminder_offsets_json", None) or ""):
+            events.append(other)
+    for e in events:  # BEFORE any write: the medication scheduler treats the first 15 minutes after a dose time as «due»
+        try:
+            tz = pytz.timezone(getattr(e, "timezone", None) or DEFAULT_TIMEZONE)
+        except pytz.UnknownTimeZoneError:
+            tz = pytz.timezone(DEFAULT_TIMEZONE)
+        now_local = _now_in(tz).replace(tzinfo=None)
+        due_today = datetime.combine(now_local.date(), time(e.starts_at.hour, e.starts_at.minute))
+        if 0 <= (now_local - due_today).total_seconds() < 20 * 60:
+            raise PromotionWindowError()
     med = find_or_create_medication(db, name=clean)
     db.flush()
     um = (
@@ -382,25 +401,6 @@ def promote_event_to_medication(
         db.flush()
     if not um.reminder_enabled:
         um.reminder_enabled = True  # the user has an ACTIVE reminder for this pill (the event being promoted): it must keep working
-    # the OTHER active repeating reminders of the same pill are promoted with it, so none keeps reminding next to the registered pill
-    events = [ev]
-    for oid in (also_event_ids or []):
-        other = (
-            db.query(models.UserEvent)
-            .filter(models.UserEvent.id == oid, models.UserEvent.user_id == user_id, models.UserEvent.status.in_(["scheduled", "confirmed"]))
-            .first()
-        )
-        if other is not None and other.starts_at is not None and not re.search(r"[1-9]", getattr(other, "reminder_offsets_json", None) or ""):
-            events.append(other)
-    for e in events:  # the medication scheduler treats the first 15 minutes after a dose time as «due»: wait until that has passed
-        try:
-            tz = pytz.timezone(getattr(e, "timezone", None) or DEFAULT_TIMEZONE)
-        except pytz.UnknownTimeZoneError:
-            tz = pytz.timezone(DEFAULT_TIMEZONE)
-        now_local = _now_in(tz).replace(tzinfo=None)
-        due_today = datetime.combine(now_local.date(), time(e.starts_at.hour, e.starts_at.minute))
-        if 0 <= (now_local - due_today).total_seconds() < 20 * 60:
-            raise PromotionWindowError()
     have = {r.time_of_day: r for r in (um.schedules or [])}
     # each dose keeps ITS OWN weekdays (older dose: its event's; new dose: the new request's); two doses at the same time merge
     # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)

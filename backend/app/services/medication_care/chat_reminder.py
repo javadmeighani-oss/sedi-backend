@@ -306,12 +306,14 @@ def _same_action(db: Session, *, user_id: int, pill: dict[str, Any], draft: Any,
                 return {"kind": "medication", "created": True, "flow": "dose_added", "name": pill["name"], "time": time_,
                         "times": reg.times_text(times, lang)}
             times = reg.promote(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
-        except svc.ScheduleTimeCollisionError:
+        except (svc.ScheduleTimeCollisionError, svc.IntervalOnlyScheduleError, svc.PromotionWindowError) as declined:
+            if db is not None:
+                db.rollback()  # a declined write leaves NOTHING behind (Codex P1, PR 193)
+            if isinstance(declined, svc.IntervalOnlyScheduleError):
+                return {"kind": "medication", "created": False, "flow": "interval_only", "name": pill["name"], "time": time_}
+            if isinstance(declined, svc.PromotionWindowError):
+                return {"kind": "medication", "created": False, "flow": "promote_later", "name": pill["name"], "time": time_}
             return {"kind": "medication", "created": False, "flow": "dose_exists", "name": pill["name"], "time": time_}
-        except svc.IntervalOnlyScheduleError:
-            return {"kind": "medication", "created": False, "flow": "interval_only", "name": pill["name"], "time": time_}
-        except svc.PromotionWindowError:
-            return {"kind": "medication", "created": False, "flow": "promote_later", "name": pill["name"], "time": time_}
         out: dict[str, Any] = {"kind": "medication", "name": pill["name"], "time": time_, "times": reg.times_text(times, lang)}
         if history_available(db, user_id):  # the reason is asked next (the older reminder never had one)
             out.update({"created": False, "interview": "ask_reason_promoted"})
