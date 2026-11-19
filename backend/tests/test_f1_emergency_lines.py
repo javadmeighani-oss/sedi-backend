@@ -273,3 +273,27 @@ def test_p2_class_fix_real_complaints_still_route(text, spec):
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert spec in triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").specialties
+
+
+@pytest.mark.parametrize("text", ["I have a headache", "I have insomnia", "I have palpitations", "میگرن دارم", "سرگیجه دارم"])
+def test_p2_unambiguous_symptoms_pass_the_complaint_gate(text):
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    r = triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en")
+    assert r.specialties and llm_hint(r)
+
+
+@pytest.mark.parametrize("text, lang", [("I have a high fever", "en"), ("تب بالا دارم", "fa")])
+def test_p2_a_soon_urgency_without_a_body_area_still_reaches_the_model(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    r = triage(text, lang)
+    hint = llm_hint(r)
+    assert r.urgency == "soon" and hint and "SOON" in hint and "ONE question" in hint
+
+
+def test_p1_the_emergency_hint_is_country_neutral():
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    h = llm_hint(triage("I can't breathe", "en"))
+    assert "115" not in h and "local emergency number" in h

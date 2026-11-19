@@ -93,7 +93,7 @@ def test_the_result_never_names_a_disease():
 # --- the hint handed to the chat model ---------------------------------------------------------------------------
 def test_emergency_hint_urges_help_and_forbids_questions_and_advice():
     hint = st.llm_hint(st.triage("درد قفسه سینه دارم و نفسم می‌گیرد"))
-    assert "EMERGENCY" in hint and "115" in hint and "NO questions" in hint and "NO diagnosis" in hint
+    assert "EMERGENCY" in hint and "local emergency number" in hint and "NO questions" in hint and "NO diagnosis" in hint
 
 
 def test_routine_hint_names_the_doctor_why_one_question_and_forbids_diagnosis():

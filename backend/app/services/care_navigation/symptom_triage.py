@@ -155,6 +155,13 @@ _COMPLAINT_CUE = re.compile(_fold(
     r"nausea|anxious|anxiety|depressed|unwell|sick|something wrong|problem|issue|symptoms?|doctor|specialist|trouble|cough|cramps?|numb|late|missed|irregular|painful|stuffy|blocked|runny)\b"), re.I)
 
 
+# Words that ARE a symptom by themselves (no extra complaint cue needed): Codex P2, PR 187.
+_UNAMBIGUOUS_SYMPTOM = re.compile(_fold(
+    r"سردرد|سر ?درد|میگرن|سرگیجه|تپش قلب|طپش قلب|ریفلاکس|دل ?درد|گوش ?درد|دندان ?درد|کمر ?درد|گردن ?درد|زانو ?درد|بی ?خوابی|"
+    r"\b(?:headache|earache|toothache|stomachache|backache|insomnia|palpitations?|migraine|heartburn|diarrh(?:ea|oea)|constipation|"
+    r"vertigo|hives|bloating|sore throat|back pain|chest pain)\b"), re.I)
+
+
 def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     """Never raises. Emergencies first; then area -> specialties; then ONE next question."""
     t = _fold(text)
@@ -171,7 +178,8 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
         if _live_match(rx, t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
                                 reasons={"اورژانس": key})
-    if not _COMPLAINT_CUE.search(t):
+    soon_now = any(rx.search(t) for rx in _SOON)
+    if not (_COMPLAINT_CUE.search(t) or _UNAMBIGUOUS_SYMPTOM.search(t) or soon_now):
         return TriageResult()
     areas: list[str] = []
     specialties: list[str] = []
@@ -224,10 +232,16 @@ def llm_hint(result: TriageResult, language: Optional[str] = "fa") -> Optional[s
     if result.red_flag:
         return (
             "SYMPTOM TRIAGE (deterministic, safety-critical): the user describes a possible EMERGENCY. In the user's language, "
-            "plainly and calmly tell them to call the emergency number (115 in Iran) or go to the nearest emergency room NOW, "
+            "plainly and calmly tell them to call the local emergency number or go to the nearest emergency room NOW, "
             "and to ask someone nearby to stay with them. Ask NO questions, give NO diagnosis and NO drug advice."
         )
     if not result.areas:
+        if result.urgency == "soon":
+            return (
+                "SYMPTOM TRIAGE (deterministic): the user describes a complaint that should be looked at SOON (within a day or two), say so plainly. "
+                "In your reply: (1) acknowledge in one warm sentence; (2) ask exactly ONE question: which part of the body it is about and since when; "
+                "never diagnose, never advise starting / stopping / changing a drug, no list of tips."
+            )
         return None
     specs = ", ".join(result.specialties)
     why = ", ".join(f"{sp} (because of the {result.reasons.get(sp, '?')} complaint)" for sp in result.specialties[:2])
