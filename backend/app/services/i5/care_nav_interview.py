@@ -119,7 +119,11 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             return None  # an emergency or something that names no specialty: normal handling
         place = _place_in(text)
         if place:  # the answer named a (new) place: a fresh request with the specialty and THAT place
-            return (f"یه دکتر {spec} در {place} معرفی کن" if language == "fa" else f"find a doctor {spec} in {place}")
-        return f"{prior_request.strip()} متخصص {spec}"
+            done = f"یه دکتر {spec} در {place} معرفی کن" if language == "fa" else f"find a doctor {spec} in {place}"
+        else:
+            done = f"{prior_request.strip()} متخصص {spec}"
+        if cn.wants_sources(text) and not cn.wants_sources(done):  # «neurology, include sources»: the source request survives (Codex P2)
+            done += " منبعش را هم بگو" if language == "fa" else " include the source"
+        return done
     except Exception:  # noqa: BLE001
         return None

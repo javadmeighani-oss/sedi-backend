@@ -180,3 +180,16 @@ def test_p2_unrelated_replies_are_not_read_as_dont_know(answer):
 def test_p2_real_dont_know_phrases_still_work(answer):
     done = ci.request_for_answer(PRIOR, Q["fa"], answer, "fa")
     assert done and "پزشک عمومی" in done
+
+
+# ---- Codex round 4 ---------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer, lang", [("نورولوژی، منبعش را هم بگو", "fa"), ("نورولوژی در شیراز و منبع بگو", "fa"), ("neurology, include sources", "en")])
+def test_p2_a_source_request_in_the_answer_survives_the_completion(answer, lang):
+    prior = PRIOR if lang == "fa" else "find a doctor in Tehran"
+    done = ci.request_for_answer(prior, Q[lang], answer, lang)
+    assert done and cn.parse_care_nav_request(done, language=lang).wants_sources is True
+
+
+def test_p2_without_a_source_request_the_completed_request_stays_quiet():
+    done = ci.request_for_answer(PRIOR, Q["fa"], "نورولوژی", "fa")
+    assert cn.parse_care_nav_request(done, language="fa").wants_sources is False
