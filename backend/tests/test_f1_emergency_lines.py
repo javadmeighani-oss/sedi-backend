@@ -297,3 +297,17 @@ def test_p1_the_emergency_hint_is_country_neutral():
 
     h = llm_hint(triage("I can't breathe", "en"))
     assert "115" not in h and "local emergency number" in h
+
+
+@pytest.mark.parametrize("text", ["حرف زدن با پدرم سخت است", "حرف زدنم با پدرم سخت شده", "گفتار این نمایشنامه سخت است"])
+def test_p2_difficulty_talking_to_someone_is_not_a_stroke_sign(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "fa").red_flag_key != "stroke_signs"
+
+
+@pytest.mark.parametrize("text", ["زبانم گرفته و حرف زدنم مشکل دارد", "ناگهان حرف زدنم سخت شد", "نمی‌تونم حرف بزنم", "slurred speech and face droop"])
+def test_p2_real_speech_impairment_is_still_a_stroke_sign(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").red_flag_key == "stroke_signs"
