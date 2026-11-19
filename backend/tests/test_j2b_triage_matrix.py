@@ -45,3 +45,15 @@ def test_real_complaints_and_emergencies_get_a_hint(text, lang):
 @pytest.mark.parametrize("text", ["I have had a headache for three days", "I have a real headache", "my headache for two weeks is worse"])
 def test_a_literal_headache_is_never_filtered_as_an_idiom(text):
     assert llm_hint(triage(text, "en")) is not None
+
+
+@pytest.mark.parametrize("text, lang", [("I don't have a headache", "en"), ("سردرد ندارم", "fa"), ("my knee does not hurt", "en"),
+                                        ("I had a headache last year but I am fine now", "en"), ("no cough and no fever", "en")])
+def test_a_denied_or_resolved_complaint_gets_no_hint(text, lang):
+    assert llm_hint(triage(text, lang)) is None
+
+
+@pytest.mark.parametrize("text, lang", [("I don't have a fever but my knee hurts", "en"), ("تب ندارم ولی زانوم درد می‌کنه", "fa"),
+                                        ("no cough, however I have a headache", "en")])
+def test_an_independent_complaint_next_to_a_denial_still_gets_a_hint(text, lang):
+    assert llm_hint(triage(text, lang)) is not None

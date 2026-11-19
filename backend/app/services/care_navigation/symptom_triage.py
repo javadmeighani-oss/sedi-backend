@@ -145,7 +145,7 @@ class TriageResult:
 # Occurrence-local handling (Codex P2, PR 187): «I never fainted», «what does heavy bleeding mean?» are not current danger, but a
 # denial or a definition question elsewhere in the message must not hide an independent real emergency.
 _DENIAL_BEFORE = re.compile(_fold(r"\b(?:never|no|not|without|don.?t|didn.?t|haven.?t|hasn.?t|هیچ ?وقت|هرگز|بدون)\b\s*" r"(?:(?:ever|had|have|has|been|any|a|an|the|experienced|really|actually|do|did|i|am|was|هیچ|هرگز)(?:\s+|$)){0,2}" r"(?:\w+(?:\s+\w+)?\s+(?:or|nor|یا)(?:\s+|$))?$"), re.I)
-_DENIAL_AFTER = re.compile(_fold(r"^\s*(?:نداشتم|ندارم|نشده|نشدم|نکردم)"), re.I)
+_DENIAL_AFTER = re.compile(_fold(r"^\s*(?:نداشتم|ندارم|نشده|نشدم|نکردم|نمی ?کنه|نمیکنه|نمی ?کند|(?:does|do|did|is|are|was|were|has|have)\s*(?:not|n.?t)\b|no longer\b|never\b)"), re.I)
 _INFORMATIONAL = re.compile(
     _fold(r"what (?:does|is|are)\b|meaning of|definition of|\bmeans?\b|یعنی چ|به چه معنی|چه معنی|چیست|چی هست|چیه\b"), re.I)
 _FIRST_PERSON = re.compile(_fold(r"\b(?:i|i.?m|i.?ve|my|me|mine|myself)\b|\bمن\b|(?:چشم|دیدم|سرم|قلبم|دستم|پایم|پام|بدنم|شکمم|دهانم|لبم|زبانم|صورتم|بینایی ?ام|سینه ?ام|کمرم|پدرم|مادرم)|(?:شدم|کردم|دارم|هستم|بودم|رفتم|افتادم|می ?کنم|نمی ?تونم|نمیتونم)|شده\b"), re.I)
@@ -236,7 +236,7 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     specialties: list[str] = []
     reasons: dict = {}
     for key, rx, specs in _AREAS:
-        if rx.search(t) or (key in _AR_AREAS and _AR_AREAS[key].search(t)):
+        if _live_match(rx, t) or (key in _AR_AREAS and _live_match(_AR_AREAS[key], t)):  # denied / historical areas are skipped too
             areas.append(key)
             for sp in specs:
                 if sp not in specialties:
