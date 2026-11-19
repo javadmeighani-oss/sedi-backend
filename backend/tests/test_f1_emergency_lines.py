@@ -311,3 +311,21 @@ def test_p2_real_speech_impairment_is_still_a_stroke_sign(text):
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").red_flag_key == "stroke_signs"
+
+
+@pytest.mark.parametrize("text, lang", [
+    ("I fainted last year, but I feel fine now", "en"), ("I fainted as a child", "en"), ("I passed out a year ago", "en"),
+    ("پارسال غش کردم ولی الان خوبم", "fa"), ("سال‌ها پیش خونریزی شدید داشتم و الان خوبم", "fa")])
+def test_p2_explicitly_historical_or_resolved_events_are_not_current_danger(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, lang).red_flag is False
+
+
+@pytest.mark.parametrize("text, lang", [
+    ("I fainted last year and again today", "en"), ("I fainted last year, but I fainted again just now", "en"),
+    ("پارسال غش کردم و امروز دوباره غش کردم", "fa"), ("I fainted", "en")])
+def test_p2_a_current_occurrence_next_to_a_historical_one_still_escalates(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, lang).red_flag is True

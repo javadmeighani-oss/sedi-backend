@@ -133,11 +133,20 @@ def _last_clause(left: str) -> str:
 _SENTENCE_BREAK = re.compile(r"[.؟?!؛;\n]")
 
 
+_HISTORICAL = re.compile(_fold(r"\blast (?:year|month|decade)|\b(?:years?|months?|decades?) ago|as a child|when i was (?:a )?(?:child|kid|young|little)|in the past|long time ago|previously|پارسال|(?:سال|ماه|دهه) (?:پیش|گذشته)|سال ?ها پیش|بچه که بودم|در کودکی|در گذشته|قبلا|سابقا"), re.I)
+_CURRENT = re.compile(_fold(r"\b(?:today|tonight|right now|just now|this morning|again|still)\b|دوباره|امروز|همین الان|امشب|دیشب|هنوز"), re.I)
+
+
 def _live_match(rx: "re.Pattern", t: str) -> bool:
     for m in rx.finditer(t):
         left = _SENTENCE_BREAK.split(t[: m.start()])[-1]
         right = _SENTENCE_BREAK.split(t[m.end():])[0]
         sentence = left + t[m.start(): m.end()] + right
+        # An explicitly historical / resolved report is not current danger (Codex P2) - unless the same sentence also reports a
+        # current occurrence («I fainted last year and again today»).
+        near = _last_clause(left) + " " + t[m.start(): m.end()] + " " + _CLAUSE_BREAK.split(right)[0]
+        if _HISTORICAL.search(near) and not _CURRENT.search(sentence):
+            continue
         if _INFORMATIONAL.search(sentence) and not _FIRST_PERSON.search(sentence):
             continue
         if _DENIAL_BEFORE.search(_last_clause(left)) or _DENIAL_AFTER.search(right[:30]):
