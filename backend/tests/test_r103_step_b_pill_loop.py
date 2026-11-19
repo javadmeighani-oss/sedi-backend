@@ -386,3 +386,40 @@ def test_p2_without_the_repeat_answer_a_dated_request_is_still_dropped(monkeypat
     ask_name = sedi_copy.t("medication.chat.q.ask_name", "fa")
     rows = _rows(("بله", ask_name), (DAY_REQ, ask_name))
     assert _go(monkeypatch, rows, "لووتیروکسین") is None
+
+
+# --- Codex round 2 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def test_p2_an_independent_reminder_request_bypasses_the_promoted_reason_step(monkeypatch, world):
+    ask = sedi_copy.t("medication.chat.q.ask_reason_promoted", "fa", name="قرص مکمل", times="09:00، 14:00")
+    assert _go(monkeypatch, _rows(("هم", ask)), "فردا ساعت ۱۰ صبح جلسه دارم یادم بنداز") is None  # normal routing handles it
+
+
+def test_p2_an_older_reminder_with_an_advance_offset_is_never_promoted(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 12, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None,
+                         updated_at=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json="[30]")
+    q = MagicMock()
+    q.filter.return_value.first.return_value = ev
+    db = MagicMock()
+    db.query.return_value = q
+    with pytest.raises(svc.UserMedicationNotFoundError):
+        svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00")
+    assert db.commit.call_count == 0 and ev.status == "scheduled"
+
+
+def test_p2_the_registry_does_not_offer_an_event_with_a_lead_time(monkeypatch):
+    plain = SimpleNamespace(id=1, title="خوردن قرص مکملم", starts_at=datetime(2026, 11, 12, 14, 0), valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    lead = SimpleNamespace(id=2, title="قرص فشار", starts_at=datetime(2026, 11, 12, 20, 0), valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json="[30]")
+
+    def query(model):
+        q = MagicMock()
+        name = getattr(model, "__name__", "")
+        rows = [plain, lead] if name == "UserEvent" else []
+        q.filter.return_value.order_by.return_value.limit.return_value.all.return_value = rows
+        return q
+
+    db = MagicMock()
+    db.query.side_effect = query
+    pills = reg.existing_pills(db, 1)
+    assert [p["id"] for p in pills if p["kind"] == "event"] == [1]

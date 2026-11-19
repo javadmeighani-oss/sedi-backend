@@ -304,6 +304,8 @@ def promote_event_to_medication(
     clean = normalize_medication_name(name or "")
     if ev is None or ev.starts_at is None or not clean:
         raise UserMedicationNotFoundError()
+    if re.search(r"[1-9]", getattr(ev, "reminder_offsets_json", None) or ""):
+        raise UserMedicationNotFoundError()  # an advance reminder would silently fire at the dose time instead of before it
     med = find_or_create_medication(db, name=clean)
     db.flush()
     um = (

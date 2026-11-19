@@ -78,6 +78,12 @@ def _hhmm(h: int, m: int) -> str:
     return f"{h:02d}:{m:02d}"
 
 
+def _lead(e: Any) -> int:
+    from backend.app.services.intelligence.reminder_reschedule import _lead_minutes
+
+    return _lead_minutes(e)
+
+
 def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
     """[{kind: 'med'|'event', id, name, times:[HH:MM], rule}] - registered pills first, then older repeating pill reminders."""
     from backend.app.services.medication_care.chat_reminder import is_medication_text
@@ -109,6 +115,8 @@ def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
         .all()
     ):
         if e.starts_at is None or (e.valid_to and e.valid_to <= now) or not is_medication_text(e.title or ""):
+            continue
+        if _lead(e) > 0:  # an advance reminder (fires BEFORE the dose time) cannot become a dose schedule: it stays an event
             continue
         name = pill_title_name(e.title or "")
         if not name or any(same_pill(name, p["name"]) for p in pills):

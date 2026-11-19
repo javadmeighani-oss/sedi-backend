@@ -557,7 +557,7 @@ def _once_event(db: Session, user_id: int, draft: Any, text: str, lang: str, tim
     return confirmation_message(res, lang)
 
 
-def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: str) -> Optional[str]:
+def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: str, timezone_name: Optional[str] = None) -> Optional[str]:
     """The reason answer after an older reminder was promoted: the companionship becomes ONE tracked commitment (A3); a non-answer
     just closes the step. A long message is another topic (None -> normal flow)."""
     from backend.app.services.medication_care import pill_registry as reg
@@ -565,7 +565,8 @@ def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: st
     quoted = _QUOTED.search(last)
     name = quoted.group(1).strip() if quoted else ""
     text = _fold(message).strip()
-    if len(text.split()) > 40:
+    # a long message is another topic, and an INDEPENDENT reminder request keeps its own routing (Codex P2, PR 193)
+    if len(text.split()) > 40 or _is_new_reminder_request(message, lang, timezone_name):
         return None
     reply = sedi_copy.t("medication.chat.promoted.done", lang, name=name, times=reg.times_text(reg.times_of(db, user_id, name), lang))
     if not (insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text)) and _accompany(db, user_id, lang, name, message):
@@ -591,7 +592,7 @@ def continue_interview(
             return None
         lang = _lang(language)
         if stage == "ask_reason_promoted":  # the promotion is already done; nothing of the original request is needed
-            return _after_promoted(db, user_id, lang, last, message)
+            return _after_promoted(db, user_id, lang, last, message, timezone_name)
         original = _original_request(turns, language, timezone_name, allow_dated=(stage == "ask_repeat"))
         if original is None:
             return None
