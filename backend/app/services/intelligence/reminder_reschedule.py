@@ -213,7 +213,9 @@ def _apply_event(
             if start <= now_local:  # no day = the next time that clock shows (R-042)
                 start = start + timedelta(days=1)
         day_key = "today" if start.date() == now_local.date() else "tomorrow" if start.date() == (now_local + timedelta(days=1)).date() else ""
-    update_event(db, user_id, int(e.id), EventUpdateIn(starts_at=start))
+    ends = getattr(e, "ends_at", None)
+    # the duration is kept: a populated end time moves by the same delta as the start (Codex P2, PR 192)
+    update_event(db, user_id, int(e.id), EventUpdateIn(starts_at=start, ends_at=(ends + (start - e.starts_at)) if ends else None))
     return _hhmm(start.hour, start.minute), day_key, _lead_minutes(e)
 
 

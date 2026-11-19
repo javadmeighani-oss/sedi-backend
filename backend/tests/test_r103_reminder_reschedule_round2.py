@@ -133,3 +133,20 @@ def test_p2_move_schedule_time_is_in_place_atomic_and_keeps_the_weekday_filter(m
     with pytest.raises(svc.UserMedicationNotFoundError):
         svc.move_schedule_time(db, 1, 3, "07:00", "08:00")
     assert db.commit.call_count == 1  # the refused moves committed nothing
+
+
+# --- round 3: the event keeps its duration (P2) ---------------------------------------------------------------------------------
+def test_p2_a_populated_end_time_moves_with_the_start(monkeypatch):
+    import backend.app.services.gate2_data_service as g2
+
+    seen = []
+    monkeypatch.setattr(g2, "update_event", lambda db, uid, eid, body: seen.append((body.starts_at, body.ends_at)) or {})
+    ev = _event(hh=9, recurring=True)
+    ev["obj"].ends_at = datetime(2026, 11, 19, 10, 0)
+    _go(monkeypatch, [ev], "move the reminder to 4 pm")
+    assert seen == [(datetime(2026, 11, 19, 16, 0), datetime(2026, 11, 19, 17, 0))]  # 09:00-10:00 -> 16:00-17:00
+    seen.clear()
+    ev2 = _event(hh=9, recurring=True)
+    ev2["obj"].ends_at = None
+    _go(monkeypatch, [ev2], "move the reminder to 4 pm")
+    assert seen == [(datetime(2026, 11, 19, 16, 0), None)]
