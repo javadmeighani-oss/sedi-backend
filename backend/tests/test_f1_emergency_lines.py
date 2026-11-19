@@ -81,3 +81,76 @@ def test_the_anonymous_counter_logs_level_and_language_but_no_user_or_text(caplo
 
 def test_the_support_window_is_72_hours():
     assert cs.LOOKBACK.total_seconds() == 72 * 3600
+
+
+# --- Codex review of PR 187 (R-069): three P1, two P2 -----------------------------------------------------------------
+@pytest.mark.parametrize("text, lang", [
+    ("I took too many pills to kill myself", "en"), ("می‌خوام خودمو بکشم", "fa"), ("أريد أن أنهي حياتي", "ar")])
+def test_p1_the_emergency_self_harm_reply_urges_help_now_and_not_staying_alone(text, lang):
+    a = assess_safety_risk(message=text, language=lang)
+    if a.level is not RiskLevel.EMERGENCY or a.domain is not RiskDomain.SELF_HARM_CRISIS:
+        pytest.skip("not an emergency-level self-harm phrase for this language")
+    reply = build_safety_response(a).localized_message
+    assert "no rush" not in reply and "عجله" not in reply
+    marker = {"en": ("right now", "do not stay alone"), "fa": ("همین حالا", "تنها نمان"), "ar": ("الآن", "ولا تبقَ وحدك")}[lang]
+    assert all(m in reply for m in marker)
+    assert reply.count("?") + reply.count("؟") <= 1  # still ONE open invitation, not an interrogation (R-099)
+
+
+@pytest.mark.parametrize("text, lang", [
+    ("I have a severe headache and life is not worth living", "en"),
+    ("سردرد شدید دارم و دیگه نمی‌خوام زنده باشم", "fa")])
+def test_p1_self_harm_is_detected_even_when_a_medical_rule_wins(text, lang):
+    assert cs.is_self_harm_text(text, lang)
+
+
+def test_p1_a_denied_self_harm_phrase_is_still_not_self_harm_talk():
+    assert not cs.is_self_harm_text("I do not want to kill myself", "en")
+
+
+def test_p1_the_router_records_the_terminal_turn_before_returning(monkeypatch):
+    import backend.app.routers.interact as inter
+
+    saved = []
+
+    class Mem:
+        def __init__(self, db): pass
+        def save_conversation(self, uid, msg, reply, lang, **kw): saved.append((uid, msg, reply, lang))
+
+    import backend.app.core.conversation.memory as memmod
+    monkeypatch.setattr(memmod, "ConversationMemory", Mem)
+    inter._record_terminal_turn(object(), 7, "I want to die", " reply ", "en")
+    assert saved == [(7, "I want to die", "reply", "en")]
+
+
+def test_p1_recording_a_terminal_turn_never_breaks_the_reply(monkeypatch):
+    import backend.app.routers.interact as inter
+    import backend.app.core.conversation.memory as memmod
+
+    class Boom:
+        def __init__(self, db): raise RuntimeError("db down")
+
+    monkeypatch.setattr(memmod, "ConversationMemory", Boom)
+    inter._record_terminal_turn(SimpleNamespace(rollback=lambda: None), 7, "x", "y", "en")  # must not raise
+
+
+@pytest.mark.parametrize("text", ["I never fainted or passed out", "What does heavy bleeding mean?", "هرگز غش نکردم", "خونریزی شدید ندارم"])
+def test_p2_denied_or_informational_physical_emergencies_are_not_emergencies(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").red_flag_key is None
+
+
+@pytest.mark.parametrize("text", ["I fainted and I never had this before", "I never fainted before but now I passed out",
+                                  "heavy bleeding that won't stop", "غش کردم"])
+def test_p2_an_independent_real_emergency_is_never_hidden_by_a_denial_elsewhere(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en").red_flag is True
+
+
+def test_p2_the_word_see_in_ordinary_persian_is_not_an_ent_complaint():
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage("ببینیم فردا چه می‌شود", "fa").specialties == ()
+    assert triage("بینی‌ام گرفته و آبریزش دارم", "fa").specialties == ("گوش و حلق و بینی",)

@@ -589,22 +589,22 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "i4.tpl.emergency.self_harm.v1": {
         "en": (
-            "I'm really glad you told me, and I'm right here with you. You are not alone. What you are going through matters, and I want "
-            "to understand what is hurting you so much - tell me whatever you can; I'm listening and there is no rush. "
-            "If you are in danger right now, or something you could use to hurt yourself is nearby, please move it away from you and "
-            "contact your local emergency services (or someone close who can come to you right now). Then come back and tell me."
+            "I'm really glad you told me, and I'm right here with you. You are not alone. "
+            "If you have already hurt yourself, taken something, or you are about to, please contact your local emergency services "
+            "right now and do not stay alone: move anything you could use away from you and ask someone close to come to you now. "
+            "Then tell me here what is hurting you so much; I'm listening."
         ),
         "fa": (
-            "خیلی خوشحالم که این را به من گفتی و همین‌جا کنارت هستم. تو تنها نیستی. دردی که تو را به اینجا رسانده مهم است و می‌خواهم "
-            "بدانم دقیقاً چه چیزی این‌قدر آزارت می‌دهد؛ هر چه می‌توانی برایم بگو، من گوش می‌دهم و هیچ عجله‌ای نیست. "
-            "اگر همین الان در خطر هستی یا چیزی کنارت هست که با آن به خودت آسیب بزنی، لطفاً آن را از خودت دور کن و با اورژانس محلی "
-            "یا خط حمایت شبانه‌روزی تماس بگیر، یا از یک نفر نزدیک بخواه همین حالا کنارت بیاید. بعد هم همین‌جا برایم بنویس."
+            "خیلی خوشحالم که این را به من گفتی و همین‌جا کنارت هستم. تو تنها نیستی. "
+            "اگر همین الان به خودت آسیبی زده‌ای، چیزی خورده‌ای یا قصد داری این کار را بکنی، لطفاً همین حالا با اورژانس محلی "
+            "یا خط حمایت شبانه‌روزی تماس بگیر و تنها نمان؛ هر چیزی را هم که با آن می‌توانی به خودت آسیب بزنی از خودت دور کن "
+            "و از یک نفر نزدیک بخواه همین حالا کنارت بیاید. بعد همین‌جا برایم بنویس که دقیقاً چه چیزی این‌قدر آزارت می‌دهد؛ من گوش می‌دهم."
         ),
         "ar": (
-            "يسعدني جداً أنك أخبرتني، وأنا هنا بجانبك. لست وحدك. ما تمرّ به مهم، وأريد أن أفهم ما الذي يؤلمك إلى هذا الحد؛ "
-            "قل لي ما تستطيع، فأنا أُصغي إليك وليس هناك أي استعجال. "
-            "إذا كنت في خطر الآن أو كان بقربك شيء قد تؤذي به نفسك، فأبعده عنك من فضلك واتصل بخدمات الطوارئ المحلية، "
-            "أو اطلب من شخص قريب أن يأتي إليك الآن. ثم عُد وحدّثني."
+            "يسعدني جداً أنك أخبرتني، وأنا هنا بجانبك. لست وحدك. "
+            "إذا كنت قد آذيت نفسك بالفعل أو تناولت شيئاً أو كنت على وشك ذلك، فاتصل بخدمات الطوارئ المحلية الآن ولا تبقَ وحدك؛ "
+            "وأبعد عنك أي شيء قد تؤذي به نفسك واطلب من شخص قريب أن يأتي إليك فوراً. "
+            "ثم اكتب لي هنا ما الذي يؤلمك إلى هذا الحد؛ أنا أُصغي إليك."
         ),
     },
     "i4.tpl.high.self_harm.v1": {
@@ -804,17 +804,8 @@ def _locally_negated(normalized: str, start: int, phrase: str) -> bool:
     return bool(pattern.search(clause_prefix))
 
 
-def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessment:
-    """Deterministic risk assessment. Never logs or returns message text.
-
-    Fix1: informational and denial exclusions apply per matched span only —
-    never as a global message flag that erases independent current-danger spans.
-    """
-    if not isinstance(message, str):
-        raise SafetyRiskError("invalid_message")
-    if language not in ("fa", "ar", "en"):
-        raise SafetyRiskError("invalid_language")
-
+def _kept_matches(message: str) -> list[_Match]:
+    """Every rule match that survives the informational / denial exclusions (shared by the assessor and the self-harm signal)."""
     normalized = normalize_safety_text(message)
     info_spans = _collect_exclusion_spans(normalized, _INFORMATIONAL_EXCLUSIONS)
     denial_spans = _collect_exclusion_spans(normalized, _SELF_HARM_DENIAL)
@@ -839,6 +830,32 @@ def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessmen
             if any(_spans_overlap(span, den) for den in denial_spans):
                 continue
         kept.append(m)
+    return kept
+
+
+def has_self_harm_signal(*, message: str, language: LanguageCode) -> bool:
+    """True when ANY surviving self-harm match exists, whatever rule wins the overall assessment (a headache plus «life is not
+    worth living» is both). Same exclusions as the assessor. Never raises."""
+    try:
+        if not isinstance(message, str) or language not in ("fa", "ar", "en"):
+            return False
+        return any(m.rule.domain is RiskDomain.SELF_HARM_CRISIS for m in _kept_matches(message))
+    except Exception:
+        return False
+
+
+def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessment:
+    """Deterministic risk assessment. Never logs or returns message text.
+
+    Fix1: informational and denial exclusions apply per matched span only —
+    never as a global message flag that erases independent current-danger spans.
+    """
+    if not isinstance(message, str):
+        raise SafetyRiskError("invalid_message")
+    if language not in ("fa", "ar", "en"):
+        raise SafetyRiskError("invalid_language")
+
+    kept = _kept_matches(message)
 
     if not kept:
         return RiskAssessment(

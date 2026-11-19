@@ -77,7 +77,7 @@ _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("skin", _rx(r"پوست", r"خارش", r"قرمزی", r"جوش", r"لکه", r"راش", r"کهیر", r"\brash\b", r"itch"), ("پوست",)),
     ("stomach", _rx(r"معده", r"نفخ", r"ریفلاکس", r"دل ?درد", r"اسهال", r"یبوست", r"سوزش سر ?دل", r"تهوع", r"stomach", r"heartburn", r"bloating"), ("گوارش",)),
     ("mind", _rx(r"اضطراب", r"افسردگی", r"افسرده", r"پانیک", r"استرس شدید", r"بی ?خوابی", r"خوابم نمی ?بره", r"خوابم نمیبره", r"anxiety", r"depress", r"insomnia"), ("روانپزشکی",)),
-    ("ent", _rx(r"گلو", r"سینوس", r"گوش ?درد", r"گوشم", r"بینی", r"آب ?ریزش", r"تونسیل", r"ear ?ache", r"sore throat", r"sinus"), ("گوش و حلق و بینی",)),
+    ("ent", _rx(r"گلو", r"سینوس", r"گوش ?درد", r"گوشم", r"(?:درد|گرفتگی|آب ?ریزش|خون ?ریزی|ورم|عفونت|سوزش|انسداد) ?(?:از |ی )?بینی", r"بینی ?(?:ام|م)? ?(?:درد|گرفته|بسته|ورم|خون|می ?سوزه|آب ?ریزش)", r"\bnose\b", r"\bnasal\b", r"آب ?ریزش", r"تونسیل", r"ear ?ache", r"sore throat", r"sinus"), ("گوش و حلق و بینی",)),
     ("endocrine", _rx(r"قند خون", r"قندم", r"دیابت", r"تیروئید", r"تشنه", r"diabet", r"thyroid"), ("غدد",)),
     # «دیدم» alone means «I saw»: an eye complaint needs visual-complaint wording (Codex P2, PR 187)
     ("eye", _rx(r"چشم", r"دیدم ?(?:تار|کم|ضعیف|خوب نیست|مشکل|دو ?تا)", r"(?:تار|دو) ?می ?بینم", r"دوبینی", r"تار ?بینی", r"\beye\b", r"\bvision\b"), ("چشم",)),
@@ -114,6 +114,28 @@ class TriageResult:
     next_question: Optional[str] = None
 
 
+# Occurrence-local handling (Codex P2, PR 187): «I never fainted», «what does heavy bleeding mean?» are not current danger, but a
+# denial or a definition question elsewhere in the message must not hide an independent real emergency.
+_DENIAL_BEFORE = re.compile(_fold(r"\b(?:never|no|not|don.?t|didn.?t|without|هیچ ?وقت|هرگز|بدون|نه)\b\s*(?:\w+\s+){0,3}$"), re.I)
+_DENIAL_AFTER = re.compile(_fold(r"^\s*(?:نداشتم|ندارم|نشده|نشدم|نکردم)"), re.I)
+_INFORMATIONAL = re.compile(
+    _fold(r"what (?:does|is|are)\b|meaning of|definition of|\bmeans?\b|یعنی چ|به چه معنی|چه معنی|چیست|چی هست|چیه\b"), re.I)
+_SENTENCE_BREAK = re.compile(r"[.؟?!؛;\n]")
+
+
+def _live_match(rx: "re.Pattern", t: str) -> bool:
+    for m in rx.finditer(t):
+        left = _SENTENCE_BREAK.split(t[: m.start()])[-1]
+        right = _SENTENCE_BREAK.split(t[m.end():])[0]
+        sentence = left + t[m.start(): m.end()] + right
+        if _INFORMATIONAL.search(sentence):
+            continue
+        if _DENIAL_BEFORE.search(left[-40:]) or _DENIAL_AFTER.search(right[:30]):
+            continue
+        return True
+    return False
+
+
 def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     """Never raises. Emergencies first; then area -> specialties; then ONE next question."""
     t = _fold(text)
@@ -127,7 +149,7 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
         return TriageResult(red_flag=True, urgency="crisis", red_flag_key="self_harm", specialties=("روانپزشکی",),
                             reasons={"روانپزشکی": "self_harm"}, next_question="care_nav.q.what_hurts")
     for key, rx in _RED_FLAGS:
-        if rx.search(t):
+        if _live_match(rx, t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
                                 reasons={"اورژانس": key})
     areas: list[str] = []

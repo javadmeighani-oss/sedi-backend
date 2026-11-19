@@ -36,6 +36,21 @@ _PRESENTATION_WORD_PACE_S = 0.133
 _WORD_DELTA_RE = re.compile(r"\S+|\s+")
 
 
+def _record_terminal_turn(db, user_id, user_message, reply, language):
+    """A turn answered by the I4 terminal reply never reaches the orchestrator, so it was never stored: the NEXT turn could not
+    know the person had just spoken about hurting themselves (Codex P1, PR 187). Consent-gated governed raw write, idempotent,
+    fail-open."""
+    try:
+        from backend.app.core.conversation.memory import ConversationMemory
+
+        ConversationMemory(db).save_conversation(user_id, user_message, (reply or "").strip(), language, actor_user_id=user_id)
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
 def _with_local_lines(message, assessment, db, user_id):
     """F1/F3 (D-402): country help line + anonymous crisis count on an I4 terminal reply; fail-open."""
     try:
@@ -303,8 +318,10 @@ async def chat(
             expire_relationship_discovery_marker_on_early_return(db, user_id)
         except Exception:
             pass
+        terminal_text = _with_local_lines(safety_resp.localized_message, safety_assessment, db, user_id)
+        _record_terminal_turn(db, user_id, message, terminal_text, response_language)
         return InteractionResponse(
-            message=_with_local_lines(safety_resp.localized_message, safety_assessment, db, user_id),
+            message=terminal_text,
             language=response_language,
             user_id=user_id,
             timestamp=datetime.utcnow(),

@@ -78,13 +78,12 @@ def _recent_user_messages(db: Any, user_id: int) -> list[str]:
 
 
 def is_self_harm_text(text: str, language: str = "fa") -> bool:
-    """The same I4 assessor the safety layer uses (one definition of «self-harm talk», R-005)."""
+    """The same I4 rules and exclusions the safety layer uses (one definition of «self-harm talk», R-005). True when ANY surviving
+    self-harm match exists, even if a higher-priority medical rule wins the overall assessment (Codex P1)."""
     try:
-        from backend.app.services.intelligence.contracts import RiskDomain
-        from backend.app.services.intelligence.safety_risk import assess_safety_risk
+        from backend.app.services.intelligence.safety_risk import has_self_harm_signal
 
-        a = assess_safety_risk(message=text or "", language=language if language in ("fa", "ar", "en") else "en")
-        return a.domain is RiskDomain.SELF_HARM_CRISIS
+        return has_self_harm_signal(message=text or "", language=language if language in ("fa", "ar", "en") else "en")
     except Exception:  # noqa: BLE001
         return False
 
