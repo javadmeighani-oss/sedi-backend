@@ -116,11 +116,20 @@ class TriageResult:
 
 # Occurrence-local handling (Codex P2, PR 187): «I never fainted», «what does heavy bleeding mean?» are not current danger, but a
 # denial or a definition question elsewhere in the message must not hide an independent real emergency.
-_DENIAL_BEFORE = re.compile(_fold(r"\b(?:never|no|not|don.?t|didn.?t|without|هیچ ?وقت|هرگز|بدون|نه)\b\s*(?:\w+\s+){0,3}$"), re.I)
+_DENIAL_BEFORE = re.compile(_fold(r"\b(?:never|no|not|without|don.?t|didn.?t|haven.?t|hasn.?t|هیچ ?وقت|هرگز|بدون)\b\s*" r"(?:(?:ever|had|have|has|been|any|a|an|the|experienced|really|actually|do|did|i|am|was|هیچ|هرگز)(?:\s+|$)){0,2}" r"(?:\w+(?:\s+\w+)?\s+(?:or|nor|یا)(?:\s+|$))?$"), re.I)
 _DENIAL_AFTER = re.compile(_fold(r"^\s*(?:نداشتم|ندارم|نشده|نشدم|نکردم)"), re.I)
 _INFORMATIONAL = re.compile(
     _fold(r"what (?:does|is|are)\b|meaning of|definition of|\bmeans?\b|یعنی چ|به چه معنی|چه معنی|چیست|چی هست|چیه\b"), re.I)
 _FIRST_PERSON = re.compile(_fold(r"\b(?:i|i.?m|i.?ve|my|me|mine|myself)\b|\bمن\b|(?:چشم|دیدم|سرم|قلبم|دستم|پایم|پام|بدنم|شکمم|دهانم|لبم|زبانم|صورتم|بینایی ?ام|سینه ?ام|کمرم|پدرم|مادرم)|(?:شدم|کردم|دارم|هستم|بودم|رفتم|افتادم|می ?کنم|نمی ?تونم|نمیتونم)|شده\b"), re.I)
+_CLAUSE_BREAK = re.compile(r"\b(?:but|and|however|though|although|while|yet)\b|[,،;]|(?:^|\s)(?:اما|ولی|و)\s")
+
+
+def _last_clause(left: str) -> str:
+    """The part of the sentence directly before the symptom, cut at the last contrast / list boundary: a negation only counts when
+    it governs THIS symptom (Codex P1: «no fever but heavy bleeding», «no warning before I fainted»)."""
+    return _CLAUSE_BREAK.split(left)[-1].strip()
+
+
 _SENTENCE_BREAK = re.compile(r"[.؟?!؛;\n]")
 
 
@@ -131,7 +140,7 @@ def _live_match(rx: "re.Pattern", t: str) -> bool:
         sentence = left + t[m.start(): m.end()] + right
         if _INFORMATIONAL.search(sentence) and not _FIRST_PERSON.search(sentence):
             continue
-        if _DENIAL_BEFORE.search(left[-40:]) or _DENIAL_AFTER.search(right[:30]):
+        if _DENIAL_BEFORE.search(_last_clause(left)) or _DENIAL_AFTER.search(right[:30]):
             continue
         return True
     return False

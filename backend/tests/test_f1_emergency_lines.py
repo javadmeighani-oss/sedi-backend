@@ -201,3 +201,21 @@ def test_p2_real_menstrual_complaints_still_route_to_the_gynaecologist(text, lan
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert "زنان" in triage(text, lang).specialties
+
+
+# --- third Codex round: the scope of a negation -----------------------------------------------------------------------
+@pytest.mark.parametrize("text", [
+    "There was no warning before I fainted", "I have no fever but heavy bleeding", "no pain, however I fainted today",
+    "I never fainted before but now I passed out", "I fainted and I never had this before"])
+def test_p1_a_negation_of_something_else_never_hides_a_real_emergency(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag is True
+
+
+@pytest.mark.parametrize("text", [
+    "I have never fainted", "I never ever passed out", "I do not have heavy bleeding", "no heavy bleeding", "I have not fainted"])
+def test_p1_a_negation_directly_governing_the_symptom_still_denies_it(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, "en").red_flag is False
