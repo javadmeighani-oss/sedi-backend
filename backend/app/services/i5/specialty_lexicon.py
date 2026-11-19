@@ -151,6 +151,9 @@ _HIGH_RATING = re.compile(fold(
     r"تقییم عالی|الاعلى تقییما|الافضل تقییما"))
 
 
+_URGENT = re.compile(fold(r"فوری|هر ?چه زودتر|زودتر ممکن|urgent|as soon as possible|asap|عاجل|بأسرع وقت|باسرع وقت"))
+
+
 def qualifiers(text: str) -> tuple[str, ...]:
     """Request qualifiers read from the text: ``24h`` and/or ``high_rating``."""
     t = fold(text)
@@ -159,6 +162,8 @@ def qualifiers(text: str) -> tuple[str, ...]:
         out.append("24h")
     if _HIGH_RATING.search(t):
         out.append("high_rating")
+    if _URGENT.search(t):
+        out.append("urgent")
     return tuple(out)
 
 

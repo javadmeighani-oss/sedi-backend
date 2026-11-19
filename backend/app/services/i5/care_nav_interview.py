@@ -112,6 +112,7 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
 
         if symptom_triage.triage(text, language).red_flag:
             return None  # an emergency is never completed into a routine search, whatever else the answer says (Codex P1)
+        urgent = symptom_triage.triage(text, language).urgency == "soon"
         spec = _specialty_for_answer(text, language)
         if spec is None and _DONT_KNOW.search(text):
             spec = "پزشک عمومی"
@@ -124,6 +125,23 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             done = f"{prior_request.strip()} متخصص {spec}"
         if cn.wants_sources(text) and not cn.wants_sources(done):  # «neurology, include sources»: the source request survives (Codex P2)
             done += " منبعش را هم بگو" if language == "fa" else " include the source"
+        if urgent:  # «high fever and cough»: the guidance «see a doctor within a day or two» must reach the reply (Codex P2)
+            done += " هرچه زودتر" if language == "fa" else " as soon as possible"
         return done
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def request_for_source_followup(prior_request: Optional[str], sedi_reply: Optional[str], message: str, language: str) -> Optional[str]:
+    """«منبعش چیه؟» right after a provider list: the same request again, now asking for the source (the search is cached, so the same
+    providers come back with their links and check dates) - Codex P2, PR 191. None when the last turn was not a doctor list."""
+    try:
+        if not prior_request or not cn.is_directory_source_question(message) or cn.is_care_navigation_query(message):
+            return None
+        if is_reason_question(sedi_reply) or not cn.is_care_navigation_query(prior_request):
+            return None
+        if cn.wants_sources(prior_request):
+            return prior_request.strip()
+        return prior_request.strip() + (" منبعش را هم بگو" if language == "fa" else " include the source")
     except Exception:  # noqa: BLE001
         return None

@@ -206,3 +206,57 @@ def test_p1_a_revoked_memory_consent_means_the_earlier_request_is_not_reused(mon
     orch, _called = _orch(monkeypatch, last_row=last, seen=seen, consent_ok=False)
     orch.process(authenticated_user_id=42, message="سردرد دارم", language="fa")
     assert not any("اعصاب" in (x or "") for x in seen)  # no completion: the earlier turn was never read
+
+
+# ---- Codex round 6 ---------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer, lang", [("تب بالا دارم و سرفه می‌کنم", "fa"), ("high fever and cough", "en")])
+def test_p2_an_urgent_complaint_keeps_its_urgency_in_the_completed_request(answer, lang):
+    done = ci.request_for_answer(PRIOR if lang == "fa" else "find a doctor in Tehran", Q[lang], answer, lang)
+    assert done and "urgent" in cn.parse_care_nav_request(done, language=lang).qualifiers
+
+
+def test_p2_a_routine_complaint_is_not_marked_urgent():
+    done = ci.request_for_answer(PRIOR, Q["fa"], "زانوم درد می‌کند", "fa")
+    assert "urgent" not in cn.parse_care_nav_request(done, language="fa").qualifiers
+
+
+@pytest.mark.parametrize("lang, needle", [("fa", "همین یکی دو روز"), ("en", "within the next day or two"), ("ar", "اليوم أو اليومين")])
+def test_p2_the_deterministic_reply_carries_the_urgent_note(monkeypatch, lang, needle):
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, req: [])
+    msg = {"fa": "یه دکتر ریه در شیراز می‌خوام هرچه زودتر", "en": "find a lung doctor in Shiraz as soon as possible",
+           "ar": "أحتاج طبيب رئة في شيراز بأسرع وقت"}[lang]
+    res = cn.query_governed_directory(None, cn.parse_care_nav_request(msg, language=lang))
+    assert needle in res.user_message
+
+
+def test_p2_a_normal_request_has_no_urgent_note(monkeypatch):
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, req: [])
+    res = cn.query_governed_directory(None, cn.parse_care_nav_request("یه دکتر ریه در شیراز می‌خوام", language="fa"))
+    assert "همین یکی دو روز" not in res.user_message
+
+
+@pytest.mark.parametrize("followup", ["منبعش چیه؟", "منبع این اطلاعات چیه؟"])
+def test_p2_a_source_followup_reruns_the_last_doctor_request_with_the_source(followup):
+    prior = "یه دکتر قلب در شیراز معرفی کن"
+    done = ci.request_for_source_followup(prior, "• دکتر الف ...", followup, "fa")
+    assert done and done.startswith(prior) and cn.parse_care_nav_request(done, language="fa").wants_sources is True
+
+
+def test_p2_a_source_followup_needs_a_doctor_list_right_before_it():
+    assert ci.request_for_source_followup("امروز هوا چطوره؟", "آفتابی است", "منبعش چیه؟", "fa") is None
+    assert ci.request_for_source_followup("یه دکتر قلب در شیراز معرفی کن", Q["fa"], "منبعش چیه؟", "fa") is None  # the last reply was the question
+    assert ci.request_for_source_followup(None, "x", "منبعش چیه؟", "fa") is None
+    assert ci.request_for_source_followup("یه دکتر قلب در شیراز معرفی کن", "x", "یه دکتر پوست در تبریز می‌خوام", "fa") is None
+
+
+def test_p2_the_source_followup_goes_through_the_orchestrator(monkeypatch):
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    last = SimpleNamespace(user_message="یه دکتر قلب در شیراز معرفی کن", sedi_response="• دکتر الف ...", created_at=datetime.utcnow())
+    seen = []
+    orch, called = _orch(monkeypatch, last_row=last, seen=seen)
+    out = orch.process(authenticated_user_id=42, message="منبعش چیه؟", language="fa")
+    assert called["gen"] is False and seen  # the doctor search ran again instead of the canned source text

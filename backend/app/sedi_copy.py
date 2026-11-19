@@ -1453,6 +1453,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'ما المشكلة أو الحاجة التي تبحث عن طبيب من أجلها؟ إن كنت تعرف التخصص فاذكره، وإن لم تكن تعرفه فقل لي ما الذي يزعجك لأجد لك الخيار الأنسب.',
         'en': 'What is the problem or need you are looking for a doctor for? If you know the specialty, name it; if not, tell me what is bothering you and I will find the right fit.',
     },
+    'care_nav.urgent_note': {
+        'fa': 'با توجه به آنچه گفتی، بهتر است همین یکی دو روز آینده توسط پزشک دیده شوی.',
+        'ar': 'بناءً على ما ذكرته، من الأفضل أن يراك طبيب خلال اليوم أو اليومين القادمين.',
+        'en': 'Based on what you told me, it is best that a doctor sees you within the next day or two.',
+    },
     # ---- care navigation: facts confirmed against the provider's own page (J3-b, D-407)
     'care_nav.hit.phone_unverified': {
         'fa': 'تلفن (تأییدنشده): {phone}',

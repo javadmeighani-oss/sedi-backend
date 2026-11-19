@@ -554,7 +554,7 @@ class IntelligenceOrchestrator:
 
             from backend.app.services.i6.consent_service import PERM_READ, has_permission
             from backend.app.services.i7.retention import query_eligible_raw
-            from backend.app.services.i5.care_nav_interview import request_for_answer
+            from backend.app.services.i5.care_nav_interview import request_for_answer, request_for_source_followup
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return message
@@ -564,7 +564,8 @@ class IntelligenceOrchestrator:
                 return message
             if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
                 return message
-            return request_for_answer(getattr(last, "user_message", None), getattr(last, "sedi_response", None), message, lang) or message
+            prior_q, prior_a = getattr(last, "user_message", None), getattr(last, "sedi_response", None)
+            return request_for_answer(prior_q, prior_a, message, lang) or request_for_source_followup(prior_q, prior_a, message, lang) or message
         except Exception:
             return message
 
