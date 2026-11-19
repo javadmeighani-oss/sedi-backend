@@ -72,6 +72,35 @@ LIST_MERGE_KEYS = frozenset({
 })
 
 
+def _active_home_city(db: Session, user_id: int) -> Optional[str]:
+    """The currently remembered home city (None when none/unreadable). Fail-open."""
+    try:
+        from backend.app.services.i6.memory_writes import _active_fact
+
+        row = _active_fact(db, user_id, "social", "home_city")
+        if row is None:
+            return None
+        return str(_unwrap_value(_parse_value(row.value_json)) or "").strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _drop_stale_home_area(db: Session, user_id: int) -> None:
+    """The city changed: a neighbourhood remembered for the OLD city is no longer true (Codex P2, PR 188). An area written in the
+    last few minutes belongs to the same statement and is kept. Fail-open: a failure leaves the old behaviour."""
+    try:
+        from backend.app.services.i6.memory_writes import _active_fact, delete_fact
+
+        row = _active_fact(db, user_id, "social", "home_area")
+        if row is None:
+            return
+        stamp = row.updated_at or row.created_at
+        if stamp is not None and (datetime.utcnow() - stamp.replace(tzinfo=None)) < timedelta(minutes=5):
+            return
+        delete_fact(db, user_id, "social", "home_area", reason="residence_city_changed", commit=True)
+    except Exception:  # noqa: BLE001
+        return
+
 def _merge_list_value(db: Session, user_id: int, domain: str, key: str, value: Any) -> Any:
     """Union of the already-remembered list and the new statement (order kept, duplicates dropped)."""
     new_items = list(value) if isinstance(value, (list, tuple)) else [value]
@@ -137,6 +166,7 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
             return {"target": "skipped", "reason": err}
         if (domain, key) in LIST_MERGE_KEYS:
             value = _merge_list_value(db, user_id, domain, key, value)
+        previous_city = _active_home_city(db, user_id) if (domain, key) == ("social", "home_city") else None
         try:
             write_fact(
                 db,
@@ -150,6 +180,8 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
             )
         except ConsentDenied:
             return {"target": "skipped", "reason": "CONSENT_DENIED"}
+        if previous_city is not None and previous_city != str(value).strip():
+            _drop_stale_home_area(db, user_id)
         return {"target": "user_memory_facts", "domain": domain, "key": key}
 
     if fact_type in ("habit", "user_habit"):

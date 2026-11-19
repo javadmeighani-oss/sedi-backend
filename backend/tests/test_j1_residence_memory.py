@@ -86,3 +86,28 @@ def test_a_numbered_district_alone_never_infers_the_city():
     # Codex P2 (PR 188, d808af53): numbered districts exist in many cities; the city stays unknown unless the user says it
     assert _facts("ساکن منطقه ۸ هستم") == {("home_area", "منطقه 8")}
     assert ("home_city", "تهران") in _facts("ساکن منطقه ۸ تهران هستم")
+
+
+def _promote(monkeypatch, old_city, new_city):
+    import json
+    from types import SimpleNamespace
+
+    import backend.app.services.candidate_promotion_service as cps
+
+    calls = []
+    monkeypatch.setattr(cps, "write_fact", lambda *a, **k: calls.append("write"))
+    monkeypatch.setattr(cps, "_active_home_city", lambda db, uid: old_city)
+    monkeypatch.setattr(cps, "_drop_stale_home_area", lambda db, uid: calls.append("drop_area"))
+    cand = SimpleNamespace(fact_type="home_city", value_json=json.dumps(new_city, ensure_ascii=False), user_id=1, confidence=0.9)
+    cps.promote_kc_candidate(None, cand)
+    return calls
+
+
+def test_a_changed_city_drops_the_neighbourhood_of_the_old_city(monkeypatch):
+    # Codex P2 (PR 188, 9143428f): «نارمک» must not outlive a move to Shiraz
+    assert _promote(monkeypatch, "تهران", "شیراز") == ["write", "drop_area"]
+
+
+def test_the_same_city_or_a_first_city_keeps_the_area(monkeypatch):
+    assert _promote(monkeypatch, "تهران", "تهران") == ["write"]
+    assert _promote(monkeypatch, None, "تهران") == ["write"]
