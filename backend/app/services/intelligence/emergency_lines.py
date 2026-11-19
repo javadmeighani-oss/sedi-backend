@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Verified numbers only (D-398). A new region is added here with its source, never guessed.
 REGION_LINES = {
-    "IR": {"emergency": "115", "social": "123"},
+    "IR": {"emergency": "115", "social": "123", "counselling": "1480"},
 }
 
 

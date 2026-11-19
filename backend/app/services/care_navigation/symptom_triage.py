@@ -83,7 +83,7 @@ _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("eye", _rx(r"چشم", r"دیدم ?(?:تار|کم|ضعیف|خوب نیست|مشکل|دو ?تا)", r"(?:تار|دو) ?می ?بینم", r"دوبینی", r"تار ?بینی", r"\beye\b", r"\bvision\b"), ("چشم",)),
     ("dental", _rx(r"دندان", r"لثه", r"\btooth\b", r"dental"), ("دندانپزشکی",)),
     ("urinary", _rx(r"ادرار", r"مثانه", r"کلیه", r"urin", r"bladder", r"kidney"), ("اورولوژی", "داخلی")),
-    ("women", _rx(r"قاعدگی", r"پریود", r"بارداری", r"حامله", r"ترشح واژینال", r"period", r"pregnan", r"menstru"), ("زنان",)),
+    ("women", _rx(r"قاعدگی", r"پریود", r"بارداری", r"حامله", r"ترشح واژینال", r"(?:late|missed|heavy|painful|irregular|my|period) period\s*(?:pain|cramps?|late|missed|heavy|irregular|problem|bleeding)?", r"\bperiods? (?:pain|cramps?|late|missed|heavy|irregular|problems?)", r"(?:late|missed|heavy|painful|irregular) periods?\b", r"pregnan", r"menstru"), ("زنان",)),
     ("lung", _rx(r"سرفه", r"تنگی نفس", r"خس ?خس", r"\bcough\b", r"wheez"), ("ریه", "داخلی")),
 )
 # secondary specialty added when a companion symptom is present
@@ -120,6 +120,7 @@ _DENIAL_BEFORE = re.compile(_fold(r"\b(?:never|no|not|don.?t|didn.?t|without|ه�
 _DENIAL_AFTER = re.compile(_fold(r"^\s*(?:نداشتم|ندارم|نشده|نشدم|نکردم)"), re.I)
 _INFORMATIONAL = re.compile(
     _fold(r"what (?:does|is|are)\b|meaning of|definition of|\bmeans?\b|یعنی چ|به چه معنی|چه معنی|چیست|چی هست|چیه\b"), re.I)
+_FIRST_PERSON = re.compile(_fold(r"\b(?:i|i.?m|i.?ve|my|me|mine|myself)\b|\bمن\b|(?:چشم|دیدم|سرم|قلبم|دستم|پایم|پام|بدنم|شکمم|دهانم|لبم|زبانم|صورتم|بینایی ?ام|سینه ?ام|کمرم|پدرم|مادرم)|(?:شدم|کردم|دارم|هستم|بودم|رفتم|افتادم|می ?کنم|نمی ?تونم|نمیتونم)|شده\b"), re.I)
 _SENTENCE_BREAK = re.compile(r"[.؟?!؛;\n]")
 
 
@@ -128,7 +129,7 @@ def _live_match(rx: "re.Pattern", t: str) -> bool:
         left = _SENTENCE_BREAK.split(t[: m.start()])[-1]
         right = _SENTENCE_BREAK.split(t[m.end():])[0]
         sentence = left + t[m.start(): m.end()] + right
-        if _INFORMATIONAL.search(sentence):
+        if _INFORMATIONAL.search(sentence) and not _FIRST_PERSON.search(sentence):
             continue
         if _DENIAL_BEFORE.search(left[-40:]) or _DENIAL_AFTER.search(right[:30]):
             continue

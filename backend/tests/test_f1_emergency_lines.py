@@ -154,3 +154,50 @@ def test_p2_the_word_see_in_ordinary_persian_is_not_an_ent_complaint():
 
     assert triage("ببینیم فردا چه می‌شود", "fa").specialties == ()
     assert triage("بینی‌ام گرفته و آبریزش دارم", "fa").specialties == ("گوش و حلق و بینی",)
+
+
+# --- second Codex round on PR 187 -------------------------------------------------------------------------------------
+@pytest.mark.parametrize("text, lang", [
+    ("My vision suddenly went black, what does that mean?", "en"),
+    ("چشمم ناگهان سیاه شده، یعنی چه؟", "fa"),
+    ("I fainted, what does that mean?", "en")])
+def test_p1_asking_what_a_reported_symptom_means_is_still_an_emergency(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, lang).red_flag is True
+
+
+@pytest.mark.parametrize("text, lang", [("What does heavy bleeding mean?", "en"), ("خونریزی شدید یعنی چی؟", "fa")])
+def test_p1_a_pure_definition_question_is_not_an_emergency(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert triage(text, lang).red_flag is False
+
+
+def test_p1_the_support_protocol_names_numbers_only_for_a_verified_region():
+    generic = cs.crisis_hint()
+    assert "115" not in generic and "123" not in generic and "1480" not in generic and "local emergency number" in generic
+    iran = cs.crisis_hint(lines=el.REGION_LINES["IR"])
+    assert "115" in iran and "123" in iran and "1480" in iran
+
+
+def test_p1_hint_for_turn_uses_the_resolved_region(monkeypatch):
+    monkeypatch.setattr(cs, "_region_lines", lambda db, uid, lang: None)
+    h = cs.hint_for_turn(None, None, "I want to die", "en")
+    assert h and "115" not in h
+    monkeypatch.setattr(cs, "_region_lines", lambda db, uid, lang: el.REGION_LINES["IR"])
+    assert "115" in cs.hint_for_turn(None, None, "I want to die", "en")
+
+
+@pytest.mark.parametrize("text", ["The trial period ends tomorrow", "this period of my life is busy"])
+def test_p2_the_word_period_alone_is_not_a_menstrual_complaint(text):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert "زنان" not in triage(text, "en").specialties
+
+
+@pytest.mark.parametrize("text, lang", [("my period is late", "en"), ("I have painful periods", "en"), ("پریود شدم و درد دارم", "fa")])
+def test_p2_real_menstrual_complaints_still_route_to_the_gynaecologist(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import triage
+
+    assert "زنان" in triage(text, lang).specialties

@@ -63,7 +63,8 @@ def test_arabic_templates_exist_and_are_not_empty():
 
 # --- the support protocol for the following turns --------------------------------------------------------------------
 def test_the_support_hint_carries_the_whole_protocol_and_the_prohibitions():
-    h = cs.crisis_hint()
+    from backend.app.services.intelligence.emergency_lines import REGION_LINES
+    h = cs.crisis_hint(lines=REGION_LINES["IR"])
     for needle in ("reflect and validate", "ONE question per reply", "plan or something nearby", "115", "123", "1480",
                    "slow breathing", "check on them again", "NEVER", "methods", "diagnose", "only an AI"):
         assert needle in h

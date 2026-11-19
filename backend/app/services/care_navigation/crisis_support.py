@@ -31,8 +31,7 @@ _BASE = (
     "(3) Gently and directly ask about safety when the connection is there (not necessarily in the first reply): whether they are "
     "thinking of ending their life, and whether they have a plan or something nearby they could use; asking directly does not harm. "
     "(4) If there is an immediate plan, means, or intent: stay with them, ask them to move the means away from themselves and not to "
-    "be alone, ask someone close to come now, and urge calling the emergency number 115 or the social emergency line 123 (free, 24 "
-    "hours); the counselling line 1480 is also free but not 24 hours; keep talking with them while they do it. "
+    "be alone, ask someone close to come now, and urge calling @@LINES@@; keep talking with them while they do it. "
     "(5) If they are panicking, offer one simple calming step at a time (slow breathing: in for four, out for six; name five things "
     "they can see). "
     "(6) Offer hope without false promises (feelings change, this moment can pass), a small safe step for tonight, one person they "
@@ -53,8 +52,17 @@ _ONGOING = (
 )
 
 
-def crisis_hint(*, ongoing: bool = False) -> str:
-    return _BASE + (_ONGOING if ongoing else "")
+_LINES_GENERIC = "the local emergency number or the nearest crisis line"
+
+
+def crisis_hint(*, ongoing: bool = False, lines: Optional[dict] = None) -> str:
+    """``lines`` = the verified numbers of the user's region (emergency_lines.REGION_LINES); None = country-neutral wording (Codex P1)."""
+    if lines:
+        named = (f"the emergency number {lines['emergency']} or the social emergency line {lines['social']} (free, 24 hours)"
+                 + (f"; the counselling line {lines['counselling']} is also free but not 24 hours" if lines.get("counselling") else ""))
+    else:
+        named = _LINES_GENERIC
+    return _BASE.replace("@@LINES@@", named) + (_ONGOING if ongoing else "")
 
 
 def _consented(db: Any, user_id: int) -> bool:
@@ -88,16 +96,25 @@ def is_self_harm_text(text: str, language: str = "fa") -> bool:
         return False
 
 
+def _region_lines(db: Any, user_id: Optional[int], language: str) -> Optional[dict]:
+    try:
+        from backend.app.services.intelligence import emergency_lines as el
+
+        return el.REGION_LINES.get(el.region_for(db, user_id, language) or "")
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def hint_for_turn(db: Any, user_id: Optional[int], user_message: str, language: str = "fa") -> Optional[str]:
     """The support-mode hint for this chat turn, or None. Fires when this message or an earlier turn (last 72 h, consent-gated) was
     self-harm talk. Never raises."""
     try:
         if is_self_harm_text(user_message, language):
-            return crisis_hint(ongoing=False)
+            return crisis_hint(ongoing=False, lines=_region_lines(db, user_id, language))
         if db is None or not user_id or not _consented(db, user_id):
             return None
         if any(is_self_harm_text(m, language) for m in _recent_user_messages(db, user_id)):
-            return crisis_hint(ongoing=True)
+            return crisis_hint(ongoing=True, lines=_region_lines(db, user_id, language))
     except Exception:  # noqa: BLE001
         return None
     return None
