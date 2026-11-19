@@ -1523,6 +1523,43 @@ class IntelligenceOrchestrator:
             except Exception:  # noqa: BLE001
                 pass
 
+        # R-103 step A: «change the time of my reminder» REALLY changes it through the existing owners (UserEvent / UserMedication),
+        # or asks ONE question; never a model claim of a change that did not happen. Fail-open (None -> normal flow).
+        if (
+            reminder_message is None
+            and not terminal_safety
+            and not discovery_reply_active
+            and self._db is not None
+        ):
+            try:
+                from datetime import datetime, timezone
+                from backend.app.services.intelligence import reminder_reschedule as _resched
+                from backend.app.services.medication_care import chat_reminder as _mc_turns
+
+                _turns_ctx: list = []
+                if _mc_turns.history_available(self._db, authenticated_user_id):
+                    _turns_ctx = _mc_turns._recent_turns(self._db, authenticated_user_id, datetime.now(timezone.utc))
+                # an OPEN question of this flow owns the next message (it may be a reminder title that another path would take)
+                _resched_open = _resched.has_open_question(_turns_ctx)
+                if (not care_nav_handled and (not skip_generator or clarification_message is not None)) or _resched_open:
+                    _resched_msg = message
+                    if _turns_ctx:
+                        _resched_msg = _resched.pending_request(_turns_ctx, message, lang) or message
+                    _resched_ctx = _resched.context_of(_turns_ctx, _resched_msg != message)
+                    _resched_reply = _resched.abort_reply(_turns_ctx, message, lang) or _resched.handle(
+                        self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx
+                    )
+                    if _resched_reply:
+                        if care_nav_handled:  # the doctor finder took the answer («Dentist»); the open question wins
+                            care_nav_handled = False
+                            directory_message = None
+                        reminder_message = _resched_reply
+                        skip_generator = True
+                        clarification_message = None
+                        extra_reason_codes.append("R103_REMINDER_RESCHEDULE")
+            except Exception:  # noqa: BLE001
+                pass
+
         # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
         # No direct Notification write; I10 scheduler consumes reminder fields.
         if (

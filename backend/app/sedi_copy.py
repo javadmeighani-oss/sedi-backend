@@ -1610,9 +1610,61 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم التسجيل: سأذكّرك الساعة {time} بتناول دوائك. أخذت وضعك في الاعتبار وسنتابع معاً الرعاية والوقاية والمتابعة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',
         'en': 'Done: I will remind you at {time} to take your medicine. I have your situation in mind and we will go through care, prevention and follow-up together; I am with you. If another time fits your day better, tell me and I will change it.',
     },
+    'reminder.reschedule.done': {
+        'fa': 'انجام شد: یادآوری «{title}» را از ساعت {old} به ساعت {new} تغییر دادم{day}.',
+        'ar': 'تم: غيّرتُ تذكير «{title}» من الساعة {old} إلى الساعة {new}{day}.',
+        'en': 'Done: I moved the reminder “{title}” from {old} to {new}{day}.',
+    },
+    'reminder.reschedule.done_lead': {
+        'fa': 'انجام شد: «{title}» را از ساعت {old} به ساعت {new} بردم{day}؛ یادآوری‌اش هم همان {lead} دقیقه پیش از آن می‌ماند.',
+        'ar': 'تم: نقلتُ «{title}» من الساعة {old} إلى الساعة {new}{day}؛ ويبقى تذكيره قبله بـ{lead} دقيقة كما كان.',
+        'en': 'Done: I moved “{title}” from {old} to {new}{day}; its reminder stays {lead} minutes before it.',
+    },
+    'reminder.reschedule.series_only': {
+        'fa': 'یادآوری «{title}» هر روز تکرار می‌شود و تغییر فقط برای یک روز را هنوز نمی‌توانم ذخیره کنم؛ چیزی را عوض نکردم. اگر می‌خواهی ساعت همه‌ی روزها عوض شود، بگو.',
+        'ar': 'تذكير «{title}» يتكرر يومياً ولا أستطيع بعد حفظ تغيير ليوم واحد فقط؛ ولم أغيّر شيئاً. إن أردت تغيير ساعة كل الأيام فقل لي.',
+        'en': 'The reminder “{title}” repeats every day and I cannot yet save a change for one day only, so I changed nothing. Tell me if you want the time of every day changed.',
+    },
+    'reminder.reschedule.aborted': {
+        'fa': 'باشه، چیزی را تغییر ندادم.',
+        'ar': 'حسناً، لم أغيّر شيئاً.',
+        'en': 'Okay, I changed nothing.',
+    },
+    'reminder.reschedule.past': {
+        'fa': 'آن روز و ساعت گذشته است و چیزی را تغییر ندادم. روز و ساعتی در آینده بگو.',
+        'ar': 'ذلك اليوم والساعة مضيا ولم أغيّر شيئاً. قل لي يوماً وساعة في المستقبل.',
+        'en': 'That day and time have already passed, so I changed nothing. Tell me a day and time in the future.',
+    },
+    'reminder.reschedule.collision': {
+        'fa': 'برای «{title}» از قبل نوبتی در ساعت {new} هست و چیزی را تغییر ندادم. اگر می‌خواهی دو نوبت یکی شوند، بگو.',
+        'ar': 'لدى «{title}» جرعة في الساعة {new} أصلاً ولم أغيّر شيئاً. إن أردت دمج الجرعتين فقل لي.',
+        'en': 'There is already a dose of “{title}” at {new}, so I changed nothing. Tell me if you want the two doses merged.',
+    },
+    'reminder.reschedule.day_today': {'fa': ' (امروز)', 'ar': ' (اليوم)', 'en': ' (today)'},
+    'reminder.reschedule.day_tomorrow': {'fa': ' (فردا)', 'ar': ' (غداً)', 'en': ' (tomorrow)'},
+    'reminder.reschedule.ask_period': {
+        'fa': 'برای تغییر زمان: ساعت {hour} صبح باشد یا عصر؟',
+        'ar': 'لتغيير الموعد: هل الساعة {hour} صباحاً أم مساءً؟',
+        'en': 'For the time change: should {hour} be morning or evening?',
+    },
+    'reminder.reschedule.ask_which': {
+        'fa': 'کدام یادآوری را می‌گویی؟ {list}',
+        'ar': 'أي تذكير تقصد؟ {list}',
+        'en': 'Which reminder do you mean? {list}',
+    },
+    'reminder.reschedule.failed': {
+        'fa': 'نتوانستم تغییر را ذخیره کنم و یادآوری همان‌طور که بود باقی ماند. کمی بعد دوباره بگو.',
+        'ar': 'لم أستطع حفظ التغيير وبقي التذكير كما كان. قلها لي مرة أخرى بعد قليل.',
+        'en': 'I could not save the change and the reminder stayed as it was. Please tell me again in a moment.',
+    },
+    'reminder.change_not_done': {
+        'fa': 'هنوز چیزی را در یادآورهایت تغییر نداده‌ام. بگو کدام یادآوری را به چه ساعتی ببرم تا همان لحظه انجامش بدهم.',
+        'ar': 'لم أغيّر شيئاً في تذكيراتك بعد. قل لي أي تذكير وإلى أي ساعة وسأفعل ذلك فوراً.',
+        'en': 'I have not changed anything in your reminders yet. Tell me which reminder and to what time, and I will do it right away.',
+    },
     'medication.chat.cancelled': {
         'fa': 'باشه، یادآوری را نگذاشتم. هر وقت خواستی بگو تا برایت تنظیمش کنم.',
-        'ar': 'حسناً، لم أضع التذكير. متى شئت أخبرني وسأضبطه لك.',
+        'ar': 'حسناً، لم أضع التذكير. أخبرني عندما تريده وسأضبطه لك.',
         'en': 'Okay, I did not set the reminder. Tell me whenever you want it and I will set it up.',
     },
     'medication.chat.commitment_step': {
@@ -1627,12 +1679,12 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     },
     'medication.chat.created.insist_named': {
         'fa': 'حتماً، همان‌طور که گفتی انجام می‌دهم: ساعت {time} برای «{name}» یادت می‌اندازم. من مراقب سلامتی تو هستم و هر وقت خواستی درباره‌اش بیشتر صحبت کنیم، من هستم.',
-        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بـ«{name}». أنا أعتني بصحتك، ومتى شئت أن نتحدث عنه أكثر فأنا موجود.',
+        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بـ«{name}». أنا أعتني بصحتك، وأنا موجود لنتحدث عنه أكثر في أي وقت.',
         'en': 'Of course, I will do as you say: I will remind you at {time} about “{name}”. I am looking after your health, and whenever you want to talk about it more, I am here.',
     },
     'medication.chat.created.insist_unnamed': {
         'fa': 'حتماً، همان‌طور که گفتی انجام می‌دهم: ساعت {time} برای مصرف دارویت یادت می‌اندازم. من مراقب سلامتی تو هستم و هر وقت خواستی درباره‌ی دارو و موضوعش بیشتر صحبت کنیم، من هستم.',
-        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بتناول دوائك. أنا أعتني بصحتك، ومتى شئت أن نتحدث عن الدواء وموضوعه أكثر فأنا موجود.',
+        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بتناول دوائك. أنا أعتني بصحتك، وأنا موجود لنتحدث عن الدواء وموضوعه أكثر في أي وقت.',
         'en': 'Of course, I will do as you say: I will remind you at {time} to take your medicine. I am looking after your health, and whenever you want to talk about the medicine and its subject more, I am here.',
     },
     'medication.chat.already_tracked': {

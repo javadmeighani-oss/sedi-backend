@@ -1007,6 +1007,7 @@ class ConversationBrain:
                             strip_hedging_offers,
                             strip_self_limit_disclaimers,
                             strip_unsupported_personal_claims,
+                            strip_unverified_change_claims,
                             strip_unverified_send_claims,
                         )
 
@@ -1022,6 +1023,8 @@ class ConversationBrain:
                         sedi_response = strip_self_limit_disclaimers(sedi_response, lang)
                         # R-042: never claim a notification that was not created in this turn.
                         sedi_response = strip_unverified_send_claims(sedi_response, lang)
+                        # R-103: never claim «I changed the time of your reminder» - the deterministic reschedule path answers before
+                        sedi_response = strip_unverified_change_claims(sedi_response, lang)
                         # R-049: a permanent companion and professional adviser speaks with certainty - no «اگه دوست داری».
                         sedi_response = strip_hedging_offers(sedi_response, lang)
                         # R-066: never open by repeating the user's own words.
