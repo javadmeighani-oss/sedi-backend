@@ -38,7 +38,7 @@ class Specialty(NamedTuple):
 _SPECIALTIES: tuple[Specialty, ...] = (
     Specialty("قلب", "قلب", ("قلب", "قلب و عروق", "کاردیولوژی", "cardiology", "heart", "امراض القلب", "طب القلب"),
               ("کاردیولوژیست", "cardiologist", "اخصائی قلب", "طبیب قلب")),
-    Specialty("مغز و اعصاب", "مغز و اعصاب", ("مغز و اعصاب", "اعصاب", "نورولوژی", "neurology", "brain", "الجهاز العصبی", "مخ و اعصاب", "امراض الاعصاب"),
+    Specialty("مغز و اعصاب", "اعصاب", ("مغز و اعصاب", "اعصاب", "نورولوژی", "neurology", "brain", "الجهاز العصبی", "مخ و اعصاب", "امراض الاعصاب"),
               ("نورولوژیست", "neurologist", "جراح مغز")),
     Specialty("دندانپزشکی", "دندان", ("دندانپزشک", "دندان پزشک", "دندانپزشکی", "دندان", "dentist", "dental", "dentistry", "اسنان", "طب الاسنان"),
               ("dentist", "طبیب اسنان", "دندانپزشک", "دندان پزشک")),
@@ -89,6 +89,8 @@ def _compile(words: tuple) -> Optional[re.Pattern]:
     return re.compile(r"(?<![a-z" + _LETTERS + r"])(?:" + body + r")(?![a-z" + _LETTERS + r"])")
 
 
+_GENERIC = frozenset({"جراحی عمومی"})
+
 _ALIAS_RX = [(sp, _compile(sp.aliases + sp.persons)) for sp in _SPECIALTIES]
 _PERSON_RX = _compile(tuple(w for sp in _SPECIALTIES for w in sp.persons))
 _BY_NAME = {sp.canonical: sp for sp in _SPECIALTIES}
@@ -98,14 +100,18 @@ def find_specialty(text: str) -> Optional[str]:
     """The canonical Persian specialty named in ``text`` (the LONGEST matching word wins), or None. Never raises."""
     try:
         t = fold(text)
-        best: tuple[int, Optional[str]] = (0, None)
-        for sp, rx in _ALIAS_RX:
-            if rx is None:
-                continue
-            for m in rx.finditer(t):
-                if len(m.group(0)) > best[0]:
-                    best = (len(m.group(0)), sp.canonical)
-        return best[1]
+        # A generic practitioner word («surgeon») never overrides an explicitly named specialty («eye surgeon» -> چشم): Codex P2.
+        for generic in (False, True):
+            best: tuple[int, Optional[str]] = (0, None)
+            for sp, rx in _ALIAS_RX:
+                if rx is None or (sp.canonical in _GENERIC) != generic:
+                    continue
+                for m in rx.finditer(t):
+                    if len(m.group(0)) > best[0]:
+                        best = (len(m.group(0)), sp.canonical)
+            if best[1]:
+                return best[1]
+        return None
     except Exception:  # noqa: BLE001
         return None
 

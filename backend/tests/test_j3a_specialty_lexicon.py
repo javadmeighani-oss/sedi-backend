@@ -128,3 +128,14 @@ def test_p2_a_practitioner_mention_without_a_request_is_not_a_find_request(msg):
 @pytest.mark.parametrize("msg", ["I need a therapist in Tehran", "looking for a psychiatrist", "یه روانشناس می‌خوام", "find a dentist"])
 def test_p2_a_real_request_for_a_practitioner_still_routes(msg):
     assert cn.is_care_navigation_query(msg)
+
+
+@pytest.mark.parametrize("text, expected", [("Find an eye surgeon in Tehran", "چشم"), ("a heart surgeon", "قلب"), ("جراح مغز", "مغز و اعصاب"),
+                                            ("a surgeon in Shiraz", "جراحی عمومی"), ("جراح عمومی", "جراحی عمومی")])
+def test_p2_a_generic_surgeon_never_overrides_a_named_specialty(text, expected):
+    assert sl.find_specialty(text) == expected
+
+
+def test_p2_the_legacy_persian_neurology_alias_still_matches_old_rows():
+    assert "اعصاب" in sl.governed_terms("مغز و اعصاب") and "Neurology" in sl.governed_terms("مغز و اعصاب")
+    assert "اعصاب" in "مغز و اعصاب"  # the stem is a substring of both legacy spellings
