@@ -184,7 +184,9 @@ def test_without_consent_the_request_is_created_at_once_and_the_pill_is_asked(mo
 
 def test_one_off_non_medication_and_kill_switch_keep_the_generic_path(monkeypatch, owner):
     monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
-    assert mc.start_interview(None, user_id=1, message="فردا ساعت ۲ قرص بخورم", draft=_draft(None), language="fa", timezone_name=TZ) is None
+    # R-103 am.2: a pill request with a DAY word is not created before Sedi asks «just once, or repeating?»
+    ask = mc.start_interview(None, user_id=1, message="فردا ساعت ۲ قرص بخورم", draft=_draft(None), language="fa", timezone_name=TZ)
+    assert ask and ask["interview"] == "ask_repeat" and not ask["created"]
     assert mc.start_interview(None, user_id=1, message="هر روز ساعت ۶ ورزش یادم بنداز", draft=_draft(), language="fa", timezone_name=TZ) is None
     monkeypatch.setenv(mc.DISABLED_ENV, "1")
     assert mc.start_interview(None, user_id=1, message=REQUEST, draft=_draft(), language="fa", timezone_name=TZ) is None

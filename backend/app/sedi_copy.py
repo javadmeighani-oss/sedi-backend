@@ -1623,7 +1623,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'reminder.reschedule.series_only': {
         'fa': 'یادآوری «{title}» هر روز تکرار می‌شود و تغییر فقط برای یک روز را هنوز نمی‌توانم ذخیره کنم؛ چیزی را عوض نکردم. اگر می‌خواهی ساعت همه‌ی روزها عوض شود، بگو.',
         'ar': 'تذكير «{title}» يتكرر يومياً ولا أستطيع بعد حفظ تغيير ليوم واحد فقط؛ ولم أغيّر شيئاً. إن أردت تغيير ساعة كل الأيام فقل لي.',
-        'en': 'The reminder “{title}” repeats every day and I cannot yet save a change for one day only, so I changed nothing. Tell me if you want the time of every day changed.',
+        'en': 'The reminder “{title}” repeats every day and I cannot yet save a change for one day only, so I changed nothing. To change the time of every day, just tell me and I will do it.',
     },
     'reminder.reschedule.aborted': {
         'fa': 'باشه، چیزی را تغییر ندادم.',
@@ -1638,7 +1638,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     'reminder.reschedule.collision': {
         'fa': 'برای «{title}» از قبل نوبتی در ساعت {new} هست و چیزی را تغییر ندادم. اگر می‌خواهی دو نوبت یکی شوند، بگو.',
         'ar': 'لدى «{title}» جرعة في الساعة {new} أصلاً ولم أغيّر شيئاً. إن أردت دمج الجرعتين فقل لي.',
-        'en': 'There is already a dose of “{title}” at {new}, so I changed nothing. Tell me if you want the two doses merged.',
+        'en': 'There is already a dose of “{title}” at {new}, so I changed nothing. To merge the two doses, just tell me.',
     },
     'reminder.reschedule.day_today': {'fa': ' (امروز)', 'ar': ' (اليوم)', 'en': ' (today)'},
     'reminder.reschedule.day_tomorrow': {'fa': ' (فردا)', 'ar': ' (غداً)', 'en': ' (tomorrow)'},
@@ -1661,6 +1661,61 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'fa': 'هنوز چیزی را در یادآورهایت تغییر نداده‌ام. بگو کدام یادآوری را به چه ساعتی ببرم تا همان لحظه انجامش بدهم.',
         'ar': 'لم أغيّر شيئاً في تذكيراتك بعد. قل لي أي تذكير وإلى أي ساعة وسأفعل ذلك فوراً.',
         'en': 'I have not changed anything in your reminders yet. Tell me which reminder and to what time, and I will do it right away.',
+    },
+    'medication.chat.q.ask_repeat': {
+        'fa': 'این یادآوری قرص ({when}) فقط یک‌بار باشد یا هر روز تکرار شود؟',
+        'ar': 'هل يكون تذكير الدواء هذا ({when}) مرة واحدة أم يتكرر كل يوم؟',
+        'en': 'Should this pill reminder ({when}) be just once, or repeat every day?',
+    },
+    'medication.chat.markers.ask_repeat': {
+        'fa': ('فقط یک‌بار باشد یا هر روز تکرار شود',),
+        'ar': ('مرة واحدة أم يتكرر كل يوم',),
+        'en': ('just once, or repeat every day',),
+    },
+    'medication.chat.q.ask_same': {
+        'fa': 'برای {names} که از قبل داری، این ساعت را هم اضافه کنم یا قرص جدیدی است؟',
+        'ar': 'لديك بالفعل {names}. هل أضيف هذا الوقت إليه أم هو دواء جديد؟',
+        'en': 'You already have {names}. Should I add this time to it, or is it a new medicine?',
+    },
+    'medication.chat.markers.ask_same': {
+        'fa': ('این ساعت را هم اضافه کنم یا قرص جدیدی است',),
+        'ar': ('أم هو دواء جديد',),
+        'en': ('or is it a new medicine',),
+    },
+    'medication.chat.q.ask_reason_promoted': {
+        'fa': '«{name}» حالا در مراقبتت ثبت است و ساعت‌هایش {times} است. چه موضوعی باعث می‌شود آن را مصرف کنی؟',
+        'ar': 'صار «{name}» مسجّلاً في رعايتك وأوقاته {times}. ما السبب وراء تناوله؟',
+        'en': '“{name}” is now registered in your care and its times are {times}. What is the reason behind it?',
+    },
+    'medication.chat.markers.ask_reason_promoted': {
+        'fa': ('چه موضوعی باعث می‌شود آن را مصرف کنی',),
+        'ar': ('ما السبب وراء تناوله',),
+        'en': ('what is the reason behind it',),
+    },
+    'medication.chat.dose_added': {
+        'fa': 'ثبت شد: ساعت {time} را هم برای «{name}» اضافه کردم؛ حالا نوبت‌هایش {times} است.',
+        'ar': 'تم: أضفتُ الساعة {time} أيضاً لـ«{name}»؛ وأوقاته الآن {times}.',
+        'en': 'Done: I added {time} to “{name}”; its times are now {times}.',
+    },
+    'medication.chat.dose_interval_only': {
+        'fa': '«{name}» با فاصله‌ی ساعتی یادآوری می‌شود و برای افزودن ساعت ثابت {time} باید اول در «برنامه من» ساعت‌های ثابتش را تعیین کنی؛ چیزی را تغییر ندادم.',
+        'ar': '«{name}» يُذكَّر به بفاصل ساعات، ولإضافة الساعة {time} الثابتة حدّد أوقاته الثابتة أولاً في «برنامجي»؛ ولم أغيّر شيئاً.',
+        'en': '“{name}” reminds you by an hourly interval; to add the fixed time {time}, first set its fixed times in “My schedule”. I changed nothing.',
+    },
+    'medication.chat.promote_later': {
+        'fa': 'همین حالا نزدیک ساعت یادآوری فعلی «{name}» هستیم و اگر الان منتقلش کنم ممکن است دو بار یادآوری شود؛ چیزی را تغییر ندادم. چند دقیقه‌ی دیگر همین را بگو تا بدون تکرار منتقلش کنم.',
+        'ar': 'نحن الآن قرب موعد تذكير «{name}» الحالي، وقد يتكرر التذكير مرتين إن نقلته الآن؛ ولم أغيّر شيئاً. قلها لي بعد دقائق لأنقله بلا تكرار.',
+        'en': 'We are right at the current reminder time of “{name}”, and moving it now could remind you twice, so I changed nothing. Say it again in a few minutes and I will move it without a repeat.',
+    },
+    'medication.chat.dose_exists': {
+        'fa': '«{name}» از قبل نوبتی در ساعت {time} دارد و چیزی را تغییر ندادم.',
+        'ar': 'لدى «{name}» جرعة في الساعة {time} أصلاً ولم أغيّر شيئاً.',
+        'en': '“{name}” already has a dose at {time}, so I changed nothing.',
+    },
+    'medication.chat.promoted.done': {
+        'fa': 'ثبت شد: «{name}» حالا در مراقبتت ثبت است و ساعت‌هایش {times} است. در کنار این دارو، مراقبت و پیگیری‌اش را با هم ادامه می‌دهیم؛ من همراهتم.',
+        'ar': 'تم: «{name}» مسجّل الآن في رعايتك وأوقاته {times}. وبجانب هذا الدواء سنتابع معاً الرعاية والمتابعة؛ أنا معك.',
+        'en': 'Done: “{name}” is now registered in your care and its times are {times}. Alongside this medicine we will go through care and follow-up together; I am with you.',
     },
     'medication.chat.cancelled': {
         'fa': 'باشه، یادآوری را نگذاشتم. هر وقت خواستی بگو تا برایت تنظیمش کنم.',

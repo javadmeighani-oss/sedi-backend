@@ -44,6 +44,9 @@ STAGE_KEYS = {  # order matters: «unrecognised» also contains the confirm-name
     "unrecognised": "medication.chat.markers.unrecognised",
     "confirm_name": "medication.chat.markers.confirm_name",
     "ask_reason": "medication.chat.markers.ask_reason",
+    "ask_reason_promoted": "medication.chat.markers.ask_reason_promoted",
+    "ask_repeat": "medication.chat.markers.ask_repeat",
+    "ask_same": "medication.chat.markers.ask_same",
 }
 
 _ARABIC_MARKS = re.compile("[ً-ٰٟـ‌‏‎]")
@@ -109,6 +112,24 @@ _CANCEL = re.compile(
     r"لا\s+(?:تضع|تنشئ|تسجّل|تسجل)|لا\s+أر[يی]د\s+(?:تذ[كک][يی]ر|تنب[يی]ه))",
     re.I,
 )
+# R-103 step B: the answer to «just once, or repeat every day?»
+_ONCE = re.compile(r"(?:یک\s*بار|فقط\s+(?:همین|فردا|امروز|این)|\bonce\b|\bjust\s+once\b|\bone\s*time\b|\bonly\s+once\b|مرة\s+واحدة|مره\s+واحده)", re.I)
+_EVERY = re.compile(r"(?:هر\s*روز|روزانه|تکرار|همیشه|\bevery\s*day\b|\bdaily\b|\brepeat|[كک]ل\s+[يی]وم|[يی]وم[يی]|[يی]ت[كک]رر)", re.I)
+# «do not repeat» / «weekly» are not a daily «yes» (Codex P2, PR 193)
+_NO_REPEAT = re.compile(
+    r"(?:تکرار\s*(?:نشود|نشه|نکن|نمی\s*خوام)|بدون\s+تکرار|\bdo\s*not\b|\bdon'?t\b|\bno\s+repeat|\bnot\s+repeat|لا\s+ت[كک]رر|بلا\s+ت[كک]رار)", re.I
+)
+_WEEKLY = re.compile(r"(?:هفتگی|هر\s*هفته|ماهانه|هر\s*ماه|\bweekly\b|\bevery\s+week\b|\bmonthly\b|[اأ]سبوع[يی]|شهر[يی])", re.I)
+
+
+def _says_once(text: str) -> bool:
+    return bool(_ONCE.search(text) or _NO_REPEAT.search(text))
+
+
+def _says_every(text: str) -> bool:
+    return bool(_EVERY.search(text)) and not _NO_REPEAT.search(text) and not _WEEKLY.search(text)
+
+
 _NON_ANSWER = re.compile(
     r"^(?:نمی\s*?دونم|نمی\s*?دانم|فرقی\s+نمی\s*?کنه|مهم\s+نیست|بی\s*?خیال|نمی\s*?خوام|نمیخوام|i\s+don'?t\s+know|skip|never\s+mind|"
     r"لا\s+أعرف|لا\s+أريد)",
@@ -270,30 +291,103 @@ def _create(
 
 
 # --- turn 1: the request ------------------------------------------------------------------------------------------
+def _same_action(db: Session, *, user_id: int, pill: dict[str, Any], draft: Any, lang: str) -> Optional[dict[str, Any]]:
+    """The user's request is another dose of a pill that already exists: add the dose (registered pill) or PROMOTE the older
+    reminder into the medicine owner (R-103 step B). None -> the caller continues with the ordinary interview."""
+    try:
+        from backend.app.services import user_medication_service as svc
+        from backend.app.services.medication_care import pill_registry as reg
+
+        time_ = (fire_times(draft) or [_hhmm(draft)])[0]
+        days = _days_of_week(getattr(draft, "recurrence_rule", None))
+        try:
+            if pill["kind"] == "med":
+                times = reg.add_dose(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
+                return {"kind": "medication", "created": True, "flow": "dose_added", "name": pill["name"], "time": time_,
+                        "times": reg.times_text(times, lang)}
+            times = reg.promote(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
+        except (svc.ScheduleTimeCollisionError, svc.IntervalOnlyScheduleError, svc.PromotionWindowError) as declined:
+            if db is not None:
+                db.rollback()  # a declined write leaves NOTHING behind (Codex P1, PR 193)
+            if isinstance(declined, svc.IntervalOnlyScheduleError):
+                return {"kind": "medication", "created": False, "flow": "interval_only", "name": pill["name"], "time": time_}
+            if isinstance(declined, svc.PromotionWindowError):
+                return {"kind": "medication", "created": False, "flow": "promote_later", "name": pill["name"], "time": time_}
+            return {"kind": "medication", "created": False, "flow": "dose_exists", "name": pill["name"], "time": time_}
+        out: dict[str, Any] = {"kind": "medication", "name": pill["name"], "time": time_, "times": reg.times_text(times, lang)}
+        if history_available(db, user_id):  # the reason is asked next (the older reminder never had one)
+            out.update({"created": False, "interview": "ask_reason_promoted"})
+        else:
+            out.update({"created": True, "flow": "promoted"})
+        return out
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-103] same-pill action failed")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
+def _begin(
+    db: Session, *, user_id: int, message: str, draft: Any, language: Optional[str], timezone_name: Optional[str]
+) -> Optional[dict[str, Any]]:
+    """A pill request that is (or has just been confirmed as) a DAILY series: another dose of a pill the user already has, or
+    the care interview of a new one. None = the generic event path stays."""
+    from backend.app.services.medication_care import pill_registry as reg
+
+    lang = _lang(language)
+    if not _hhmm(draft) or has_future_start(draft) or fire_times(draft) is None:
+        return None
+    found = extract_pill_name(message)
+    try:
+        pills = reg.existing_pills(db, user_id)
+    except Exception:  # noqa: BLE001 - fail-open: no registry -> the ordinary interview
+        pills = []
+    hit = reg.match(found, pills)
+    if hit is not None:  # «ساعت ۹ صبح هم قرص مکمل»: the name says it is the same pill
+        res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang)
+        if res is not None:
+            return res
+    flow = None
+    if insists(message):
+        flow = "insist"
+    elif not history_available(db, user_id):
+        flow = "no_history"
+    if flow:
+        out = _create(db, user_id=user_id, draft=draft, language=language, timezone_name=timezone_name, name=found)
+        if out is not None:
+            out["flow"] = flow
+        return out
+    time_ = (fire_times(draft) or [_hhmm(draft)])[0]
+    if pills and not found:  # no name given and the user has pills: «the same pill or a new one?»
+        return {"kind": "medication", "created": False, "interview": "ask_same", "names": reg.names_text(pills, lang),
+                "name": "", "named": False, "time": time_, "reason": "interview"}
+    return {
+        "kind": "medication", "created": False, "interview": "confirm_name" if found else "ask_name",
+        "name": found or "", "named": bool(found), "time": time_, "reason": "interview",
+    }
+
+
 def start_interview(
     db: Session, *, user_id: int, message: str, draft: Any, language: Optional[str], timezone_name: Optional[str]
 ) -> Optional[dict[str, Any]]:
-    """First turn of a recurring pill request. None = not applicable (the generic UserEvent path stays)."""
+    """First turn of a pill request. None = not applicable (the generic UserEvent path stays).
+    Recurring -> the care interview. No day word («ساعت ۹ صبح هم …») -> a DAILY series (Javad 2026-11-19). A day word («فردا ساعت
+    ۹») -> Sedi ASKS «just once, or repeating?» before anything is created (R-103 am.2)."""
     try:
-        if not enabled() or not is_medication_text(message) or not _is_recurring(getattr(draft, "recurrence_rule", None)):
+        if not enabled() or not is_medication_text(message) or not _hhmm(draft):
             return None
-        if not _hhmm(draft) or has_future_start(draft) or fire_times(draft) is None:
-            return None
-        found = extract_pill_name(message)
-        flow = None
-        if insists(message):
-            flow = "insist"
-        elif not history_available(db, user_id):
-            flow = "no_history"
-        if flow:
-            out = _create(db, user_id=user_id, draft=draft, language=language, timezone_name=timezone_name, name=found)
-            if out is not None:
-                out["flow"] = flow
-            return out
-        return {
-            "kind": "medication", "created": False, "interview": "confirm_name" if found else "ask_name",
-            "name": found or "", "named": bool(found), "time": (fire_times(draft) or [_hhmm(draft)])[0], "reason": "interview",
-        }
+        from backend.app.services.medication_care import pill_registry as reg
+
+        if not _is_recurring(getattr(draft, "recurrence_rule", None)):
+            if reg.has_day_word(message, getattr(draft, "timezone_name", None) or timezone_name, None):
+                if insists(message) or not history_available(db, user_id) or fire_times(draft) is None:
+                    return None  # no place to keep the question: the plain event, as before
+                return {"kind": "medication", "created": False, "interview": "ask_repeat", "name": "", "named": False,
+                        "time": (fire_times(draft) or [_hhmm(draft)])[0], "reason": "interview"}
+            draft = reg.as_daily(draft)
+        return _begin(db, user_id=user_id, message=message, draft=draft, language=language, timezone_name=timezone_name)
     except Exception:  # noqa: BLE001
         logger.exception("[R-088] medication interview start failed")
         return None
@@ -303,6 +397,23 @@ def confirmation(dispatched: dict[str, Any], language: Optional[str], when: str)
     """Sedi's text for a medication dispatch result: the next interview question, or the created reminder."""
     lang = _lang(language)
     stage = dispatched.get("interview")
+    if stage == "ask_repeat":
+        return sedi_copy.t("medication.chat.q.ask_repeat", lang, when=when)
+    if stage == "ask_same":
+        return sedi_copy.t("medication.chat.q.ask_same", lang, names=dispatched.get("names", ""))
+    if stage == "ask_reason_promoted":
+        return sedi_copy.t("medication.chat.q.ask_reason_promoted", lang, name=dispatched.get("name", ""), times=dispatched.get("times", ""))
+    flow = dispatched.get("flow")
+    if flow == "dose_added":
+        return sedi_copy.t("medication.chat.dose_added", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""), times=dispatched.get("times", ""))
+    if flow == "promote_later":
+        return sedi_copy.t("medication.chat.promote_later", lang, name=dispatched.get("name", ""))
+    if flow == "interval_only":
+        return sedi_copy.t("medication.chat.dose_interval_only", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""))
+    if flow == "dose_exists":
+        return sedi_copy.t("medication.chat.dose_exists", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""))
+    if flow == "promoted":
+        return sedi_copy.t("medication.chat.promoted.done", lang, name=dispatched.get("name", ""), times=dispatched.get("times", ""))
     if stage == "confirm_name":
         return sedi_copy.t("medication.chat.q.confirm_name", lang, name=dispatched.get("name", ""))
     if stage == "ask_name":
@@ -405,17 +516,37 @@ def _request_candidates(turns: list[Any]) -> list[tuple[str, Any]]:
     return out
 
 
-def _original_request(turns: list[Any], language: Optional[str], timezone_name: Optional[str]) -> Optional[tuple[Any]]:
+def _original_request(
+    turns: list[Any], language: Optional[str], timezone_name: Optional[str], allow_dated: bool = False
+) -> Optional[tuple[Any, str]]:
     from backend.app.services.intelligence.reminder_event_readiness import parse_reminder_event_draft
+    from backend.app.services.medication_care import pill_registry as reg
 
+    # «tomorrow at 9 …» -> «every day» was answered in an EARLIER turn: that dated request is a DAILY series from then on
+    repeat_confirmed: set[str] = set()
+    for idx, t in enumerate(turns):
+        if idx and _stage_of(getattr(t, "sedi_response", None), language) == "ask_repeat":
+            answer = _fold(str(getattr(turns[idx - 1], "user_message", "") or ""))
+            if _says_every(answer) and not _says_once(answer):
+                repeat_confirmed.add(str(getattr(t, "user_message", "") or ""))
     for text, t in _request_candidates(turns):
         if not is_medication_text(text):
             continue
         draft, missing = parse_reminder_event_draft(
             message=text, timezone_name=timezone_name or "UTC", now_utc=t.created_at, language=language
         )
-        if draft is not None and missing is None and _is_recurring(draft.recurrence_rule) and fire_times(draft) is not None and not has_future_start(draft, t.created_at):
-            return (draft,)
+        if draft is None or missing is not None:
+            continue
+        if not _is_recurring(draft.recurrence_rule):
+            dated = reg.has_day_word(text, timezone_name, t.created_at)
+            if dated and text in repeat_confirmed:
+                draft, dated = reg.as_daily(draft), False  # the user answered «every day»
+            if dated and not allow_dated:
+                continue
+            if not dated and not _is_recurring(draft.recurrence_rule):
+                draft = reg.as_daily(draft)  # no day word: another DAILY dose (R-103 am.2)
+        if fire_times(draft) is not None and (allow_dated or not has_future_start(draft, t.created_at)):
+            return (draft, text)
     return None
 
 
@@ -441,6 +572,33 @@ def _accompany(db: Session, user_id: int, lang: str, name: str, reason_message: 
         return False
 
 
+def _once_event(db: Session, user_id: int, draft: Any, text: str, lang: str, timezone_name: Optional[str]) -> Optional[str]:
+    """The plain reminder event (no interview): the user said «just once», or a daily series that starts in the future."""
+    from backend.app.services.intelligence.reminder_event_dispatch import confirmation_message, dispatch_reminder_user_event
+
+    res = dispatch_reminder_user_event(
+        db, user_id=user_id, message=text, timezone_name=timezone_name, draft=draft, language=lang, skip_medication_interview=True
+    )
+    return confirmation_message(res, lang)
+
+
+def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: str, timezone_name: Optional[str] = None) -> Optional[str]:
+    """The reason answer after an older reminder was promoted: the companionship becomes ONE tracked commitment (A3); a non-answer
+    just closes the step. A long message is another topic (None -> normal flow)."""
+    from backend.app.services.medication_care import pill_registry as reg
+
+    quoted = _QUOTED.search(last)
+    name = quoted.group(1).strip() if quoted else ""
+    text = _fold(message).strip()
+    # a long message is another topic, and an INDEPENDENT reminder request keeps its own routing (Codex P2, PR 193)
+    if len(text.split()) > 40 or _is_new_reminder_request(message, lang, timezone_name):
+        return None
+    reply = sedi_copy.t("medication.chat.promoted.done", lang, name=name, times=reg.times_text(reg.times_of(db, user_id, name), lang))
+    if not (insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text)) and _accompany(db, user_id, lang, name, message):
+        reply = reply + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)
+    return reply
+
+
 def continue_interview(
     db: Session, *, user_id: int, message: str, language: Optional[str], timezone_name: Optional[str],
     now: Optional[datetime] = None,
@@ -458,10 +616,12 @@ def continue_interview(
         if stage is None:
             return None
         lang = _lang(language)
-        original = _original_request(turns, language, timezone_name)
+        if stage == "ask_reason_promoted":  # the promotion is already done; nothing of the original request is needed
+            return _after_promoted(db, user_id, lang, last, message, timezone_name)
+        original = _original_request(turns, language, timezone_name, allow_dated=(stage == "ask_repeat"))
         if original is None:
             return None
-        draft = original[0]
+        draft, orig_text = original[0], original[1]
         quoted = _QUOTED.search(last)
         name = quoted.group(1).strip() if quoted else None
         text = _fold(message).strip()
@@ -480,6 +640,11 @@ def continue_interview(
         # an explicit withdrawal («don't set the reminder», «یادآور رو نمی‌خوام») ends it: nothing is created (Codex P2, PR 185)
         if _CANCEL.search(text):
             return sedi_copy.t("medication.chat.cancelled", lang)
+        # the two new questions: a non-answer / insistence takes the safe route - nothing the user asked for is lost
+        if stage == "ask_repeat" and (insists(message) or _NON_ANSWER.match(text)):
+            return _once_event(db, user_id, draft, orig_text, lang, timezone_name)
+        if stage == "ask_same" and (insists(message) or _NON_ANSWER.match(text)):
+            return finish(None, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
         # a non-answer / insistence ends the interview now: the request is never lost
         if insists(message) or _NON_ANSWER.match(text):
             return finish(name, "medication.chat.created.insist_named", "medication.chat.created.insist_unnamed")
@@ -487,6 +652,32 @@ def continue_interview(
         # normal routing, otherwise it would be swallowed and lost (Codex P2, PR 185)
         if _is_new_reminder_request(message, lang, timezone_name):
             return None
+        if stage == "ask_repeat":
+            once, every = _says_once(text), _says_every(text)
+            if once and not every:
+                return _once_event(db, user_id, draft, orig_text, lang, timezone_name)
+            if every and not once:
+                from backend.app.services.medication_care import pill_registry as reg
+
+                daily = reg.as_daily(draft)
+                res = _begin(db, user_id=user_id, message=orig_text, draft=daily, language=lang, timezone_name=timezone_name)
+                if res is None:  # a series that starts in the future stays a plain repeating event (known gap, DEBT-076)
+                    return _once_event(db, user_id, daily, orig_text, lang, timezone_name)
+                return confirmation(res, lang, "")
+            from backend.app.services.intelligence.reminder_event_readiness import describe_when
+
+            return sedi_copy.t("medication.chat.q.ask_repeat", lang, when=describe_when(draft, lang, now))
+        if stage == "ask_same":
+            from backend.app.services.medication_care import pill_registry as reg
+
+            pills = reg.existing_pills(db, user_id)
+            if reg.says_new(text):
+                return sedi_copy.t("medication.chat.q.ask_name", lang)
+            hit = reg.pick(text, pills)
+            if hit is None:
+                return sedi_copy.t("medication.chat.q.ask_same", lang, names=reg.names_text(pills, lang))
+            res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang)
+            return confirmation(res, lang, "") if res is not None else None
         # «unrecognised»: Sedi asked for the correct name, so a short reply there is that correction (Codex P2, PR 185)
         answer = _candidate_name(message) if stage in ("ask_name", "confirm_name", "unrecognised") else None
         if stage == "ask_name":
