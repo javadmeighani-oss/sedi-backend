@@ -264,7 +264,8 @@ def test_add_schedule_time_is_one_transaction_and_refuses_a_duplicate_time(monke
 def test_promote_creates_the_pill_with_both_times_and_soft_cancels_the_event_in_one_commit(monkeypatch):
     from backend.app.services import user_medication_service as svc
 
-    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 12, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None, updated_at=None)
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 12, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None,
+                         updated_at=None, recurrence_rule="FREQ=DAILY")
     q_event, q_um = MagicMock(), MagicMock()
     q_event.filter.return_value.first.return_value = ev
     q_um.filter.return_value.first.return_value = None
@@ -278,7 +279,8 @@ def test_promote_creates_the_pill_with_both_times_and_soft_cancels_the_event_in_
     assert ev.status == "cancelled" and ev.valid_to is not None  # soft cancel: the row stays
     assert db.commit.call_count == 1  # ONE transaction: never both reminders, never neither
     times = sorted(o.time_of_day for o in added if hasattr(o, "time_of_day"))
-    assert times == [time(9, 0), time(14, 0)] and all(o.days_of_week == "MO,TU" for o in added if hasattr(o, "time_of_day"))
+    days = {o.time_of_day: o.days_of_week for o in added if hasattr(o, "time_of_day")}
+    assert times == [time(9, 0), time(14, 0)] and days == {time(14, 0): None, time(9, 0): "MO,TU"}  # each dose keeps its own weekdays
     with pytest.raises(svc.UserMedicationNotFoundError):
         q_event.filter.return_value.first.return_value = None
         db.query.side_effect = [q_event]
@@ -324,3 +326,63 @@ def test_orchestrator_the_repeat_answer_continues_into_the_pill_interview(monkey
     orch, called = _orch()
     out = orch.process(authenticated_user_id=42, message="هر روز", language="fa")
     assert out.message == sedi_copy.t("medication.chat.q.ask_name", "fa") and called["gen"] is False
+
+
+# --- Codex round 1 on PR 193 ----------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "a,b,same",
+    [
+        ("Vitamin C", "Vitamin D", False), ("Metformin 500 mg", "Metformin 1000 mg", False), ("Metformin 500 mg", "Metformin 500 mg", True),
+        ("Metformin", "Metformin 500 mg", True), ("ویتامین C", "ویتامین D", False), ("قرص مکمل", "مکمل", True),
+        ("لووتیروکسین", "قرص لووتیروکسین", True), ("Aspirin", "Metformin", False),
+    ],
+)
+def test_p1_the_same_pill_needs_equal_identity_and_strength(a, b, same):
+    assert reg.same_pill(a, b) is same
+
+
+def test_p1_a_different_strength_or_product_is_not_added_as_a_dose(world):
+    world.pills = [_pill(name="Metformin 500 mg", times=("08:00",))]
+    out = _start("remind me every day at 9 pm to take aspirin pill", "en")
+    assert out["interview"] in ("confirm_name", "ask_name") and world.added == [] and world.promoted == []
+
+
+def test_p1_pick_prefers_the_pill_whose_every_identity_word_is_named():
+    pills = [_pill(name="Vitamin C", pid=1), _pill(name="Vitamin D", pid=2)]
+    assert reg.pick("vitamin d", pills)["id"] == 2 and reg.pick("vitamin", pills) is None
+
+
+def test_p1_promotion_keeps_each_dose_with_its_own_weekdays(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 9, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None,
+                         updated_at=None, recurrence_rule="FREQ=WEEKLY;BYDAY=MO")
+    q_event, q_um = MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = ev
+    q_um.filter.return_value.first.return_value = None
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
+    added = []
+    db.add.side_effect = lambda obj: added.append(obj)
+    svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00", None)  # the new dose is DAILY, the older one Monday-only
+    days = {o.time_of_day: o.days_of_week for o in added if hasattr(o, "time_of_day")}
+    assert days == {time(14, 0): "0", time(9, 0): None}
+
+
+def test_p2_a_confirmed_repeat_survives_the_following_turns(monkeypatch, world):
+    ask_rep = sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")
+    ask_name = sedi_copy.t("medication.chat.q.ask_name", "fa")
+    rows = _rows(("هر روز", ask_name), (DAY_REQ, ask_rep))  # newest first
+    reply = _go(monkeypatch, rows, "لووتیروکسین")
+    assert reply and "لووتیروکسین" in reply and mc._stage_of(reply, "fa") == "ask_reason"
+    rows2 = _rows(("لووتیروکسین", sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")), ("هر روز", ask_name), (DAY_REQ, ask_rep))
+    final = _go(monkeypatch, rows2, "برای تیروئید")
+    assert world.created == ["لووتیروکسین"] and final and "09:00" in final
+
+
+def test_p2_without_the_repeat_answer_a_dated_request_is_still_dropped(monkeypatch, world):
+    ask_name = sedi_copy.t("medication.chat.q.ask_name", "fa")
+    rows = _rows(("بله", ask_name), (DAY_REQ, ask_name))
+    assert _go(monkeypatch, rows, "لووتیروکسین") is None

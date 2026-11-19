@@ -26,7 +26,7 @@ _CLITIC_BASE = _KIND | frozenset("مکمل ویتامین supplement vitamin".sp
 _CLITICS = ("هام", "های", "ها", "مو", "ام", "م", "ت", "ش")
 _NEW = re.compile(r"(?:جدید|جديد|دیگه|دیگر|یکی\s+دیگه|متفاوت|\bnew\b|\banother\b|\bdifferent\b|\bother\b|\bnot\s+the\s+same\b|آخر|جديدة)", re.I)
 _SAME = re.compile(r"^(?:همان|همون|همین|هم\s*ان|بله|آره|اره|درسته|همینه|اون|آن|نفس|\bsame\b|\byes\b|\bthat\s+one\b|نعم|نفسه|هو\s+نفسه)", re.I)
-_TOKEN = re.compile(r"[^\W\d_]+", re.UNICODE)
+_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 
 
 def _fold(text: str) -> str:
@@ -50,16 +50,28 @@ def pill_title_name(title: str) -> Optional[str]:
     return " ".join(out).strip() or None
 
 
+_UNITS = frozenset("mg mcg g ml iu میلی گرم میکروگرم واحد میلیگرم".split())
+
+
 def _name_tokens(name: str) -> set[str]:
     return {_strip_clitic(w) for w in _TOKEN.findall(_fold(name).lower())} - _DROP
 
 
+def _split(name: str) -> tuple[set[str], set[str]]:
+    """(identity tokens, strength tokens): «Metformin 500 mg» -> ({metformin}, {500, mg}); container words are not identity."""
+    toks = _name_tokens(name)
+    dose = {t for t in toks if t.isdigit() or t in _UNITS}
+    return toks - dose - _KIND, dose
+
+
 def same_pill(a: str, b: str) -> bool:
-    ta, tb = _name_tokens(a), _name_tokens(b)
-    specific_a, specific_b = ta - _KIND, tb - _KIND
-    if specific_a and specific_b:
-        return bool(specific_a & specific_b)
-    return bool(ta) and ta == tb
+    """The same medicine: identity tokens EQUAL («Vitamin C» is not «Vitamin D») and, when both state a strength, equal strengths
+    («Metformin 500 mg» is not «Metformin 1000 mg»). Codex P1, PR 193."""
+    ia, da = _split(a)
+    ib, db_ = _split(b)
+    if ia or ib:
+        return ia == ib and (not da or not db_ or da == db_)
+    return bool(_name_tokens(a)) and _name_tokens(a) == _name_tokens(b)
 
 
 def _hhmm(h: int, m: int) -> str:
@@ -119,6 +131,9 @@ def pick(answer: str, pills: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     """The pill an answer points at: a word of its name, or - with exactly one pill - a plain «same / همان»."""
     text = _fold(answer).strip()
     toks = _name_tokens(text) - _KIND
+    exact = [p for p in pills if _split(p["name"])[0] and _split(p["name"])[0] <= toks] if toks else []
+    if len(exact) == 1:  # the answer contains ALL identity words of exactly one pill («vitamin d» -> Vitamin D, not Vitamin C)
+        return exact[0]
     named = [p for p in pills if (_name_tokens(p["name"]) - _KIND) & toks] if toks else []
     if len(named) == 1:
         return named[0]

@@ -497,6 +497,13 @@ def _original_request(
     from backend.app.services.intelligence.reminder_event_readiness import parse_reminder_event_draft
     from backend.app.services.medication_care import pill_registry as reg
 
+    # «tomorrow at 9 …» -> «every day» was answered in an EARLIER turn: that dated request is a DAILY series from then on
+    repeat_confirmed: set[str] = set()
+    for idx, t in enumerate(turns):
+        if idx and _stage_of(getattr(t, "sedi_response", None), language) == "ask_repeat":
+            answer = _fold(str(getattr(turns[idx - 1], "user_message", "") or ""))
+            if _EVERY.search(answer) and not _ONCE.search(answer):
+                repeat_confirmed.add(str(getattr(t, "user_message", "") or ""))
     for text, t in _request_candidates(turns):
         if not is_medication_text(text):
             continue
@@ -507,9 +514,11 @@ def _original_request(
             continue
         if not _is_recurring(draft.recurrence_rule):
             dated = reg.has_day_word(text, timezone_name, t.created_at)
+            if dated and text in repeat_confirmed:
+                draft, dated = reg.as_daily(draft), False  # the user answered «every day»
             if dated and not allow_dated:
                 continue
-            if not dated:
+            if not dated and not _is_recurring(draft.recurrence_rule):
                 draft = reg.as_daily(draft)  # no day word: another DAILY dose (R-103 am.2)
         if fire_times(draft) is not None and (allow_dated or not has_future_start(draft, t.created_at)):
             return (draft, text)

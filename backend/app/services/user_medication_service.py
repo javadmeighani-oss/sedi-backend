@@ -278,6 +278,18 @@ def add_schedule_time(db: Session, user_id: int, um_id: int, hhmm: str, days_of_
     return build_user_medication_out(um, med)
 
 
+_BYDAY_INDEX = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
+
+
+def _days_from_rule(rule: Optional[str]) -> Optional[str]:
+    """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily or no rule -> None (every day)."""
+    m = re.search(r"BYDAY=([A-Z,]+)", rule or "")
+    if not m:
+        return None
+    days = sorted({_BYDAY_INDEX[d] for d in m.group(1).split(",") if d in _BYDAY_INDEX})
+    return ",".join(str(d) for d in days) or None
+
+
 def promote_event_to_medication(
     db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None
 ) -> dict:
@@ -310,10 +322,11 @@ def promote_event_to_medication(
         db.add(um)
         db.flush()
     have = {r.time_of_day for r in (um.schedules or [])}
-    for t in (time(ev.starts_at.hour, ev.starts_at.minute), parse_hhmm(new_hhmm)):
+    # each dose keeps ITS OWN weekdays: the older dose those of the older event, the new one those of the new request (Codex P1)
+    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule)), (parse_hhmm(new_hhmm), days_of_week)):
         if t not in have:
             have.add(t)
-            db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days_of_week))
+            db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days))
     now = datetime.utcnow()
     ev.status = "cancelled"
     ev.valid_to = now
