@@ -328,7 +328,8 @@ def _merge_days(a: Optional[str], b: Optional[str]) -> Optional[str]:
 
 
 def promote_event_to_medication(
-    db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None
+    db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None,
+    also_event_ids: Optional[list[int]] = None,
 ) -> dict:
     """An older repeating chat reminder (UserEvent) becomes a REGISTERED medicine with its old dose time AND the new one, and the
     older event is soft-cancelled (status cancelled + valid_to; the row is never deleted) - all in ONE transaction so the user is
@@ -362,10 +363,22 @@ def promote_event_to_medication(
         db.flush()
     if not um.reminder_enabled:
         um.reminder_enabled = True  # the user has an ACTIVE reminder for this pill (the event being promoted): it must keep working
+    # the OTHER active repeating reminders of the same pill are promoted with it, so none keeps reminding next to the registered pill
+    events = [ev]
+    for oid in (also_event_ids or []):
+        other = (
+            db.query(models.UserEvent)
+            .filter(models.UserEvent.id == oid, models.UserEvent.user_id == user_id, models.UserEvent.status.in_(["scheduled", "confirmed"]))
+            .first()
+        )
+        if other is not None and other.starts_at is not None and not re.search(r"[1-9]", getattr(other, "reminder_offsets_json", None) or ""):
+            events.append(other)
     have = {r.time_of_day: r for r in (um.schedules or [])}
-    # each dose keeps ITS OWN weekdays (older dose: the older event's; new dose: the new request's); two doses at the same time merge
+    # each dose keeps ITS OWN weekdays (older dose: its event's; new dose: the new request's); two doses at the same time merge
     # their weekday coverage instead of dropping one (Codex P1/P2, PR 193)
-    for t, days in ((time(ev.starts_at.hour, ev.starts_at.minute), _days_from_rule(ev.recurrence_rule, ev.starts_at)), (parse_hhmm(convert_hhmm(new_hhmm, from_tz, ev.timezone)), days_of_week)):
+    entries = [(time(e.starts_at.hour, e.starts_at.minute), _days_from_rule(e.recurrence_rule, e.starts_at)) for e in events]
+    entries.append((parse_hhmm(convert_hhmm(new_hhmm, from_tz, ev.timezone)), days_of_week))
+    for t, days in entries:
         row = have.get(t)
         if row is None:
             row = models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days)
@@ -374,9 +387,10 @@ def promote_event_to_medication(
         else:
             row.days_of_week = _merge_days(row.days_of_week, days)
     now = datetime.utcnow()
-    ev.status = "cancelled"
-    ev.valid_to = now
-    ev.updated_at = now
+    for e in events:
+        e.status = "cancelled"
+        e.valid_to = now
+        e.updated_at = now
     um.updated_at = now
     db.commit()
     db.refresh(um)

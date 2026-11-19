@@ -584,3 +584,43 @@ def test_p2_once_or_repeat_answers_are_read_carefully(monkeypatch, world, answer
         assert reply == sedi_copy.t("medication.chat.q.ask_name", "fa") and world.once == []
     else:
         assert mc._stage_of(reply, "fa") == "ask_repeat" and world.once == [] and world.created == []
+
+
+# --- Codex round 8 on PR 193 ----------------------------------------------------------------------------------------------------------------
+def test_p2_two_older_reminders_of_one_pill_are_one_pill_and_promoted_together(monkeypatch):
+    e1 = SimpleNamespace(id=1, title="خوردن قرص مکملم", starts_at=datetime(2026, 11, 1, 9, 0), valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None, timezone="Asia/Tehran")
+    e2 = SimpleNamespace(id=2, title="قرص مکمل بخورم", starts_at=datetime(2026, 11, 1, 14, 0), valid_to=None, recurrence_rule="FREQ=DAILY", reminder_offsets_json=None, timezone="Asia/Tehran")
+
+    def query(model):
+        q = MagicMock()
+        rows = [e1, e2] if getattr(model, "__name__", "") == "UserEvent" else []
+        q.filter.return_value.order_by.return_value.limit.return_value.all.return_value = rows
+        return q
+
+    db = MagicMock()
+    db.query.side_effect = query
+    pills = [p for p in reg.existing_pills(db, 1) if p["kind"] == "event"]
+    assert len(pills) == 1 and pills[0]["ids"] == [1, 2] and pills[0]["times"] == ["09:00", "14:00"]
+
+
+def test_p2_promotion_cancels_every_older_reminder_of_the_pill_in_one_commit(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    e1 = SimpleNamespace(id=1, starts_at=datetime(2026, 11, 1, 9, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None, updated_at=None,
+                         recurrence_rule="FREQ=DAILY", reminder_offsets_json=None)
+    e2 = SimpleNamespace(id=2, starts_at=datetime(2026, 11, 1, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None, updated_at=None,
+                         recurrence_rule="FREQ=WEEKLY;BYDAY=MO", reminder_offsets_json=None)
+    q_event, q_um, q_other = MagicMock(), MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = e1
+    q_um.filter.return_value.first.return_value = None
+    q_other.filter.return_value.first.return_value = e2
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um, q_other]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": []})
+    added = []
+    db.add.side_effect = lambda o: added.append(o)
+    svc.promote_event_to_medication(db, 1, 1, "قرص مکمل", "20:00", None, None, also_event_ids=[2])
+    assert e1.status == "cancelled" and e2.status == "cancelled" and db.commit.call_count == 1
+    days = {o.time_of_day: o.days_of_week for o in added if hasattr(o, "time_of_day")}
+    assert days == {time(9, 0): None, time(14, 0): "0", time(20, 0): None}

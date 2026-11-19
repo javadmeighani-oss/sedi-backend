@@ -136,9 +136,17 @@ def existing_pills(db: Session, user_id: int) -> list[dict[str, Any]]:
         if _starts_later(e):  # the medicine schedule has no start date: a series that has not started yet stays an event
             continue
         name = pill_title_name(e.title or "")
-        if not name or any(same_pill(name, p["name"]) for p in pills):
+        if not name:
             continue
-        pills.append({"kind": "event", "id": int(e.id), "name": name, "times": [_hhmm(e.starts_at.hour, e.starts_at.minute)], "rule": e.recurrence_rule})
+        hhmm = _hhmm(e.starts_at.hour, e.starts_at.minute)
+        same_event = next((p for p in pills if p["kind"] == "event" and same_pill(name, p["name"])), None)
+        if same_event is not None:  # several older reminders of the SAME pill (09:00 and 14:00): ONE pill, all of them are promoted together
+            same_event["ids"].append(int(e.id))
+            same_event["times"] = sorted(set(same_event["times"]) | {hhmm})
+            continue
+        if any(same_pill(name, p["name"]) for p in pills):  # already registered in the medicine owner
+            continue
+        pills.append({"kind": "event", "id": int(e.id), "ids": [int(e.id)], "name": name, "times": [hhmm], "rule": e.recurrence_rule})
     return pills
 
 
@@ -210,7 +218,9 @@ def promote(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Op
     """An older repeating reminder becomes a registered pill with its old dose AND the new one; the older event is soft-cancelled."""
     from backend.app.services import user_medication_service as svc
 
-    out = svc.promote_event_to_medication(db, user_id, int(pill["id"]), pill["name"], hhmm, days, from_tz)
+    out = svc.promote_event_to_medication(
+        db, user_id, int(pill["id"]), pill["name"], hhmm, days, from_tz, also_event_ids=[i for i in pill.get("ids", []) if i != pill["id"]]
+    )
     return sorted(out.get("reminder_times") or [hhmm])
 
 
