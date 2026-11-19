@@ -36,6 +36,16 @@ _PRESENTATION_WORD_PACE_S = 0.133
 _WORD_DELTA_RE = re.compile(r"\S+|\s+")
 
 
+def _terminal_turn_key(user_message):
+    """One key per (message, minute): a client retry of the same request is deduplicated, a later repeat of the same words is a NEW
+    disclosure and is recorded (Codex P2, PR 187)."""
+    import hashlib
+    import time
+
+    digest = hashlib.sha256((user_message or "").encode("utf-8")).hexdigest()[:24]
+    return f"i4t:{digest}:{int(time.time() // 60)}"
+
+
 def _record_terminal_turn(db, user_id, user_message, reply, language):
     """A turn answered by the I4 terminal reply never reaches the orchestrator, so it was never stored: the NEXT turn could not
     know the person had just spoken about hurting themselves (Codex P1, PR 187). Consent-gated governed raw write, idempotent,
@@ -52,7 +62,7 @@ def _record_terminal_turn(db, user_id, user_message, reply, language):
             sedi_response=(reply or "").strip(),
             language=language,
             actor_user_id=user_id,
-            idempotency_key=None,
+            idempotency_key=_terminal_turn_key(user_message),
             commit=True,
         )
     except Exception:

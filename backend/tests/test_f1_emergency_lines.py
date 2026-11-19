@@ -230,3 +230,15 @@ def test_p2_real_sudden_vision_loss_is_still_an_emergency(text):
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert triage(text, "en").red_flag_key == "sudden_vision_loss"
+
+
+def test_p2_terminal_turns_get_a_key_that_separates_repeats_but_dedupes_retries(monkeypatch):
+    import backend.app.routers.interact as inter
+
+    t = {"now": 1_000_000.0}
+    monkeypatch.setattr("time.time", lambda: t["now"])
+    a = inter._terminal_turn_key("I want to die")
+    assert inter._terminal_turn_key("I want to die") == a  # a retry within the same minute = same key
+    assert inter._terminal_turn_key("I want to live") != a  # different words, different key
+    t["now"] += 3 * 3600  # the same words hours later are a NEW disclosure
+    assert inter._terminal_turn_key("I want to die") != a
