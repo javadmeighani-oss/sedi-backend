@@ -130,12 +130,12 @@ def test_a_medication_schedule_is_changed_through_its_owner(monkeypatch):
     from backend.app.services import user_medication_service as svc
 
     sent = []
-    monkeypatch.setattr(svc, "update_user_medication", lambda db, uid, umid, body: sent.append((umid, body.reminder_times)) or {})
+    monkeypatch.setattr(svc, "move_schedule_time", lambda db, uid, umid, old, new: sent.append((umid, old, new)) or {})
     row = SimpleNamespace(time_of_day=time(14, 0), days_of_week="MO,TU")
     um = SimpleNamespace(id=3, schedules=[row])
     _with(monkeypatch, [{"kind": "med", "obj": um, "row": row, "title": "لووتیروکسین", "hhmm": "14:00", "recurring": True}])
     reply = _go("زمانش رو بکن ۴ عصر", context="لووتیروکسین")
-    assert sent == [(3, ["16:00"])] and "لووتیروکسین" in reply and "16:00" in reply
+    assert sent == [(3, "14:00", "16:00")] and "لووتیروکسین" in reply and "16:00" in reply
 
 
 # --- the guard: the model can no longer claim a change ----------------------------------------------------------------------

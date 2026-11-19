@@ -22,6 +22,10 @@ class DuplicateUserMedicationError(Exception):
     """User already has this medication assigned."""
 
 
+class ScheduleTimeCollisionError(Exception):
+    """Moving a dose onto a time where the same medicine already has another dose."""
+
+
 class UserMedicationNotFoundError(Exception):
     """Assignment not found for user."""
 
@@ -230,6 +234,25 @@ def update_user_medication(db: Session, user_id: int, um_id: int, body: UserMedi
     if body.estimated_end_at is not None:
         um.estimated_end_at = body.estimated_end_at
 
+    um.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(um)
+    return build_user_medication_out(um, med)
+
+
+def move_schedule_time(db: Session, user_id: int, um_id: int, old_hhmm: str, new_hhmm: str) -> dict:
+    """Move ONE dose time in place, in ONE transaction: the weekday filter of that dose is kept and the other doses are not
+    touched (the full ``reminder_times`` replacement would briefly store daily schedules and could merge two doses). Used by the
+    chat time-change path (R-103). Raises UserMedicationNotFoundError (no such dose) / ScheduleTimeCollisionError."""
+    um, med = get_user_medication_owned(db, user_id, um_id)
+    old_t, new_t = parse_hhmm(old_hhmm), parse_hhmm(new_hhmm)
+    rows = list(um.schedules or [])
+    target = next((r for r in rows if r.time_of_day == old_t), None)
+    if target is None:
+        raise UserMedicationNotFoundError()
+    if any(r is not target and r.time_of_day == new_t for r in rows):
+        raise ScheduleTimeCollisionError()
+    target.time_of_day = new_t
     um.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(um)

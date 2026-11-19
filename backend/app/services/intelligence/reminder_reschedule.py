@@ -146,9 +146,14 @@ def _candidates(db: Session, user_id: int, now_utc: datetime) -> list[dict[str, 
     return out
 
 
-def _pick(cands: list[dict[str, Any]], context: str, old_hhmm: Optional[str]) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]]]:
-    """(chosen, shortlist). chosen is None when the reminder cannot be identified with confidence."""
-    pool = [c for c in cands if not old_hhmm or c["hhmm"] == old_hhmm] or cands
+def _pick(
+    cands: list[dict[str, Any]], context: str, old_hhmm: Optional[str], message: str = ""
+) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]]]:
+    """(chosen, shortlist). chosen is None when the reminder cannot be identified with confidence. A reminder NAMED in the message
+    is checked first: a wrong old time must not move a different reminder (Codex P1, PR 192)."""
+    named = [c for c in cands if _tokens(c["title"]) & _tokens(message)] if message else []
+    base = named or cands
+    pool = [c for c in base if not old_hhmm or c["hhmm"] == old_hhmm] or base
     if len(pool) == 1:
         return pool[0], pool
     ctx = _tokens(context)
@@ -213,22 +218,17 @@ def _apply_event(
 
 
 def _apply_med(db: Session, user_id: int, cand: dict[str, Any], new: tuple[int, int, int]) -> str:
-    from backend.app.schemas.medical import UserMedicationUpdateIn
     from backend.app.services import user_medication_service as svc
 
     um, row = cand["obj"], cand["row"]
-    old_days = {svc.format_time_of_day(r.time_of_day): r.days_of_week for r in (um.schedules or []) if r.time_of_day is not None}
     old_key = svc.format_time_of_day(row.time_of_day)
     new_key = _hhmm(new[0], new[1])
     if any(svc.format_time_of_day(r.time_of_day) == new_key for r in (um.schedules or []) if r is not row and r.time_of_day is not None):
         raise _Collision()  # the owner would merge the two doses and silently drop one weekday filter (Codex P2, PR 192)
-    times = [new_key if svc.format_time_of_day(r.time_of_day) == old_key else svc.format_time_of_day(r.time_of_day) for r in um.schedules if r.time_of_day is not None]
-    svc.update_user_medication(db, user_id, int(um.id), UserMedicationUpdateIn(reminder_times=times))
-    db.refresh(um)
-    for r in um.schedules or []:  # _replace_schedules drops the weekday filter; the changed dose keeps the old one
-        key = svc.format_time_of_day(r.time_of_day)
-        r.days_of_week = old_days.get(old_key if key == new_key else key)
-    db.commit()
+    try:
+        svc.move_schedule_time(db, user_id, int(um.id), old_key, new_key)  # one transaction, weekday filter kept
+    except svc.ScheduleTimeCollisionError:
+        raise _Collision()
     return new_key
 
 
@@ -258,7 +258,7 @@ def handle(
         # or a word of a reminder's own title in the message / the last reply)
         if not (_rer._REMINDER_WORDS.search(text) or _PRONOUN.search(text) or any(_tokens(c["title"]) & ctx_tokens for c in cands)):
             return None
-        chosen, pool = _pick(cands, text + " " + (context or ""), old_hhmm)
+        chosen, pool = _pick(cands, text + " " + (context or ""), old_hhmm, text)
         if chosen is None:
             lines = "؛ ".join(f"«{c['title']}» {c['hhmm']}" for c in pool[:3]) if lang != "en" else "; ".join(f"“{c['title']}” {c['hhmm']}" for c in pool[:3])
             return sedi_copy.t("reminder.reschedule.ask_which", lang, list=lines)

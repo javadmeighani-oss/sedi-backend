@@ -93,10 +93,43 @@ def test_moving_a_dose_onto_another_dose_is_refused(monkeypatch):
     from backend.app.services import user_medication_service as svc
 
     sent = []
-    monkeypatch.setattr(svc, "update_user_medication", lambda *a, **k: sent.append(a))
+    monkeypatch.setattr(svc, "move_schedule_time", lambda *a, **k: sent.append(a))
     r1 = SimpleNamespace(time_of_day=time(14, 0), days_of_week="MO")
     r2 = SimpleNamespace(time_of_day=time(20, 0), days_of_week="TU")
     um = SimpleNamespace(id=3, schedules=[r1, r2])
     cand = {"kind": "med", "obj": um, "row": r1, "title": "Metformin", "hhmm": "14:00", "recurring": True}
     reply = _go(monkeypatch, [cand], "move the reminder to 8 pm", context="Metformin")
     assert reply == sedi_copy.t("reminder.reschedule.collision", "en", title="Metformin", new="20:00") and sent == []
+
+
+# --- round 2: a reminder NAMED in the message wins over the old-time filter (P1) ----------------------------------------------
+def test_p1_a_named_reminder_is_not_replaced_by_a_unique_time_match(monkeypatch, owners):
+    cands = [_event(eid=1, title="Aspirin", hh=9, recurring=True), _event(eid=2, title="Metformin", hh=14, recurring=True)]
+    reply = _go(monkeypatch, cands, "move my Metformin reminder from 9 am to 4 pm")  # the old time 9 am belongs to Aspirin
+    assert owners and owners[0][0] == 2 and "Metformin" in reply and "Aspirin" not in reply
+
+
+def test_p1_the_old_time_still_picks_when_nothing_is_named(monkeypatch, owners):
+    cands = [_event(eid=1, title="Aspirin", hh=9, recurring=True), _event(eid=2, title="Metformin", hh=14, recurring=True)]
+    _go(monkeypatch, cands, "move the reminder from 9 am to 10 am")
+    assert owners and owners[0][0] == 1
+
+
+# --- round 2: the medication move is ONE owner call that keeps the weekday filter (P2) ------------------------------------------
+def test_p2_move_schedule_time_is_in_place_atomic_and_keeps_the_weekday_filter(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    r1 = SimpleNamespace(time_of_day=time(14, 0), days_of_week="MO")
+    r2 = SimpleNamespace(time_of_day=time(20, 0), days_of_week="TU")
+    um = SimpleNamespace(id=3, schedules=[r1, r2], updated_at=None)
+    db = MagicMock()
+    monkeypatch.setattr(svc, "get_user_medication_owned", lambda d, uid, umid: (um, SimpleNamespace(name="X")))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"id": u.id})
+    assert svc.move_schedule_time(db, 1, 3, "14:00", "16:00") == {"id": 3}
+    assert r1.time_of_day == time(16, 0) and r1.days_of_week == "MO" and r2.time_of_day == time(20, 0) and r2.days_of_week == "TU"
+    assert db.commit.call_count == 1  # one transaction, no intermediate daily schedule
+    with pytest.raises(svc.ScheduleTimeCollisionError):
+        svc.move_schedule_time(db, 1, 3, "16:00", "20:00")
+    with pytest.raises(svc.UserMedicationNotFoundError):
+        svc.move_schedule_time(db, 1, 3, "07:00", "08:00")
+    assert db.commit.call_count == 1  # the refused moves committed nothing
