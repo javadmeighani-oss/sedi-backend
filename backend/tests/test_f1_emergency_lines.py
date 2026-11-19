@@ -358,3 +358,26 @@ def test_p2_ordinary_conversation_still_gets_no_hint(text):
     from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
 
     assert llm_hint(triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en")) is None
+
+
+def _db(phone, tz):
+    class Q:
+        def __init__(self, row): self.row = row
+        def filter(self, *a, **k): return self
+        def first(self): return self.row
+
+    class DB:
+        def query(self, model):
+            return Q(SimpleNamespace(phone=phone) if getattr(model, "__name__", "") == "User" else SimpleNamespace(timezone=tz))
+
+    return DB()
+
+
+@pytest.mark.parametrize("phone, tz, lang, expected", [
+    ("+14155550123", "America/New_York", "fa", None),  # Persian speaker abroad: explicit evidence beats the language fallback
+    ("+989121234567", "America/New_York", "fa", None),  # Iranian number but located elsewhere NOW: neutral, never a wrong number
+    ("+14155550123", None, "fa", None),
+    ("+989121234567", None, "en", "IR"), ("09121234567", None, "en", "IR"),
+    (None, "Asia/Tehran", "en", "IR"), (None, None, "fa", "IR"), (None, None, "en", None)])
+def test_p1_explicit_foreign_evidence_is_never_overridden_by_the_language_fallback(phone, tz, lang, expected):
+    assert el.region_for(_db(phone, tz), 1, lang) == expected

@@ -23,17 +23,25 @@ REGION_LINES = {
 
 
 def region_for(db: Any, user_id: Optional[int], language: str) -> Optional[str]:
+    """Where the user probably is, for emergency numbers. Explicit evidence wins over the language fallback (Codex P1):
+    1. the profile timezone (where the device is NOW): Asia/Tehran -> IR, any other timezone -> unknown region;
+    2. else the phone prefix: +98 / 0098 / 09xx -> IR, any other international prefix -> unknown region;
+    3. only with NO evidence at all: Persian language -> IR (pilot = Iran first, R-098).
+    ``None`` = no verified numbers: the country-neutral wording is used."""
     try:
         if db is not None and user_id:
             from backend.app import models
 
+            profile = db.query(models.UserProfileCore).filter(models.UserProfileCore.user_id == user_id).first()
+            tz = str(getattr(profile, "timezone", "") or "").strip()
+            if tz:
+                return "IR" if tz == "Asia/Tehran" else None
             user = db.query(models.User).filter(models.User.id == user_id).first()
             phone = str(getattr(user, "phone", "") or "").replace(" ", "")
             if phone.startswith(("+98", "0098", "09")):
                 return "IR"
-            profile = db.query(models.UserProfileCore).filter(models.UserProfileCore.user_id == user_id).first()
-            if str(getattr(profile, "timezone", "") or "") == "Asia/Tehran":
-                return "IR"
+            if phone.startswith(("+", "00")):
+                return None
     except Exception:  # noqa: BLE001
         logger.debug("emergency_lines.region_for failed", exc_info=True)
     return "IR" if language == "fa" else None
