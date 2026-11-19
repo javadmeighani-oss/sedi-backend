@@ -46,6 +46,22 @@ _STOP = frozenset(
     "the a an to of my me at every day take remind reminder time for and "
     "تذكير الساعة كل يوم".split()
 )
+# Codex P1 (PR 192): «remind me to CHANGE my bandage at 4 pm» is a NEW reminder whose task contains a change verb. A new-reminder
+# phrase makes the message a reschedule only when it also names the reminder / its time as the target.
+_NEW_REMINDER = re.compile(r"\b(?:remind|notify|alert|ping)\s+me\b|(?:یادم|خبرم)\s*(?:بنداز|بیار|بیاور|کن)\b|ذ[كک][يی]رن[يی]|نبّ?هن[يی]", re.I)
+_EXPLICIT_TARGET = re.compile(
+    r"\b(?:change|move|shift|reschedule|postpone)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?:reminder|time)\b|\breminder\s+time\b|"
+    r"\b(?:change|move|shift)\s+(?:it|its\s+time)\b|"
+    r"(?:زمان|ساعت|وقت)(?:ش|شو|اش)\b|(?:زمان|ساعت|وقت)\s+(?:این\s+|آن\s+)?(?:یادآور\w*|نوتیف|اعلان)|"
+    r"(?:یادآور\w*|نوتیف|اعلان)\s*(?:رو|را)?\s*(?:تغییر|عوض|جابه?\s*جا)|(?:موعد|وقت|ساعة)\s+(?:ال)?تذ[كک][يی]ر",
+    re.I,
+)
+
+
+def _new_reminder_task(text: str) -> bool:
+    return bool(_NEW_REMINDER.search(text)) and not _EXPLICIT_TARGET.search(text)
+
+
 _ONE_DAY_ONLY = re.compile(
     r"\bonly\b.{0,24}\b(?:today|tomorrow|tonight|this\s+once)\b|\bjust\s+(?:for\s+)?(?:today|tomorrow|tonight|once)\b|"
     r"\b(?:today|tomorrow|tonight)\s+only\b|فقط\s+(?:برای\s+)?(?:امروز|فردا|امشب|یک\s*بار|این\s*بار)|(?:امروز|فردا|امشب)\s+فقط|"
@@ -71,7 +87,7 @@ def _norm(text: str) -> str:
 def is_change_request(message: str) -> bool:
     """An explicit request to change the time of something that already exists (needs a change verb)."""
     text = _norm(message)
-    return bool(text and _CHANGE.search(text) and not _NEGATED.search(text))
+    return bool(text and _CHANGE.search(text) and not _NEGATED.search(text) and not _new_reminder_task(text))
 
 
 def _times_in(text: str) -> list[tuple[int, int, int, str, int]]:
@@ -262,7 +278,7 @@ def handle(
     try:
         lang = _lang(language)
         text = _norm(message)
-        if not text or not _CHANGE.search(text) or _NEGATED.search(text):
+        if not text or not _CHANGE.search(text) or _NEGATED.search(text) or _new_reminder_task(text):
             return None
         now = now_utc or datetime.now(timezone.utc)
         times = _times_in(text)

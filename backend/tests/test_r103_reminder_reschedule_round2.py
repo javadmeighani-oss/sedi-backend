@@ -221,3 +221,29 @@ def test_p2_a_one_day_change_never_rewrites_a_repeating_series(monkeypatch, owne
 def test_p2_a_one_time_reminder_may_still_use_a_day_word(monkeypatch, owners):
     _go(monkeypatch, [_event(title="Dentist", hh=9, recurring=False, day=datetime(2026, 11, 20))], "move only tomorrow's reminder to 4 pm")
     assert owners and owners[0][1] == datetime(2026, 11, 20, 16, 0)
+
+
+# --- round 6: a change verb inside the TASK of a new reminder is not a reschedule ---------------------------------------------------
+@pytest.mark.parametrize(
+    "lang,message",
+    [
+        ("en", "remind me to change my bandage at 4 pm"), ("en", "please remind me to move the car at 4 pm"),
+        ("fa", "یادم بنداز ساعت ۴ عصر پانسمانم را عوض کنم"), ("fa", "ساعت ۴ عصر یادم بنداز لباسم را عوض کنم"),
+    ],
+)
+def test_p1_a_new_reminder_with_a_change_verb_in_its_task_is_left_to_the_normal_flow(monkeypatch, owners, lang, message):
+    assert rr.is_change_request(message) is False
+    assert _go(monkeypatch, [_event(title="Supplement", hh=9, recurring=True)], message, lang) is None and owners == []
+
+
+@pytest.mark.parametrize(
+    "lang,message",
+    [
+        ("en", "remind me again but change the reminder time to 4 pm"), ("en", "change the reminder time to 4 pm"),
+        ("fa", "زمانش را تغییر بده به ۴ عصر"), ("fa", "یادم بنداز، ساعت یادآوری رو تغییر بده به ۴ عصر"),
+    ],
+)
+def test_p1_an_explicit_target_still_counts_as_a_reschedule(monkeypatch, owners, lang, message):
+    assert rr.is_change_request(message) is True
+    assert _go(monkeypatch, [_event(title="Supplement", hh=9, recurring=True)], message, lang)
+    assert owners and owners[0][1].hour == 16
