@@ -52,12 +52,18 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
     ("worst_headache", _rx(r"بدترین سردرد", r"سردرد.{0,20}ناگهانی.{0,20}(?:شدید|وحشتناک)", r"worst headache of my life")),
     ("heavy_bleeding", _rx(r"خونریزی.{0,10}(?:شدید|بند نمیاد|بند نمی ?آید|زیاد)", r"heavy bleeding", r"bleeding (?:won.?t|will not) stop")),
     ("fainting", _rx(r"غش کردم", r"از حال رفتم", r"بیهوش شد", r"fainted|passed out|lost consciousness")),
+    ("sudden_vision_loss", _rx(
+        r"(?:چشمم|چشم ?ام|دیدم|بینایی ?ام|بینایی).{0,25}(?:ناگهان|یکدفعه|یهو|یک ?دفعه).{0,25}(?:سیاه|تار|از دست|رفت|کم شد|دوبین)",
+        r"(?:ناگهان|یکدفعه|یهو).{0,25}(?:چشمم|دیدم|بینایی).{0,20}(?:سیاه|تار|از دست|رفت|کم شد)",
+        r"(?:چشمم|دیدم).{0,15}(?:سیاه شد|سیاه شده|را از دست)",
+        r"(?:ناگهان|یکدفعه|یهو).{0,25}چشم.{0,25}(?:از دست|سیاه|تار|نمی ?بین)", r"از دست دادم.{0,12}(?:بینایی|دید)",
+        r"sudden.{0,20}(?:vision|sight).{0,15}(?:loss|blur|black)", r"suddenly (?:can.?t|cannot) see",
+        r"(?:vision|sight|eyesight).{0,20}suddenly.{0,20}(?:went|gone|black|blur|lost|dark)", r"suddenly.{0,15}(?:lost|went blind)")),
     ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"can.?t breathe")),
 )
 
 # urgent but not an emergency: the person should be seen soon
 _SOON: tuple[re.Pattern, ...] = (
-    _rx(r"(?:دید|چشم).{0,25}(?:ناگهان|یکدفعه|یهو).{0,20}(?:تار|کم|سیاه)", r"ناگهان.{0,25}(?:دیدم|چشمم).{0,15}(?:تار|کم)", r"sudden.{0,20}vision"),
     _rx(r"تب.{0,10}(?:بالا|بیشتر از ?۳۹|۴۰)", r"high fever"),
 )
 
@@ -73,7 +79,8 @@ _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("mind", _rx(r"اضطراب", r"افسردگی", r"افسرده", r"پانیک", r"استرس شدید", r"بی ?خوابی", r"خوابم نمی ?بره", r"خوابم نمیبره", r"anxiety", r"depress", r"insomnia"), ("روانپزشکی",)),
     ("ent", _rx(r"گلو", r"سینوس", r"گوش ?درد", r"گوشم", r"بینی", r"آب ?ریزش", r"تونسیل", r"ear ?ache", r"sore throat", r"sinus"), ("گوش و حلق و بینی",)),
     ("endocrine", _rx(r"قند خون", r"قندم", r"دیابت", r"تیروئید", r"تشنه", r"diabet", r"thyroid"), ("غدد",)),
-    ("eye", _rx(r"چشم", r"\bدیدم\b", r"دوبینی", r"تار ?بینی", r"\beye\b", r"vision"), ("چشم",)),
+    # «دیدم» alone means «I saw»: an eye complaint needs visual-complaint wording (Codex P2, PR 187)
+    ("eye", _rx(r"چشم", r"دیدم ?(?:تار|کم|ضعیف|خوب نیست|مشکل|دو ?تا)", r"(?:تار|دو) ?می ?بینم", r"دوبینی", r"تار ?بینی", r"\beye\b", r"\bvision\b"), ("چشم",)),
     ("dental", _rx(r"دندان", r"لثه", r"\btooth\b", r"dental"), ("دندانپزشکی",)),
     ("urinary", _rx(r"ادرار", r"مثانه", r"کلیه", r"urin", r"bladder", r"kidney"), ("اورولوژی", "داخلی")),
     ("women", _rx(r"قاعدگی", r"پریود", r"بارداری", r"حامله", r"ترشح واژینال", r"period", r"pregnan", r"menstru"), ("زنان",)),

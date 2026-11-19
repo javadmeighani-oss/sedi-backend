@@ -47,9 +47,22 @@ def test_companion_symptoms_add_the_second_specialist_with_a_reason():
     assert out.specialties[:2] == ("ارتوپدی", "مغز و اعصاب") and out.reasons["مغز و اعصاب"] == "back_joint"
 
 
-def test_sudden_vision_change_is_urgent_soon():
-    out = st.triage("دیدم ناگهان تار شده")
-    assert out.urgency == "soon" and out.specialties[0] == "چشم" and not out.red_flag
+@pytest.mark.parametrize("text", ["دیدم ناگهان تار شده", "چشمم ناگهان سیاه شده", "ناگهان چشم راستم را از دست دادم", "my vision suddenly went black", "sudden vision loss in one eye"])
+def test_sudden_vision_loss_is_an_emergency_not_a_wait_of_two_days(text):
+    out = st.triage(text)
+    assert out.red_flag and out.urgency == "emergency" and out.red_flag_key == "sudden_vision_loss" and out.next_question is None
+    assert "within a day or two" not in (st.llm_hint(out) or "") and "EMERGENCY" in st.llm_hint(out)
+
+
+@pytest.mark.parametrize("text", ["امروز یک فیلم دیدم", "دیدم که علی آمد", "دیروز مادرم را دیدم", "یه دکتر دیدم و گفت خوبی"])
+def test_the_word_saw_is_not_an_eye_complaint(text):
+    out = st.triage(text)
+    assert "eye" not in out.areas and "چشم" not in out.specialties and st.llm_hint(out) is None
+
+
+@pytest.mark.parametrize("text", ["دیدم کم شده", "دیدم تار است", "تار می‌بینم", "چشمم درد می‌کند"])
+def test_real_visual_complaints_still_reach_the_eye_specialist(text):
+    assert st.triage(text).specialties[0] == "چشم" or "چشم" in st.triage(text).specialties
 
 
 def test_every_non_emergency_result_asks_exactly_one_question_key():
