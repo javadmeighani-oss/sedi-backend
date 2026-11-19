@@ -24,6 +24,10 @@ def fold(text: str) -> str:
     return re.sub(r"\s+", " ", _MARKS.sub("", out)).strip()
 
 
+# Arabic-script LETTERS only: punctuation such as «،» «؟» is a word boundary (Codex P2, PR 189).
+_LETTERS = "ء-غف-يٮ-ۓەۮۯۺ-ۼ"
+
+
 class Specialty(NamedTuple):
     canonical: str          # Persian name used everywhere (triage, requests, booking-site queries)
     stem: str               # what the legacy governed directory matched on
@@ -82,7 +86,7 @@ def _compile(words: tuple) -> Optional[re.Pattern]:
     if not folded:
         return None
     body = "|".join(re.escape(w).replace(r"\ ", r"\s+") for w in folded)
-    return re.compile(r"(?<![a-z؀-ۿ])(?:" + body + r")(?![a-z؀-ۿ])")
+    return re.compile(r"(?<![a-z" + _LETTERS + r"])(?:" + body + r")(?![a-z" + _LETTERS + r"])")
 
 
 _ALIAS_RX = [(sp, _compile(sp.aliases + sp.persons)) for sp in _SPECIALTIES]
@@ -137,3 +141,20 @@ def qualifiers(text: str) -> tuple[str, ...]:
     if _HIGH_RATING.search(t):
         out.append("high_rating")
     return tuple(out)
+
+
+_ENGLISH = {
+    "قلب": "Cardiology", "مغز و اعصاب": "Neurology", "اورولوژی": "Urology", "ارتوپدی": "Orthopedics", "پوست": "Dermatology",
+    "گوارش": "Gastroenterology", "روانپزشکی": "Psychiatry", "غدد": "Endocrinology", "ریه": "Pulmonology", "کلیه": "Nephrology",
+    "انکولوژی": "Oncology",
+}
+
+
+def governed_terms(name: Optional[str]) -> tuple:
+    """Every string a legacy governed row may carry for this specialty: the Persian stem first, then the English label (Codex P2)."""
+    if not name:
+        return ()
+    terms = [governed_stem(name)]
+    if _ENGLISH.get(name):
+        terms.append(_ENGLISH[name])
+    return tuple(t for t in terms if t)

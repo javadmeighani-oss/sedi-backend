@@ -90,3 +90,41 @@ def test_pharmacy_never_touches_the_governed_directory(monkeypatch):
     req = cn.parse_care_nav_request("find a pharmacy in Shiraz", language="en")
     res = cn.query_governed_directory(None, req)
     assert calls == [] and res.status == cn.STATUS_NO_VERIFIED
+
+
+# --- Codex review of PR 189 -------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("text", ["یه دکتر زنان، در تهران معرفی کن", "دکتر زنان؟", "(زنان)", "«زنان»"])
+def test_p2_arabic_script_punctuation_is_a_word_boundary(text):
+    assert sl.find_specialty(text) == "زنان"
+
+
+def test_p2_legacy_governed_rows_with_english_specialties_still_match(monkeypatch):
+    seen = []
+
+    def fake_search(db, *, name=None, city=None, province=None, specialty=None, include_inactive=False, limit=5):
+        seen.append(specialty)
+        return [{"canonical_directory_key": "k1"}] if specialty == "Neurology" else []
+
+    monkeypatch.setattr(cn._governed_directory, "search_doctors", fake_search)
+    req = cn.parse_care_nav_request("Find a neurologist in Tehran", language="en")
+    assert req.specialty_or_service == "مغز و اعصاب"
+    rows = cn._dispatch_governed_search(None, req)
+    assert seen == ["مغز و اعصاب", "Neurology"] and len(rows) == 1
+
+
+def test_p2_the_governed_search_deduplicates_and_respects_the_limit(monkeypatch):
+    rows = [{"canonical_directory_key": f"k{i}"} for i in range(5)]
+    monkeypatch.setattr(cn._governed_directory, "search_doctors", lambda db, **k: rows)
+    req = cn.parse_care_nav_request("Find a cardiologist in Tehran", language="en")
+    assert len(cn._dispatch_governed_search(None, req)) == 5
+
+
+@pytest.mark.parametrize("msg", ["My psychiatrist changed my meds", "I do not need a therapist", "I don't want a pediatrician",
+                                 "روانپزشکم دارویم را عوض کرد", "لا أحتاج طبيب أسنان"])
+def test_p2_a_practitioner_mention_without_a_request_is_not_a_find_request(msg):
+    assert not cn.is_care_navigation_query(msg)
+
+
+@pytest.mark.parametrize("msg", ["I need a therapist in Tehran", "looking for a psychiatrist", "یه روانشناس می‌خوام", "find a dentist"])
+def test_p2_a_real_request_for_a_practitioner_still_routes(msg):
+    assert cn.is_care_navigation_query(msg)

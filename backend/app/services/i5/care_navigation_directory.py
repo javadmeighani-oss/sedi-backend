@@ -202,6 +202,11 @@ _STRONG_FIND_VERB = re.compile(
     r")\b",
     re.I,
 )
+_WANT_VERB = re.compile(
+    r"\b(need|want|looking\s+for|seeking|أحتاج|أريد|ابحث)\b|می[‌ ]?خوام|میخوام|می[‌ ]?خواهم|نیاز\s*دارم|لازم\s*دارم",
+    re.I,
+)
+_REFUSAL = re.compile(r"\b(?:don'?t|do\s+not|no\s+longer|never)\s+(?:need|want)\b|لا\s+أحتاج|لا\s+أريد", re.I)
 _WEAK_FIND_VERB = re.compile(r"\b(recommend|suggest|پیشنهاد|اقترح)\b", re.I)
 _ASK_FOR_A_DOCTOR = re.compile(r"(?:یه|یک|any|a|an)\s+(?:دکتر|پزشک|doctor|specialist|dentist)", re.I)
 _NOT_A_CITY = frozenset(
@@ -224,16 +229,23 @@ def _has_real_location(text: str) -> bool:
     return False
 
 
+def _practitioner_request(text: str) -> bool:
+    """A practitioner named by a specialty word counts only inside a REQUEST to find one («My psychiatrist changed my meds» is not)."""
+    return _spec.has_practitioner_word(text) and bool(
+        _WANT_VERB.search(text) or _STRONG_FIND_VERB.search(text) or _CARE_NAV_VERB.search(text) or _has_real_location(text)
+    )
+
+
 def is_care_navigation_query(message: str) -> bool:
     text = (message or "").strip()
     if not text:
         return False
-    if _NOT_A_FIND_REQUEST.search(text):
+    if _NOT_A_FIND_REQUEST.search(text) or _REFUSAL.search(text):
         return False
     entity_hit = bool(
         _SPECIALIST_PAT.search(text)
         or _PHARMACY_PAT.search(text)
-        or _spec.has_practitioner_word(text)
+        or _practitioner_request(text)
         or _HOSPITAL_PAT.search(text)
         or _CENTER_PAT.search(text)
         or _LAB_PAT.search(text)
@@ -255,7 +267,7 @@ def is_care_navigation_query(message: str) -> bool:
     if (_HOSPITAL_PAT.search(text) or _LAB_PAT.search(text) or _CENTER_PAT.search(text)) and len(text) < 60:
         return True
     return bool(
-        (_SPECIALIST_PAT.search(text) or _spec.has_practitioner_word(text))
+        (_SPECIALIST_PAT.search(text) or _practitioner_request(text))
         and (_SPECIALTY_HINT.search(text) or _spec.find_specialty(text))
         and len(text) < 40
     )
@@ -548,15 +560,25 @@ def _dispatch_governed_search(
     entity = request.entity
     try:
         if entity is CareNavEntity.SPECIALIST:
-            return _governed_directory.search_doctors(
-                db,
-                name=request.name_hint,
-                city=request.city,
-                province=request.province,
-                specialty=_spec.governed_stem(request.specialty_or_service),
-                include_inactive=False,
-                limit=request.limit,
-            )
+            merged: list[dict[str, Any]] = []
+            seen: set[str] = set()
+            for term in (_spec.governed_terms(request.specialty_or_service) or (request.specialty_or_service,)):
+                for item in _governed_directory.search_doctors(
+                    db,
+                    name=request.name_hint,
+                    city=request.city,
+                    province=request.province,
+                    specialty=term,
+                    include_inactive=False,
+                    limit=request.limit,
+                ):
+                    key = str(item.get("canonical_directory_key") or item.get("id") or item)
+                    if key not in seen:
+                        seen.add(key)
+                        merged.append(item)
+                if len(merged) >= request.limit:
+                    break
+            return merged[: request.limit]
         if entity is CareNavEntity.HOSPITAL:
             return _governed_directory.search_hospitals(
                 db,
