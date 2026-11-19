@@ -171,6 +171,9 @@ _UNAMBIGUOUS_SYMPTOM = re.compile(_fold(
     r"vertigo|hives|bloating|sore throat|back pain|chest pain)\b"), re.I)
 
 
+_VAGUE_COMPLAINT = re.compile(_fold(r"یه چیزی|یک چیزی|حالم|مریض|بیمار|ناخوش|\b(?:something wrong|feel (?:sick|bad|unwell|off)|unwell|sick)\b"), re.I)
+
+
 def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     """Never raises. Emergencies first; then area -> specialties; then ONE next question."""
     t = _fold(text)
@@ -208,7 +211,10 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     if soon and "چشم" in specialties:
         specialties.remove("چشم")
         specialties.insert(0, "چشم")
-    question = _QUESTION_BY_AREA.get(areas[0]) if areas else "care_nav.q.which_area"
+    # «which area?» only for a genuinely vague complaint; a mere word like «doctor» is the provider flow, not triage
+    question = _QUESTION_BY_AREA.get(areas[0]) if areas else ("care_nav.q.which_area" if _VAGUE_COMPLAINT.search(t) else None)
+    if not areas and not soon and question is None:
+        return TriageResult()
     return TriageResult(urgency="soon" if soon else "routine", areas=tuple(areas), specialties=tuple(specialties),
                         reasons=reasons, next_question=question)
 
@@ -250,6 +256,13 @@ def llm_hint(result: TriageResult, language: Optional[str] = "fa") -> Optional[s
                 "SYMPTOM TRIAGE (deterministic): the user describes a complaint that should be looked at SOON (within a day or two), say so plainly. "
                 "In your reply: (1) acknowledge in one warm sentence; (2) ask exactly ONE question: which part of the body it is about and since when; "
                 "never diagnose, never advise starting / stopping / changing a drug, no list of tips."
+            )
+        if result.next_question:
+            q0 = _QUESTION_MEANING.get(result.next_question, "the key missing detail")
+            return (
+                "SYMPTOM TRIAGE (deterministic): the user mentions that something is wrong but not what. In your reply: (1) acknowledge in one "
+                f"warm sentence; (2) ask exactly ONE question about {q0}; never guess a body area or a doctor yet, never diagnose, "
+                "never advise starting / stopping / changing a drug, no list of tips."
             )
         return None
     specs = ", ".join(result.specialties)

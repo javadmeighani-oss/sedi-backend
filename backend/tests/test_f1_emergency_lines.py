@@ -343,3 +343,18 @@ def test_p2_whole_word_english_red_flags_still_fire(text):
     from backend.app.services.care_navigation.symptom_triage import triage
 
     assert triage(text, "en").red_flag is True
+
+
+@pytest.mark.parametrize("text, lang", [("I feel sick", "en"), ("یه چیزی‌ام هست ولی نمی‌دانم چیست", "fa")])
+def test_p2_a_complaint_with_an_unknown_area_still_gets_the_clarifying_hint(text, lang):
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    hint = llm_hint(triage(text, lang))
+    assert hint and "ONE question" in hint and "never guess a body area" in hint
+
+
+@pytest.mark.parametrize("text", ["سلام، حالت چطوره؟", "thanks, see you tomorrow", "چشم ممنون"])
+def test_p2_ordinary_conversation_still_gets_no_hint(text):
+    from backend.app.services.care_navigation.symptom_triage import llm_hint, triage
+
+    assert llm_hint(triage(text, "fa" if any("؀" <= c <= "ۿ" for c in text) else "en")) is None
