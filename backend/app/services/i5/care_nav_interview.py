@@ -59,19 +59,35 @@ def is_reason_question(sedi_reply: Optional[str]) -> bool:
 
 
 def _specialty_for_answer(answer: str, language: str) -> Optional[str]:
-    named = sl.find_specialty(answer)
-    if named:
-        return named
     from backend.app.services.care_navigation import symptom_triage
 
     result = symptom_triage.triage(answer, language)
     if result.red_flag:
-        return None  # an emergency is never turned into a directory search here
+        return None  # an emergency (even one that names a body part) stays on the normal safety path, never a routine search (Codex P1)
+    named = sl.find_specialty(answer)
+    if named:
+        return named
     for spec in result.specialties:
         if spec != "اورژانس":
             return spec
     if result.next_question == "care_nav.q.which_area":  # «something is wrong» with no body area: a general practitioner first
         return "پزشک عمومی"
+    return None
+
+
+def _place_in(answer: str) -> Optional[str]:
+    """A place the ANSWER itself names («نورولوژی در شیراز»): it replaces the place of the first request (Codex P2)."""
+    place = cn._places.find_place(answer)
+    if place.area and not place.city_inferred:
+        return f"{place.area} {place.city}" if place.city else place.area
+    if place.area:
+        return place.area
+    if place.city:
+        return place.city
+    for m in cn._LOCATION_CITY.finditer(answer):
+        word = m.group(1).strip()
+        if word.lower() not in cn._NOT_A_CITY:
+            return word
     return None
 
 
@@ -90,6 +106,9 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             spec = "پزشک عمومی"
         if spec is None:
             return None  # an emergency or something that names no specialty: normal handling
+        place = _place_in(text)
+        if place:  # the answer named a (new) place: a fresh request with the specialty and THAT place
+            return (f"یه دکتر {spec} در {place} معرفی کن" if language == "fa" else f"find a doctor {spec} in {place}")
         return f"{prior_request.strip()} متخصص {spec}"
     except Exception:  # noqa: BLE001
         return None

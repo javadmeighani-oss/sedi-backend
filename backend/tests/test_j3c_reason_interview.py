@@ -120,3 +120,25 @@ def test_an_old_question_is_not_continued(monkeypatch):
     orch, _called = _orch(monkeypatch, last_row=last, seen=seen)
     orch.process(authenticated_user_id=42, message="سردرد دارم", language="fa")
     assert not any("اعصاب" in (x or "") for x in seen)
+
+
+# ---- Codex review of PR 191 ----------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer", ["ناگهان چشم راستم تار شده", "my vision suddenly went black", "قفسه سینه‌ام درد می‌کند و نفسم تنگ شده",
+                                    "خونریزی شدید دارم", "غش کردم"])
+def test_p1_an_emergency_answer_is_never_turned_into_a_routine_search(answer):
+    assert ci.request_for_answer(PRIOR, Q["fa"], answer, "fa") is None
+
+
+@pytest.mark.parametrize("answer, spec, place", [("نورولوژی در شیراز", "مغز و اعصاب", "شیراز"), ("اورولوژی توی نارمک", "اورولوژی", "نارمک"),
+                                                 ("سردرد دارم، توی کرج", "مغز و اعصاب", "کرج")])
+def test_p2_a_place_named_in_the_answer_replaces_the_first_place(answer, spec, place):
+    done = ci.request_for_answer(PRIOR, Q["fa"], answer, "fa")
+    req = cn.parse_care_nav_request(done, language="fa")
+    assert req.specialty_or_service == spec
+    assert place in (req.city or "") or place in (req.area or "") or cn._places.normalize(place) in cn._places.normalize((req.area or "") + (req.city or ""))
+    assert "پردیس" not in (done or "")
+
+
+def test_p2_without_a_place_in_the_answer_the_first_place_is_kept():
+    done = ci.request_for_answer(PRIOR, Q["fa"], "نورولوژی", "fa")
+    assert done.startswith(PRIOR) and "پردیس" in done
