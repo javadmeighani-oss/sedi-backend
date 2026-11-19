@@ -80,3 +80,9 @@ def test_no_profile_field_was_added_for_the_city():
 def test_a_past_home_followed_by_the_current_residence_keeps_only_the_current_one():
     # Codex P2 (PR 188, 7b52653b): «my home was in Shiraz and now I live in Tehran» -> Tehran, never Shiraz
     assert _facts("خانه من در شیراز بود و الان در تهران زندگی می‌کنم") == {("home_city", "تهران")}
+
+
+def test_a_numbered_district_alone_never_infers_the_city():
+    # Codex P2 (PR 188, d808af53): numbered districts exist in many cities; the city stays unknown unless the user says it
+    assert _facts("ساکن منطقه ۸ هستم") == {("home_area", "منطقه 8")}
+    assert ("home_city", "تهران") in _facts("ساکن منطقه ۸ تهران هستم")

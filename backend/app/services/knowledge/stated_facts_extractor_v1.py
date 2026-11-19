@@ -210,7 +210,9 @@ def _residence(sentence: str) -> List[Stated]:
             continue
         place_text = (m.groupdict().get("place") or m.groupdict().get("place2") or "").strip()
         place = iran_places.find_place(place_text)
-        if place.city:
+        # a numbered district alone (« منطقه ۸ ») exists in several cities: never promote the gazetteer's Tehran default (Codex P2)
+        numbered_only = bool(place.city_inferred and (place.area or "").startswith("منطقه "))
+        if place.city and not numbered_only:
             out.append(Stated("home_city", place.city, _conf(sentence), "stated_home_city"))
         if place.area:
             out.append(Stated("home_area", place.area, _conf(sentence), "stated_home_area"))
