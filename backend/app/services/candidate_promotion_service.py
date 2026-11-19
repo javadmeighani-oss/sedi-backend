@@ -51,6 +51,9 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "family_history": ("medical", "family_history"),
     "occupation_stated": ("work", "occupation"),  # key differs: "occupation" is a frozen legacy profile-fact type
     "household_context": ("social", "household_context"),
+    # J1 (R-094): residence stated in conversation (city + neighbourhood) -> used to introduce providers near the user.
+    "home_city": ("social", "home_city"),
+    "home_area": ("social", "home_area"),
     # R-021 / M2: intake facts the user stated in free chat (same I6 keys the friendly intake loop uses).
     "intake_allergies": ("intake", "allergies"),
     "intake_goal": ("intake", "goal"),

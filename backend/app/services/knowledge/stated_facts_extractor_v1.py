@@ -183,6 +183,34 @@ def _household(sentence: str) -> List[Stated]:
     return []
 
 
+_RESIDENCE_CUE = re.compile(
+    r"ساکن|زندگی\s*می[‌ ]?کنم|زندگی\s*می[‌ ]?کنیم|(?:خونه|خانه|منزل)\s*(?:ی\s*)?(?:ام|م|ما|مون|مان)?\b|محل\s*زندگی|"
+    r"محله\s*(?:ی\s*)?(?:ما|من|م)\b|\bi\s+live\s+in\b|\bmy\s+(?:home|house|place)\s+is\b|\bi\s+am\s+from\b",
+    re.I,
+)
+_WORK_PLACE = re.compile(r"سر\s*کار|محل\s*کار|شرکت|اداره|دانشگاه|مدرسه|work\s+in|my\s+office", re.I)
+
+
+def _residence(sentence: str) -> List[Stated]:
+    """J1: «ساکن تهرانپارس هستم», «در نارمک زندگی می‌کنم», «خونه‌ام سعادت‌آباده», "I live in Shiraz" -> home city / area.
+    Only a LIVING cue counts (a workplace sentence is not a residence); the place comes from the Iranian gazetteer."""
+    if not _RESIDENCE_CUE.search(sentence) or _WORK_PLACE.search(sentence):
+        return []
+    # another person's residence is never the user's (second memory must not remember a wrong fact):
+    # a relative named without an explicit first-person marker -> skip
+    if re.search(_REL_ALT, sentence) and not re.search(r"(?:\bمن\b|\bما\b|هستم|هستیم|کنم\b|کنیم\b|\bi\s+live\b|\bmy\s+(?:home|house)\b)", sentence, re.I):
+        return []
+    from backend.app.services.i5 import iran_places
+
+    place = iran_places.find_place(sentence)
+    out: List[Stated] = []
+    if place.city:
+        out.append(Stated("home_city", place.city, _conf(sentence), "stated_home_city"))
+    if place.area:
+        out.append(Stated("home_area", place.area, _conf(sentence), "stated_home_area"))
+    return out
+
+
 def _interests(sentence: str) -> List[Stated]:
     out: List[Stated] = []
     for m in re.finditer(r"به\s+(.{2,30}?)\s+(?:خیلی\s+)?علاقه\s*(?:دارم|مندم)", sentence):
@@ -217,6 +245,7 @@ def extract_stated_facts(text: str) -> List[Stated]:
         out.extend(_own_conditions(s))
         out.extend(_occupation(s))
         out.extend(_household(s))
+        out.extend(_residence(s))
         out.extend(_interests(s))
         out.extend(_sleep_hours(s))
     return out
