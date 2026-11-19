@@ -52,8 +52,10 @@ def dispatch_reminder_user_event(
     now_utc: Optional[datetime] = None,
     draft: Optional[ReminderEventDraft] = None,
     language: Optional[str] = None,
+    skip_medication_interview: bool = False,
 ) -> dict[str, Any]:
-    """Create at most one UserEvent for a READY reminder/event draft."""
+    """Create at most one UserEvent for a READY reminder/event draft. ``skip_medication_interview``: the user already answered
+    «just once» (or a repeat that starts in the future), so the plain event is created (R-103 step B)."""
     resolved = draft
     if resolved is None:
         resolved, missing = parse_reminder_event_draft(
@@ -64,14 +66,28 @@ def dispatch_reminder_user_event(
 
     # R-088 / R-091 (A1 v2): a RECURRING pill request starts a short care interview (medicine, reason) BEFORE any time is set;
     # Fail-open: None -> the generic UserEvent path below stays as before.
-    try:
-        from backend.app.services.medication_care import chat_reminder as _med_chat
+    med = None
+    if not skip_medication_interview:
+        try:
+            from backend.app.services.medication_care import chat_reminder as _med_chat
 
-        med = _med_chat.start_interview(
-            db, user_id=user_id, message=message, draft=resolved, language=language, timezone_name=timezone_name
-        )
+            med = _med_chat.start_interview(
+                db, user_id=user_id, message=message, draft=resolved, language=language, timezone_name=timezone_name
+            )
+        except Exception:  # noqa: BLE001
+            med = None
+    # a plain pill reminder gets a clean title («قرص مکمل», not «هم قرصمو بخورم»)
+    try:
+        from backend.app.services.medication_care import chat_reminder as _mc_title
+        from backend.app.services.medication_care import pill_registry as _reg
+        import dataclasses as _dc
+
+        if med is None and _mc_title.is_medication_text(message):
+            clean = _reg.pill_title_name(resolved.title)
+            if clean and clean != resolved.title:
+                resolved = _dc.replace(resolved, title=clean)
     except Exception:  # noqa: BLE001
-        med = None
+        pass
     if med is not None:
         lang_m = language if language in ("fa", "ar", "en") else "en"
         return {

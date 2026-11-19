@@ -1,0 +1,326 @@
+"""R-103 step B (pilot 2026-11-19): every pill request enters ONE care loop.
+
+ - a pill request with no day word is another DAILY series (Javad 2026-11-19);
+ - a pill request with a DAY word makes Sedi ask «just once, or repeating?» and create nothing before the answer (am.2);
+ - when the user already has pills Sedi asks «the same pill or a new one?»; «same» adds a dose to a registered pill or PROMOTES an
+   older reminder into the medicine owner (the older event is soft-cancelled in the SAME transaction);
+ - the pill's title is clean («قرص مکمل», not «هم قرصمو بخورم»).
+DB-free: the registry and the owner writes are stubbed; routing, stages, answers and the guards run for real.
+"""
+from datetime import datetime, time, timezone
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import pytest
+
+from backend.app import sedi_copy
+from backend.app.services.medication_care import chat_reminder as mc
+from backend.app.services.medication_care import pill_registry as reg
+
+TZ = "Asia/Tehran"
+NOW = datetime(2026, 11, 19, 18, 0, tzinfo=timezone.utc)
+DAILY_REQ = "هر روز ساعت ۲ بعدازظهر یادم بنداز قرص بخورم"
+NO_DAY_REQ = "ساعت ۹ صبح یادم بنداز قرص بخورم"
+DAY_REQ = "فردا ساعت ۹ صبح یادم بنداز قرص بخورم"
+
+
+def _pill(kind="med", name="قرص مکمل", times=("14:00",), pid=3):
+    return {"kind": kind, "id": pid, "name": name, "times": list(times), "rule": "FREQ=DAILY" if kind == "event" else None}
+
+
+@pytest.fixture
+def world(monkeypatch):
+    """pills the user has + a log of owner writes."""
+    state = SimpleNamespace(pills=[], added=[], promoted=[], created=[], history=True, once=[])
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: state.history)
+    monkeypatch.setattr(reg, "existing_pills", lambda db, uid: list(state.pills))
+    monkeypatch.setattr(reg, "add_dose", lambda db, uid, pill, hhmm, days: state.added.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
+    monkeypatch.setattr(reg, "promote", lambda db, uid, pill, hhmm, days: state.promoted.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
+    monkeypatch.setattr(reg, "times_of", lambda db, uid, name: ["09:00", "14:00"])
+
+    def fake_create(db, *, user_id, draft, language, timezone_name, name):
+        state.created.append(name)
+        return {"kind": "medication", "created": True, "duplicate": False, "name": name or mc.provisional_name(language), "named": bool(name), "time": "09:00", "days": None}
+
+    monkeypatch.setattr(mc, "_create", fake_create)
+    monkeypatch.setattr(mc, "_once_event", lambda db, uid, draft, text, lang, tz: state.once.append(text) or "ONCE-EVENT")
+    from backend.app.services.medication_care import drug_brief
+
+    monkeypatch.setattr(drug_brief, "lookup", lambda name, lang, client=None: None)
+    return state
+
+
+def _draft_of(message, lang="fa"):
+    from backend.app.services.intelligence.reminder_event_readiness import parse_reminder_event_draft
+
+    draft, missing = parse_reminder_event_draft(message=message, timezone_name=TZ, now_utc=NOW, language=lang)
+    assert draft is not None and missing is None, (message, missing)
+    return draft
+
+
+def _start(message, lang="fa"):
+    return mc.start_interview(None, user_id=1, message=message, draft=_draft_of(message, lang), language=lang, timezone_name=TZ)
+
+
+def _rows(*pairs):
+    now = datetime.utcnow()
+    return [SimpleNamespace(user_message=u, sedi_response=s, created_at=now) for u, s in pairs]
+
+
+def _go(monkeypatch, rows, message, lang="fa"):
+    monkeypatch.setattr(mc, "_recent_turns", lambda db, uid, now: rows)
+    return mc.continue_interview(MagicMock(), user_id=1, message=message, language=lang, timezone_name=TZ)
+
+
+# --- routing -----------------------------------------------------------------------------------------------------------------------
+def test_no_day_word_is_a_daily_series_and_starts_the_interview(world):
+    out = _start(NO_DAY_REQ)
+    assert out and out["interview"] == "ask_name" and not out["created"] and world.created == []
+
+
+def test_a_day_word_asks_once_or_repeating_and_creates_nothing(world):
+    out = _start(DAY_REQ)
+    assert out["interview"] == "ask_repeat" and not out["created"] and world.created == []
+    text = mc.confirmation(out, "fa", "فردا ساعت 09:00")
+    assert "فردا ساعت 09:00" in text and text.count("؟") == 1 and mc._stage_of(text, "fa") == "ask_repeat"
+
+
+def test_a_day_word_without_a_place_for_the_question_keeps_the_plain_event(world):
+    world.history = False
+    assert _start(DAY_REQ) is None  # the plain one-time event, as before
+
+
+def test_registered_pill_and_no_name_asks_same_or_new(world):
+    world.pills = [_pill()]
+    out = _start(NO_DAY_REQ)
+    assert out["interview"] == "ask_same" and "قرص مکمل" in out["names"]
+    text = mc.confirmation(out, "fa", "")
+    assert mc._stage_of(text, "fa") == "ask_same" and text.count("؟") == 1
+
+
+def test_a_named_pill_that_exists_adds_a_dose_without_a_question(world):
+    world.pills = [_pill(name="لووتیروکسین", times=("07:00",))]
+    out = _start("ساعت ۹ صبح یادم بنداز قرص لووتیروکسین بخورم")
+    assert out["flow"] == "dose_added" and world.added == [(3, "09:00")]
+    text = mc.confirmation(out, "fa", "")
+    assert "لووتیروکسین" in text and "09:00" in text
+
+
+def test_a_named_new_pill_goes_to_the_ordinary_interview(world):
+    world.pills = [_pill(name="لووتیروکسین")]
+    out = _start("ساعت ۹ صبح یادم بنداز قرص متفورمین بخورم")
+    assert out["interview"] == "confirm_name" and world.added == [] and world.promoted == []
+
+
+def test_an_older_reminder_named_again_is_promoted_and_the_reason_is_asked(world):
+    world.pills = [_pill(kind="event", name="قرص مکمل", pid=15)]
+    out = _start("ساعت ۹ صبح یادم بنداز قرص مکمل بخورم")
+    assert out["interview"] == "ask_reason_promoted" and world.promoted == [(15, "09:00")]
+    text = mc.confirmation(out, "fa", "")
+    assert "قرص مکمل" in text and mc._stage_of(text, "fa") == "ask_reason_promoted" and text.count("؟") == 1
+
+
+def test_promotion_without_a_place_for_the_question_closes_at_once(world):
+    world.pills = [_pill(kind="event", name="قرص مکمل", pid=15)]
+    world.history = False
+    out = _start("ساعت ۹ صبح یادم بنداز قرص مکمل بخورم")
+    assert out["flow"] == "promoted" and world.promoted == [(15, "09:00")]
+
+
+@pytest.mark.parametrize("lang,req", [("en", "remind me every day at 9 am to take a pill"), ("ar", "كل يوم الساعة 9 صباحا ذكرني بتناول دوائي")])
+def test_the_other_languages_follow_the_same_routing(world, lang, req):
+    world.pills = [_pill(name="Vitamin", times=("07:00",))]
+    out = _start(req, lang)
+    assert out and out["interview"] == "ask_same"
+    assert mc._stage_of(mc.confirmation(out, lang, ""), lang) == "ask_same"
+
+
+# --- the answers --------------------------------------------------------------------------------------------------------------------
+def _ask_same_rows(request=NO_DAY_REQ, names="«قرص مکمل»"):
+    return _rows(("", sedi_copy.t("medication.chat.q.ask_same", "fa", names=names)), (request, sedi_copy.t("medication.chat.q.ask_same", "fa", names=names)))[1:]
+
+
+def test_same_adds_a_dose_to_the_registered_pill(monkeypatch, world):
+    world.pills = [_pill()]
+    rows = _rows((NO_DAY_REQ, sedi_copy.t("medication.chat.q.ask_same", "fa", names="«قرص مکمل»")))
+    reply = _go(monkeypatch, rows, "همان")
+    assert world.added == [(3, "09:00")] and "قرص مکمل" in reply and "09:00" in reply
+
+
+def test_new_goes_to_the_name_question(monkeypatch, world):
+    world.pills = [_pill()]
+    rows = _rows((NO_DAY_REQ, sedi_copy.t("medication.chat.q.ask_same", "fa", names="«قرص مکمل»")))
+    assert _go(monkeypatch, rows, "یک قرص جدید") == sedi_copy.t("medication.chat.q.ask_name", "fa") and world.added == []
+
+
+def test_an_unclear_answer_asks_again_and_changes_nothing(monkeypatch, world):
+    world.pills = [_pill(), _pill(name="ویتامین دی", pid=4)]
+    rows = _rows((NO_DAY_REQ, sedi_copy.t("medication.chat.q.ask_same", "fa", names="«قرص مکمل»، «ویتامین دی»")))
+    reply = _go(monkeypatch, rows, "همان")  # two pills: «same» alone cannot say which
+    assert mc._stage_of(reply, "fa") == "ask_same" and world.added == []
+    assert _go(monkeypatch, rows, "ویتامین دی") and world.added == [(4, "09:00")]
+
+
+def test_same_on_an_older_reminder_promotes_it(monkeypatch, world):
+    world.pills = [_pill(kind="event", pid=15)]
+    rows = _rows((NO_DAY_REQ, sedi_copy.t("medication.chat.q.ask_same", "fa", names="«قرص مکمل»")))
+    reply = _go(monkeypatch, rows, "همون")
+    assert world.promoted == [(15, "09:00")] and mc._stage_of(reply, "fa") == "ask_reason_promoted"
+
+
+def test_insistence_on_the_same_question_creates_the_request_unnamed(monkeypatch, world):
+    world.pills = [_pill()]
+    rows = _rows((NO_DAY_REQ, sedi_copy.t("medication.chat.q.ask_same", "fa", names="«قرص مکمل»")))
+    reply = _go(monkeypatch, rows, "فقط یادم بنداز")
+    assert world.created == [None] and "09:00" in reply and world.added == []
+
+
+def test_once_creates_the_plain_event(monkeypatch, world):
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    assert _go(monkeypatch, rows, "فقط یک‌بار") == "ONCE-EVENT" and world.once == [DAY_REQ] and world.created == []
+
+
+def test_every_day_starts_the_daily_interview(monkeypatch, world):
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    reply = _go(monkeypatch, rows, "هر روز تکرار شود")
+    assert reply == sedi_copy.t("medication.chat.q.ask_name", "fa") and world.once == []
+
+
+def test_an_unclear_answer_to_once_or_repeat_asks_again(monkeypatch, world):
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    reply = _go(monkeypatch, rows, "بستگی دارد به شرایط")
+    assert mc._stage_of(reply, "fa") == "ask_repeat" and world.once == [] and world.created == []
+
+
+def test_insistence_on_once_or_repeat_keeps_the_request_as_one_time(monkeypatch, world):
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    assert _go(monkeypatch, rows, "فقط یادم بنداز") == "ONCE-EVENT"
+
+
+@pytest.mark.parametrize("answer", ["لغو", "یادآوری رو نمی‌خوام"])
+def test_cancel_at_the_new_questions_creates_nothing(monkeypatch, world, answer):
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    assert _go(monkeypatch, rows, answer) == sedi_copy.t("medication.chat.cancelled", "fa")
+    assert world.created == [] and world.once == []
+
+
+# --- the reason after a promotion ---------------------------------------------------------------------------------------------------
+def test_the_reason_after_a_promotion_becomes_one_tracked_commitment(monkeypatch, world):
+    from backend.app.services.i10 import commitment_followup as cf
+
+    seen = []
+    monkeypatch.setattr(cf, "capture_step", lambda db, uid, step, *, user_message="": seen.append(step) or SimpleNamespace(id=1))
+    ask = sedi_copy.t("medication.chat.q.ask_reason_promoted", "fa", name="قرص مکمل", times="09:00، 14:00")
+    reply = _go(monkeypatch, _rows(("هم", ask)), "برای کمبود ویتامین")
+    assert len(seen) == 1 and "قرص مکمل" in seen[0]
+    assert sedi_copy.t("medication.chat.created.followup_promise", "fa") in reply and "09:00" in reply
+    seen.clear()
+    reply2 = _go(monkeypatch, _rows(("هم", ask)), "نمی‌دانم")
+    assert seen == [] and sedi_copy.t("medication.chat.created.followup_promise", "fa") not in reply2
+
+
+# --- registry helpers ----------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "title,expected",
+    [("خوردن قرص مکملم", "قرص مکمل"), ("هم قرصمو بخورم", "قرص"), ("take my vitamin D", "vitamin d"), ("قرص لووتیروکسین بخورم", "قرص لووتیروکسین")],
+)
+def test_pill_titles_are_cleaned(title, expected):
+    assert reg.pill_title_name(title) == expected
+
+
+def test_same_pill_matching():
+    assert reg.same_pill("قرص مکمل", "مکمل") and reg.same_pill("لووتیروکسین", "قرص لووتیروکسین")
+    assert not reg.same_pill("لووتیروکسین", "متفورمین") and not reg.same_pill("قرص مکمل", "قرص لووتیروکسین")
+
+
+def test_pick_and_says_new():
+    pills = [_pill(), _pill(name="ویتامین دی", pid=4)]
+    assert reg.pick("ویتامین دی", pills)["id"] == 4 and reg.pick("همان", pills) is None
+    assert reg.pick("همان", [pills[0]])["id"] == 3
+    assert reg.says_new("یک قرص جدید") and reg.says_new("another one") and not reg.says_new("همان")
+
+
+def test_day_words():
+    assert reg.has_day_word("فردا ساعت ۹ قرص بخورم", TZ, NOW) and reg.has_day_word("tomorrow at 9 take a pill", TZ, NOW)
+    assert not reg.has_day_word("ساعت ۹ صبح قرص بخورم", TZ, NOW)
+
+
+# --- the medicine owner: atomic and honest ---------------------------------------------------------------------------------------------
+def test_add_schedule_time_is_one_transaction_and_refuses_a_duplicate_time(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    r1 = SimpleNamespace(time_of_day=time(14, 0), days_of_week=None)
+    um = SimpleNamespace(id=3, schedules=[r1], updated_at=None)
+    db = MagicMock()
+    monkeypatch.setattr(svc, "get_user_medication_owned", lambda d, uid, umid: (um, SimpleNamespace(name="X")))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": ["09:00", "14:00"]})
+    out = svc.add_schedule_time(db, 1, 3, "09:00", "MO")
+    assert out["reminder_times"] == ["09:00", "14:00"] and db.add.call_count == 1 and db.commit.call_count == 1
+    with pytest.raises(svc.ScheduleTimeCollisionError):
+        svc.add_schedule_time(db, 1, 3, "14:00")
+    assert db.commit.call_count == 1
+
+
+def test_promote_creates_the_pill_with_both_times_and_soft_cancels_the_event_in_one_commit(monkeypatch):
+    from backend.app.services import user_medication_service as svc
+
+    ev = SimpleNamespace(id=15, starts_at=datetime(2026, 11, 12, 14, 0), timezone="Asia/Tehran", status="scheduled", valid_to=None, updated_at=None)
+    q_event, q_um = MagicMock(), MagicMock()
+    q_event.filter.return_value.first.return_value = ev
+    q_um.filter.return_value.first.return_value = None
+    db = MagicMock()
+    db.query.side_effect = [q_event, q_um]
+    monkeypatch.setattr(svc, "find_or_create_medication", lambda d, name, **k: SimpleNamespace(id=9, name=name))
+    monkeypatch.setattr(svc, "build_user_medication_out", lambda u, m: {"reminder_times": sorted(svc.format_time_of_day(r.time_of_day) for r in u.schedules)})
+    added = []
+    db.add.side_effect = lambda obj: added.append(obj)
+    out = svc.promote_event_to_medication(db, 1, 15, "قرص مکمل", "09:00", "MO,TU")
+    assert ev.status == "cancelled" and ev.valid_to is not None  # soft cancel: the row stays
+    assert db.commit.call_count == 1  # ONE transaction: never both reminders, never neither
+    times = sorted(o.time_of_day for o in added if hasattr(o, "time_of_day"))
+    assert times == [time(9, 0), time(14, 0)] and all(o.days_of_week == "MO,TU" for o in added if hasattr(o, "time_of_day"))
+    with pytest.raises(svc.UserMedicationNotFoundError):
+        q_event.filter.return_value.first.return_value = None
+        db.query.side_effect = [q_event]
+        svc.promote_event_to_medication(db, 1, 99, "X", "09:00")
+
+
+# --- the title of a plain pill event --------------------------------------------------------------------------------------------------
+def test_a_plain_pill_event_gets_a_clean_title(monkeypatch):
+    from backend.app.services.intelligence import reminder_event_dispatch as disp
+
+    seen = []
+    monkeypatch.setattr(disp, "create_event", lambda db, uid, body: seen.append(body.title) or {"id": 1})
+    monkeypatch.setattr(disp, "find_duplicate_conversation_event", lambda db, **k: None)
+    res = disp.dispatch_reminder_user_event(
+        MagicMock(), user_id=1, message="فردا ساعت ۹ صبح یادم بنداز هم قرصمو بخورم", timezone_name=TZ, now_utc=NOW, language="fa", skip_medication_interview=True
+    )
+    assert res["created"] and seen and "هم" not in seen[0].split() and "بخورم" not in seen[0]
+
+
+# --- through the REAL orchestrator --------------------------------------------------------------------------------------------------------
+def _orch():
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+
+    called = {"gen": False}
+
+    def gen(*a, **k):
+        called["gen"] = True
+        return {"message": "GENERIC", "detected_name": None}
+
+    return IntelligenceOrchestrator(db=MagicMock(), legacy_generator=gen, structured_mode=False), called
+
+
+def test_orchestrator_a_dated_pill_request_asks_once_or_repeating(monkeypatch, world):
+    monkeypatch.setattr(mc, "_recent_turns", lambda db, uid, now: [])
+    orch, called = _orch()
+    out = orch.process(authenticated_user_id=42, message=DAY_REQ, language="fa")
+    assert mc._stage_of(out.message, "fa") == "ask_repeat" and world.created == [] and called["gen"] is False
+
+
+def test_orchestrator_the_repeat_answer_continues_into_the_pill_interview(monkeypatch, world):
+    ask = sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")
+    monkeypatch.setattr(mc, "_recent_turns", lambda db, uid, now: _rows((DAY_REQ, ask)))
+    orch, called = _orch()
+    out = orch.process(authenticated_user_id=42, message="هر روز", language="fa")
+    assert out.message == sedi_copy.t("medication.chat.q.ask_name", "fa") and called["gen"] is False

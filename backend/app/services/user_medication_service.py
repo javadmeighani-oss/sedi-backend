@@ -259,6 +259,71 @@ def move_schedule_time(db: Session, user_id: int, um_id: int, old_hhmm: str, new
     return build_user_medication_out(um, med)
 
 
+def add_schedule_time(db: Session, user_id: int, um_id: int, hhmm: str, days_of_week: Optional[str] = None) -> dict:
+    """Add ONE more dose time to a registered medicine, in one transaction (R-103 step B: «the same pill, a second time»).
+    Raises ScheduleTimeCollisionError when that time already exists and ValueError beyond the schedule limit."""
+    from backend.app.schemas.medical import MAX_REMINDER_TIMES
+
+    um, med = get_user_medication_owned(db, user_id, um_id)
+    t = parse_hhmm(hhmm)
+    rows = list(um.schedules or [])
+    if any(r.time_of_day == t for r in rows):
+        raise ScheduleTimeCollisionError()
+    if len(rows) >= MAX_REMINDER_TIMES:
+        raise ValueError("too many reminder times")
+    db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days_of_week))
+    um.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(um)
+    return build_user_medication_out(um, med)
+
+
+def promote_event_to_medication(
+    db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None
+) -> dict:
+    """An older repeating chat reminder (UserEvent) becomes a REGISTERED medicine with its old dose time AND the new one, and the
+    older event is soft-cancelled (status cancelled + valid_to; the row is never deleted) - all in ONE transaction so the user is
+    never reminded twice (R-103 step B/C). An existing UserMedication of that name receives the times instead of a duplicate."""
+    ev = (
+        db.query(models.UserEvent)
+        .filter(models.UserEvent.id == event_id, models.UserEvent.user_id == user_id, models.UserEvent.status.in_(["scheduled", "confirmed"]))
+        .first()
+    )
+    clean = normalize_medication_name(name or "")
+    if ev is None or ev.starts_at is None or not clean:
+        raise UserMedicationNotFoundError()
+    med = find_or_create_medication(db, name=clean)
+    db.flush()
+    um = (
+        db.query(models.UserMedication)
+        .filter(models.UserMedication.user_id == user_id, models.UserMedication.medication_id == med.id)
+        .first()
+    )
+    if um is None:
+        um = models.UserMedication(
+            user_id=user_id,
+            medication_id=med.id,
+            interval_hours=8,
+            reminder_enabled=True,
+            timezone=validate_timezone(ev.timezone) if ev.timezone else DEFAULT_TIMEZONE,
+        )
+        db.add(um)
+        db.flush()
+    have = {r.time_of_day for r in (um.schedules or [])}
+    for t in (time(ev.starts_at.hour, ev.starts_at.minute), parse_hhmm(new_hhmm)):
+        if t not in have:
+            have.add(t)
+            db.add(models.UserMedicationSchedule(user_medication_id=um.id, time_of_day=t, days_of_week=days_of_week))
+    now = datetime.utcnow()
+    ev.status = "cancelled"
+    ev.valid_to = now
+    ev.updated_at = now
+    um.updated_at = now
+    db.commit()
+    db.refresh(um)
+    return build_user_medication_out(um, med)
+
+
 def delete_user_medication(db: Session, user_id: int, um_id: int) -> None:
     um, _ = get_user_medication_owned(db, user_id, um_id)
     db.delete(um)
