@@ -242,3 +242,17 @@ def test_p2_terminal_turns_get_a_key_that_separates_repeats_but_dedupes_retries(
     assert inter._terminal_turn_key("I want to live") != a  # different words, different key
     t["now"] += 3 * 3600  # the same words hours later are a NEW disclosure
     assert inter._terminal_turn_key("I want to die") != a
+
+
+def test_p2_the_support_window_is_searched_by_time_not_by_the_last_few_turns(monkeypatch):
+    import backend.app.services.i7.retention as ret
+
+    seen = {}
+
+    def fake(db, user_id, *, now=None, limit=None, since=None):
+        seen.update(limit=limit, since=since)
+        return [SimpleNamespace(user_message="I want to die", created_at=since)]
+
+    monkeypatch.setattr(ret, "query_eligible_raw", fake)
+    msgs = cs._recent_user_messages(object(), 1)
+    assert msgs == ["I want to die"] and seen["since"] is not None and seen["limit"] >= 100

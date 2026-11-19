@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 LOOKBACK = timedelta(hours=72)  # F2 (D-402): a gentle check-in on the first conversation of the next day(s)
-MAX_TURNS = 6
+MAX_TURNS = 400  # safety cap only; the window is the time filter
 
 _BASE = (
     "SUPPORT MODE - the user has spoken about not wanting to live or hurting themselves (now or earlier today). This person is in a "
@@ -79,8 +79,8 @@ def _recent_user_messages(db: Any, user_id: int) -> list[str]:
         from backend.app.services.i7.retention import query_eligible_raw
 
         since = datetime.now(timezone.utc).replace(tzinfo=None) - LOOKBACK
-        rows = query_eligible_raw(db, user_id, limit=MAX_TURNS)
-        return [str(r.user_message or "") for r in rows if r.created_at is not None and r.created_at >= since]
+        rows = query_eligible_raw(db, user_id, limit=MAX_TURNS, since=since)  # the whole 72 h window, not the last few turns (Codex P2)
+        return [str(r.user_message or "") for r in rows]
     except Exception:  # noqa: BLE001
         return []
 
