@@ -62,9 +62,37 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
     ("severe_breathing", _rx(r"نفسم بند (?:اومده|آمده|میاد)", r"نمی ?تونم نفس (?:بکشم|بکشم)", r"نمیتونم نفس", r"\bcan.?t breathe\b")),
 )
 
+# --- Arabic (D-404): the same red flags / areas / specialties as Persian + English, expressed in Arabic -------------------------
+_AR_RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
+    ("chest_pain_with_breathing", _rx(r"ألم (?:في )?(?:ال)?صدر.{0,40}(?:تنفس|نفس|ضيق|عرق|الذراع|الفك)", r"(?:ضيق|صعوبة)(?: في)? (?:ال)?تنفس.{0,40}(?:ال)?صدر")),
+    ("stroke_signs", _rx(r"(?:تدلي|اعوجاج|التواء) (?:في )?(?:ال)?(?:وجه|فم)", r"ثقل (?:في )?(?:ال)?كلام", r"(?:ال)?كلام (?:غير )?(?:واضح|مفهوم) فجأة", r"ضعف مفاجئ.{0,25}(?:يد|ذراع|ساق|وجه)")),
+    ("worst_headache", _rx(r"أسوأ صداع", r"صداع مفاجئ (?:و)?(?:شديد|رهيب)")),
+    ("heavy_bleeding", _rx(r"نزيف (?:شديد|حاد|غزير|لا يتوقف)")),
+    ("fainting", _rx(r"فقدت الوعي", r"أغمي علي", r"أغمى علي", r"أصبت بإغماء", r"أغمي عليه")),
+    ("sudden_vision_loss", _rx(r"فقدت (?:ال)?(?:بصر|رؤية)(?: فجأة)?", r"فجأة.{0,20}(?:لا أرى|عمى|اسود|أظلم)")),
+    ("severe_breathing", _rx(r"لا أستطيع (?:ال)?تنفس", r"صعوبة شديدة في (?:ال)?تنفس", r"اختناق")),
+)
+_AR_AREAS: dict[str, re.Pattern] = {
+    "head": _rx(r"صداع", r"شقيقة", r"دوخة", r"دوار"),
+    "chest": _rx(r"ألم (?:في )?(?:ال)?صدر"),
+    "heart_rhythm": _rx(r"خفقان", r"نبضات? (?:قلبي )?(?:سريعة|غير منتظمة)"),
+    "back_joint": _rx(r"ركبت", r"ألم (?:في )?(?:ال)?(?:ظهر|مفصل|رقبة|كتف)", r"مفاصل", r"آلام (?:ال)?ظهر"),
+    "skin": _rx(r"حكة", r"طفح", r"جلد(?:ي)? (?:يؤلم|يحك|احمر)", r"حساسية جلد"),
+    "stomach": _rx(r"معدة", r"إسهال", r"إمساك", r"غثيان", r"حرقة", r"انتفاخ"),
+    "mind": _rx(r"قلق", r"اكتئاب", r"أرق", r"توتر", r"حزين جدا"),
+    "ent": _rx(r"ألم (?:في )?(?:ال)?(?:حلق|أذن)", r"جيوب أنفية", r"رشح", r"انسداد (?:ال)?أنف"),
+    "eye": _rx(r"عيني", r"عيون", r"(?:ال)?بصر(?:ي)? (?:ضعيف|مشوش|ضبابي)", r"رؤية (?:ضبابية|مشوشة)"),
+    "dental": _rx(r"ألم (?:في )?(?:ال)?(?:سن|أسنان|ضرس)", r"ضرس"),
+    "urinary": _rx(r"حرقة (?:عند )?(?:ال)?تبول", r"مسالك"),
+    "women": _rx(r"(?:ال)?دورة (?:ال)?شهرية", r"طمث", r"حمل"),
+    "lung": _rx(r"سعال", r"كحة"),
+}
+_AR_CUE = _rx(r"ألم|يؤلم|تؤلم|وجع|حمى|سخونة|التهاب|نزيف|حكة|غثيان|دوخة|مشكلة|أعراض|طبيب|دكتور|أشعر|مريض|تعب|قلق|أرق|اكتئاب|إسهال|سعال|صداع|ضيق|خفقان|حرقة|تورم|انتفاخ|أحتاج")
+
+
 # urgent but not an emergency: the person should be seen soon
 _SOON: tuple[re.Pattern, ...] = (
-    _rx(r"تب.{0,10}(?:بالا|بیشتر از ?۳۹|۴۰)", r"high fever"),
+    _rx(r"تب.{0,10}(?:بالا|بیشتر از ?۳۹|۴۰)", r"high fever", r"حمى (?:شديدة|عالية|مرتفعة)", r"سخونة (?:عالية|شديدة)"),
 )
 
 # --- body areas -> specialties --------------------------------------------------------------------------------------
@@ -163,7 +191,7 @@ def _live_match(rx: "re.Pattern", t: str) -> bool:
 # when the message carries a complaint / doctor cue; otherwise ordinary chat («چشم، فردا انجام می‌دهم») gets no medical hint.
 _COMPLAINT_CUE = re.compile(_fold(
     r"درد|ناراحت|مشکل|سوزش|می ?سوزه|ورم|تورم|خارش|عفونت|خون|تار|گرفته|بسته|ضعیف|ریزش|بی ?حس|گز ?گز|تهوع|سرگیجه|نفخ|یبوست|اسهال|التهاب|"
-    r"دکتر|پزشک|متخصص|معاینه|آزمایش|علائم|نشانه|اذیت|آزار|شکایت|تب|سرفه|عرق|تپش|ضربان|پریود|قاعدگی|حامله|بارداری|ترشح|دیر شده|نامنظم|اضطراب|افسرد|استرس|بی ?خوابی|خوابم|دلشوره|ناامید|غم گین|غمگین|قند|فشار خون|کلسترول|ادرار|می ?سوزد|کم شده|کم شد|خوب نیست|خوبی ندارد|یه چیزی|یک چیزی|حالم|مریض|بیمار|ناخوش|"
+    r"دکتر|پزشک|متخصص|معاینه|آزمایش|علائم|نشانه|اذیت|آزار|شکایت|تب|سرفه|عرق|تپش|ضربان|پریود|قاعدگی|حامله|بارداری|ترشح|دیر شده|نامنظم|اضطراب|افسرد|استرس|بی ?خوابی|خوابم|دلشوره|ناامید|غم گین|غمگین|قند|فشار خون|کلسترول|ادرار|می ?سوزد|کم شده|کم شد|خوب نیست|خوبی ندارد|یه چیزی|یک چیزی|حالم|مریض|بیمار(?!ستان)|ناخوش|"
     r"\b(?:pain|ache|aching|hurts?|sore|swollen|swelling|itch|itchy|rash|fever|infection|bleed|bleeding|blur|blurry|dizzy|dizziness|"
     r"nausea|anxious|anxiety|depressed|unwell|sick|something wrong|problem|issue|symptoms?|doctor|specialist|trouble|cough|cramps?|numb|late|missed|irregular|painful|stuffy|blocked|runny)\b"), re.I)
 
@@ -175,13 +203,20 @@ _UNAMBIGUOUS_SYMPTOM = re.compile(_fold(
     r"vertigo|hives|bloating|sore throat|back pain|chest pain)\b"), re.I)
 
 
-_VAGUE_COMPLAINT = re.compile(_fold(r"یه چیزی|یک چیزی|حالم|مریض|بیمار|ناخوش|\b(?:something wrong|feel (?:sick|bad|unwell|off)|unwell|sick)\b"), re.I)
+_VAGUE_COMPLAINT = re.compile(_fold(r"یه چیزی|یک چیزی|حالم|مریض|بیمار(?!ستان)|ناخوش|\b(?:something wrong|feel (?:sick|bad|unwell|off)|unwell|sick)\b"), re.I)
+
+
+# Idioms that contain a symptom word but are not a complaint (D-404): removed from the text before matching.
+_IDIOMS = re.compile(_fold(
+    r"دست(?:ت| شما| تون)? درد نکنه|دستتون درد نکنه|دلم (?:برات |براش |برایت )?تنگ|دلم گرفته|قلبم شکست|قلبم برات|"
+    r"\b(?:real|such a|total|big) headache\b|\b(?:a )?headache for\b|pain in the (?:neck|ass)|\brash (?:decision|move|choice|action|judg\w+)\b|"
+    r"heart is broken|broken heart|heartbroken|قلبي معك|يعطيك العافية"), re.I)
 
 
 def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     """Never raises. Emergencies first; then area -> specialties; then ONE next question."""
-    t = _fold(text)
-    if not t:
+    t = _IDIOMS.sub(" ", _fold(text))
+    if not t.strip():
         return TriageResult()
     # R-099: self-harm talk is a SUPPORT conversation, not «call and leave». ONE definition of it (the I4 safety assessor, which also
     # understands negations like «قصد خودکشی ندارم» and informational questions): care_navigation.crisis_support.
@@ -190,18 +225,18 @@ def triage(text: str, language: Optional[str] = "fa") -> TriageResult:
     if is_self_harm_text(text or "", language or "fa"):
         return TriageResult(red_flag=True, urgency="crisis", red_flag_key="self_harm", specialties=("روانپزشکی",),
                             reasons={"روانپزشکی": "self_harm"}, next_question="care_nav.q.what_hurts")
-    for key, rx in _RED_FLAGS:
+    for key, rx in _RED_FLAGS + _AR_RED_FLAGS:
         if _live_match(rx, t):
             return TriageResult(red_flag=True, urgency="emergency", red_flag_key=key, specialties=("اورژانس",) + (("قلب",) if key.startswith("chest") else ()),
                                 reasons={"اورژانس": key})
     soon_now = any(rx.search(t) for rx in _SOON)
-    if not (_COMPLAINT_CUE.search(t) or _UNAMBIGUOUS_SYMPTOM.search(t) or soon_now):
+    if not (_COMPLAINT_CUE.search(t) or _AR_CUE.search(t) or _UNAMBIGUOUS_SYMPTOM.search(t) or soon_now):
         return TriageResult()
     areas: list[str] = []
     specialties: list[str] = []
     reasons: dict = {}
     for key, rx, specs in _AREAS:
-        if rx.search(t):
+        if rx.search(t) or (key in _AR_AREAS and _AR_AREAS[key].search(t)):
             areas.append(key)
             for sp in specs:
                 if sp not in specialties:
