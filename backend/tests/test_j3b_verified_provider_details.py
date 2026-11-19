@@ -188,7 +188,7 @@ def test_a_rating_needs_both_number_and_count_on_the_page():
 
 
 def test_the_paziresh24_page_wins_over_the_model(monkeypatch):
-    monkeypatch.setattr(pf, "_p24", lambda raw: {"phone": "02122792694", "address": "پاسداران - مجتمع بوستان - پلاک 297", "rating_avg": 4.4, "rating_count": 140})
+    monkeypatch.setattr(pf, "_p24", lambda raw, city=None: {"phone": "02122792694", "address": "پاسداران - مجتمع بوستان - پلاک 297", "rating_avg": 4.4, "rating_count": 140})
     html = '<html>"freeturn_text":"یک‌شنبه ساعت 05:10"</html>'
     v = pf.verify_result(_item(phone="02100000001", source_url="https://www.paziresh24.com/dr/x"),
                          fetch=lambda url: sf.FetchResult(True, "https://www.paziresh24.com/dr/x", 200, html.encode()))
@@ -370,3 +370,40 @@ def test_p2_a_timeout_during_the_body_is_a_clean_failure(monkeypatch):
     sf._robots_cache.clear()
     out = sf.fetch_page("https://a.example.ir/p", resolver=_res("93.184.216.34"))
     assert not out.ok and out.reason == "timeout"
+
+
+# ---- Codex round 2: a doctor with offices in several cities
+def _p24_html(centers):
+    import json
+
+    props = {"information": {"display_name": "علی رضایی"}, "slug": "dr-x-1", "centers": centers,
+             "expertises": {"expertises": [{"alias_title": "متخصص قلب"}]},
+             "feedbacks": {"details": {"average_rates": {"a": 4.5}, "count_of_feedbacks": 120}}}
+    return ('<html><script id="__NEXT_DATA__" type="application/json">' + json.dumps({"props": {"pageProps": props}}, ensure_ascii=False)
+            + "</script></html>").encode("utf-8")
+
+
+SHIRAZ = {"id": "1", "type_id": 1, "is_active": True, "city": "شیراز", "address": "شیراز، خیابان زند، پلاک ۵", "tell": ["07133334444"]}
+TEHRAN = {"id": "2", "type_id": 1, "is_active": True, "city": "تهران", "address": "تهران، پاسداران، پلاک ۲۹۷", "tell": ["02122792694"]}
+
+
+def test_p2_the_office_in_the_requested_city_is_used_not_the_first_one():
+    t = pf._p24(_p24_html([SHIRAZ, TEHRAN]), "تهران")
+    assert t["phone"] == "02122792694" and "پاسداران" in t["address"] and t["rating_avg"] == 4.5 and t["rating_count"] == 120
+    s = pf._p24(_p24_html([SHIRAZ, TEHRAN]), "شیراز")
+    assert s["phone"] == "07133334444"
+
+
+def test_p2_a_doctor_without_an_office_in_the_requested_city_gives_no_page_truth():
+    assert pf._p24(_p24_html([SHIRAZ]), "تهران") == {}
+
+
+def test_p2_the_tehran_claim_never_becomes_the_shiraz_contact():
+    html = _p24_html([SHIRAZ, TEHRAN])
+    v = pf.verify_result(_item(phone="02122792694", city="تهران", source_url="https://www.paziresh24.com/dr/x"),
+                         fetch=lambda url: sf.FetchResult(True, "https://www.paziresh24.com/dr/x", 200, html))
+    assert v.phone == "02122792694" and "پاسداران" in (v.address or "")
+    only_shiraz = _p24_html([SHIRAZ])
+    v2 = pf.verify_result(_item(phone="02122792694", city="تهران", source_url="https://www.paziresh24.com/dr/x"),
+                          fetch=lambda url: sf.FetchResult(True, "https://www.paziresh24.com/dr/x", 200, only_shiraz))
+    assert v2.phone != "07133334444" and v2.phone_status in ("rejected", "none")

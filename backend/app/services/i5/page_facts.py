@@ -219,21 +219,33 @@ class Verification:
     open_24h: bool = False
 
 
-def _p24(raw: bytes) -> dict[str, Any]:
+def _p24(raw: bytes, want_city: Optional[str] = None) -> dict[str, Any]:
+    """The doctor page's OWN structured facts. A doctor with offices in several cities: the office in the REQUESTED city is used; none
+    there = no page truth at all (the generic checks apply) - never another city's number under this city (Codex P2, PR 190)."""
     try:
         from backend.app.services.i5 import iran_directory_p24 as p24
+        from backend.app.services.i5 import iran_places
 
-        doc, centers = p24.parse_doctor_page(raw)
+        doc, _facilities = p24.parse_doctor_page(raw)
         if not doc:
             return {}
-        out = {"phone": doc.get("phone"), "address": doc.get("address"), "rating_avg": doc.get("rating_avg"),
-               "rating_count": doc.get("rating_count")}
-        for c in centers or []:  # the doctor's own physical center when the doctor record has no number
-            out["phone"] = out["phone"] or c.get("phone")
-            out["address"] = out["address"] or c.get("address")
-        return out
+        pp = p24._page_props(raw)
+        centers = [c for c in (pp.get("centers") or []) if isinstance(c, dict) and int(c.get("type_id") or 0) != 3]
+
+        def in_city(c: dict) -> bool:
+            return not want_city or iran_places.mentions(iran_places.normalize(f"{c.get('city') or ''} {c.get('address') or ''}"), want_city)
+
+        pick = next((c for c in centers if c.get("is_active") and in_city(c)), None) or next((c for c in centers if in_city(c)), None)
+        if want_city and centers and pick is None:
+            return {}
+        if pick is None:  # a page without office objects: the doctor record itself
+            return {"phone": doc.get("phone"), "address": doc.get("address"), "rating_avg": doc.get("rating_avg"), "rating_count": doc.get("rating_count")}
+        return {"phone": published_phone(*(pick.get("tell") or []), pick.get("display_number")),
+                "address": " ".join(str(pick.get("address") or "").split())[:512] or None,
+                "rating_avg": doc.get("rating_avg"), "rating_count": doc.get("rating_count")}
     except Exception:  # noqa: BLE001
         return {}
+
 
 
 _RATING_CUE = re.compile(r"امتیاز|رضایت|نمره|ستاره|rating|rated|stars?|score|of 5|out of 5|از 5|/ ?5", re.I)
@@ -275,7 +287,7 @@ def verify_result(item: dict[str, Any], *, fetch: Optional[Callable[[str], "safe
         text = visible_text(raw)
         runs = page_digit_runs(raw)
         host = (str(fr.url).split("/")[2] if "//" in str(fr.url) else "").lower()
-        truth = _p24(fr.body) if host.endswith("paziresh24.com") else {}
+        truth = _p24(fr.body, str(item.get("city") or "") or None) if host.endswith("paziresh24.com") else {}
         # --- phone
         page_phone = published_phone(truth.get("phone")) if truth else None
         if page_phone:
