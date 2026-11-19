@@ -376,10 +376,13 @@ def _reason_reply(name: str, lang: str, *, introduce: bool = True) -> str:
 
 def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
     text = _fold(reply or "").lower()
-    lang = _lang(language)
-    for stage, key in STAGE_KEYS.items():
-        if any(_fold(m).lower() in text for m in sedi_copy.variants(key, lang, "fa")):
-            return stage
+    # Codex P2 round 7 (PR 185): the question was stored in the language of ITS turn; the next request may carry another
+    # Accept-Language, so the markers of every supported language are tried (the request language first).
+    langs = [_lang(language)] + [c for c in ("fa", "en", "ar") if c != _lang(language)]
+    for lang in langs:
+        for stage, key in STAGE_KEYS.items():
+            if any(_fold(m).lower() in text for m in sedi_copy.variants(key, lang, "fa")):
+                return stage
     return None
 
 

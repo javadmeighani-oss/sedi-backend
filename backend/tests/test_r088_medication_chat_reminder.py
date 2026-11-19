@@ -503,3 +503,12 @@ def test_a_cancelled_event_in_the_reason_is_not_a_withdrawal(monkeypatch, owner,
 def test_imperative_withdrawals_still_end_the_interview(monkeypatch, owner, captured, lang, text):
     assert _go_db(monkeypatch, _reason_rows(lang=lang), text, _FakeDb(), lang=lang) == sedi_copy.t("medication.chat.cancelled", lang)
     assert owner == [] and captured == []
+
+
+@pytest.mark.parametrize("asked", ["en", "ar", "fa"])
+@pytest.mark.parametrize("asked_now", ["fa", "en", "ar"])
+def test_the_stage_is_found_whatever_language_the_next_request_uses(asked, asked_now):
+    """Codex P2 round 7 (PR 185): a question stored in one language is recognised when the next turn arrives in another."""
+    for key, stage in (("medication.chat.q.ask_name", "ask_name"), ("medication.chat.q.ask_reason", "ask_reason")):
+        reply = sedi_copy.t(key, asked, name="Zed")
+        assert mc._stage_of(reply, asked_now) == stage
