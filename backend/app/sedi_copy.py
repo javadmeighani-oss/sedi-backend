@@ -1529,6 +1529,117 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'لأجد لك طبيباً أو مركزاً مناسباً، أخبرني بالمدينة والحيّ والتخصص؛ سأبحث في مواقع الحجز والقوائم الطبية ولن أختلق أي اسم.',
         'en': 'To find the right doctor or centre, tell me the city, neighbourhood and specialty; I will search the booking sites and medical listings and only share verified names, never invented ones.',
     },
+    # R-088 / R-091 (D-382..D-384): a pill reminder asked in chat goes to the medication owner and asks WHICH pill.
+    'medication.chat.provisional_name': {
+        'fa': 'قرص (نام ثبت نشده)',
+        'ar': 'دواء (الاسم غير مسجّل)',
+        'en': 'Pill (name not recorded)',
+    },
+    'medication.chat.confirm_unnamed': {
+        'fa': 'ثبت شد: {when} برای مصرف قرصت یادت می‌اندازم. کدام قرص را می‌خوری؟ اسمش را همان‌طور که روی جعبه نوشته بنویس؛ اگر مطمئن نیستی، عکس جعبه یا نسخه را بفرست تا دقیق ثبت کنم.',
+        'ar': 'تم التسجيل: سأذكّرك {when} بتناول دوائك. أي دواء تتناول؟ اكتب اسمه كما هو على العلبة؛ وإن لم تكن متأكداً فأرسل صورة العلبة أو الوصفة لأسجّله بدقة.',
+        'en': 'Done: I will remind you {when} to take your pill. Which pill is it? Write the name exactly as it appears on the box; if you are not sure, send a photo of the box or the prescription so I record it precisely.',
+    },
+    'medication.chat.confirm_named': {
+        'fa': 'ثبت شد: {when} برای «{name}» یادت می‌اندازم. اسم دقیق روی جعبه همین است؟ اگر فرق دارد بنویس، یا عکس جعبه یا نسخه را بفرست تا دقیق ثبت کنم.',
+        'ar': 'تم التسجيل: سأذكّرك {when} بـ«{name}». هل هذا هو الاسم الدقيق على العلبة؟ إن كان مختلفاً فاكتبه، أو أرسل صورة العلبة أو الوصفة لأسجّله بدقة.',
+        'en': 'Done: I will remind you {when} about “{name}”. Is that the exact name on the box? If it differs, write it, or send a photo of the box or the prescription so I record it precisely.',
+    },
+    'medication.chat.q.ask_name': {
+        'fa': 'برای اینکه ساعت را درست و هماهنگ با وضعیتت تنظیم کنم، اول بگو کدام دارو را مصرف می‌کنی؟ اسمش را همان‌طور که روی جعبه نوشته بنویس؛ اگر مطمئن نیستی، عکس جعبه یا نسخه را بفرست.',
+        'ar': 'لأضبط الوقت بدقة وبما يناسب وضعك، أخبرني أولاً: أي دواء تتناول؟ اكتب اسمه كما هو على العلبة؛ وإن لم تكن متأكداً فأرسل صورة العلبة أو الوصفة.',
+        'en': 'To set the time correctly and in harmony with your situation, which medicine do you take? Write its name exactly as on the box; if you are not sure, send a photo of the box or the prescription.',
+    },
+    'medication.chat.q.confirm_name': {
+        'fa': '«{name}» را یادداشت کردم؛ برای اینکه ساعت را درست تنظیم کنم، اسم دقیق روی جعبه همین است؟ اگر فرق دارد بنویس، یا عکس جعبه یا نسخه را بفرست.',
+        'ar': 'دوّنت «{name}»؛ ولأضبط الوقت بدقة، هل هذا هو الاسم الدقيق على العلبة؟ إن كان مختلفاً فاكتبه، أو أرسل صورة العلبة أو الوصفة.',
+        'en': 'I noted “{name}”; to set the time correctly, is that the exact name on the box? If it differs, write it, or send a photo of the box or the prescription.',
+    },
+    'medication.chat.q.ask_reason': {
+        'fa': '«{name}» را ثبت کردم. برای چه موضوعی مصرفش می‌کنی؟ هر چه درباره‌ی وضعیتت مهم است بگو تا ساعت و مراقبت‌هایش را هماهنگ با تو تنظیم کنم.',
+        'ar': 'سجّلت «{name}». لأي سبب تتناوله؟ أخبرني بما يهم في وضعك لأضبط الوقت والرعاية بما يناسبك.',
+        'en': 'I recorded “{name}”. What do you take it for? Tell me what matters about your situation so I can set the time and the care around it in harmony with you.',
+    },
+    'medication.chat.markers.ask_name': {
+        'fa': ('کدام دارو را مصرف می‌کنی',),
+        'ar': ('أي دواء تتناول',),
+        'en': ('which medicine do you take',),
+    },
+    'medication.chat.markers.confirm_name': {
+        'fa': ('اسم دقیق روی جعبه همین است',),
+        'ar': ('هل هذا هو الاسم الدقيق',),
+        'en': ('is that the exact name on the box',),
+    },
+    'medication.chat.markers.ask_reason': {
+        'fa': ('برای چه موضوعی مصرفش می‌کنی',),
+        'ar': ('لأي سبب تتناوله',),
+        'en': ('what do you take it for',),
+    },
+    'medication.chat.brief.line': {
+        'fa': '«{name}»: {summary} (منبع: {sources}؛ {date}).',
+        'ar': '«{name}»: {summary} (المصدر: {sources}؛ {date}).',
+        'en': '“{name}”: {summary} (sources: {sources}; {date}).',
+    },
+    'medication.chat.brief.single': {
+        'fa': '«{name}»: {summary} (طبق {sources}؛ {date}).',
+        'ar': '«{name}»: {summary} (وفق {sources}؛ {date}).',
+        'en': '“{name}”: {summary} (according to {sources}; {date}).',
+    },
+    'medication.chat.q.ask_reason_after_brief': {
+        'fa': 'در کنار این دارو، مراقبت و پیشگیری و پیگیری موضوعش را هم با تو جلو می‌برم و همراهت هستم. برای چه موضوعی مصرفش می‌کنی؟ هر چه درباره‌ی وضعیتت مهم است بگو تا ساعت و مراقبت‌هایش را هماهنگ با تو تنظیم کنم.',
+        'ar': 'وبجانب هذا الدواء سأتابع معك الرعاية والوقاية ومتابعة موضوعه وأكون معك. لأي سبب تتناوله؟ أخبرني بما يهم في وضعك لأضبط الوقت والرعاية بما يناسبك.',
+        'en': 'Alongside this medicine I will go through care, prevention and follow-up of its subject with you, and I am with you. What do you take it for? Tell me what matters about your situation so I can set the time and the care around it in harmony with you.',
+    },
+    'medication.chat.q.unrecognised': {
+        'fa': '«{name}» را با اطمینان نشناختم. اسم دقیق روی جعبه همین است؟ اگر فرق دارد بنویس، یا عکس جعبه یا نسخه را بفرست.',
+        'ar': 'لم أتعرف بثقة على «{name}». هل هذا هو الاسم الدقيق على العلبة؟ إن كان مختلفاً فاكتبه، أو أرسل صورة العلبة أو الوصفة.',
+        'en': 'I could not recognise “{name}” with confidence. Is that the exact name on the box? If it differs, write it, or send a photo of the box or the prescription.',
+    },
+    'medication.chat.markers.unrecognised': {
+        'fa': ('را با اطمینان نشناختم',),
+        'ar': ('لم أتعرف بثقة',),
+        'en': ('could not recognise',),
+    },
+    'medication.chat.created.after_reason': {
+        'fa': 'ثبت شد: ساعت {time} برای «{name}» یادت می‌اندازم. موضوعت را در نظر گرفتم و در کنار این دارو، مراقبت و پیشگیری و پیگیری‌اش را با هم جلو می‌بریم تا مشکل برطرف شود؛ من همراهتم. اگر ساعت دیگری با روزت هماهنگ‌تر است، بگو تا عوضش کنم.',
+        'ar': 'تم التسجيل: سأذكّرك الساعة {time} بـ«{name}». أخذت وضعك في الاعتبار، وبجانب هذا الدواء سنتابع معاً الرعاية والوقاية والمتابعة حتى تُحَلّ المشكلة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',
+        'en': 'Done: I will remind you at {time} about “{name}”. I have your situation in mind, and alongside this medicine we will go through care, prevention and follow-up together until the matter is resolved; I am with you. If another time fits your day better, tell me and I will change it.',
+    },
+    'medication.chat.created.after_reason_unnamed': {
+        'fa': 'ثبت شد: ساعت {time} برای مصرف دارویت یادت می‌اندازم. موضوعت را در نظر گرفتم و در کنار این دارو، مراقبت و پیشگیری و پیگیری‌اش را با هم جلو می‌بریم؛ من همراهتم. اگر ساعت دیگری با روزت هماهنگ‌تر است، بگو تا عوضش کنم.',
+        'ar': 'تم التسجيل: سأذكّرك الساعة {time} بتناول دوائك. أخذت وضعك في الاعتبار وسنتابع معاً الرعاية والوقاية والمتابعة؛ أنا معك. وإن كان وقت آخر يناسب يومك أكثر فأخبرني لأغيّره.',
+        'en': 'Done: I will remind you at {time} to take your medicine. I have your situation in mind and we will go through care, prevention and follow-up together; I am with you. If another time fits your day better, tell me and I will change it.',
+    },
+    'medication.chat.cancelled': {
+        'fa': 'باشه، یادآوری را نگذاشتم. هر وقت خواستی بگو تا برایت تنظیمش کنم.',
+        'ar': 'حسناً، لم أضع التذكير. متى شئت أخبرني وسأضبطه لك.',
+        'en': 'Okay, I did not set the reminder. Tell me whenever you want it and I will set it up.',
+    },
+    'medication.chat.commitment_step': {
+        'fa': 'ادامه‌ی مراقبت و پیگیری موضوع سلامتی پشت دارویت «{name}»',
+        'ar': 'متابعة الرعاية للموضوع الصحي وراء دوائك «{name}»',
+        'en': 'Keep looking after the health matter behind your “{name}” medication and check in on it',
+    },
+    'medication.chat.created.followup_promise': {
+        'fa': 'فردا حالت را می‌پرسم و پیگیری را ادامه می‌دهم.',
+        'ar': 'غداً أسألك عن حالك وأتابع الأمر معك.',
+        'en': 'Tomorrow I will ask how you are doing and keep following up with you.',
+    },
+    'medication.chat.created.insist_named': {
+        'fa': 'حتماً، همان‌طور که گفتی انجام می‌دهم: ساعت {time} برای «{name}» یادت می‌اندازم. من مراقب سلامتی تو هستم و هر وقت خواستی درباره‌اش بیشتر صحبت کنیم، من هستم.',
+        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بـ«{name}». أنا أعتني بصحتك، ومتى شئت أن نتحدث عنه أكثر فأنا موجود.',
+        'en': 'Of course, I will do as you say: I will remind you at {time} about “{name}”. I am looking after your health, and whenever you want to talk about it more, I am here.',
+    },
+    'medication.chat.created.insist_unnamed': {
+        'fa': 'حتماً، همان‌طور که گفتی انجام می‌دهم: ساعت {time} برای مصرف دارویت یادت می‌اندازم. من مراقب سلامتی تو هستم و هر وقت خواستی درباره‌ی دارو و موضوعش بیشتر صحبت کنیم، من هستم.',
+        'ar': 'بالتأكيد، سأفعل كما قلت: سأذكّرك الساعة {time} بتناول دوائك. أنا أعتني بصحتك، ومتى شئت أن نتحدث عن الدواء وموضوعه أكثر فأنا موجود.',
+        'en': 'Of course, I will do as you say: I will remind you at {time} to take your medicine. I am looking after your health, and whenever you want to talk about the medicine and its subject more, I am here.',
+    },
+    'medication.chat.already_tracked': {
+        'fa': '«{name}» از قبل در داروهای تو ثبت است؛ همان را نگه می‌دارم و یادآورهایش را هم‌چنان انجام می‌دهم.',
+        'ar': '«{name}» مسجّل أصلاً في أدويتك؛ سأبقي عليه وأواصل تذكيراتك.',
+        'en': '“{name}” is already among your medicines; I keep that one and continue its reminders.',
+    },
     'reminder.not_sent_say_when': {
         'fa': 'برای ارسال نوتیف زمان و موضوعش را بگو؛ مثلاً «الان نوتیف بفرست» یا «فردا ساعت ۱۰ یادم بینداز».',
         'ar': 'لإرسال إشعار أخبرني بالوقت والموضوع، مثل «أرسل لي إشعاراً الآن» أو «ذكّرني غداً الساعة 10».',

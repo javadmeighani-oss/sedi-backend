@@ -1497,13 +1497,39 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
-        # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
-        # No direct Notification write; I10 scheduler consumes reminder fields.
+        # R-088 / R-091 (A1 v2): the next step of the pill care interview (name -> reason -> reminder at the end).
+        # Needs the consent-gated previous reply; fail-open (None -> normal flow).
         reminder_message: Optional[str] = None
         if (
             not terminal_safety
             and not discovery_reply_active
             and not care_nav_handled
+            # Codex P2 (PR 185): «just remind me» / «فقط یادم بنداز» is classified as a reminder WITHOUT a time, so the generic
+            # clarification («what time?») has already set skip_generator; the interview owns that reply, so it runs when ONLY
+            # the clarification is pending (it returns None for every message that is not an answer of an open interview).
+            and (not skip_generator or clarification_message is not None)
+            and self._db is not None
+        ):
+            try:
+                from backend.app.services.medication_care import chat_reminder as _med_chat
+
+                if _med_chat.enabled():
+                    _med_reply = _med_chat.continue_interview(self._db, user_id=authenticated_user_id, message=message, language=lang, timezone_name=self._reminder_timezone(ctx, authenticated_user_id))
+                    if _med_reply:
+                        reminder_message = _med_reply
+                        skip_generator = True
+                        clarification_message = None
+                        extra_reason_codes.append("R088_MEDICATION_INTERVIEW_STEP")
+            except Exception:  # noqa: BLE001
+                pass
+
+        # I1 dispatch: I3-READY REMINDER/event → existing UserEvent (not I8).
+        # No direct Notification write; I10 scheduler consumes reminder fields.
+        if (
+            not terminal_safety
+            and not discovery_reply_active
+            and not care_nav_handled
+            and reminder_message is None
             and intent_meta is not None
             and readiness_meta is not None
             and readiness_meta.status is ReadinessStatus.READY

@@ -62,6 +62,26 @@ def dispatch_reminder_user_event(
         if missing is not None or resolved is None:
             return {"created": False, "reason": "not_ready"}
 
+    # R-088 / R-091 (A1 v2): a RECURRING pill request starts a short care interview (medicine, reason) BEFORE any time is set;
+    # Fail-open: None -> the generic UserEvent path below stays as before.
+    try:
+        from backend.app.services.medication_care import chat_reminder as _med_chat
+
+        med = _med_chat.start_interview(
+            db, user_id=user_id, message=message, draft=resolved, language=language, timezone_name=timezone_name
+        )
+    except Exception:  # noqa: BLE001
+        med = None
+    if med is not None:
+        lang_m = language if language in ("fa", "ar", "en") else "en"
+        return {
+            **med,
+            "when": describe_when(resolved, lang_m, now_utc),
+            "title": resolved.title,
+            "offset_min": None,
+            "reason": med.get("reason") or ("created" if med.get("created") else "duplicate"),
+        }
+
     dup = find_duplicate_conversation_event(
         db,
         user_id=user_id,
@@ -124,6 +144,10 @@ def _lead_text(offset_min: int, lang: str) -> str:
 def confirmation_message(dispatched: dict[str, Any], lang: str) -> str:
     """Warm confirmation that states WHAT and WHEN (R-011/R-026) - never a vague "I'll remind you"."""
     when = dispatched.get("when") or ""
+    if dispatched.get("kind") == "medication" and (dispatched.get("created") or dispatched.get("interview")):
+        from backend.app.services.medication_care import chat_reminder as _med_chat
+
+        return _med_chat.confirmation(dispatched, lang, when)
     title = dispatched.get("title") or ""
     offset = dispatched.get("offset_min")
     lang3 = lang if lang in ("fa", "ar") else "en"
