@@ -98,11 +98,12 @@ _ENTITY_WORDS = {
     "HOSPITAL": ("hospital", "بیمارستان"),
     "SPECIALTY_CENTER": ("clinic or medical center", "کلینیک یا مرکز درمانی"),
     "LABORATORY": ("medical laboratory", "آزمایشگاه"),
+    "PHARMACY": ("pharmacy", "داروخانه"),
 }
 
 
 def build_query(entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
-                country: str = "IR", area: Optional[str] = None) -> Optional[str]:
+                country: str = "IR", area: Optional[str] = None, qualifiers: Sequence[str] = ()) -> Optional[str]:
     """Structured-only query. No city → no lookup (too broad, likely low quality). ``area`` = neighbourhood (R-089)."""
     if not city:
         return None
@@ -110,6 +111,10 @@ def build_query(entity: str, specialty: Optional[str], city: Optional[str], prov
     ir = country.upper() == "IR"
     word = fa if ir else en
     what = f"{specialty} {word}" if specialty else word
+    if "24h" in qualifiers:
+        what += " شبانه‌روزی" if ir else " open 24 hours"
+    if "high_rating" in qualifiers:
+        what += " با امتیاز بالا" if ir else " highly rated"
     where = ", ".join(x for x in (area, city, province) if x)
     return f"{what} {where}" if ir else f"{what} in {where}"
 
@@ -219,11 +224,12 @@ def _query_variants(query: str, entity: str, country: str) -> list[str]:
 
 
 def search_web_providers(*, entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
-                         country: str = "IR", client: Any = None, area: Optional[str] = None) -> list[dict[str, Any]]:
+                         country: str = "IR", client: Any = None, area: Optional[str] = None,
+                         qualifiers: Sequence[str] = ()) -> list[dict[str, Any]]:
     """One guarded web search (cached 24h per structured query). Never raises, never writes to the DB."""
     if not web_lookup_enabled():
         return []
-    query = build_query(entity, specialty, city, province, country, area=area)
+    query = build_query(entity, specialty, city, province, country, area=area, qualifiers=tuple(qualifiers or ()))
     if not query:
         return []
     now = time.time()
