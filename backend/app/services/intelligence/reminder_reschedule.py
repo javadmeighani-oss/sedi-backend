@@ -46,6 +46,12 @@ _STOP = frozenset(
     "the a an to of my me at every day take remind reminder time for and "
     "تذكير الساعة كل يوم".split()
 )
+_ONE_DAY_ONLY = re.compile(
+    r"\bonly\b.{0,24}\b(?:today|tomorrow|tonight|this\s+once)\b|\bjust\s+(?:for\s+)?(?:today|tomorrow|tonight|once)\b|"
+    r"\b(?:today|tomorrow|tonight)\s+only\b|فقط\s+(?:برای\s+)?(?:امروز|فردا|امشب|یک\s*بار|این\s*بار)|(?:امروز|فردا|امشب)\s+فقط|"
+    r"فقط\s+\S{0,12}\s*(?:امروز|فردا)|(?:اليوم|غدا|غداً)\s+فقط|فقط\s+(?:اليوم|غدا|غداً)",
+    re.I,
+)
 _PRONOUN = re.compile(r"(?:زمان|ساعت|وقت)(?:ش|شو|شون|اش)\b|\b(?:it|its\s+time|that\s+one)\b|(?:موعده|وقته)")
 _TOKEN = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
 _MARK = {
@@ -271,15 +277,19 @@ def handle(
         cands = _candidates(db, user_id, now)
         if not cands:
             return None  # nothing to change: the normal flow answers (and the guard strips any «I changed it» claim)
-        ctx_tokens = _tokens(text + " " + (context or ""))
-        # «change my dinner to 8 pm» is not about a reminder: act only when the message points at one (reminder word, «its time»,
-        # or a word of a reminder's own title in the message / the last reply)
-        if not (_rer._REMINDER_WORDS.search(text) or _PRONOUN.search(text) or any(_tokens(c["title"]) & ctx_tokens for c in cands)):
+        msg_tokens = _tokens(text)
+        # «change my dinner to 8 pm» is not about a reminder: act only when the CURRENT message points at one (reminder word, «its
+        # time», or a word of a reminder's own title). The previous reply is only used to choose among reminders afterwards, never
+        # to decide that the message is about one (Codex P1, PR 192).
+        if not (_rer._REMINDER_WORDS.search(text) or _PRONOUN.search(text) or any(_tokens(c["title"]) & msg_tokens for c in cands)):
             return None
         chosen, pool = _pick(cands, text + " " + (context or ""), old_hhmm, text)
         if chosen is None:
             lines = "؛ ".join(f"«{c['title']}» {c['hhmm']}" for c in pool[:3]) if lang != "en" else "; ".join(f"“{c['title']}” {c['hhmm']}" for c in pool[:3])
             return sedi_copy.t("reminder.reschedule.ask_which", lang, list=lines)
+        if chosen["recurring"] and _ONE_DAY_ONLY.search(text):
+            # a change for ONE day cannot be stored on a repeating series (its clock is shared by every day): nothing is changed
+            return sedi_copy.t("reminder.reschedule.series_only", lang, title=chosen["title"])
         old = chosen["hhmm"]
         lead = 0
         try:
@@ -317,6 +327,8 @@ def context_of(turns: list[Any], answered_question: bool) -> str:
 def pending_request(turns: list[Any], answer: str, language: Optional[str]) -> Optional[str]:
     """Like ``pending_prior_request`` but follows a CHAIN of this flow's questions (at 5 -> morning or evening? -> pm -> which
     reminder? -> Dentist): the original request and every answer, oldest first, plus this answer (Codex P2, PR 192)."""
+    if _CHANGE.search(_norm(answer or "")) and not _NEGATED.search(_norm(answer or "")) and _times_in(_norm(answer or "")):
+        return None  # «Actually move Dentist to 6 pm»: a complete new request, it does not inherit the old destination
     parts: list[str] = []
     for t in turns:
         reply = _norm(str(getattr(t, "sedi_response", "") or "")).lower()

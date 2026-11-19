@@ -180,3 +180,44 @@ def test_p2_an_expired_one_time_reminder_moves_to_the_next_future_occurrence(mon
     ev = _event(title="Dentist", hh=23, recurring=False, day=datetime(2026, 11, 18))
     reply = _go(monkeypatch, [ev], "move the reminder to 4 pm")
     assert owners == [(1, datetime(2026, 11, 20, 16, 0))] and sedi_copy.t("reminder.reschedule.day_tomorrow", "en") in reply
+
+
+# --- round 5 --------------------------------------------------------------------------------------------------------------------
+def test_p1_the_previous_reply_alone_never_makes_a_message_about_a_reminder(monkeypatch, owners):
+    cands = [_event(title="Supplement", hh=9, recurring=True)]
+    assert _go(monkeypatch, cands, "change my dinner to 8 pm", context="I will remind you to take Supplement at 9.") is None
+    assert owners == []
+    # the previous reply still helps CHOOSE once the message does point at a reminder
+    two = [_event(eid=1, title="Supplement", hh=9, recurring=True), _event(eid=2, title="Workout", hh=18, recurring=True)]
+    assert _go(monkeypatch, two, "change the reminder to 8 pm", context="I will remind you to take Supplement at 9.")
+    assert owners and owners[0][0] == 1
+
+
+def test_p2_a_new_complete_request_replaces_the_pending_one():
+    ask = sedi_copy.t("reminder.reschedule.ask_which", "en", list="“Dentist” 09:00; “Workout” 18:00")
+    turn = SimpleNamespace(user_message="change the reminder to 5 pm", sedi_response=ask)
+    assert rr.pending_request([turn], "Actually move Dentist to 6 pm", "en") is None  # handled on its own
+    assert rr.pending_request([turn], "Dentist", "en") == "change the reminder to 5 pm Dentist"
+
+
+def test_p2_a_new_complete_request_through_the_flow_uses_its_own_time(monkeypatch, owners):
+    cands = [_event(eid=1, title="Dentist", hh=9, recurring=True), _event(eid=2, title="Workout", hh=18, recurring=True)]
+    _go(monkeypatch, cands, "Actually move my Dentist reminder to 6 pm")
+    assert owners and owners[0][0] == 1 and owners[0][1].hour == 18
+
+
+@pytest.mark.parametrize(
+    "lang,message",
+    [
+        ("en", "move only tomorrow's reminder to 4 pm"), ("en", "just for today move the reminder to 4 pm"),
+        ("fa", "فقط فردا ساعت یادآوری را ۴ عصر کن و تغییر بده"), ("fa", "ساعت یادآوری را فقط امروز به ۴ عصر تغییر بده"),
+    ],
+)
+def test_p2_a_one_day_change_never_rewrites_a_repeating_series(monkeypatch, owners, lang, message):
+    reply = _go(monkeypatch, [_event(title="Supplement", hh=14, recurring=True)], message, lang)
+    assert reply == sedi_copy.t("reminder.reschedule.series_only", lang, title="Supplement") and owners == []
+
+
+def test_p2_a_one_time_reminder_may_still_use_a_day_word(monkeypatch, owners):
+    _go(monkeypatch, [_event(title="Dentist", hh=9, recurring=False, day=datetime(2026, 11, 20))], "move only tomorrow's reminder to 4 pm")
+    assert owners and owners[0][1] == datetime(2026, 11, 20, 16, 0)
