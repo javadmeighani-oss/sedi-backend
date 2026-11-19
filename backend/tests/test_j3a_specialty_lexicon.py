@@ -146,3 +146,20 @@ def test_p2_the_legacy_persian_neurology_alias_still_matches_old_rows():
     ("دندانپزشک برای بچه‌ام که دیابت دارد", "دندانپزشکی"), ("a doctor for diabetes", "غدد"), ("diabetes", "غدد")])
 def test_p2_the_requested_practitioner_beats_condition_words(text, expected):
     assert sl.find_specialty(text) == expected
+
+
+@pytest.mark.parametrize("msg", ["I don't want surgery, find a cardiologist in Tehran", "I do not need pills but find a dentist in Shiraz"])
+def test_p2_declining_a_treatment_does_not_decline_the_provider_request(msg):
+    assert cn.is_care_navigation_query(msg)
+
+
+@pytest.mark.parametrize("msg", ["I do not need a therapist", "I don't want a doctor", "I don't need a dentist anymore"])
+def test_p2_declining_a_provider_still_declines(msg):
+    assert not cn.is_care_navigation_query(msg)
+
+
+def test_p2_arabic_city_spellings_validate_web_results():
+    items = [{"name": "عيادة الشفاء", "specialty": "قلب", "city": "طهران", "address": "طهران، شارع ولي عصر", "phone": "02112345678",
+              "source_url": "https://www.paziresh24.com/dr/x"}]
+    out = wl.validate_results(items, city="تهران", country="IR")
+    assert len(out) == 1 and out[0]["name"] == "عيادة الشفاء"

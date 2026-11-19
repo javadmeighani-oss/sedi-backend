@@ -100,6 +100,9 @@ def aliases(city: Optional[str]) -> set[str]:
     for en, fa2 in _CITIES_EN.items():
         if normalize(fa2) in out:
             out.add(normalize(en))
+    for ar, fa3 in _CITIES_AR.items():  # Arabic spellings of the same city (Codex P2, PR 189)
+        if normalize(fa3) in out:
+            out.add(normalize(ar))
     return out
 
 

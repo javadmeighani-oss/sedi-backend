@@ -229,6 +229,17 @@ def _has_real_location(text: str) -> bool:
     return False
 
 
+def _declined_provider(text: str) -> bool:
+    """«I don't need a therapist» declines a PROVIDER lookup; «I don't want surgery, find a cardiologist» declines a treatment and
+    must still route (Codex P2, PR 189): the refusal counts only when what follows it, up to the next clause, names a provider."""
+    for m in _REFUSAL.finditer(text):
+        tail = re.split(r"[,;.،؛]|\b(?:but|and|so|then)\b", text[m.end():])[0]
+        if _SPECIALIST_PAT.search(tail) or _HOSPITAL_PAT.search(tail) or _CENTER_PAT.search(tail) or _LAB_PAT.search(tail) \
+                or _PHARMACY_PAT.search(tail) or _spec.has_practitioner_word(tail):
+            return True
+    return False
+
+
 def _practitioner_request(text: str) -> bool:
     """A practitioner named by a specialty word counts only inside a REQUEST to find one («My psychiatrist changed my meds» is not)."""
     return _spec.has_practitioner_word(text) and bool(
@@ -240,7 +251,7 @@ def is_care_navigation_query(message: str) -> bool:
     text = (message or "").strip()
     if not text:
         return False
-    if _NOT_A_FIND_REQUEST.search(text) or _REFUSAL.search(text):
+    if _NOT_A_FIND_REQUEST.search(text) or _declined_provider(text):
         return False
     entity_hit = bool(
         _SPECIALIST_PAT.search(text)
