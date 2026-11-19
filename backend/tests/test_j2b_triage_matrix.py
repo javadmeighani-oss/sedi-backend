@@ -40,3 +40,8 @@ def test_ordinary_conversation_gets_no_medical_hint(text, lang):
 @pytest.mark.parametrize("text, lang", HINTED)
 def test_real_complaints_and_emergencies_get_a_hint(text, lang):
     assert llm_hint(triage(text, lang)) is not None
+
+
+@pytest.mark.parametrize("text", ["I have had a headache for three days", "I have a real headache", "my headache for two weeks is worse"])
+def test_a_literal_headache_is_never_filtered_as_an_idiom(text):
+    assert llm_hint(triage(text, "en")) is not None

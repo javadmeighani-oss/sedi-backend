@@ -209,7 +209,7 @@ _VAGUE_COMPLAINT = re.compile(_fold(r"یه چیزی|یک چیزی|حالم|مر�
 # Idioms that contain a symptom word but are not a complaint (D-404): removed from the text before matching.
 _IDIOMS = re.compile(_fold(
     r"دست(?:ت| شما| تون)? درد نکنه|دستتون درد نکنه|دلم (?:برات |براش |برایت )?تنگ|دلم گرفته|قلبم شکست|قلبم برات|"
-    r"\b(?:real|such a|total|big) headache\b|\b(?:a )?headache for\b|pain in the (?:neck|ass)|\brash (?:decision|move|choice|action|judg\w+)\b|"
+    r"\b(?:is|was|are|were|been|become|becoming|such) (?:an? )?(?:real |total |big )?headache\b|pain in the (?:neck|ass)|\brash (?:decision|move|choice|action|judg\w+)\b|"
     r"heart is broken|broken heart|heartbroken|قلبي معك|يعطيك العافية"), re.I)
 
 
