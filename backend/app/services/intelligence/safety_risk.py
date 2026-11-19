@@ -589,39 +589,41 @@ _TEMPLATES: dict[str, dict[str, str]] = {
     },
     "i4.tpl.emergency.self_harm.v1": {
         "en": (
-            "I'm really worried about you, and I'm glad you told me. You are not alone. "
-            "Please contact your local emergency services or someone you trust right now, and please don't stay by yourself. "
-            "I'm right here with you, but I can't replace professional crisis care."
+            "I'm really glad you told me, and I'm right here with you. You are not alone. "
+            "If you have already hurt yourself, taken something, or you are about to, please contact your local emergency services "
+            "right now and do not stay alone: move anything you could use away from you and ask someone close to come to you now. "
+            "Then tell me here what is hurting you so much; I'm listening."
         ),
         "fa": (
-            "خیلی نگرانت شدم و خوشحالم که این رو به من گفتی. تو تنها نیستی. "
-            "لطفاً همین الان با خدمات اورژانس محلی یا یک نفر مورد اعتماد که نزدیکته تماس بگیر و تنها نمون. "
-            "من همین‌جا کنارتم، ولی نمی‌تونم جای کمک تخصصی بحران رو بگیرم."
+            "خیلی خوشحالم که این را به من گفتی و همین‌جا کنارت هستم. تو تنها نیستی. "
+            "اگر همین الان به خودت آسیبی زده‌ای، چیزی خورده‌ای یا قصد داری این کار را بکنی، لطفاً همین حالا با اورژانس محلی "
+            "یا خط حمایت شبانه‌روزی تماس بگیر و تنها نمان؛ هر چیزی را هم که با آن می‌توانی به خودت آسیب بزنی از خودت دور کن "
+            "و از یک نفر نزدیک بخواه همین حالا کنارت بیاید. بعد همین‌جا برایم بنویس که دقیقاً چه چیزی این‌قدر آزارت می‌دهد؛ من گوش می‌دهم."
         ),
         "ar": (
-            "قلقتُ عليك كثيراً وسعيدة أنك أخبرتني. لست وحدك. "
-            "من فضلك اتصل الآن بخدمات الطوارئ المحلية أو بشخص تثق به، ولا تبقَ وحدك. "
-            "أنا هنا بجانبك، لكنني لا أستطيع أن أحل محل الرعاية المهنية للأزمات."
+            "يسعدني جداً أنك أخبرتني، وأنا هنا بجانبك. لست وحدك. "
+            "إذا كنت قد آذيت نفسك بالفعل أو تناولت شيئاً أو كنت على وشك ذلك، فاتصل بخدمات الطوارئ المحلية الآن ولا تبقَ وحدك؛ "
+            "وأبعد عنك أي شيء قد تؤذي به نفسك واطلب من شخص قريب أن يأتي إليك فوراً. "
+            "ثم اكتب لي هنا ما الذي يؤلمك إلى هذا الحد؛ أنا أُصغي إليك."
         ),
     },
     "i4.tpl.high.self_harm.v1": {
         "en": (
-            "It sounds like things feel really heavy right now, and I want to be here with you. "
-            "Would you tell me more about what's going on? If thoughts of hurting yourself or not wanting to live are close, "
-            "please reach out to someone you trust or your local emergency or crisis service, and don't stay alone with it. "
-            "I'm listening."
+            "It sounds like things feel really heavy right now, and I'm glad you're telling me. I'm here and I'm listening. "
+            "What has been hurting you the most lately? Say it in any way you like - it does not have to be tidy. "
+            "If thoughts of hurting yourself or not wanting to live get closer, tell me right away and contact someone you trust "
+            "or your local emergency or crisis service."
         ),
         "fa": (
-            "حس می‌کنم الان همه‌چیز خیلی سنگینه و دلم می‌خواد کنارت باشم. "
-            "می‌خوای بیشتر برام بگی چی شده؟ اگه فکر آسیب زدن به خودت یا نخواستن زندگی نزدیکته، "
-            "لطفاً با یه نفر مورد اعتماد یا خدمات اورژانس و مشاوره‌ی بحران تماس بگیر و تنهایی باهاش نمون. "
-            "من گوش می‌دم."
+            "حس می‌کنم الان همه‌چیز برایت خیلی سنگین شده و خوشحالم که با من حرف می‌زنی. من اینجا هستم و گوش می‌دهم. "
+            "این روزها چه چیزی بیشتر از همه آزارت می‌دهد؟ به هر شکلی که می‌خواهی بگو؛ لازم نیست مرتب باشد. "
+            "اگر فکر آسیب زدن به خودت یا نخواستن زندگی نزدیک‌تر شد، همان لحظه به من بگو و با یک نفر مورد اعتماد، یا اورژانس "
+            "یا خط حمایت محلی تماس بگیر."
         ),
         "ar": (
-            "أشعر أن كل شيء ثقيل عليك الآن، وأريد أن أكون بجانبك. "
-            "هل تحكي لي أكثر عمّا يحدث؟ وإذا كانت أفكار إيذاء نفسك أو عدم الرغبة في الحياة قريبة، "
-            "من فضلك تواصل مع شخص تثق به أو مع خدمات الطوارئ أو دعم الأزمات المحلية ولا تبقَ وحدك معها. "
-            "أنا أُصغي إليك."
+            "أشعر أن كل شيء ثقيل عليك الآن، ويسعدني أنك تحدّثني. أنا هنا وأُصغي إليك. "
+            "ما الذي آلمك أكثر في الفترة الأخيرة؟ قل لي بأي طريقة تريد؛ لا يلزم أن يكون مرتباً. "
+            "وإذا اقتربت أفكار إيذاء نفسك أو عدم الرغبة في الحياة، فأخبرني فوراً وتواصل مع شخص تثق به أو مع خدمات الطوارئ أو دعم الأزمات المحلية."
         ),
     },
     "i4.tpl.high.v1": {
@@ -802,17 +804,8 @@ def _locally_negated(normalized: str, start: int, phrase: str) -> bool:
     return bool(pattern.search(clause_prefix))
 
 
-def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessment:
-    """Deterministic risk assessment. Never logs or returns message text.
-
-    Fix1: informational and denial exclusions apply per matched span only —
-    never as a global message flag that erases independent current-danger spans.
-    """
-    if not isinstance(message, str):
-        raise SafetyRiskError("invalid_message")
-    if language not in ("fa", "ar", "en"):
-        raise SafetyRiskError("invalid_language")
-
+def _kept_matches(message: str) -> list[_Match]:
+    """Every rule match that survives the informational / denial exclusions (shared by the assessor and the self-harm signal)."""
     normalized = normalize_safety_text(message)
     info_spans = _collect_exclusion_spans(normalized, _INFORMATIONAL_EXCLUSIONS)
     denial_spans = _collect_exclusion_spans(normalized, _SELF_HARM_DENIAL)
@@ -837,6 +830,32 @@ def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessmen
             if any(_spans_overlap(span, den) for den in denial_spans):
                 continue
         kept.append(m)
+    return kept
+
+
+def has_self_harm_signal(*, message: str, language: LanguageCode) -> bool:
+    """True when ANY surviving self-harm match exists, whatever rule wins the overall assessment (a headache plus «life is not
+    worth living» is both). Same exclusions as the assessor. Never raises."""
+    try:
+        if not isinstance(message, str) or language not in ("fa", "ar", "en"):
+            return False
+        return any(m.rule.domain is RiskDomain.SELF_HARM_CRISIS for m in _kept_matches(message))
+    except Exception:
+        return False
+
+
+def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessment:
+    """Deterministic risk assessment. Never logs or returns message text.
+
+    Fix1: informational and denial exclusions apply per matched span only —
+    never as a global message flag that erases independent current-danger spans.
+    """
+    if not isinstance(message, str):
+        raise SafetyRiskError("invalid_message")
+    if language not in ("fa", "ar", "en"):
+        raise SafetyRiskError("invalid_language")
+
+    kept = _kept_matches(message)
 
     if not kept:
         return RiskAssessment(

@@ -68,12 +68,15 @@ def query_eligible_raw(
     *,
     now: Optional[datetime] = None,
     limit: Optional[int] = None,
+    since: Optional[datetime] = None,
 ) -> list[models.Memory]:
     q = (
         eligible_raw_filter(db.query(models.Memory), now=now)
         .filter(models.Memory.user_id == user_id)
         .order_by(models.Memory.created_at.desc())
     )
+    if since is not None:
+        q = q.filter(models.Memory.created_at >= since)  # additive: a time window is applied BEFORE the row limit
     if limit is not None:
         q = q.limit(limit)
     return list(q.all())

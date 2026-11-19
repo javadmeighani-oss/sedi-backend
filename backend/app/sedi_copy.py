@@ -1435,6 +1435,85 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'The document is recorded in your overall picture.',
     },
     # R-089 (D-381): finding a doctor / lab never ends in «I cannot help».
+    # ---- safety: country-specific help lines (F1, D-402). The I4 templates stay country-neutral; these lines are added by
+    # ---- services/intelligence/emergency_lines.py only for a region whose numbers are verified.
+    'safety.lines.self_harm': {
+        'fa': 'اگر همین الان در خطر هستی، شماره‌ی اورژانس {emergency} و اورژانس اجتماعی {social} (رایگان و شبانه‌روزی) در دسترس است.',
+        'ar': 'إذا كنت في خطر الآن، فرقم الطوارئ {emergency} وخط الطوارئ الاجتماعية {social} (مجاني وعلى مدار الساعة) متاحان.',
+        'en': 'If you are in danger right now, the emergency number is {emergency} and the free 24-hour social emergency line is {social}.',
+    },
+    'safety.lines.medical': {
+        'fa': 'شماره‌ی اورژانس {emergency} است.',
+        'ar': 'رقم الطوارئ هو {emergency}.',
+        'en': 'The emergency number is {emergency}.',
+    },
+    # ---- care navigation: the reason first (J3-c, D-410)
+    'care_nav.ask_reason': {
+        'fa': 'برای چه مشکل یا نیازی دنبال دکتر می‌گردی؟ اگر نوع تخصص را می‌دانی همان را بگو؛ اگر نه، فقط بگو چه چیزی آزارت می‌دهد تا دقیق‌ترین گزینه را پیدا کنم.',
+        'ar': 'ما المشكلة أو الحاجة التي تبحث عن طبيب من أجلها؟ إن كنت تعرف التخصص فاذكره، وإن لم تكن تعرفه فقل لي ما الذي يزعجك لأجد لك الخيار الأنسب.',
+        'en': 'What is the problem or need you are looking for a doctor for? If you know the specialty, name it; if not, tell me what is bothering you and I will find the right fit.',
+    },
+    'care_nav.urgent_note': {
+        'fa': 'با توجه به آنچه گفتی، بهتر است همین یکی دو روز آینده توسط پزشک دیده شوی.',
+        'ar': 'بناءً على ما ذكرته، من الأفضل أن يراك طبيب خلال اليوم أو اليومين القادمين.',
+        'en': 'Based on what you told me, it is best that a doctor sees you within the next day or two.',
+    },
+    # ---- care navigation: facts confirmed against the provider's own page (J3-b, D-407)
+    'care_nav.hit.phone_unverified': {
+        'fa': 'تلفن (تأییدنشده): {phone}',
+        'ar': 'الهاتف (غير مؤكد): {phone}',
+        'en': 'phone (not verified): {phone}',
+    },
+    'care_nav.hit.days': {
+        'fa': 'روزهای ویزیت طبق صفحه: {days}',
+        'ar': 'أيام الزيارة حسب الصفحة: {days}',
+        'en': 'visit days per the page: {days}',
+    },
+    'care_nav.hit.next_turn': {
+        'fa': 'نزدیک‌ترین نوبت طبق صفحه: {when}',
+        'ar': 'أقرب موعد حسب الصفحة: {when}',
+        'en': 'next available slot per the page: {when}',
+    },
+    'care_nav.hit.rating': {
+        'fa': 'امتیاز {avg} از ۵ ({count} نظر)',
+        'ar': 'التقييم {avg} من 5 ({count} رأي)',
+        'en': 'rating {avg} of 5 ({count} reviews)',
+    },
+    'care_nav.hit.checked': {
+        'fa': 'بررسی صفحه: {date}',
+        'ar': 'تاريخ فحص الصفحة: {date}',
+        'en': 'page checked: {date}',
+    },
+    'care_nav.hit.why': {
+        'fa': 'چرا این گزینه: {reasons}',
+        'ar': 'لماذا هذا الخيار: {reasons}',
+        'en': 'why this one: {reasons}',
+    },
+    'care_nav.why.spec': {
+        'fa': 'تخصصش با درخواستت می‌خواند',
+        'ar': 'تخصصه يطابق طلبك',
+        'en': 'its specialty matches your request',
+    },
+    'care_nav.why.area': {
+        'fa': 'در محله‌ی مورد نظرت است',
+        'ar': 'في الحي الذي ذكرته',
+        'en': 'it is in the area you named',
+    },
+    'care_nav.why.rating': {
+        'fa': 'بیماران امتیاز بالایی داده‌اند',
+        'ar': 'المرضى قيّموه تقييماً عالياً',
+        'en': 'patients rate it highly',
+    },
+    'care_nav.why.open24': {
+        'fa': 'شبانه‌روزی است',
+        'ar': 'يعمل على مدار الساعة',
+        'en': 'it is open 24 hours',
+    },
+    'care_nav.why.page_checked': {
+        'fa': 'شماره یا آدرسش را روی صفحه‌ی خودش دیدم',
+        'ar': 'رأيت رقمه أو عنوانه في صفحته',
+        'en': 'I saw its number or address on its own page',
+    },
     'care_nav.ask_location': {
         'fa': 'برای اینکه پزشک یا مرکز نزدیک تو را پیدا کنم، در کدام شهر و چه محله‌ای هستی؟ مثلاً «تهران، نارمک».',
         'ar': 'لأجد لك طبيباً أو مركزاً قريباً، في أي مدينة وأي حيّ أنت؟ مثلاً «طهران، نارمك».',

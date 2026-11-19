@@ -543,6 +543,32 @@ class IntelligenceOrchestrator:
         except Exception:
             return message
 
+    def _continue_care_nav_interview(self, ctx, user_id: int, message: str, lang: str) -> str:
+        """J3-c (D-410): Sedi asked «برای چه مشکل یا نیازی دنبال دکتر می‌گردی؟» and the user answers with a specialty, a complaint or
+        «نمی‌دانم» - that answer completes the earlier doctor request. Deterministic, fail-open, only within 30 minutes. The earlier
+        turn is read ONLY through the consent-gated, eligibility-filtered raw reader (a revoked memory consent means no reuse)."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return message
+            from datetime import datetime, timedelta
+
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
+            from backend.app.services.i5.care_nav_interview import request_for_answer, request_for_source_followup
+
+            if not has_permission(self._db, user_id, PERM_READ):
+                return message
+            rows = query_eligible_raw(self._db, user_id, limit=1)
+            last = rows[0] if rows else None
+            if last is None or last.created_at is None:
+                return message
+            if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
+                return message
+            prior_q, prior_a = getattr(last, "user_message", None), getattr(last, "sedi_response", None)
+            return request_for_answer(prior_q, prior_a, message, lang) or request_for_source_followup(prior_q, prior_a, message, lang) or message
+        except Exception:
+            return message
+
     def _reminder_timezone(self, ctx, user_id: int) -> Optional[str]:
         """Device/profile timezone, else the same canonical fallback the scheduler uses (profile -> memory -> default).
 
@@ -781,6 +807,9 @@ class IntelligenceOrchestrator:
                 safety_message = safety_resp.localized_message
                 if not isinstance(safety_message, str) or not safety_message.strip():
                     raise ValueError("empty_safety_response")
+                from backend.app.services.intelligence.emergency_lines import finalize_terminal_message
+
+                safety_message = finalize_terminal_message(safety_message, assessment, self._db, authenticated_user_id)
             except Exception:
                 safety_resp = build_fail_closed_response(language=lang)
                 safety_message = safety_resp.localized_message
@@ -932,6 +961,8 @@ class IntelligenceOrchestrator:
             message = self._continue_reminder_clarification(ctx, authenticated_user_id, message, lang)
             # R-033: «آره» to Sedi's offer to find a specialist is the find-a-specialist request.
             message = self._continue_specialist_offer(ctx, authenticated_user_id, message, lang)
+            # J3-c: «which kind of doctor / why?» was asked first; the answer completes THAT doctor request.
+            message = self._continue_care_nav_interview(ctx, authenticated_user_id, message, lang)
 
             # 7–9) I3 stages
             if rollout_mode != "structured":
@@ -1295,7 +1326,17 @@ class IntelligenceOrchestrator:
                 resolve_care_navigation,
             )
 
-            if is_care_navigation_query(message) or is_directory_source_question(message):
+            from backend.app.services.i5.care_nav_interview import reason_question
+
+            _reason_q = reason_question(message, lang) if not is_directory_source_question(message) else None
+            if _reason_q:
+                # J3-c: no specialty named -> ask WHY / WHICH doctor first (one question), never a list of random doctors.
+                care_nav_handled = True
+                directory_message = _reason_q
+                extra_reason_codes.append("CARE_NAVIGATION_REASON_ASKED")
+                skip_generator = True
+                clarification_message = None
+            elif is_care_navigation_query(message) or is_directory_source_question(message):
                 care_nav_handled = True
                 try:
                     if self._db is None:

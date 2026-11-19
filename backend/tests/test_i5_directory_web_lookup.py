@@ -52,7 +52,7 @@ def test_any_real_site_is_accepted_but_trust_is_marked_and_ranked():
     assert out[2]["source_url"] == "https://dr-heart.ir/contact"
 
 
-def test_validation_drops_search_engines_city_mismatch_mobile_only_and_bad_urls():
+def test_validation_drops_search_engines_city_mismatch_and_bad_urls_but_keeps_a_published_mobile():
     items = [
         _r(source_url="https://www.google.com/search?q=x"),
         _r(name="ب", city="تهران", address="تهران"),
@@ -61,7 +61,8 @@ def test_validation_drops_search_engines_city_mismatch_mobile_only_and_bad_urls(
         _r(name="ه", source_url="https://clinic.example.ir/", phone="071-33334444"),
     ]
     out = wl.validate_results(items, city="شیراز")
-    assert [o["name"] for o in out] == ["ه"] and out[0]["phone"] == "07133334444"
+    # D-393 / J3-b: a number the page itself publishes is shown even when it is a mobile (it is checked against the page later)
+    assert [o["name"] for o in out] == ["ج", "ه"] and out[0]["phone"] == "09121234567" and out[1]["phone"] == "07133334444"
 
 
 def test_flag_off_means_no_call(monkeypatch):
@@ -97,20 +98,25 @@ def _facade(monkeypatch, local_rows, web_results):
     return cn
 
 
-def test_facade_adds_web_results_with_link_and_caveat_when_governed_has_none(monkeypatch):
+def test_facade_adds_web_results_with_caveat_and_the_link_only_when_asked(monkeypatch):
     web = wl.validate_results([_r(name="کلینیک قلب شیراز", source_url="https://dr-heart.ir/contact")], city="شیراز")
     cn = _facade(monkeypatch, [], web)
     res = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن", language="fa"))
     assert res.status == cn.STATUS_VERIFIED and "WEB_SEARCH_ENRICHED" in res.identity_notes
-    assert "کلینیک قلب شیراز" in res.user_message and "https://dr-heart.ir/contact" in res.user_message
+    # Javad 2026-11-19: the link is shown only when the user asks for the source; the unverified caveat always stays
+    assert "کلینیک قلب شیراز" in res.user_message and "https://dr-heart.ir/contact" not in res.user_message
     assert "تأیید نشده" in res.user_message  # unverified-site caveat
+    asked = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن و منبعش را هم بگو", language="fa"))
+    assert "https://dr-heart.ir/contact" in asked.user_message
 
 
-def test_facade_trusted_listing_has_link_without_caveat(monkeypatch):
+def test_facade_trusted_listing_has_link_only_when_asked_and_no_caveat(monkeypatch):
     web = wl.validate_results([_r()], city="شیراز")
     cn = _facade(monkeypatch, [], web)
     res = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن", language="fa"))
-    assert "https://www.paziresh24.com/dr/x/" in res.user_message and "تأیید نشده" not in res.user_message
+    assert "https://www.paziresh24.com/dr/x/" not in res.user_message and "تأیید نشده" not in res.user_message
+    asked = cn.query_governed_directory(None, cn.parse_care_nav_request("یه متخصص قلب در شیراز معرفی کن و منبعش را هم بگو", language="fa"))
+    assert "https://www.paziresh24.com/dr/x/" in asked.user_message and "تأیید نشده" not in asked.user_message
 
 
 def test_facade_does_not_search_when_governed_has_enough(monkeypatch):
@@ -176,3 +182,10 @@ def test_laboratory_gets_a_third_wording_before_giving_up(monkeypatch):
     monkeypatch.setattr(wl, "_call_web_search", fake)
     out = wl.search_web_providers(entity="LABORATORY", specialty=None, city="شیراز", province=None)
     assert len(out) == 1 and "تشخیص طبی" in calls[2] and len(calls) == 3
+
+
+@pytest.fixture(autouse=True)
+def _no_network_for_page_checks(monkeypatch):
+    """Unit tests never read real pages: the page check sees an unreadable page (claims stay «unchecked»)."""
+    from backend.app.services.i5 import safe_fetch
+    monkeypatch.setattr(safe_fetch, "fetch_page", lambda url, **k: safe_fetch.FetchResult(False, url, reason="test"))
