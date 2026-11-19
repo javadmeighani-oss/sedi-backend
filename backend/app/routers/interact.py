@@ -41,9 +41,20 @@ def _record_terminal_turn(db, user_id, user_message, reply, language):
     know the person had just spoken about hurting themselves (Codex P1, PR 187). Consent-gated governed raw write, idempotent,
     fail-open."""
     try:
-        from backend.app.core.conversation.memory import ConversationMemory
+        # The governed writer directly (consent-gated, idempotent): ConversationMemory.save_conversation prints a snippet of the
+        # message to the application log, which a crisis disclosure must never reach (Codex P1, PR 187).
+        from backend.app.services.i7.governed_raw import try_durable_raw_write
 
-        ConversationMemory(db).save_conversation(user_id, user_message, (reply or "").strip(), language, actor_user_id=user_id)
+        try_durable_raw_write(
+            db,
+            user_id=user_id,
+            user_message=user_message,
+            sedi_response=(reply or "").strip(),
+            language=language,
+            actor_user_id=user_id,
+            idempotency_key=None,
+            commit=True,
+        )
     except Exception:
         try:
             db.rollback()

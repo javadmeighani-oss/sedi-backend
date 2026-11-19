@@ -108,29 +108,26 @@ def test_p1_a_denied_self_harm_phrase_is_still_not_self_harm_talk():
     assert not cs.is_self_harm_text("I do not want to kill myself", "en")
 
 
-def test_p1_the_router_records_the_terminal_turn_before_returning(monkeypatch):
+def test_p1_the_router_records_the_terminal_turn_through_the_governed_writer_without_logging_it(monkeypatch, capsys, caplog):
     import backend.app.routers.interact as inter
+    import backend.app.services.i7.governed_raw as gr
 
     saved = []
-
-    class Mem:
-        def __init__(self, db): pass
-        def save_conversation(self, uid, msg, reply, lang, **kw): saved.append((uid, msg, reply, lang))
-
-    import backend.app.core.conversation.memory as memmod
-    monkeypatch.setattr(memmod, "ConversationMemory", Mem)
+    monkeypatch.setattr(gr, "try_durable_raw_write", lambda db, **kw: saved.append(kw))
     inter._record_terminal_turn(object(), 7, "I want to die", " reply ", "en")
-    assert saved == [(7, "I want to die", "reply", "en")]
+    assert len(saved) == 1 and saved[0]["user_id"] == 7 and saved[0]["user_message"] == "I want to die" and saved[0]["sedi_response"] == "reply"
+    out = capsys.readouterr()
+    assert "I want to die" not in out.out + out.err and "I want to die" not in caplog.text
 
 
 def test_p1_recording_a_terminal_turn_never_breaks_the_reply(monkeypatch):
     import backend.app.routers.interact as inter
-    import backend.app.core.conversation.memory as memmod
+    import backend.app.services.i7.governed_raw as gr
 
-    class Boom:
-        def __init__(self, db): raise RuntimeError("db down")
+    def boom(db, **kw):
+        raise RuntimeError("db down")
 
-    monkeypatch.setattr(memmod, "ConversationMemory", Boom)
+    monkeypatch.setattr(gr, "try_durable_raw_write", boom)
     inter._record_terminal_turn(SimpleNamespace(rollback=lambda: None), 7, "x", "y", "en")  # must not raise
 
 
