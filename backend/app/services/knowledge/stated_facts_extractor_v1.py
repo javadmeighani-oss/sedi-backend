@@ -183,31 +183,39 @@ def _household(sentence: str) -> List[Stated]:
     return []
 
 
-_RESIDENCE_CUE = re.compile(
-    r"ساکن|زندگی\s*می[‌ ]?کنم|زندگی\s*می[‌ ]?کنیم|(?:خونه|خانه|منزل)\s*(?:ی\s*)?(?:ام|م|ما|مون|مان)?\b|محل\s*زندگی|"
-    r"محله\s*(?:ی\s*)?(?:ما|من|م)\b|\bi\s+live\s+in\b|\bmy\s+(?:home|house|place)\s+is\b|\bi\s+am\s+from\b",
-    re.I,
-)
-_WORK_PLACE = re.compile(r"سر\s*کار|محل\s*کار|شرکت|اداره|دانشگاه|مدرسه|work\s+in|my\s+office", re.I)
+# J1 (R-094): the user's residence, learned ONLY from an explicit first-person clause. The second memory must not remember a
+# wrong fact (Codex P2 x3, PR 188): another person's residence, a negation («من ساکن شیراز نیستم»), a possessive «من» inside a
+# relative's sentence («پدر من ساکن شیراز است») and a sentence with several places are all refused; the place is read ONLY from
+# the residence clause itself.
+_CLAUSE_SPLIT = re.compile(r"\s+(?:و|ولی|اما|اگرچه|but|and|while)\s+|[،,;]")
+_RES_FA_LIVE = re.compile(r"(?:^|\s)(?:در|توی|تو)\s+(?P<place>.{2,40}?)\s+زندگی\s*می[‌ ]?(?:کنم|کنیم)\b")
+_RES_FA_SAKEN = re.compile(r"ساکن\s+(?P<place>.{2,40}?)\s+(?:هستم|هستیم)\b")
+_RES_FA_HOME = re.compile(r"(?:خونه|خانه|منزل)(?:[‌ ]?(?:ام|م)|[‌ ]?ی?\s*(?:ما|من))\s+(?:در|توی|تو)?\s*(?P<place>.{2,40}?)\s*(?:است|هست|ه)?\s*$")
+_RES_EN = re.compile(r"\b(?:i|we)\s+live\s+in\s+(?P<place>.{2,40}?)\s*$|\bmy\s+(?:home|house|place)\s+is\s+in\s+(?P<place2>.{2,40}?)\s*$", re.I)
+_RES_NEGATION = re.compile(r"نیستم|نیستیم|نمی[‌ ]?کنم|نمی[‌ ]?کنیم|نیست\b|ندارم|\bnot\b|n't\b|no\s+longer|\bnever\b|used\s+to|قبلا|سابق", re.I)
 
 
 def _residence(sentence: str) -> List[Stated]:
-    """J1: «ساکن تهرانپارس هستم», «در نارمک زندگی می‌کنم», «خونه‌ام سعادت‌آباده», "I live in Shiraz" -> home city / area.
-    Only a LIVING cue counts (a workplace sentence is not a residence); the place comes from the Iranian gazetteer."""
-    if not _RESIDENCE_CUE.search(sentence) or _WORK_PLACE.search(sentence):
-        return []
-    # another person's residence is never the user's (second memory must not remember a wrong fact):
-    # a relative named without an explicit first-person marker -> skip
-    if re.search(_REL_ALT, sentence) and not re.search(r"(?:\bمن\b|\bما\b|هستم|هستیم|کنم\b|کنیم\b|\bi\s+live\b|\bmy\s+(?:home|house)\b)", sentence, re.I):
-        return []
+    """«ساکن تهرانپارس هستم», «در نارمک زندگی می‌کنم», «خونه‌ام سعادت‌آباده», "I live in Shiraz" -> home city / area.
+    Each clause is judged on its own; only an explicit first-person living clause counts."""
     from backend.app.services.i5 import iran_places
 
-    place = iran_places.find_place(sentence)
     out: List[Stated] = []
-    if place.city:
-        out.append(Stated("home_city", place.city, _conf(sentence), "stated_home_city"))
-    if place.area:
-        out.append(Stated("home_area", place.area, _conf(sentence), "stated_home_area"))
+    for clause in _CLAUSE_SPLIT.split(sentence):
+        c = clause.strip(" .؟?!")
+        if len(c) < 6 or _RES_NEGATION.search(c):
+            continue
+        m = _RES_FA_LIVE.search(c) or _RES_FA_SAKEN.search(c) or _RES_FA_HOME.search(c) or _RES_EN.search(c)
+        if not m:
+            continue
+        place_text = (m.groupdict().get("place") or m.groupdict().get("place2") or "").strip()
+        place = iran_places.find_place(place_text)
+        if place.city:
+            out.append(Stated("home_city", place.city, _conf(sentence), "stated_home_city"))
+        if place.area:
+            out.append(Stated("home_area", place.area, _conf(sentence), "stated_home_area"))
+        if out:
+            break  # the first explicit residence clause wins
     return out
 
 

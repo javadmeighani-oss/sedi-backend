@@ -25,6 +25,10 @@ def _facts(text):
         ("من و برادرم در شیراز زندگی می‌کنیم", {("home_city", "شیراز")}),
         ("I live in Shiraz", {("home_city", "Shiraz")}),
         ("I live in Tehranpars", {("home_city", "Tehran"), ("home_area", "تهران" + ZW + "پارس")}),
+        # several places in one sentence: only the USER's clause counts, city and area stay tied to it (Codex P2)
+        ("من در شیراز زندگی می‌کنم و مادرم ساکن تهرانپارس است", {("home_city", "شیراز")}),
+        ("I live in Shiraz and my brother lives in Tehran", {("home_city", "Shiraz")}),
+        ("برادرم در تهران است ولی من ساکن نارمک هستم", {("home_city", "تهران"), ("home_area", "نارمک")}),
     ],
 )
 def test_residence_is_extracted_from_a_first_person_statement(text, expected):
@@ -43,6 +47,15 @@ def test_residence_is_extracted_from_a_first_person_statement(text, expected):
         "مادرم ساکن نارمک است",
         "دکتر خوب در تهرانپارس می‌خواهم",  # a provider request, not where the user lives
         "امروز هوا خوب است",
+        # Codex P2 (PR 188): another person, a possessive «من» inside a relative's sentence, a negation, several places
+        "علی ساکن شیراز است",
+        "خانه او در شیراز است",
+        "پدر من ساکن شیراز است",
+        "من ساکن شیراز نیستم",
+        "دیگر در شیراز زندگی نمی‌کنم",
+        "قبلا در شیراز زندگی می‌کردم",
+        "I do not live in Tehran",
+        "my brother lives in Tehran",
     ],
 )
 def test_other_sentences_never_become_a_residence(text):
