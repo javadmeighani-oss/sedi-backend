@@ -183,6 +183,44 @@ def _household(sentence: str) -> List[Stated]:
     return []
 
 
+# J1 (R-094): the user's residence, learned ONLY from an explicit first-person clause. The second memory must not remember a
+# wrong fact (Codex P2 x3, PR 188): another person's residence, a negation («من ساکن شیراز نیستم»), a possessive «من» inside a
+# relative's sentence («پدر من ساکن شیراز است») and a sentence with several places are all refused; the place is read ONLY from
+# the residence clause itself.
+_CLAUSE_SPLIT = re.compile(r"\s+(?:و|ولی|اما|اگرچه|but|and|while)\s+|[،,;]")
+_RES_FA_LIVE = re.compile(r"(?:^|\s)(?:در|توی|تو)\s+(?P<place>.{2,40}?)\s+زندگی\s*می[‌ ]?(?:کنم|کنیم)\b")
+_RES_FA_SAKEN = re.compile(r"ساکن\s+(?P<place>.{2,40}?)\s+(?:هستم|هستیم)\b")
+_RES_FA_HOME = re.compile(r"(?:خونه|خانه|منزل)(?:[‌ ]?(?:ام|م)|[‌ ]?ی?\s*(?:ما|من))\s+(?:در|توی|تو)?\s*(?P<place>.{2,40}?)\s*(?:است|هست|ه)?\s*$")
+_RES_EN = re.compile(r"\b(?:i|we)\s+live\s+in\s+(?P<place>.{2,40}?)\s*$|\bmy\s+(?:home|house|place)\s+is\s+in\s+(?P<place2>.{2,40}?)\s*$", re.I)
+_RES_NEGATION = re.compile(r"نیستم|نیستیم|نمی[‌ ]?کنم|نمی[‌ ]?کنیم|نیست\b|ندارم|\bnot\b|n't\b|no\s+longer|\bnever\b|used\s+to|قبلا|سابق|بود(?:م|یم)?\b|\bwas\b|\bwere\b", re.I)
+
+
+def _residence(sentence: str) -> List[Stated]:
+    """«ساکن تهرانپارس هستم», «در نارمک زندگی می‌کنم», «خونه‌ام سعادت‌آباده», "I live in Shiraz" -> home city / area.
+    Each clause is judged on its own; only an explicit first-person living clause counts."""
+    from backend.app.services.i5 import iran_places
+
+    out: List[Stated] = []
+    for clause in _CLAUSE_SPLIT.split(sentence):
+        c = clause.strip(" .؟?!")
+        if len(c) < 6 or _RES_NEGATION.search(c):
+            continue
+        m = _RES_FA_LIVE.search(c) or _RES_FA_SAKEN.search(c) or _RES_FA_HOME.search(c) or _RES_EN.search(c)
+        if not m:
+            continue
+        place_text = (m.groupdict().get("place") or m.groupdict().get("place2") or "").strip()
+        place = iran_places.find_place(place_text)
+        # a numbered district alone (« منطقه ۸ ») exists in several cities: never promote the gazetteer's Tehran default (Codex P2)
+        numbered_only = bool(place.city_inferred and (place.area or "").startswith("منطقه "))
+        if place.city and not numbered_only:
+            out.append(Stated("home_city", place.city, _conf(sentence), "stated_home_city"))
+        if place.area:
+            out.append(Stated("home_area", place.area, _conf(sentence), "stated_home_area"))
+        if out:
+            break  # the first explicit residence clause wins
+    return out
+
+
 def _interests(sentence: str) -> List[Stated]:
     out: List[Stated] = []
     for m in re.finditer(r"به\s+(.{2,30}?)\s+(?:خیلی\s+)?علاقه\s*(?:دارم|مندم)", sentence):
@@ -217,6 +255,7 @@ def extract_stated_facts(text: str) -> List[Stated]:
         out.extend(_own_conditions(s))
         out.extend(_occupation(s))
         out.extend(_household(s))
+        out.extend(_residence(s))
         out.extend(_interests(s))
         out.extend(_sleep_hours(s))
     return out
