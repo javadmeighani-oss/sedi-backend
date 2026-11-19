@@ -564,3 +564,23 @@ def test_p1_through_the_interview_vitamin_d_does_not_add_a_dose_to_vitamin_c(mon
     rows = _rows(("remind me every day at 9 am to take a pill", ask))
     reply = _go(monkeypatch, rows, "Vitamin D", "en")
     assert world.added == [] and world.promoted == [] and mc._stage_of(reply, "en") == "ask_same"
+
+
+# --- Codex round 7 on PR 193 ----------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "answer,expected",
+    [
+        ("do not repeat", "once"), ("don't repeat it", "once"), ("فقط یک‌بار", "once"), ("تکرار نشود", "once"), ("just once", "once"),
+        ("every day", "every"), ("repeat every day", "every"), ("هر روز تکرار شود", "every"), ("repeat", "every"), ("daily", "every"),
+        ("repeat weekly", None), ("هر هفته", None), ("maybe", None),
+    ],
+)
+def test_p2_once_or_repeat_answers_are_read_carefully(monkeypatch, world, answer, expected):
+    ask = sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")
+    reply = _go(monkeypatch, _rows((DAY_REQ, ask)), answer)
+    if expected == "once":
+        assert reply == "ONCE-EVENT"
+    elif expected == "every":
+        assert reply == sedi_copy.t("medication.chat.q.ask_name", "fa") and world.once == []
+    else:
+        assert mc._stage_of(reply, "fa") == "ask_repeat" and world.once == [] and world.created == []

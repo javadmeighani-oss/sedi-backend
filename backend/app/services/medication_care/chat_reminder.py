@@ -115,6 +115,21 @@ _CANCEL = re.compile(
 # R-103 step B: the answer to «just once, or repeat every day?»
 _ONCE = re.compile(r"(?:یک\s*بار|فقط\s+(?:همین|فردا|امروز|این)|\bonce\b|\bjust\s+once\b|\bone\s*time\b|\bonly\s+once\b|مرة\s+واحدة|مره\s+واحده)", re.I)
 _EVERY = re.compile(r"(?:هر\s*روز|روزانه|تکرار|همیشه|\bevery\s*day\b|\bdaily\b|\brepeat|[كک]ل\s+[يی]وم|[يی]وم[يی]|[يی]ت[كک]رر)", re.I)
+# «do not repeat» / «weekly» are not a daily «yes» (Codex P2, PR 193)
+_NO_REPEAT = re.compile(
+    r"(?:تکرار\s*(?:نشود|نشه|نکن|نمی\s*خوام)|بدون\s+تکرار|\bdo\s*not\b|\bdon'?t\b|\bno\s+repeat|\bnot\s+repeat|لا\s+ت[كک]رر|بلا\s+ت[كک]رار)", re.I
+)
+_WEEKLY = re.compile(r"(?:هفتگی|هر\s*هفته|ماهانه|هر\s*ماه|\bweekly\b|\bevery\s+week\b|\bmonthly\b|[اأ]سبوع[يی]|شهر[يی])", re.I)
+
+
+def _says_once(text: str) -> bool:
+    return bool(_ONCE.search(text) or _NO_REPEAT.search(text))
+
+
+def _says_every(text: str) -> bool:
+    return bool(_EVERY.search(text)) and not _NO_REPEAT.search(text) and not _WEEKLY.search(text)
+
+
 _NON_ANSWER = re.compile(
     r"^(?:نمی\s*?دونم|نمی\s*?دانم|فرقی\s+نمی\s*?کنه|مهم\s+نیست|بی\s*?خیال|نمی\s*?خوام|نمیخوام|i\s+don'?t\s+know|skip|never\s+mind|"
     r"لا\s+أعرف|لا\s+أريد)",
@@ -502,7 +517,7 @@ def _original_request(
     for idx, t in enumerate(turns):
         if idx and _stage_of(getattr(t, "sedi_response", None), language) == "ask_repeat":
             answer = _fold(str(getattr(turns[idx - 1], "user_message", "") or ""))
-            if _EVERY.search(answer) and not _ONCE.search(answer):
+            if _says_every(answer) and not _says_once(answer):
                 repeat_confirmed.add(str(getattr(t, "user_message", "") or ""))
     for text, t in _request_candidates(turns):
         if not is_medication_text(text):
@@ -628,7 +643,7 @@ def continue_interview(
         if _is_new_reminder_request(message, lang, timezone_name):
             return None
         if stage == "ask_repeat":
-            once, every = bool(_ONCE.search(text)), bool(_EVERY.search(text))
+            once, every = _says_once(text), _says_every(text)
             if once and not every:
                 return _once_event(db, user_id, draft, orig_text, lang, timezone_name)
             if every and not once:
