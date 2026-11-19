@@ -24,6 +24,7 @@ from backend.app.services.i5 import iran_directory_service as _governed_director
 from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFEST
 from backend.app.services.i5 import directory_web_lookup as _web_lookup
 from backend.app.services.i5 import iran_places as _places
+from backend.app.services.i5 import specialty_lexicon as _spec
 
 PACKAGE_ID = "I5-DIRECTORY-CHAT-FAILSAFE-01"
 CANONICAL_AUTHORITY = "I5_GOVERNED_CARE_DIRECTORY"
@@ -47,6 +48,7 @@ class CareNavEntity(str, Enum):
     HOSPITAL = "HOSPITAL"
     SPECIALTY_CENTER = "SPECIALTY_CENTER"
     LABORATORY = "LABORATORY"
+    PHARMACY = "PHARMACY"  # J3-a: found ONLINE only (no governed pharmacy list exists, R-093)
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,7 @@ class CareNavRequest:
     target_subject_kind: Optional[str] = None
     limit: int = 5
     wants_sources: bool = False
+    qualifiers: tuple = ()  # J3-a: («24h», «high_rating») read from the user's words; used in the online search and ranking
 
 
 @dataclass(frozen=True)
@@ -125,6 +128,7 @@ _CENTER_PAT = re.compile(
     re.I,
 )
 _LAB_PAT = re.compile(r"\b(laboratory|lab\b|آزمایشگاه|مختبر)\b", re.I)
+_PHARMACY_PAT = re.compile(r"\b(pharmacy|pharmacies|داروخانه|دارو\s*خانه|صيدلية|صيدليه|صيدلية)\b|داروخانه", re.I)
 _CARE_NAV_VERB = re.compile(
     r"\b("
     r"find|recommend|suggest|near|nearby|introduce|list|search|look\s*up|"
@@ -198,6 +202,11 @@ _STRONG_FIND_VERB = re.compile(
     r")\b",
     re.I,
 )
+_WANT_VERB = re.compile(
+    r"\b(need|want|looking\s+for|seeking|أحتاج|أريد|ابحث)\b|می[‌ ]?خوام|میخوام|می[‌ ]?خواهم|نیاز\s*دارم|لازم\s*دارم",
+    re.I,
+)
+_REFUSAL = re.compile(r"\b(?:don'?t|do\s+not|no\s+longer|never)\s+(?:need|want)\b|لا\s+أحتاج|لا\s+أريد", re.I)
 _WEAK_FIND_VERB = re.compile(r"\b(recommend|suggest|پیشنهاد|اقترح)\b", re.I)
 _ASK_FOR_A_DOCTOR = re.compile(r"(?:یه|یک|any|a|an)\s+(?:دکتر|پزشک|doctor|specialist|dentist)", re.I)
 _NOT_A_CITY = frozenset(
@@ -220,14 +229,34 @@ def _has_real_location(text: str) -> bool:
     return False
 
 
+def _declined_provider(text: str) -> bool:
+    """«I don't need a therapist» declines a PROVIDER lookup; «I don't want surgery, find a cardiologist» declines a treatment and
+    must still route (Codex P2, PR 189): the refusal counts only when what follows it, up to the next clause, names a provider."""
+    for m in _REFUSAL.finditer(text):
+        tail = re.split(r"[,;.،؛]|\b(?:but|and|so|then)\b", text[m.end():])[0]
+        if _SPECIALIST_PAT.search(tail) or _HOSPITAL_PAT.search(tail) or _CENTER_PAT.search(tail) or _LAB_PAT.search(tail) \
+                or _PHARMACY_PAT.search(tail) or _spec.has_practitioner_word(tail):
+            return True
+    return False
+
+
+def _practitioner_request(text: str) -> bool:
+    """A practitioner named by a specialty word counts only inside a REQUEST to find one («My psychiatrist changed my meds» is not)."""
+    return _spec.has_practitioner_word(text) and bool(
+        _WANT_VERB.search(text) or _STRONG_FIND_VERB.search(text) or _CARE_NAV_VERB.search(text) or _has_real_location(text)
+    )
+
+
 def is_care_navigation_query(message: str) -> bool:
     text = (message or "").strip()
     if not text:
         return False
-    if _NOT_A_FIND_REQUEST.search(text):
+    if _NOT_A_FIND_REQUEST.search(text) or _declined_provider(text):
         return False
     entity_hit = bool(
         _SPECIALIST_PAT.search(text)
+        or _PHARMACY_PAT.search(text)
+        or _practitioner_request(text)
         or _HOSPITAL_PAT.search(text)
         or _CENTER_PAT.search(text)
         or _LAB_PAT.search(text)
@@ -236,6 +265,8 @@ def is_care_navigation_query(message: str) -> bool:
         return False
     if _INJECTION_PAT.search(text) or _STRONG_FIND_VERB.search(text):
         return True
+    if _pharmacy_is_requested(text) and (_has_real_location(text) or _CARE_NAV_VERB.search(text)):
+        return True
     if _ASK_FOR_A_DOCTOR.search(text):
         return True
     located = _has_real_location(text)
@@ -243,14 +274,46 @@ def is_care_navigation_query(message: str) -> bool:
         return True
     if _WEAK_FIND_VERB.search(text) or _CARE_NAV_VERB.search(text):
         # "suggest/پیشنهاد" alone is ordinary chat; it is a directory request only with a named specialty.
-        return bool(_SPECIALTY_HINT.search(text))
+        return bool(_SPECIALTY_HINT.search(text) or _spec.find_specialty(text))
     if (_HOSPITAL_PAT.search(text) or _LAB_PAT.search(text) or _CENTER_PAT.search(text)) and len(text) < 60:
         return True
-    return bool(_SPECIALIST_PAT.search(text) and _SPECIALTY_HINT.search(text) and len(text) < 40)
+    return bool(
+        (_SPECIALIST_PAT.search(text) or _practitioner_request(text))
+        and (_SPECIALTY_HINT.search(text) or _spec.find_specialty(text))
+        and len(text) < 40
+    )
+
+
+_LANDMARK_PREP = re.compile(
+    r"(?:\bnear|next\s+to|beside|opposite|behind|close\s+to|around|by|in\s+front\s+of|نزدیک|کنار|روبروی|روبرو|مقابل|پشت|حوالی|اطراف|قرب|بجانب|بجوار|جنب)"
+    r"\s+(?:the\s+|a\s+|an\s+|یه\s+|یک\s+)?$",
+    re.I,
+)
+
+
+def _is_landmark(text: str, start: int) -> bool:
+    """The word at ``start`` is only a place reference («near the pharmacy») when a landmark preposition directly precedes it."""
+    return bool(_LANDMARK_PREP.search(text[max(0, start - 24):start]))
+
+
+def _pharmacy_is_requested(text: str) -> bool:
+    """Pharmacy is the requested entity when it is mentioned as a head noun (not a landmark) and no other provider word comes
+    first as a head noun: «find a cardiologist near the pharmacy» asks for a cardiologist (Codex P2, PR 189)."""
+    heads = [m.start() for m in _PHARMACY_PAT.finditer(text) if not _is_landmark(text, m.start())]
+    if not heads:
+        return False
+    first = heads[0]
+    for pat in (_SPECIALIST_PAT, _HOSPITAL_PAT, _CENTER_PAT, _LAB_PAT):
+        for m in pat.finditer(text):
+            if m.start() < first and not _is_landmark(text, m.start()):
+                return False
+    return True
 
 
 def detect_care_nav_entity(message: str) -> CareNavEntity:
     text = message or ""
+    if _pharmacy_is_requested(text):
+        return CareNavEntity.PHARMACY
     if _LAB_PAT.search(text):
         return CareNavEntity.LABORATORY
     if _CENTER_PAT.search(text) and not _HOSPITAL_PAT.search(text):
@@ -277,7 +340,7 @@ def parse_care_nav_request(
         area_norm = _places.normalize(area or "")
         for m_city in _LOCATION_CITY.finditer(text):
             word = m_city.group(1).strip()
-            if word.lower() in _NOT_A_CITY or (area_norm and _places.normalize(word) in area_norm):
+            if word.lower() in _NOT_A_CITY or (area_norm and _places.normalize(word) in area_norm) or _places.find_place(word).area:
                 continue
             city = word
             break
@@ -285,8 +348,8 @@ def parse_care_nav_request(
     m_prov = _PROVINCE_HINT.search(text)
     if m_prov:
         province = m_prov.group(2).strip()
-    specialty = None
-    m_spec = _SPECIALTY_HINT.search(text)
+    specialty = _spec.find_specialty(text) if entity in (CareNavEntity.SPECIALIST, CareNavEntity.SPECIALTY_CENTER) else None
+    m_spec = _SPECIALTY_HINT.search(text) if specialty is None and entity is not CareNavEntity.PHARMACY else None
     if m_spec:
         raw_spec = re.sub(r"\s+", "", m_spec.group(1).strip()) if "دندان" in m_spec.group(1) else m_spec.group(1).strip()
         specialty = _SPECIALTY_NORMALIZE.get(raw_spec.casefold(), raw_spec)
@@ -301,6 +364,7 @@ def parse_care_nav_request(
         authenticated_user_id=authenticated_user_id,
         target_health_subject_id=target_health_subject_id,
         target_subject_kind=target_subject_kind,
+        qualifiers=_spec.qualifiers(text),
     )
 
 
@@ -316,6 +380,7 @@ _ENTITY_WORD = {
     CareNavEntity.HOSPITAL: {"fa": "بیمارستان", "ar": "مستشفى", "en": "hospital"},
     CareNavEntity.SPECIALTY_CENTER: {"fa": "کلینیک", "ar": "عيادة", "en": "clinic"},
     CareNavEntity.LABORATORY: {"fa": "آزمایشگاه", "ar": "مختبر", "en": "laboratory"},
+    CareNavEntity.PHARMACY: {"fa": "داروخانه", "ar": "صيدلية", "en": "pharmacy"},
 }
 _SITE_LABEL = {"p24": {"fa": "پذیرش۲۴", "ar": "Paziresh24", "en": "Paziresh24"},
                "doctoreto": {"fa": "دکترتو", "ar": "Doctoreto", "en": "Doctoreto"}}
@@ -326,6 +391,9 @@ def directory_search_links(request: "CareNavRequest") -> list[tuple[str, str]]:
     from urllib.parse import quote
 
     k = _lk((request.language or "en").lower())
+    if request.entity is CareNavEntity.PHARMACY:  # booking sites do not list pharmacies: a plain map search
+        q = " ".join(x for x in ("داروخانه", "شبانه‌روزی" if "24h" in request.qualifiers else "", request.area, request.city) if x)
+        return [({"fa": "نقشه", "ar": "الخريطة", "en": "Map"}[k], f"https://www.google.com/maps/search/?api=1&query={quote(q)}")]
     term_fa = request.specialty_or_service or _ENTITY_WORD.get(request.entity, _ENTITY_WORD[CareNavEntity.SPECIALIST])["fa"]
     slug = _places.slug_for(request.city)
     p24 = f"https://www.paziresh24.com/s/{slug + '/' if slug else ''}?text={quote(term_fa)}"
@@ -529,15 +597,25 @@ def _dispatch_governed_search(
     entity = request.entity
     try:
         if entity is CareNavEntity.SPECIALIST:
-            return _governed_directory.search_doctors(
-                db,
-                name=request.name_hint,
-                city=request.city,
-                province=request.province,
-                specialty=request.specialty_or_service,
-                include_inactive=False,
-                limit=request.limit,
-            )
+            merged: list[dict[str, Any]] = []
+            seen: set[str] = set()
+            for term in (_spec.governed_terms(request.specialty_or_service) or (request.specialty_or_service,)):
+                for item in _governed_directory.search_doctors(
+                    db,
+                    name=request.name_hint,
+                    city=request.city,
+                    province=request.province,
+                    specialty=term,
+                    include_inactive=False,
+                    limit=request.limit,
+                ):
+                    key = str(item.get("canonical_directory_key") or item.get("id") or item)
+                    if key not in seen:
+                        seen.add(key)
+                        merged.append(item)
+                if len(merged) >= request.limit:
+                    break
+            return merged[: request.limit]
         if entity is CareNavEntity.HOSPITAL:
             return _governed_directory.search_hospitals(
                 db,
@@ -581,9 +659,12 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
         city=request.city,
         province=request.province,
         area=request.area,
+        qualifiers=request.qualifiers,
     )
     kind = "DOCTOR" if request.entity is CareNavEntity.SPECIALIST else (
-        "LABORATORY" if request.entity is CareNavEntity.LABORATORY else "HOSPITAL"
+        "LABORATORY" if request.entity is CareNavEntity.LABORATORY else (
+            "PHARMACY" if request.entity is CareNavEntity.PHARMACY else "HOSPITAL"
+        )
     )
     return tuple(
         VerifiedDirectoryIdentity(
@@ -617,7 +698,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
 
     entity = request.entity
 
-    if entity is CareNavEntity.LABORATORY and not LAB_POPULATION_AUTHORIZED:
+    if (entity is CareNavEntity.LABORATORY and not LAB_POPULATION_AUTHORIZED) or entity is CareNavEntity.PHARMACY:
         web_labs = _web_identities(request) if _web_lookup.web_lookup_enabled() else ()
         if web_labs:
             return CareNavResult(

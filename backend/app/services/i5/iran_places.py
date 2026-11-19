@@ -32,6 +32,12 @@ _CITIES_EN: dict[str, str] = {
     "yazd": "یزد", "kermanshah": "کرمانشاه", "urmia": "ارومیه", "hamedan": "همدان", "qazvin": "قزوین",
 }
 
+# Arabic spellings that differ from the Persian ones (J3-a, D-405); Yeh/Kaf are folded before matching.
+_CITIES_AR: dict[str, str] = {
+    "طهران": "تهران", "أصفهان": "اصفهان", "اصبهان": "اصفهان", "أهواز": "اهواز", "الأهواز": "اهواز", "الاهواز": "اهواز",
+    "مشهد المقدسة": "مشهد", "قم المقدسة": "قم", "كرمانشاه": "کرمانشاه", "همدان": "همدان",
+}
+
 # Tehran neighbourhoods / districts (spaces mark optional separators).
 TEHRAN_AREAS: tuple[str, ...] = (
     "تهران پارس", "نارمک", "پاسداران", "ونک", "سعادت آباد", "شهرک غرب", "جردن", "تجریش", "الهیه", "زعفرانیه",
@@ -94,6 +100,9 @@ def aliases(city: Optional[str]) -> set[str]:
     for en, fa2 in _CITIES_EN.items():
         if normalize(fa2) in out:
             out.add(normalize(en))
+    for ar, fa3 in _CITIES_AR.items():  # Arabic spellings of the same city (Codex P2, PR 189)
+        if normalize(fa3) in out:
+            out.add(normalize(ar))
     return out
 
 
@@ -108,7 +117,7 @@ def slug_for(city: Optional[str]) -> Optional[str]:
     fa = city.replace("‌", " ")
     if fa in CITIES:
         return CITIES[fa]
-    alias = _CITIES_EN.get(city.strip().lower())
+    alias = _CITIES_EN.get(city.strip().lower()) or _CITIES_AR.get(city.strip().replace("ي", "ی").replace("ك", "ک"))
     return CITIES.get(alias) if alias else None
 
 
@@ -144,6 +153,11 @@ def find_place(text: str) -> Place:
         for en, fa in _CITIES_EN.items():
             if re.search(r"\b" + re.escape(en) + r"\b", low):
                 city, slug = en.title(), CITIES.get(fa)  # keep the user's own (English) city name
+                break
+    if city is None:
+        for ar, fa in sorted(_CITIES_AR.items(), key=lambda x: -len(x[0])):
+            if _pattern(ar).search(raw):
+                city, slug = fa, CITIES.get(fa)
                 break
     inferred = False
     if area and city is None:

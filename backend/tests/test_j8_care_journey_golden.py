@@ -68,7 +68,7 @@ def test_a_provider_requests_understood_today(message, lang, entity, specialty, 
 
 @pytest.mark.parametrize(
     "message, lang, entity, specialty, city, area",
-    [pytest.param(*g[:6], marks=g[6], id=g[0][:40]) for g in A_GAPS],
+    [pytest.param(*g[:6], id=g[0][:40]) for g in A_GAPS]  # J3-a (D-405) closed every gap: they are real tests now,
 )
 def test_a_provider_requests_gaps(message, lang, entity, specialty, city, area):
     """Each row is a known gap with its owning package (xfail until that package closes it)."""

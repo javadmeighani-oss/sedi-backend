@@ -597,4 +597,4 @@ def test_dentist_query_routes_to_directory_with_specialty():
     q = "یه دندانپزشک خوب در تهران میخوام"
     assert is_care_navigation_query(q)
     req = parse_care_nav_request(q, language="fa")
-    assert req.specialty_or_service == "دندان" and req.city == "تهران"
+    assert req.specialty_or_service == "دندانپزشکی"  # J3-a (D-405): canonical name; the legacy rows still match on the stem «دندان» and req.city == "تهران"
