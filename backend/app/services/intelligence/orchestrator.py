@@ -1529,8 +1529,6 @@ class IntelligenceOrchestrator:
             reminder_message is None
             and not terminal_safety
             and not discovery_reply_active
-            and not care_nav_handled
-            and (not skip_generator or clarification_message is not None)
             and self._db is not None
         ):
             try:
@@ -1541,19 +1539,24 @@ class IntelligenceOrchestrator:
                 _turns_ctx: list = []
                 if _mc_turns.history_available(self._db, authenticated_user_id):
                     _turns_ctx = _mc_turns._recent_turns(self._db, authenticated_user_id, datetime.now(timezone.utc))
-                _last_turn = _turns_ctx[0] if _turns_ctx else None
-                _resched_msg = message
-                if _last_turn is not None:
-                    _resched_msg = _resched.pending_request(_turns_ctx, message, lang) or message
-                _resched_ctx = _resched.context_of(_turns_ctx, _resched_msg != message)
-                _resched_reply = _resched.handle(
-                    self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx
-                )
-                if _resched_reply:
-                    reminder_message = _resched_reply
-                    skip_generator = True
-                    clarification_message = None
-                    extra_reason_codes.append("R103_REMINDER_RESCHEDULE")
+                # an OPEN question of this flow owns the next message (it may be a reminder title that another path would take)
+                _resched_open = _resched.has_open_question(_turns_ctx)
+                if (not care_nav_handled and (not skip_generator or clarification_message is not None)) or _resched_open:
+                    _resched_msg = message
+                    if _turns_ctx:
+                        _resched_msg = _resched.pending_request(_turns_ctx, message, lang) or message
+                    _resched_ctx = _resched.context_of(_turns_ctx, _resched_msg != message)
+                    _resched_reply = _resched.abort_reply(_turns_ctx, message, lang) or _resched.handle(
+                        self._db, user_id=authenticated_user_id, message=_resched_msg, language=lang, context=_resched_ctx
+                    )
+                    if _resched_reply:
+                        if care_nav_handled:  # the doctor finder took the answer («Dentist»); the open question wins
+                            care_nav_handled = False
+                            directory_message = None
+                        reminder_message = _resched_reply
+                        skip_generator = True
+                        clarification_message = None
+                        extra_reason_codes.append("R103_REMINDER_RESCHEDULE")
             except Exception:  # noqa: BLE001
                 pass
 

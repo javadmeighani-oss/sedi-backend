@@ -1625,6 +1625,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تذكير «{title}» يتكرر يومياً ولا أستطيع بعد حفظ تغيير ليوم واحد فقط؛ ولم أغيّر شيئاً. إن أردت تغيير ساعة كل الأيام فقل لي.',
         'en': 'The reminder “{title}” repeats every day and I cannot yet save a change for one day only, so I changed nothing. Tell me if you want the time of every day changed.',
     },
+    'reminder.reschedule.aborted': {
+        'fa': 'باشه، چیزی را تغییر ندادم.',
+        'ar': 'حسناً، لم أغيّر شيئاً.',
+        'en': 'Okay, I changed nothing.',
+    },
     'reminder.reschedule.past': {
         'fa': 'آن روز و ساعت گذشته است و چیزی را تغییر ندادم. روز و ساعتی در آینده بگو.',
         'ar': 'ذلك اليوم والساعة مضيا ولم أغيّر شيئاً. قل لي يوماً وساعة في المستقبل.',

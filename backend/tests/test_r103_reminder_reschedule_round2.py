@@ -282,3 +282,41 @@ def test_p2_any_period_word_after_a_bare_destination_is_honoured(monkeypatch, ow
     combined = rr.pending_request([turn], answer, lang)
     reply = _go(monkeypatch, cands, combined, lang)
     assert owners and owners[0][1].hour == hour and f"{hour:02d}:00" in reply
+
+
+# --- round 9: a cancellation answer never replays the pending change (P1) --------------------------------------------------------
+@pytest.mark.parametrize(
+    "lang,answer",
+    [
+        ("en", "Cancel that; leave Dentist as it is"), ("en", "never mind"), ("en", "no change please"),
+        ("fa", "بی‌خیال، همان‌طور که بود بماند"), ("fa", "لغو"), ("ar", "اتركه كما هو"),
+    ],
+)
+def test_p1_a_cancellation_answer_changes_nothing_and_says_so(monkeypatch, owners, lang, answer):
+    ask = sedi_copy.t("reminder.reschedule.ask_which", lang, list="Dentist 09:00; Workout 18:00")
+    turn = SimpleNamespace(user_message="change the reminder to 5 pm", sedi_response=ask)
+    assert rr.abort_reply([turn], answer, lang) == sedi_copy.t("reminder.reschedule.aborted", lang)
+    assert owners == []
+
+
+def test_p1_abort_only_applies_to_an_open_question_of_this_flow():
+    other = SimpleNamespace(user_message="hi", sedi_response="Hello! How are you?")
+    assert rr.abort_reply([other], "cancel", "en") is None and rr.abort_reply([], "cancel", "en") is None
+    ask = sedi_copy.t("reminder.reschedule.ask_period", "en", hour=5)
+    turn = SimpleNamespace(user_message="change the reminder to at 5", sedi_response=ask)
+    assert rr.abort_reply([turn], "pm", "en") is None and rr.abort_reply([turn], "Dentist", "en") is None
+
+
+def test_p1_through_the_real_orchestrator_the_cancellation_answer_leaves_the_reminder_alone(monkeypatch, owners):
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    from backend.app.services.medication_care import chat_reminder as mc
+
+    ask = sedi_copy.t("reminder.reschedule.ask_which", "en", list="Dentist 09:00; Workout 18:00")
+    monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
+    monkeypatch.setattr(
+        mc, "_recent_turns", lambda db, uid, now: [SimpleNamespace(user_message="change the reminder to 5 pm", sedi_response=ask, created_at=datetime.utcnow())]
+    )
+    monkeypatch.setattr(rr, "_candidates", lambda db, uid, now: [_event(eid=1, title="Dentist", hh=9, recurring=True), _event(eid=2, title="Workout", hh=18, recurring=True)])
+    orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GENERIC", "detected_name": None}, structured_mode=False)
+    out = orch.process(authenticated_user_id=42, message="Cancel that; leave Dentist as it is", language="en")
+    assert owners == [] and out.message == sedi_copy.t("reminder.reschedule.aborted", "en")

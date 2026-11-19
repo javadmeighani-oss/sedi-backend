@@ -351,6 +351,37 @@ def context_of(turns: list[Any], answered_question: bool) -> str:
     return " ".join(str(getattr(t, "sedi_response", "") or "") for t in use)
 
 
+_ABORT = re.compile(
+    r"\b(?:cancel|never\s*mind|forget\s+(?:it|that)|as\s+(?:it|they)\s+(?:is|are)|no\s+change|keep\s+(?:it|them)|leave\s+\w+\s+as|"
+    r"stop|don'?t\s+(?:change|do|move)|leave\s+it)\b|"
+    r"بی\s*خیال|لغو|ولش\s*کن|همون\s*طور\s*بمونه|همان\s*طور\s*بماند|تغییر\s*نده|نمی\s*خوام|رها\s*کن|نه\s+ممنون|"
+    r"لا\s+(?:تغ[يی]ّ?ر|شكرا)|اترك|دعه|إلغاء|الغاء|لا\s+شيء|[كک]ما\s+هو",
+    re.I,
+)
+
+
+def has_open_question(turns: list[Any]) -> bool:
+    """True when the newest Sedi reply is one of THIS flow's questions (morning or evening? / which reminder?): the user's next
+    message is its answer and must not be taken by another path (e.g. a title like «Dentist» by the doctor finder)."""
+    if not turns:
+        return False
+    newest = _norm(str(getattr(turns[0], "sedi_response", "") or "")).lower()
+    return any(_norm(m).lower() in newest for kind in _MARK.values() for m in kind.values())
+
+
+def abort_reply(turns: list[Any], answer: str, language: Optional[str]) -> Optional[str]:
+    """The user answers one of this flow's questions with «cancel / leave it as it is»: nothing is changed and Sedi says so
+    (the answer is never replayed onto the pending request, Codex P1, PR 192)."""
+    if not turns or not (answer or "").strip():
+        return None
+    newest = _norm(str(getattr(turns[0], "sedi_response", "") or "")).lower()
+    if not any(_norm(m).lower() in newest for kind in _MARK.values() for m in kind.values()):
+        return None
+    if _ABORT.search(_norm(answer).lower()):
+        return sedi_copy.t("reminder.reschedule.aborted", _lang(language))
+    return None
+
+
 def pending_request(turns: list[Any], answer: str, language: Optional[str]) -> Optional[str]:
     """Like ``pending_prior_request`` but follows a CHAIN of this flow's questions (at 5 -> morning or evening? -> pm -> which
     reminder? -> Dentist): the original request and every answer, oldest first, plus this answer (Codex P2, PR 192)."""
