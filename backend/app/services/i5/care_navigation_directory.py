@@ -265,7 +265,7 @@ def is_care_navigation_query(message: str) -> bool:
         return False
     if _INJECTION_PAT.search(text) or _STRONG_FIND_VERB.search(text):
         return True
-    if _PHARMACY_PAT.search(text) and (_has_real_location(text) or _CARE_NAV_VERB.search(text)):
+    if _pharmacy_is_requested(text) and (_has_real_location(text) or _CARE_NAV_VERB.search(text)):
         return True
     if _ASK_FOR_A_DOCTOR.search(text):
         return True
@@ -284,9 +284,35 @@ def is_care_navigation_query(message: str) -> bool:
     )
 
 
+_LANDMARK_PREP = re.compile(
+    r"(?:\bnear|next\s+to|beside|opposite|behind|close\s+to|around|by|in\s+front\s+of|نزدیک|کنار|روبروی|روبرو|مقابل|پشت|حوالی|اطراف|قرب|بجانب|بجوار|جنب)"
+    r"\s+(?:the\s+|a\s+|an\s+|یه\s+|یک\s+)?$",
+    re.I,
+)
+
+
+def _is_landmark(text: str, start: int) -> bool:
+    """The word at ``start`` is only a place reference («near the pharmacy») when a landmark preposition directly precedes it."""
+    return bool(_LANDMARK_PREP.search(text[max(0, start - 24):start]))
+
+
+def _pharmacy_is_requested(text: str) -> bool:
+    """Pharmacy is the requested entity when it is mentioned as a head noun (not a landmark) and no other provider word comes
+    first as a head noun: «find a cardiologist near the pharmacy» asks for a cardiologist (Codex P2, PR 189)."""
+    heads = [m.start() for m in _PHARMACY_PAT.finditer(text) if not _is_landmark(text, m.start())]
+    if not heads:
+        return False
+    first = heads[0]
+    for pat in (_SPECIALIST_PAT, _HOSPITAL_PAT, _CENTER_PAT, _LAB_PAT):
+        for m in pat.finditer(text):
+            if m.start() < first and not _is_landmark(text, m.start()):
+                return False
+    return True
+
+
 def detect_care_nav_entity(message: str) -> CareNavEntity:
     text = message or ""
-    if _PHARMACY_PAT.search(text):
+    if _pharmacy_is_requested(text):
         return CareNavEntity.PHARMACY
     if _LAB_PAT.search(text):
         return CareNavEntity.LABORATORY

@@ -163,3 +163,14 @@ def test_p2_arabic_city_spellings_validate_web_results():
               "source_url": "https://www.paziresh24.com/dr/x"}]
     out = wl.validate_results(items, city="تهران", country="IR")
     assert len(out) == 1 and out[0]["name"] == "عيادة الشفاء"
+
+
+@pytest.mark.parametrize("msg, entity, specialty", [
+    ("Find a cardiologist near the pharmacy in Tehran", cn.CareNavEntity.SPECIALIST, "قلب"),
+    ("یه دکتر قلب نزدیک داروخانه در تهران پیدا کن", cn.CareNavEntity.SPECIALIST, "قلب"),
+    ("find a pharmacy near the hospital in Shiraz", cn.CareNavEntity.PHARMACY, None),
+    ("یه داروخانه نزدیک بیمارستان در مشهد پیدا کن", cn.CareNavEntity.PHARMACY, None),
+    ("find a pharmacy in Tehran", cn.CareNavEntity.PHARMACY, None)])
+def test_p2_a_pharmacy_landmark_is_not_the_requested_provider(msg, entity, specialty):
+    req = cn.parse_care_nav_request(msg, language="fa" if any("؀" <= c <= "ۿ" for c in msg) else "en")
+    assert req.entity is entity and req.specialty_or_service == specialty
