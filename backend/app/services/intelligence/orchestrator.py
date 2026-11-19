@@ -781,6 +781,9 @@ class IntelligenceOrchestrator:
                 safety_message = safety_resp.localized_message
                 if not isinstance(safety_message, str) or not safety_message.strip():
                     raise ValueError("empty_safety_response")
+                from backend.app.services.intelligence.emergency_lines import finalize_terminal_message
+
+                safety_message = finalize_terminal_message(safety_message, assessment, self._db, authenticated_user_id)
             except Exception:
                 safety_resp = build_fail_closed_response(language=lang)
                 safety_message = safety_resp.localized_message

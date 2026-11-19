@@ -36,6 +36,52 @@ _PRESENTATION_WORD_PACE_S = 0.133
 _WORD_DELTA_RE = re.compile(r"\S+|\s+")
 
 
+def _terminal_turn_key(user_message):
+    """One key per (message, minute): a client retry of the same request is deduplicated, a later repeat of the same words is a NEW
+    disclosure and is recorded (Codex P2, PR 187)."""
+    import hashlib
+    import time
+
+    digest = hashlib.sha256((user_message or "").encode("utf-8")).hexdigest()[:24]
+    return f"i4t:{digest}:{int(time.time() // 60)}"
+
+
+def _record_terminal_turn(db, user_id, user_message, reply, language):
+    """A turn answered by the I4 terminal reply never reaches the orchestrator, so it was never stored: the NEXT turn could not
+    know the person had just spoken about hurting themselves (Codex P1, PR 187). Consent-gated governed raw write, idempotent,
+    fail-open."""
+    try:
+        # The governed writer directly (consent-gated, idempotent): ConversationMemory.save_conversation prints a snippet of the
+        # message to the application log, which a crisis disclosure must never reach (Codex P1, PR 187).
+        from backend.app.services.i7.governed_raw import try_durable_raw_write
+
+        try_durable_raw_write(
+            db,
+            user_id=user_id,
+            user_message=user_message,
+            sedi_response=(reply or "").strip(),
+            language=language,
+            actor_user_id=user_id,
+            idempotency_key=_terminal_turn_key(user_message),
+            commit=True,
+        )
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def _with_local_lines(message, assessment, db, user_id):
+    """F1/F3 (D-402): country help line + anonymous crisis count on an I4 terminal reply; fail-open."""
+    try:
+        from backend.app.services.intelligence.emergency_lines import finalize_terminal_message
+
+        return finalize_terminal_message(message, assessment, db, user_id)
+    except Exception:
+        return message
+
+
 def presentation_word_deltas(approved: str) -> list[str]:
     """Split approved governed text at word/whitespace boundaries.
 
@@ -293,8 +339,10 @@ async def chat(
             expire_relationship_discovery_marker_on_early_return(db, user_id)
         except Exception:
             pass
+        terminal_text = _with_local_lines(safety_resp.localized_message, safety_assessment, db, user_id)
+        _record_terminal_turn(db, user_id, message, terminal_text, response_language)
         return InteractionResponse(
-            message=safety_resp.localized_message,
+            message=terminal_text,
             language=response_language,
             user_id=user_id,
             timestamp=datetime.utcnow(),
