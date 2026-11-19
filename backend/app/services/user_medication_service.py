@@ -26,6 +26,10 @@ class ScheduleTimeCollisionError(Exception):
     """Moving a dose onto a time where the same medicine already has another dose."""
 
 
+class IntervalOnlyScheduleError(Exception):
+    """The medicine reminds by an hourly interval (no fixed times): adding the first fixed time would replace that cadence."""
+
+
 class UserMedicationNotFoundError(Exception):
     """Assignment not found for user."""
 
@@ -285,6 +289,8 @@ def add_schedule_time(
     um, med = get_user_medication_owned(db, user_id, um_id)
     t = parse_hhmm(convert_hhmm(hhmm, from_tz, getattr(um, "timezone", None)))
     rows = list(um.schedules or [])
+    if not rows:
+        raise IntervalOnlyScheduleError()  # the scheduler uses the interval path ONLY while there are no fixed times (Codex P2, PR 193)
     same = next((r for r in rows if r.time_of_day == t), None)
     if same is not None:
         merged = _merge_days(same.days_of_week, days_of_week)

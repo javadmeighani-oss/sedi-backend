@@ -33,6 +33,9 @@ def world(monkeypatch):
     """pills the user has + a log of owner writes."""
     state = SimpleNamespace(pills=[], added=[], promoted=[], created=[], history=True, once=[])
     monkeypatch.setattr(mc, "history_available", lambda db, uid: state.history)
+    # «tomorrow» is relative to the REAL clock inside has_future_start (time-of-day dependent): pin it so the matrix is deterministic
+    state.future = False
+    monkeypatch.setattr(mc, "has_future_start", lambda d, now_utc=None: state.future)
     monkeypatch.setattr(reg, "existing_pills", lambda db, uid: list(state.pills))
     monkeypatch.setattr(reg, "add_dose", lambda db, uid, pill, hhmm, days, from_tz=None: state.added.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
     monkeypatch.setattr(reg, "promote", lambda db, uid, pill, hhmm, days, from_tz=None: state.promoted.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
@@ -646,3 +649,31 @@ def test_p2_each_promoted_event_is_converted_from_its_own_timezone(monkeypatch):
     svc.promote_event_to_medication(db, 1, 1, "قرص مکمل", "21:00", None, "Asia/Tehran", also_event_ids=[2])
     times = sorted(o.time_of_day for o in added if hasattr(o, "time_of_day"))
     assert times == [time(9, 0), time(17, 30), time(21, 0)]  # 14:00 UTC is 17:30 in Tehran (the medicine's timezone)
+
+
+def test_p2_a_medicine_that_reminds_by_interval_is_never_converted_by_adding_a_dose(monkeypatch, world):
+    from backend.app.services import user_medication_service as svc
+
+    um = SimpleNamespace(id=3, schedules=[], updated_at=None, timezone="Asia/Tehran")
+    monkeypatch.setattr(svc, "get_user_medication_owned", lambda d, uid, umid: (um, SimpleNamespace(name="X")))
+    db = MagicMock()
+    with pytest.raises(svc.IntervalOnlyScheduleError):
+        svc.add_schedule_time(db, 1, 3, "09:00")
+    assert db.add.call_count == 0 and db.commit.call_count == 0
+
+    def boom(db_, uid, pill, hhmm, days, from_tz=None):
+        raise svc.IntervalOnlyScheduleError()
+
+    monkeypatch.setattr(reg, "add_dose", boom)
+    world.pills = [_pill(name="لووتیروکسین")]
+    out = _start("ساعت ۹ صبح یادم بنداز قرص لووتیروکسین بخورم")
+    assert out["flow"] == "interval_only"
+    text = mc.confirmation(out, "fa", "")
+    assert "لووتیروکسین" in text and "09:00" in text and "{" not in text
+
+
+def test_a_repeat_that_starts_in_the_future_stays_a_plain_repeating_event(monkeypatch, world):
+    """DEBT-076: the medicine schedule has no start date; a series starting later is created as a plain repeating event."""
+    world.future = True
+    rows = _rows((DAY_REQ, sedi_copy.t("medication.chat.q.ask_repeat", "fa", when="فردا ساعت 09:00")))
+    assert _go(monkeypatch, rows, "هر روز") == "ONCE-EVENT" and world.created == []

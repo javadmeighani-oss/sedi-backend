@@ -308,6 +308,8 @@ def _same_action(db: Session, *, user_id: int, pill: dict[str, Any], draft: Any,
             times = reg.promote(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
         except svc.ScheduleTimeCollisionError:
             return {"kind": "medication", "created": False, "flow": "dose_exists", "name": pill["name"], "time": time_}
+        except svc.IntervalOnlyScheduleError:
+            return {"kind": "medication", "created": False, "flow": "interval_only", "name": pill["name"], "time": time_}
         out: dict[str, Any] = {"kind": "medication", "name": pill["name"], "time": time_, "times": reg.times_text(times, lang)}
         if history_available(db, user_id):  # the reason is asked next (the older reminder never had one)
             out.update({"created": False, "interview": "ask_reason_promoted"})
@@ -400,6 +402,8 @@ def confirmation(dispatched: dict[str, Any], language: Optional[str], when: str)
     flow = dispatched.get("flow")
     if flow == "dose_added":
         return sedi_copy.t("medication.chat.dose_added", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""), times=dispatched.get("times", ""))
+    if flow == "interval_only":
+        return sedi_copy.t("medication.chat.dose_interval_only", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""))
     if flow == "dose_exists":
         return sedi_copy.t("medication.chat.dose_exists", lang, name=dispatched.get("name", ""), time=dispatched.get("time", ""))
     if flow == "promoted":

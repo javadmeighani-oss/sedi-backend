@@ -1697,6 +1697,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تم: أضفتُ الساعة {time} أيضاً لـ«{name}»؛ وأوقاته الآن {times}.',
         'en': 'Done: I added {time} to “{name}”; its times are now {times}.',
     },
+    'medication.chat.dose_interval_only': {
+        'fa': '«{name}» با فاصله‌ی ساعتی یادآوری می‌شود و برای افزودن ساعت ثابت {time} باید اول در «برنامه من» ساعت‌های ثابتش را تعیین کنی؛ چیزی را تغییر ندادم.',
+        'ar': '«{name}» يُذكَّر به بفاصل ساعات، ولإضافة الساعة {time} الثابتة حدّد أوقاته الثابتة أولاً في «برنامجي»؛ ولم أغيّر شيئاً.',
+        'en': '“{name}” reminds you by an hourly interval; to add the fixed time {time}, first set its fixed times in “My schedule”. I changed nothing.',
+    },
     'medication.chat.dose_exists': {
         'fa': '«{name}» از قبل نوبتی در ساعت {time} دارد و چیزی را تغییر ندادم.',
         'ar': 'لدى «{name}» جرعة في الساعة {time} أصلاً ولم أغيّر شيئاً.',
