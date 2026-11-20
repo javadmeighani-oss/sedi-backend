@@ -180,30 +180,114 @@ def is_interview_reply(sedi_reply: Optional[str]) -> bool:
     return False
 
 
-def record_answer(db: Any, user_id: int, answer: str, last_sedi_reply: Optional[str]) -> bool:
-    """The user's answer to the journey interview becomes a short I6 episode note (deterministic, consent-gated, fail-open)."""
+# DEBT-080: «better / gone» and «worse» in the user's own words. «بهتر است دکتر بروم» (it is better to see a doctor) is not a status.
+_NEG = re.compile(r"(?:نشد|نشده|نیست|نمی\s*شود|نمیشه|\bnot\b|\bno\b|n't|\bnever\b|(?:^|\s)(?:لم|ليس)(?:\s|$))", re.I)
+_BETTER = re.compile(
+    r"(?:بهتر(?:م|\s*شد(?:م|ه)?|\s*هستم|\s*شده)|حالم\s*بهتر|خوب\s*شد(?:م|ه)|خوب\s*شده|برطرف\s*شد|بر\s*طرف\s*شد|رفع\s*شد|تمام\s*شد|"
+    r"دیگه\s*درد\s*(?:ندارم|نمی\s*کند)|"
+    r"\b(?:feel(?:ing)?|getting|am|much|bit|lot) better\b|\bit(?:'s| is| has) (?:gone|stopped|passed)\b|\bno more pain\b|\bresolved\b|"
+    r"تحسنت|أفضل الآن|اختفى الألم|زال الألم)",
+    re.I,
+)
+_WORSE = re.compile(
+    r"(?:بدتر(?:م|\s*شد(?:م|ه)?|\s*شده)|حالم\s*بدتر|شدیدتر\s*شد|بیشتر\s*شد|سخت\s*تر\s*شد|"
+    r"\b(?:feel(?:ing)?|getting|got|much|even) worse\b|\bworse than\b|\bit(?:'s| is| has) (?:worsened|got worse|increased)\b|"
+    r"ساءت|أسوأ|ازداد(?:ت)? (?:الألم|سوءا))",
+    re.I,
+)
+_NOT_WORSE = re.compile(r"(?:نه|نبود)\s*بدتر|not (?:get(?:ting)? )?worse", re.I)
+
+
+def status_signal(text: str, language: str = "fa") -> Optional[str]:
+    """'better' | 'worse' | None. Short, first-person status sentences only (a long message or a negated phrase is no signal)."""
     try:
-        if db is None or not (answer or "").strip() or not is_interview_reply(last_sedi_reply):
+        t = " ".join((text or "").replace(chr(0x200C), " ").split())
+        if not t or len(t.split()) > 14:
+            return None
+        if _WORSE.search(t) and not _NOT_WORSE.search(t):
+            return "worse"
+        m = _BETTER.search(t)
+        if m and not _NEG.search(t[max(0, m.start() - 12): m.end() + 14]):
+            return "better"
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def apply_status(db: Any, user_id: int, text: str, language: str) -> Optional[str]:
+    """DEBT-080: «better» closes the open journey; «worse» replaces it with an acute chain (hours-level follow-up). Both leave a short
+    I6 note. Returns 'better' / 'worse' when something changed, else None. Fail-open; commits only what it changed."""
+    try:
+        if db is None or not enabled():
+            return None
+        signal = status_signal(text, language)
+        if signal is None or not _journey_open(db, user_id):
+            return None
+        from backend.app.services.i10 import commitment_followup as cf
+
+        lang = language if language in ("fa", "ar", "en") else "en"
+        changed = cf.resolve_journey(db, user_id) if signal == "better" else cf.escalate_journey(db, user_id, sedi_copy.t("journey.step", lang))
+        if not changed:
+            db.rollback()
+            return None
+        db.commit()
+        _store_episode(db, user_id, sedi_copy.t(f"journey.status_note.{signal}", lang))
+        return signal
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-109] journey status not applied")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
+def _guide_asked(last_user_message: Optional[str], last_sedi_reply: Optional[str], language: str) -> bool:
+    """DEBT-079: on the CHAT path the interview guide steers the model, so Sedi's question has no fixed marker. The turn counts as an
+    interview when the user's previous message was a complaint (guide topic «symptom») and Sedi's reply asked something."""
+    try:
+        from backend.app.services.interview.guide import detect_topics
+
+        reply = last_sedi_reply or ""
+        return bool(last_user_message) and ("؟" in reply or "?" in reply) and "symptom" in detect_topics(last_user_message or "", language)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _store_episode(db: Any, user_id: int, text: str) -> bool:
+    """One short I6 episode note (consent-gated; ConsentDenied = nothing stored)."""
+    from backend.app.services.candidate_promotion_service import _merge_list_value
+    from backend.app.services.i6.consent_service import ConsentDenied
+    from backend.app.services.i6.memory_writes import write_fact
+
+    try:
+        value = _merge_list_value(db, user_id, "medical", "symptom_episodes", text)
+        write_fact(db, user_id, "medical", "symptom_episodes", value, source="chat", provenance_class="USER_STATED", commit=True)
+    except ConsentDenied:
+        return False
+    return True
+
+
+def record_answer(
+    db: Any, user_id: int, answer: str, last_sedi_reply: Optional[str], *, last_user_message: Optional[str] = None, language: str = "fa"
+) -> bool:
+    """The user's answer to the journey interview - or to the chat-path interview guide's question about a complaint (DEBT-079) -
+    becomes a short I6 episode note (deterministic, consent-gated, fail-open)."""
+    try:
+        if db is None or not (answer or "").strip():
+            return False
+        if not (is_interview_reply(last_sedi_reply) or _guide_asked(last_user_message, last_sedi_reply, language)):
             return False
         text = " ".join(answer.split())[:90]
         if len(text) < 3:
             return False
         from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
 
-        if not _answers_the_interview(answer):  # thanks / refusal / topic change / a new request is not an episode (Codex P2, PR 196)
+        if not _answers_the_interview(answer, language):  # thanks / refusal / topic change / a new request is not an episode (Codex P2, PR 196)
             return False
         if _about_relative(answer):  # «my mother has chest pain»: not the user's episode (Codex P2, PR 196)
             return False
-        from backend.app.services.candidate_promotion_service import _merge_list_value
-        from backend.app.services.i6.consent_service import ConsentDenied
-        from backend.app.services.i6.memory_writes import write_fact
-
-        try:
-            value = _merge_list_value(db, user_id, "medical", "symptom_episodes", text)
-            write_fact(db, user_id, "medical", "symptom_episodes", value, source="chat", provenance_class="USER_STATED", commit=True)
-        except ConsentDenied:
-            return False
-        return True
+        return _store_episode(db, user_id, text)
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] journey answer not recorded")
         try:
