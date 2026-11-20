@@ -241,3 +241,12 @@ def test_p2_a_location_only_answer_to_the_combined_question_keeps_the_place_and_
     assert done and ci.place_status(done)[0] == "ok" and ci.place_status(done)[1].city == city
     q = ci.first_question(done, "fa")
     assert q and ci.is_reason_question(q) and not ci.is_place_question(q)  # only the missing reason is asked next
+
+
+def test_p2_preferences_said_with_the_place_confirmation_survive():
+    from backend.app.services.i5 import specialty_lexicon as sl
+
+    prior = "یه داروخانه در پردیس"
+    q = ci.first_question(prior, "fa")
+    done = ci.request_for_answer(prior, q, "بله، شبانه روزی باشه", "fa")
+    assert done and ci.place_status(done)[0] == "ok" and "24h" in set(sl.qualifiers(done))

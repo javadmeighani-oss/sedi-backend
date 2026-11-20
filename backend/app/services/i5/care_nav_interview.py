@@ -247,7 +247,11 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
             confirmed = _confirmed_place_text(prior_request, text, lang3)
             done_place = _swap_place(prior_request, confirmed, lang3) if confirmed else None
-            return _with_qualifiers(done_place, {"urgent"}, language) if (done_place and urgent) else done_place
+            if not done_place:
+                return None
+            # search preferences said WITH the confirmation («بله، شبانه‌روزی») survive (Codex P2, PR 194)
+            quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
+            return _with_qualifiers(done_place, quals, language)
         spec = _specialty_for_answer(text, language)
         if spec is None and _DONT_KNOW.search(text):
             spec = "پزشک عمومی"
