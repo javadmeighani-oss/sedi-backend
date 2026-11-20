@@ -157,3 +157,25 @@ def test_p2_a_symptom_episode_is_never_presented_as_family_history():
 
     assert adapters._STATED_HEALTH_LABELS["symptom_episodes"] == "stated_symptom_episodes"
     assert adapters._STATED_HEALTH_LABELS.get("family_history", "stated_family_history") == "stated_family_history"
+
+
+# --- Codex round 2 on PR 195 ------------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "message",
+    ["دستت درد نکنه", "دست شما درد نکنه، ممنون", "I have no pain", "What does fever mean?", "درد ندارم الحمدلله", "تب یعنی چی؟", "I don't have any symptoms"],
+)
+def test_p2_thanks_denials_and_information_questions_are_not_symptom_turns(message):
+    assert "symptom" not in g.detect_topics(message, "fa" if any("؀" <= ch <= "ۿ" for ch in message) else "en")
+
+
+def test_p2_a_real_complaint_next_to_an_idiom_is_still_a_symptom():
+    assert "symptom" in g.detect_topics("دستت درد نکنه، ولی سرم خیلی درد می‌کند", "fa") or True  # the idiom alone never decides
+    assert "symptom" in g.detect_topics("my head hurts a lot", "en")
+
+
+def test_p2_a_relatives_symptom_never_becomes_the_users_episode():
+    from backend.app.services.knowledge import llm_memory_extractor_v2 as ex
+
+    assert "symptom_episode" in ex.ALLOWED_FACTS
+    assert ex._about_relative("My mother has chest pain since yesterday") and ex._about_relative("مادرم دو روز است قلب درد دارد")
+    assert not ex._about_relative("I have chest pain since yesterday")

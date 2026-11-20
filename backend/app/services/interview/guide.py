@@ -63,6 +63,19 @@ _PAIN = re.compile(
 )
 
 
+# not a complaint: the Persian thank-you idiom, a denial («I have no pain»), a definition/information question
+_NOT_A_COMPLAINT = re.compile(
+    r"(?:دست(?:ت|تون|ش|م)?\s*درد\s*نکن(?:ه|د)|درد\s*نکنه|دست\s*مریزاد|"
+    r"\b(?:no|without|never|not|don'?t|doesn'?t|haven'?t|hasn'?t)\s+(?:(?:have|had|feel|any)\s+)*(?:pain|ache|fever|cough|symptoms?)\b|"
+    r"\b(?:what|why|how|when)\s+(?:does|do|is|are|can|should|to)\b.{0,40}\b(?:mean|cause|treat|cure|symptoms?)\b|"
+    r"\bwhat\s+is\s+(?:a\s+)?(?:fever|pain|cough|nausea)\b|"
+    r"(?:بدون|هیچ|بی)\s*(?:درد|تب|سرفه|تهوع)|(?:درد|تب|سرفه)\s*(?:ندارم|ندارد|نیست)|"
+    r"(?:یعنی\s*چی|به\s*چه\s*معنی|چیست|چی\s*هست)\b|"
+    r"(?:ليس|لا)\s+(?:لدي|عندي)\s+(?:ألم|حمى|سعال)|ما\s+معنى)",
+    re.I,
+)
+
+
 def enabled() -> bool:
     return os.getenv(DISABLED_ENV, "").strip().lower() not in {"1", "true", "yes", "on"}
 
@@ -71,7 +84,9 @@ def detect_topics(message: str, language: str = "fa") -> set[str]:
     """{'symptom', 'work_life'} - the interview topics this message is about (may be both, may be neither)."""
     text = message or ""
     out: set[str] = set()
-    if _PAIN.search(text):
+    if _NOT_A_COMPLAINT.search(text):
+        pass  # thanks / denial / information question: not a symptom turn (the work-life check below still runs)
+    elif _PAIN.search(text):
         out.add("symptom")
     else:
         try:

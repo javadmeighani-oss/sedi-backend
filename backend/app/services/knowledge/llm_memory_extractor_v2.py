@@ -131,7 +131,7 @@ def parse_and_validate(raw_text: str, message: str) -> tuple[list[ExtractedCandi
         key = str(item.get("key") or "").strip()
         if key not in ALLOWED_FACTS or not _evidence_ok(item.get("evidence"), msg):
             continue
-        if key == "health_concerns" and _about_relative(str(item.get("evidence"))):
+        if key in ("health_concerns", "symptom_episode") and _about_relative(str(item.get("evidence"))):
             continue  # a relative's condition is never the user's own
         value = _value_for(key, item.get("value"))
         if value is None:
