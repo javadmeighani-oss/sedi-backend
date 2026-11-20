@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 # model key -> (KC fact_type understood by candidate_promotion_service, list_like)
 ALLOWED_FACTS: dict[str, tuple[str, bool]] = {
     "health_concerns": ("health_concerns", True),
+    "symptom_episode": ("symptom_episode", True),  # R-109
+    "work_schedule": ("work_schedule", False),  # R-109
+    "work_stressors": ("work_stressors", False),  # R-109
     "family_history": ("family_history", True),
     "allergies": ("intake_allergies", True),
     "occupation": ("occupation_stated", False),
@@ -53,11 +56,12 @@ SYSTEM_PROMPT = """You extract MEMORY from ONE message a user wrote to their hea
 Rules:
 - Only what the USER explicitly states about THEMSELVES or their close relatives. Never infer, guess, diagnose or add facts.
 - Every item needs "evidence": an exact quote (copy-paste) from the message that supports it.
+- "symptom_episode": ONE short note (<=12 words) about a symptom episode of the USER: onset, trigger, previous episodes, what he did, suspected cause (e.g. "chest pain since 2 days, worse when climbing stairs"). "work_schedule": working days/hours. "work_stressors": what weighs on him at work.
 - "health_concerns": conditions, symptoms or problems of the USER (e.g. hair loss). A condition of a relative goes ONLY in "family_history" as "mother: diabetes".
 - Skip questions, hypotheticals, negations ("I don't have X"), jokes and anything the user is unsure about.
 - Keep values short, in the user's language. Do not copy sentences.
 Schema:
-{"facts":[{"key":"health_concerns|family_history|allergies|occupation|household|interests|goal|food_preferences|exercise_preferences|sleep_hours","value":"string or [strings]","evidence":"exact quote"}],
+{"facts":[{"key":"health_concerns|symptom_episode|work_schedule|work_stressors|family_history|allergies|occupation|household|interests|goal|food_preferences|exercise_preferences|sleep_hours","value":"string or [strings]","evidence":"exact quote"}],
  "events":[{"kind":"loss|job_loss|separation|surgery|accident|diagnosis|medication_change|procedure|move|milestone|other","subject":"self|mother|father|spouse|child|sibling|relative|friend|other","summary":"<=100 chars neutral","when":"words about when, or empty","evidence":"exact quote"}]}
 If nothing qualifies return {"facts":[],"events":[]}."""
 
@@ -127,7 +131,7 @@ def parse_and_validate(raw_text: str, message: str) -> tuple[list[ExtractedCandi
         key = str(item.get("key") or "").strip()
         if key not in ALLOWED_FACTS or not _evidence_ok(item.get("evidence"), msg):
             continue
-        if key == "health_concerns" and _about_relative(str(item.get("evidence"))):
+        if key in ("health_concerns", "symptom_episode") and _about_relative(str(item.get("evidence"))):
             continue  # a relative's condition is never the user's own
         value = _value_for(key, item.get("value"))
         if value is None:

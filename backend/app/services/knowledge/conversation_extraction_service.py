@@ -31,6 +31,10 @@ _AUTO_ACCEPT_KEYS = AUTO_PROMOTE_LOW_RISK | frozenset(
         "bedtime",
         # R-014: facts the user explicitly stated about themselves (stated_facts_extractor_v1).
         "health_concerns",
+        # R-109: what the user says about their OWN symptom episodes / work (same class as health_concerns / occupation)
+        "symptom_episode",
+        "work_schedule",
+        "work_stressors",
         "family_history",
         "occupation_stated",
         "household_context",

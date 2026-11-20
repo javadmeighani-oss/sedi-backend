@@ -48,6 +48,8 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
     "daily_walk_minutes": ("lifestyle", "exercise_minutes"),
     # R-014 second memory: user-stated facts (I6-canonical; consent-gated by write_fact).
     "health_concerns": ("medical", "health_concerns"),
+    "symptom_episode": ("medical", "symptom_episodes"),  # R-109
+    "work_stressors": ("work", "work_stressors"),  # R-109
     "family_history": ("medical", "family_history"),
     "occupation_stated": ("work", "occupation"),  # key differs: "occupation" is a frozen legacy profile-fact type
     "household_context": ("social", "household_context"),
@@ -64,6 +66,7 @@ LIFESTYLE_SCALAR_MAP: Dict[str, Tuple[str, str]] = {
 # Keys whose value is a growing list: a new statement is merged into the active fact, never replaces it.
 LIST_MERGE_KEYS = frozenset({
     ("medical", "health_concerns"),
+    ("medical", "symptom_episodes"),
     ("medical", "family_history"),
     ("preferences", "interests"),
     ("intake", "allergies"),

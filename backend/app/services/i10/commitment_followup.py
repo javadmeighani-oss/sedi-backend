@@ -298,6 +298,14 @@ def create_commitment(db: Session, user_id: int, step: str, *, now: Optional[dat
     return _create_task(db, user_id, step, due, attempt=1, domain=domain, chain_id=None, approach="first")
 
 
+def open_commitment_count(db: Session, user_id: int) -> int:
+    """How many commitment follow-ups of this user are still open (R-109: «how are you now?» belongs in a conversation that has one)."""
+    try:
+        return len(_commitment_tasks(db, user_id))
+    except Exception:
+        return 0
+
+
 def capture_from_reply(
     db: Session, user_id: int, reply: str, language: str = "fa", *, user_message: str = ""
 ) -> Optional[models.CareFollowUpTask]:

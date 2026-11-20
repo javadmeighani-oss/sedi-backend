@@ -46,6 +46,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "medications",
         "allergies",
         "health_concerns",
+        # R-109: short user-stated episode notes (onset, triggers, previous episodes, what was done, suspected cause).
+        "symptom_episodes",
         # R-014: user-stated family health history (never inferred; only what the user said).
         "family_history",
         # R-074 step 4: what the user's own CONFIRMED documents say (lab values, prescribed medicines).
@@ -170,6 +172,7 @@ KEY_OWNERSHIP_OVERRIDES: Dict[tuple, str] = {
     ("medical", "medications"): CANONICAL_MEDICATION,  # UserMedication
     ("medical", "allergies"): LEGACY_COMPATIBILITY,  # UserProfileFact.allergy is structured owner; no dedicated table
     ("medical", "health_concerns"): CANONICAL_I6,
+    ("medical", "symptom_episodes"): CANONICAL_I6,
     ("medical", "family_history"): CANONICAL_I6,
     ("medical", "lab_results"): CANONICAL_I6,
     ("medical", "prescribed_medications"): CANONICAL_I6,
@@ -180,6 +183,7 @@ KEY_OWNERSHIP_OVERRIDES: Dict[tuple, str] = {
 # owners); these two keys are projected through HealthContextAdapter only.
 I6_USER_STATED_HEALTH_KEYS = (
     ("medical", "health_concerns"),
+    ("medical", "symptom_episodes"),
     ("medical", "family_history"),
     ("medical", "lab_results"),
     ("medical", "prescribed_medications"),
