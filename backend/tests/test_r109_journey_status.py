@@ -127,3 +127,25 @@ def test_the_orchestrator_applies_the_status_before_answering(monkeypatch):
     orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
     orch.process(authenticated_user_id=42, message="الان بهترم", language="fa")
     assert seen == [(42, "الان بهترم", "fa")]
+
+
+# --- Codex round 1 on PR 199 ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "text,lang,expected",
+    [
+        ("My mother is feeling better now", "en", None),   # a relative
+        ("مادرم الان بهتر شده", "fa", None),
+        ("I hope I feel better tomorrow", "en", None),     # a hope
+        ("امیدوارم فردا بهتر شوم", "fa", None),
+        ("اگه بدتر شدم چکار کنم", "fa", None),              # a condition / question
+        ("Will I feel better soon?", "en", None),
+        ("it has not got worse", "en", None),              # a denial of worsening
+        ("it is not getting worse", "en", None),
+        ("حالم بدتر نشده", "fa", None),
+        ("no more pain", "en", "better"),                  # «no» inside the improvement phrase
+        ("No, it got worse", "en", "worse"),
+        ("بله، بدتر شده", "fa", "worse"),
+    ],
+)
+def test_p1_only_a_real_first_person_status_counts(text, lang, expected):
+    assert j.status_signal(text, lang) == expected

@@ -181,7 +181,7 @@ def is_interview_reply(sedi_reply: Optional[str]) -> bool:
 
 
 # DEBT-080: «better / gone» and «worse» in the user's own words. «بهتر است دکتر بروم» (it is better to see a doctor) is not a status.
-_NEG = re.compile(r"(?:نشد|نشده|نیست|نمی\s*شود|نمیشه|\bnot\b|\bno\b|n't|\bnever\b|(?:^|\s)(?:لم|ليس)(?:\s|$))", re.I)
+_NEG = re.compile(r"(?:نشد|نشده|نیست|نمی\s*شود|نمیشه|\bnot\b|n't|\bnever\b|(?:^|\s)(?:لم|ليس)(?:\s|$))", re.I)
 _BETTER = re.compile(
     r"(?:بهتر(?:م|\s*شد(?:م|ه)?|\s*هستم|\s*شده)|حالم\s*بهتر|خوب\s*شد(?:م|ه)|خوب\s*شده|برطرف\s*شد|بر\s*طرف\s*شد|رفع\s*شد|تمام\s*شد|"
     r"دیگه\s*درد\s*(?:ندارم|نمی\s*کند)|"
@@ -195,7 +195,18 @@ _WORSE = re.compile(
     r"ساءت|أسوأ|ازداد(?:ت)? (?:الألم|سوءا))",
     re.I,
 )
-_NOT_WORSE = re.compile(r"(?:نه|نبود)\s*بدتر|not (?:get(?:ting)? )?worse", re.I)
+_NOT_WORSE = re.compile(r"(?:نه|نبود)\s*بدتر", re.I)
+# a hope, a condition, a plan or a question is not a report (Codex P1/P2, PR 199)
+_HYPOTHETICAL = re.compile(
+    r"(?:\b(?:hope|wish|if|when|will|would|should|could|maybe|perhaps|tomorrow|someday)\b|امیدوارم|کاش|اگر|اگه|وقتی|شاید|انشالله|ان\s*شاء|فردا|"
+    r"أتمنى|ليت|إذا|عندما|غدا|ربما)",
+    re.I,
+)
+
+
+def _negated(t: str, m: "re.Match") -> bool:
+    """A negation right before or after the matched phrase (never inside it: «no more pain» is itself an improvement)."""
+    return bool(_NEG.search(t[max(0, m.start() - 14): m.start()]) or _NEG.search(t[m.end(): m.end() + 14]))
 
 
 def status_signal(text: str, language: str = "fa") -> Optional[str]:
@@ -204,10 +215,17 @@ def status_signal(text: str, language: str = "fa") -> Optional[str]:
         t = " ".join((text or "").replace(chr(0x200C), " ").split())
         if not t or len(t.split()) > 14:
             return None
-        if _WORSE.search(t) and not _NOT_WORSE.search(t):
+        if "؟" in t or "?" in t or _HYPOTHETICAL.search(t):
+            return None  # a question, a hope or a plan reports nothing
+        from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
+
+        if _about_relative(t):
+            return None  # «my mother is feeling better» is not the user's status
+        w = _WORSE.search(t)
+        if w and not _NOT_WORSE.search(t) and not _negated(t, w):
             return "worse"
         m = _BETTER.search(t)
-        if m and not _NEG.search(t[max(0, m.start() - 12): m.end() + 14]):
+        if m and not _negated(t, m):
             return "better"
         return None
     except Exception:  # noqa: BLE001
