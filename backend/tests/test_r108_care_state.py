@@ -128,6 +128,7 @@ def test_the_summary_line_is_empty_when_there_is_nothing_to_say_or_no_consent():
 
 # --- the guard: consumers are listed so a new reader is a conscious decision ------------------------------------------------------------------------
 APPROVED_READERS = {
+    "backend/app/services/interview/guide.py",
     "backend/app/services/status_report/builder.py",
 }
 
