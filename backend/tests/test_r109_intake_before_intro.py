@@ -177,3 +177,18 @@ def test_p2_the_earlier_heart_interview_does_not_excuse_a_skin_request(monkeypat
     orch, searched = _orch(monkeypatch, rows=[asked])
     out = orch.process(authenticated_user_id=42, message="یه دکتر پوست در شهر شیراز معرفی کن", language="fa")
     assert "R109_CARE_JOURNEY_INTAKE" in out.reason_codes and searched == []  # a new complaint gets its own intake
+
+
+# --- Codex round 2 on PR 198 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_lab_request_without_a_specialty_is_not_interviewed_twice(monkeypatch):
+    _owners(monkeypatch, open_count=1)
+    lab = "یه آزمایشگاه در شهر شیراز معرفی کن"
+    orch, searched = _orch(monkeypatch)
+    first = orch.process(authenticated_user_id=42, message=lab, language="fa")
+    assert "R109_CARE_JOURNEY_INTAKE" in first.reason_codes
+    asked = SimpleNamespace(user_message=lab, sedi_response=first.message, created_at=datetime.utcnow())
+    orch2, searched2 = _orch(monkeypatch, rows=[asked])
+    second = orch2.process(authenticated_user_id=42, message="فقط معرفی کن", language="fa")
+    assert "R109_CARE_JOURNEY_INTAKE" not in second.reason_codes and "آزمایشگاه" in second.message and not j.is_interview_reply(second.message)  # the skip reaches the directory (lab path)
+    third = orch2.process(authenticated_user_id=42, message=lab, language="fa")
+    assert "R109_CARE_JOURNEY_INTAKE" not in third.reason_codes

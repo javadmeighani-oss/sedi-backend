@@ -596,8 +596,13 @@ class IntelligenceOrchestrator:
                     and getattr(r, "created_at", None) is not None
                     and now - r.created_at.replace(tzinfo=None) < timedelta(minutes=30)
                 ):
-                    asked = {_sl.find_specialty(getattr(x, "user_message", None) or "") for x in rows[i:]} - {None}
-                    done = _sl.find_specialty(message) in asked
+                    def _kind(text: str):  # the provider request kind: entity + specialty (a lab / hospital has no specialty - Codex P2, round 2)
+                        if not _cn.is_care_navigation_query(text or ""):
+                            return None
+                        return (_cn.parse_care_nav_request(text, language=lang).entity, _sl.find_specialty(text))
+
+                    asked = {_kind(getattr(x, "user_message", None) or "") for x in rows[i:]} - {None}
+                    done = _kind(message) in asked
                     break
             return _journey.intake_message(self._db, user_id, message, lang, intake_done=done)
         except Exception:  # noqa: BLE001
