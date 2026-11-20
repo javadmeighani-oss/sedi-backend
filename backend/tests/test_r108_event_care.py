@@ -310,3 +310,54 @@ def test_p2_the_check_in_title_promises_no_fixed_interval(db):
     for lang in ("fa", "ar", "en"):
         title = sedi_copy.t("event_care.title.pre", lang)
         assert "2" not in title and "۲" not in title and "ساعتين" not in title and "دو ساعت" not in title and "two" not in title.lower()
+
+
+# --- Codex round 2 on PR 204 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_future_due_task_of_a_moved_event_does_not_suppress_its_replacement(db, user):
+    ev = _add_event(db, user, hhmm="18:00")
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 15:50")) == 1      # check-in due 16:00
+    old = [t for k, t in _tasks(db) if k == ec.KIND_PRE][0]
+    ev.starts_at = ev.starts_at - timedelta(hours=1)  # moved to 17:00: the check-in is now due 15:00
+    db.commit()
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 15:00")) == 1      # the stale open task (due 16:00) is reconciled first
+    assert old.status == "cancelled"
+    live = [t for k, t in _tasks(db) if k == ec.KIND_PRE and t.status == "open"]
+    assert len(live) == 1 and _hhmm(live[0].due_at) == "15:00"
+
+
+def test_p2_an_unmoved_open_task_is_left_alone(db, user):
+    _add_event(db, user)
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55"))
+    task = _tasks(db)[0][1]
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 09:05"))
+    assert task.status == "open"
+
+
+def test_p2_the_push_expires_with_its_grace_and_never_after_the_appointment(db, user):
+    from datetime import timezone as tz
+
+    _add_event(db, user, hhmm="15:00")
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55"))
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 12:55"))
+    by_kind = {k: t for k, t in _tasks(db)}
+    day_of = ec.expires_at(db, by_kind[ec.KIND_DAY_OF])
+    pre = ec.expires_at(db, by_kind[ec.KIND_PRE])
+    assert day_of == _utc(f"{DAY} 11:00").replace(tzinfo=tz.utc)   # 09:00 + 2 h grace
+    assert pre == _utc(f"{DAY} 13:45").replace(tzinfo=tz.utc)       # 13:00 + 45 min grace
+    _add_event(db, user, hhmm="23:00", title="دیگر")
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 20:55"))
+    late_pre = [t for k, t in _tasks(db) if k == ec.KIND_PRE and t.title == "دیگر"][0]
+    assert ec.expires_at(db, late_pre) <= _utc(f"{DAY} 23:00").replace(tzinfo=tz.utc)  # never later than the appointment
+
+
+def test_p2_the_candidate_carries_the_expiry_and_other_followups_are_unchanged(db, user):
+    from backend.app.services.i10.contextual_followup_i10_adapter import _event_care_validity
+    from backend.app.services.i10.contextual_followup_task_meta import BoundedFollowUpMeta, pack_description
+
+    _add_event(db, user)
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55"))
+    task = _tasks(db)[0][1]
+    assert _event_care_validity(db, task)["expires_at"] == ec.expires_at(db, task)
+    plain = models.CareFollowUpTask(user_id=user.id, title="x", description=pack_description(None, BoundedFollowUpMeta(follow_up_kind="commitment")),
+                                    status="open", source="general_ctx")
+    assert _event_care_validity(db, plain) == {}  # other follow-ups keep the default I10 lifetime

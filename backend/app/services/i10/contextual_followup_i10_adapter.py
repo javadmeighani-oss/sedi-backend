@@ -292,6 +292,21 @@ def build_followup_payload(
     )
 
 
+def _event_care_validity(db: Session, task: models.CareFollowUpTask) -> dict:
+    """Candidate validity of an appointment message: deliverable only until its grace ends / the appointment starts (R-108)."""
+    try:
+        if parse_bounded_meta(task.description)[1].follow_up_kind not in ("event_day_of", "event_pre_check"):
+            return {}
+        from datetime import datetime as _dt, timezone as _tz
+
+        from backend.app.services.i10 import event_care as ec
+
+        expires = ec.expires_at(db, task)
+        return {"valid_from": _dt.now(_tz.utc), "expires_at": expires} if expires is not None else {}
+    except Exception:  # noqa: BLE001 - the default I10 lifetime then applies
+        return {}
+
+
 def enqueue_contextual_followup_notification(
     db: Session,
     *,
@@ -312,6 +327,7 @@ def enqueue_contextual_followup_notification(
         semantic_family=semantic,
         privacy_hint=resolve_privacy_class(task),
         provenance_refs=(f"care_follow_up_task:{task.id}", f"source:{task.source}"),
+        **_event_care_validity(db, task),
     )
     result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
     if result.decision != I10DecisionValue.SEND or result.notification_id is None:

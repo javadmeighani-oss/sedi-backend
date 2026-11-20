@@ -151,6 +151,52 @@ def _existing(db: Session, user_ids: set) -> set:
     return found
 
 
+def _reconcile_open_tasks(db: Session, events: list) -> int:
+    """Cancel OPEN event-care tasks whose due time no longer matches their appointment (a moved event): the worker only looks at tasks
+    that are already due, so a future-due stale task would otherwise suppress its own replacement (Codex P2, PR 204)."""
+    from backend.app.services.i10.contextual_followup_task_meta import parse_bounded_meta
+
+    by_id = {int(e.id): e for e in events}
+    if not by_id:
+        return 0
+    cancelled = 0
+    rows = (
+        db.query(models.CareFollowUpTask)
+        .filter(
+            models.CareFollowUpTask.user_id.in_(list({int(e.user_id) for e in events})),
+            models.CareFollowUpTask.status == "open",
+            models.CareFollowUpTask.created_at >= datetime.utcnow() - timedelta(days=4),
+        )
+        .all()
+    )
+    zones: dict = {}
+    for task in rows:
+        meta = parse_bounded_meta(task.description)[1]
+        event = by_id.get(int(meta.user_event_id or 0))
+        if meta.follow_up_kind not in KINDS or event is None:
+            continue
+        zone = zones.setdefault(int(task.user_id), _zone(db, int(task.user_id)))
+        expected = due_times(event, zone, created_before_day_of=True).get(meta.follow_up_kind)
+        due = _naive_utc(task.due_at)
+        if expected is None or due is None or abs(expected - due) > _MOVED_TOLERANCE:
+            task.status = "cancelled"
+            task.updated_at = datetime.utcnow()
+            cancelled += 1
+    return cancelled
+
+
+def expires_at(db: Session, task: models.CareFollowUpTask) -> Optional[datetime]:
+    """Provider expiry (aware UTC) of an event-care push: its grace window, and never later than the appointment itself, so a delayed
+    delivery cannot reach the user after the appointment started or the next morning (Codex P2, PR 204)."""
+    event, kind = _event_and_kind(db, task)
+    start = _starts_utc(event) if event is not None else None
+    due = _naive_utc(task.due_at)
+    if kind is None or start is None or due is None:
+        return None
+    limit = min(start, due + (_DAY_OF_GRACE if kind == KIND_DAY_OF else _PRE_GRACE))
+    return limit.replace(tzinfo=timezone.utc)
+
+
 def create_due_event_care_tasks(db: Session, *, now: Optional[datetime] = None) -> int:
     """Sweep on the existing worker tick: for every care appointment starting soon, create the day-of / pre-check task whose due time
     is now (just in time). Returns how many were created. Default OFF, fail-open, consent-gated; never raises."""
@@ -180,6 +226,7 @@ def create_due_event_care_tasks(db: Session, *, now: Optional[datetime] = None) 
             last_id = int(chunk[-1].id)
         if not rows:
             return 0
+        _reconcile_open_tasks(db, rows)  # a moved appointment's stale open task must not suppress its replacement
         known = _existing(db, {int(r.user_id) for r in rows})
         consent: dict = {}
         for ev in rows:
