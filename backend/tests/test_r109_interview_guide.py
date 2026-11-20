@@ -78,7 +78,7 @@ def _stubs(monkeypatch, *, red=False, crisis=False, follow_ups=0, known=()):
 
     monkeypatch.setattr(symptom_triage, "triage", lambda text, lang="fa": SimpleNamespace(red_flag=red, areas=("chest",) if "قلب" in text else ()))
     monkeypatch.setattr(crisis_support, "hint_for_turn", lambda db, uid, text, lang: "CRISIS" if crisis else None)
-    monkeypatch.setattr(g, "open_care_follow_ups", lambda db, uid: follow_ups)
+    monkeypatch.setattr(g, "care_picture", lambda db, uid, language="fa": (follow_ups, "موضوع باز: «درد»" if follow_ups else ""))
     _facts(monkeypatch, known)
 
 
@@ -106,13 +106,16 @@ def test_the_kill_switch_and_an_empty_message_and_errors_are_silent(monkeypatch)
 
 
 # --- the status hook owner --------------------------------------------------------------------------------------------------------------------------
-def test_open_commitment_count_uses_the_i10_owner(monkeypatch):
-    from backend.app.services.i10 import commitment_followup as cf
+def test_the_follow_up_count_comes_from_the_shared_care_state(monkeypatch):
+    from backend.app.services import care_state as cs
 
-    monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid: [object(), object()])
-    assert cf.open_commitment_count(None, 1) == 2 and g.open_care_follow_ups(None, 1) == 2
-    monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid: (_ for _ in ()).throw(RuntimeError("db")))
-    assert cf.open_commitment_count(None, 1) == 0  # fail-open
+    state = cs.CareState(user_id=1, follow_ups=(cs.CareFollowUp(kind="journey", tier="acute"), cs.CareFollowUp(kind="commitment")))
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: state)
+    assert g.open_care_follow_ups(None, 1) == 2 and g.care_picture(None, 1, "fa")[0] == 2
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: None)
+    assert g.care_picture(None, 1) == (0, "")
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: (_ for _ in ()).throw(RuntimeError("db")))
+    assert g.open_care_follow_ups(None, 1) == 0  # fail-open
 
 
 # --- the memory vocabulary: what the interview learns can be written, read and edited ------------------------------------------------------------
@@ -198,3 +201,21 @@ def test_p2_persian_symptom_words_never_match_inside_unrelated_words(message):
 @pytest.mark.parametrize("message", ["دردم شدید است", "سرم درد می‌کند", "تب دارم", "تبم بالا رفته", "سرفه‌هایم زیاد شده", "تنگی نفس دارم", "درد دارم"])
 def test_p2_inflected_persian_symptom_words_still_match(message):
     assert "symptom" in g.detect_topics(message, "fa")
+
+
+# --- R-108 2b: the chat reads the shared care picture ----------------------------------------------------------------------------------------------
+def test_the_hint_carries_the_care_picture_and_forbids_contradicting_it(monkeypatch):
+    _stubs(monkeypatch, follow_ups=1)
+    hint = g.hint_for_turn(None, 1, "قلبم درد می‌کند", "fa")
+    assert "CARE PICTURE" in hint and "موضوع باز: «درد»" in hint and "never say nothing is wrong while a follow-up is open" in hint
+
+
+def test_a_plain_turn_with_an_open_follow_up_still_gets_the_picture_and_the_status_question(monkeypatch):
+    _stubs(monkeypatch, follow_ups=1)
+    hint = g.hint_for_turn(None, 1, "سلام، امروز خوبم", "fa")  # not a complaint: «I am fine» must not hide an open follow-up from the model
+    assert "OPEN CARE FOLLOW-UP" in hint and "CARE PICTURE" in hint
+
+
+def test_without_anything_to_guide_the_picture_alone_adds_no_hint(monkeypatch):
+    _stubs(monkeypatch, follow_ups=0)
+    assert g.hint_for_turn(None, 1, "سلام", "fa") is None  # no extra tokens on ordinary turns

@@ -168,3 +168,17 @@ def test_the_summary_line_exists_in_every_language(db, user, lang):
     j.record_answer(db, user.id, "since two days ago and never before", sedi_copy.t("journey.interview.chest", lang), language="en")
     line = cs.summary_line(cs.get_care_state(db, user.id), lang)
     assert line and "{" not in line
+
+
+def test_the_chat_hint_reads_the_same_picture_even_when_the_user_says_they_are_fine(db, user):
+    """R-108 2b: the model is told the care picture, so «I am fine» cannot hide an open acute follow-up from it."""
+    from backend.app.services.interview import guide
+
+    uid = user.id
+    j.intake_message(db, uid, REQUEST, "fa", intake_done=False)
+    j.record_answer(db, uid, "از دو روز پیش شروع شده و قبلاً نداشتم", _interview())
+    hint = guide.hint_for_turn(db, uid, "سلام، امروز خوبم", "fa")
+    assert hint and "CARE PICTURE" in hint and "دو روز" in hint and "OPEN CARE FOLLOW-UP" in hint
+    j.apply_status(db, uid, "الان بهترم", "fa")  # the chain closes: the same turn no longer asks about an open follow-up
+    after = guide.hint_for_turn(db, uid, "سلام، امروز خوبم", "fa")
+    assert after is None  # nothing open, nothing to guide: no extra tokens

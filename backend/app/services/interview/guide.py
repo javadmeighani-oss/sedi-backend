@@ -129,16 +129,25 @@ def memory_gaps(db: Any, user_id: int, topics: set[str]) -> list[str]:
     return [what for d, k, what in wanted if (d, k) not in known]
 
 
-def open_care_follow_ups(db: Any, user_id: int) -> int:
+def care_picture(db: Any, user_id: int, language: str = "fa") -> tuple[int, str]:
+    """(open follow-up chains, ONE line of the care picture) through the shared CareState (R-108): the chat reads the same picture the
+    reports and notifications read, so it cannot say «nothing is wrong» while a follow-up is open. (0, "") on any problem or no consent."""
     try:
-        from backend.app.services.i10.commitment_followup import open_commitment_count
+        from backend.app.services.care_state import get_care_state, summary_line
 
-        return int(open_commitment_count(db, user_id))
+        state = get_care_state(db, user_id)
+        if state is None:
+            return 0, ""
+        return len(state.follow_ups), summary_line(state, language)
     except Exception:  # noqa: BLE001
-        return 0
+        return 0, ""
 
 
-def build_hint(topics: set[str], gaps: list[str], open_follow_ups: int) -> Optional[str]:
+def open_care_follow_ups(db: Any, user_id: int) -> int:
+    return care_picture(db, user_id)[0]
+
+
+def build_hint(topics: set[str], gaps: list[str], open_follow_ups: int, care_line: str = "") -> Optional[str]:
     """The ONE system hint (English; the model answers in the user's language). None when there is nothing to guide."""
     parts: list[str] = []
     if "symptom" in topics:
@@ -163,6 +172,11 @@ def build_hint(topics: set[str], gaps: list[str], open_follow_ups: int) -> Optio
         )
     if not parts:
         return None
+    if care_line:
+        parts.append(
+            "CARE PICTURE (from this user's own memory; stay consistent with it and never contradict it - e.g. never say nothing is "
+            f"wrong while a follow-up is open): {care_line}."
+        )
     parts.append(
         f"FORM: ask at most {MAX_QUESTIONS} short, concrete questions, together at the end of your reply, only the most useful unanswered ones; "
         "never repeat something the user already told you; keep the reply compact (no long lists)."
@@ -183,7 +197,8 @@ def hint_for_turn(db: Any, user_id: int, message: str, language: str = "fa") -> 
             return None  # self-harm support keeps its single gentle question (R-099)
         topics = detect_topics(message, language)
         gaps = memory_gaps(db, user_id, topics) if topics else []
-        return build_hint(topics, gaps, open_care_follow_ups(db, user_id))
+        follow_ups, care_line = care_picture(db, user_id, language)
+        return build_hint(topics, gaps, follow_ups, care_line)
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] interview guide skipped")
         return None
