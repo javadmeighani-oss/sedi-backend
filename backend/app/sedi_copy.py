@@ -2229,6 +2229,31 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'بُني هذا التقرير فقط على ما أخبرتَ به صدي أو سجّلته بنفسك، وهو ليس تشخيصاً طبياً.',
         'en': 'This report is built only from what you told Sedi or recorded yourself. It is not a medical diagnosis.',
     },
+    'event_care.title.day_of': {
+        'fa': 'نوبت امروز',
+        'ar': 'موعد اليوم',
+        'en': "Today's appointment",
+    },
+    'event_care.title.pre': {
+        'fa': 'نوبتت تا دو ساعت دیگر است',
+        'ar': 'موعدك بعد ساعتين',
+        'en': 'Your appointment is in two hours',
+    },
+    'event_care.body.day_of': {
+        'fa': '{who}امروز ساعت {time} «{title}»{place} داری',
+        'ar': '{who}لديك اليوم الساعة {time} «{title}»{place}',
+        'en': '{who}Today at {time} you have “{title}”{place}',
+    },
+    'event_care.body.pre': {
+        'fa': '{who}ساعت {time} «{title}»{place} داری. آماده\u200cای؟ حالت چطور است؟',
+        'ar': '{who}الساعة {time} لديك «{title}»{place}. هل أنت مستعد؟ كيف حالك؟',
+        'en': '{who}At {time} you have “{title}”{place}. Ready? How are you feeling?',
+    },
+    'event_care.place': {
+        'fa': ' در {location}',
+        'ar': ' في {location}',
+        'en': ' at {location}',
+    },
     'care_state.issue.open': {
         'fa': 'موضوع باز: «{text}»',
         'ar': 'موضوع مفتوح: «{text}»',

@@ -160,6 +160,10 @@ def _assurance_may_send(db: Session, task: models.CareFollowUpTask, now: datetim
     return bool(can_send_v1(db, task.user_id, "companion", "assurance_follow_up", "normal", now_naive).get("allowed"))
 
 
+def _is_event_care(task: models.CareFollowUpTask) -> bool:
+    return parse_bounded_meta(task.description)[1].follow_up_kind in ("event_day_of", "event_pre_check")
+
+
 def _is_commitment(task: models.CareFollowUpTask) -> bool:
     return parse_bounded_meta(task.description)[1].follow_up_kind == "commitment"
 
@@ -191,6 +195,11 @@ def process_single_follow_up_task(
         return False
     if _is_assurance(task) and not _assurance_may_send(db, task, now):
         return False
+    if _is_event_care(task):
+        from backend.app.services.i10.event_care import may_send as event_care_may_send
+
+        if not event_care_may_send(db, task, now):
+            return False
     if _is_post_event(task):
         from backend.app.services.i10.event_outcome import post_event_may_send
 
@@ -247,6 +256,12 @@ def process_due_follow_up_tasks(db: Session, *, now: Optional[datetime] = None) 
         create_due_event_outcome_tasks(db, now=when)
     except Exception:
         logger.exception("[R-071] event outcome sweep failed")
+    try:
+        from backend.app.services.i10.event_care import create_due_event_care_tasks
+
+        create_due_event_care_tasks(db, now=when)  # R-108: day-of 09:00 + pre-event check-in (flag-gated, default OFF)
+    except Exception:
+        logger.exception("[R-108] event care sweep failed")
     rows = (
         db.query(models.CareFollowUpTask)
         .filter(
