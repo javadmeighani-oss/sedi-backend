@@ -2235,9 +2235,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': "Today's appointment",
     },
     'event_care.title.pre': {
-        'fa': 'نوبتت تا دو ساعت دیگر است',
-        'ar': 'موعدك بعد ساعتين',
-        'en': 'Your appointment is in two hours',
+        'fa': 'نوبتت نزدیک است',
+        'ar': 'موعدك قريب',
+        'en': 'Your appointment is coming up',
     },
     'event_care.body.day_of': {
         'fa': '{who}امروز ساعت {time} «{title}»{place} داری',

@@ -265,3 +265,48 @@ def test_the_sweep_runs_inside_the_ordinary_worker_tick(db, user, monkeypatch):
     _add_event(db, user)
     assert worker.process_due_follow_up_tasks(db, now=_utc(f"{DAY} 09:00")) == 1  # the tick creates the 09:00 task and sends it
     assert [k for k, _t in _tasks(db)] == [ec.KIND_DAY_OF] and db.query(models.Notification).count() == 1
+
+
+# --- Codex round 1 on PR 204 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_moved_event_gets_its_replacement_check_in(db, user):
+    ev = _add_event(db, user)
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 12:55"))
+    pre = [t for k, t in _tasks(db) if k == ec.KIND_PRE][0]
+    ev.starts_at = ev.starts_at + timedelta(hours=3)  # 15:00 -> 18:00
+    db.commit()
+    assert ec.may_send(db, pre, _utc(f"{DAY} 13:00")) is False and pre.status == "cancelled"
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 15:55")) == 1  # the new 16:00 check-in is NOT suppressed by the cancelled one
+    live = [t for k, t in _tasks(db) if k == ec.KIND_PRE and t.status == "open"]
+    assert len(live) == 1 and _hhmm(live[0].due_at) == "16:00"
+
+
+def test_p2_a_sent_message_still_deduplicates(db, user, monkeypatch):
+    from backend.app.services.i10 import contextual_followup_worker as worker
+
+    monkeypatch.setenv("SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED", "1")
+    _add_event(db, user)
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55"))
+    task = _tasks(db)[0][1]
+    assert worker.process_single_follow_up_task(db, task, now=_utc(f"{DAY} 09:00")) is True
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 09:20")) == 0  # notified = live: never a second day-of message
+
+
+def test_p2_a_task_is_never_created_already_too_late_to_send(db, user):
+    _add_event(db, user)
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 13:40")) == 0  # 40 min after the 13:00 check-in: past its 30-min window
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 13:25")) == 1
+    pre = [t for k, t in _tasks(db) if k == ec.KIND_PRE][0]
+    assert ec.may_send(db, pre, _utc(f"{DAY} 13:25")) is True  # still inside its 45-min grace: the creation window is shorter than the grace
+
+
+def test_p2_the_scan_pages_through_a_busy_day(db, user, monkeypatch):
+    monkeypatch.setattr(ec, "_SCAN_CAP", 2)
+    for n in range(5):
+        _add_event(db, user, title=f"فیزیوتراپی {n}")
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55")) == 5  # more events than one page: the later ones are not starved
+
+
+def test_p2_the_check_in_title_promises_no_fixed_interval(db):
+    for lang in ("fa", "ar", "en"):
+        title = sedi_copy.t("event_care.title.pre", lang)
+        assert "2" not in title and "۲" not in title and "ساعتين" not in title and "دو ساعت" not in title and "two" not in title.lower()

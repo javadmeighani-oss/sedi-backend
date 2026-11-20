@@ -39,11 +39,13 @@ PRE_LEAD = timedelta(hours=2)
 EARLY_START_HOUR = 12  # an event before this hour gets only the pre-check
 QUIET_FROM, QUIET_TO = 22, 7
 _CREATE_AHEAD = timedelta(minutes=15)   # a task is created when its due time is this close ...
-_CREATE_WINDOW = timedelta(hours=1)     # ... and not later than this after it
 _DAY_OF_GRACE = timedelta(hours=2)      # a day-of message that could not go out within 2 h of 09:00 is dropped
 _PRE_GRACE = timedelta(minutes=45)
+# ... and not later than this after it: always SHORTER than the grace, so a task is never created already too late to be sent
+_CREATE_WINDOW = {KIND_DAY_OF: timedelta(hours=1), KIND_PRE: timedelta(minutes=30)}
 _MOVED_TOLERANCE = timedelta(minutes=20)
 _SCAN_CAP = 300
+_MAX_PAGES = 10
 _MAX_TITLE = 80
 _MAX_PLACE = 60
 
@@ -126,14 +128,19 @@ def _created_before_day_of(db: Session, event: models.UserEvent, zone) -> bool:
 
 
 def _existing(db: Session, user_ids: set) -> set:
-    """{(event_id, kind)} that already have a task in the last days (any status) - one message of each kind per event."""
+    """{(event_id, kind)} that already have a LIVE task (open / notified / done) in the last days - one message of each kind per event.
+    A cancelled task (a moved event, a dropped stale task) is not counted, so the rescheduled appointment gets its replacement (Codex P2)."""
     from backend.app.services.i10.contextual_followup_task_meta import parse_bounded_meta
 
     if not user_ids:
         return set()
     rows = (
         db.query(models.CareFollowUpTask)
-        .filter(models.CareFollowUpTask.user_id.in_(list(user_ids)), models.CareFollowUpTask.created_at >= datetime.utcnow() - timedelta(days=4))
+        .filter(
+            models.CareFollowUpTask.user_id.in_(list(user_ids)),
+            models.CareFollowUpTask.created_at >= datetime.utcnow() - timedelta(days=4),
+            models.CareFollowUpTask.status != "cancelled",
+        )
         .all()
     )
     found = set()
@@ -156,19 +163,21 @@ def create_due_event_care_tasks(db: Session, *, now: Optional[datetime] = None) 
         from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
 
         now_naive = _naive_utc(now or datetime.now(timezone.utc))
-        rows = (
-            db.query(models.UserEvent)
-            .filter(
-                models.UserEvent.starts_at >= now_naive - timedelta(days=1),
-                models.UserEvent.starts_at <= now_naive + timedelta(days=2),
-                models.UserEvent.status.in_(_ACTIVE_STATUSES),
-                models.UserEvent.recurrence_rule.is_(None),
-                models.UserEvent.event_type.in_(sorted(CARE_EVENT_TYPES)),
-            )
-            .order_by(models.UserEvent.id.asc())
-            .limit(_SCAN_CAP)
-            .all()
+        base = db.query(models.UserEvent).filter(
+            models.UserEvent.starts_at >= now_naive - timedelta(days=1),
+            models.UserEvent.starts_at <= now_naive + timedelta(days=2),
+            models.UserEvent.status.in_(_ACTIVE_STATUSES),
+            models.UserEvent.recurrence_rule.is_(None),
+            models.UserEvent.event_type.in_(sorted(CARE_EVENT_TYPES)),
         )
+        rows: list = []
+        last_id = 0
+        for _page in range(_MAX_PAGES):  # bounded keyset pages: a busy day never hides the higher-id events from every tick (Codex P2)
+            chunk = base.filter(models.UserEvent.id > last_id).order_by(models.UserEvent.id.asc()).limit(_SCAN_CAP).all()
+            rows.extend(chunk)
+            if len(chunk) < _SCAN_CAP:
+                break
+            last_id = int(chunk[-1].id)
         if not rows:
             return 0
         known = _existing(db, {int(r.user_id) for r in rows})
@@ -181,7 +190,7 @@ def create_due_event_care_tasks(db: Session, *, now: Optional[datetime] = None) 
                 continue
             zone = _zone(db, uid)
             for kind, due in due_times(ev, zone, created_before_day_of=_created_before_day_of(db, ev, zone)).items():
-                if (int(ev.id), kind) in known or not (due - _CREATE_AHEAD <= now_naive <= due + _CREATE_WINDOW):
+                if (int(ev.id), kind) in known or not (due - _CREATE_AHEAD <= now_naive <= due + _CREATE_WINDOW[kind]):
                     continue
                 meta = BoundedFollowUpMeta(follow_up_kind=kind, user_event_id=int(ev.id), domain=(ev.event_type or "")[:32])
                 ts = datetime.utcnow()
