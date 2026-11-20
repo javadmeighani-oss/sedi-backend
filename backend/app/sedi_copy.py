@@ -2009,6 +2009,56 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'متابعة صدي',
         'en': 'Sedi follow-up',
     },
+    'journey.step': {
+        'fa': 'پیگیری وضعیتت تا رسیدن به پزشک',
+        'ar': 'متابعة حالتك حتى موعد الطبيب',
+        'en': 'Following up on how you are until you see the doctor',
+    },
+    'journey.status_only': {
+        'fa': 'الان وضعیتت چطور است؟',
+        'ar': 'كيف حالك الآن؟',
+        'en': 'How are you doing right now?',
+    },
+    'journey.care.chest': {
+        'fa': 'تا رسیدن به پزشک: فعالیت سنگین نکن، زمان و شدت دردها را یادداشت کن و فهرست داروها و نوار یا آزمایش‌های قبلی را آماده کن. اگر درد شدید شد یا تنگی نفس، عرق سرد یا درد به دست و فک آمد، فوراً به اورژانس برو یا ۱۱۵ را بگیر.',
+        'ar': 'حتى موعد الطبيب: تجنّب المجهود الشاق، دوّن وقت الألم وشدته، وجهّز قائمة أدويتك وتخطيط القلب أو التحاليل السابقة. وإن اشتد الألم أو ظهر ضيق في التنفس أو عرق بارد أو ألم في الذراع والفك فاذهب فوراً إلى الطوارئ.',
+        'en': 'Until you see the doctor: avoid strenuous activity, note when the pain comes and how strong it is, and get your medicine list and any earlier ECG or tests ready. If the pain gets severe or comes with shortness of breath, a cold sweat or pain in the arm or jaw, go to the emergency room now.',
+    },
+    'journey.care.generic': {
+        'fa': 'تا رسیدن به پزشک: علائمت را با زمان و شدتشان یادداشت کن و فهرست داروهایت را آماده کن. اگر ناگهان بدتر شد، فوراً به اورژانس برو.',
+        'ar': 'حتى موعد الطبيب: دوّن أعراضك مع وقتها وشدتها وجهّز قائمة أدويتك. وإن ساءت حالتك فجأة فاذهب فوراً إلى الطوارئ.',
+        'en': 'Until you see the doctor: note your symptoms with their time and strength and get your medicine list ready. If it suddenly gets worse, go to the emergency room now.',
+    },
+    'journey.interview.chest': {
+        'fa': 'برای اینکه دقیق‌تر کمکت کنم: الان درد یا فشار قفسه‌ی سینه داری و همراهش تنگی نفس یا عرق سرد هست؟ از کی شروع شد و قبلاً هم داشتی؟ فکر می‌کنی چه چیزی پیش از آن تغییر کرد؟',
+        'ar': 'لأساعدك بدقة أكبر: هل لديك الآن ألم أو ضغط في الصدر ومعه ضيق نفس أو عرق بارد؟ متى بدأ وهل حدث من قبل؟ وما الذي تظن أنه تغيّر قبله؟',
+        'en': 'So I can help you more precisely: do you have chest pain or pressure right now, with shortness of breath or a cold sweat? When did it start, and did it happen before? What do you think changed before it began?',
+    },
+    'journey.interview.generic': {
+        'fa': 'برای اینکه دقیق‌تر کمکت کنم: چه اتفاقی افتاده و الان وضعیتت چطور است؟ تازه شروع شده یا از قبل بوده؟ فکر می‌کنی چرا پیش آمده؟',
+        'ar': 'لأساعدك بدقة أكبر: ماذا حدث وكيف حالك الآن؟ هل بدأ حديثاً أم كان من قبل؟ ولماذا تظن أنه حدث؟',
+        'en': 'So I can help you more precisely: what happened and how are you right now? Did it just start or was it there before? Why do you think it happened?',
+    },
+    'journey.markers.interview': {
+        'fa': ('برای اینکه دقیق‌تر کمکت کنم',),
+        'ar': ('لأساعدك بدقة أكبر',),
+        'en': ('so i can help you more precisely',),
+    },
+    'journey.followup.body.1': {
+        'fa': 'الان وضعیتت چطور است؟',
+        'ar': 'كيف حالك الآن؟',
+        'en': 'How are you doing right now?',
+    },
+    'journey.followup.body.2': {
+        'fa': 'نوبت پزشک را گرفتی؟ اگر هنوز نه، کمکت می‌کنم.',
+        'ar': 'هل حجزت موعد الطبيب؟ وإن لم تفعل بعد فسأساعدك.',
+        'en': 'Have you booked the doctor? If not yet, I will help you.',
+    },
+    'journey.followup.body.3': {
+        'fa': ['هنوز کنارتم؛ حالت چطور است؟', 'ساده بگو: بهتر شدی، مثل قبل یا بدتر؟', 'اگر وضعیتت تغییر کرده، همین‌جا بگو.'],
+        'ar': ['ما زلت بجانبك؛ كيف حالك؟', 'قل ببساطة: أفضل أم كما كنت أم أسوأ؟', 'إن تغيّرت حالتك فأخبرني هنا.'],
+        'en': ['I am still with you; how are you?', 'Just tell me: better, the same or worse?', 'If anything has changed, tell me right here.'],
+    },
     'commitment.body.1': {
         'fa': 'برنامه\u200cی دیروزت را انجام دادی؟',
         'ar': 'هل نفّذت خطة الأمس؟',
