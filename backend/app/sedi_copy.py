@@ -2049,6 +2049,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ('لأساعدك بدقة أكبر',),
         'en': ('so i can help you more precisely',),
     },
+    'journey.status_note.better': {
+        'fa': 'وضعیت بعدی: بهتر شده است',
+        'ar': 'الحالة لاحقاً: تحسّنت',
+        'en': 'Later status: it got better',
+    },
+    'journey.status_note.worse': {
+        'fa': 'وضعیت بعدی: بدتر شده است',
+        'ar': 'الحالة لاحقاً: ساءت',
+        'en': 'Later status: it got worse',
+    },
     'journey.intake.lead': {
         'fa': 'قبل از معرفی پزشک، باید وضعیتت را دقیق بفهمم تا مناسب‌ترین گزینه را برایت انتخاب کنم.',
         'ar': 'قبل أن أرشّح لك طبيباً، أحتاج أن أفهم وضعك بدقة لأختار لك الأنسب.',

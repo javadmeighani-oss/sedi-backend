@@ -366,6 +366,48 @@ def open_journey_count(db: Session, user_id: int) -> int:
         return 0
 
 
+def _open_journey_tasks(db: Session, user_id: int) -> list:
+    horizon = datetime.utcnow() - JOURNEY_OPEN_WINDOW
+    return [
+        t for t in _commitment_tasks(db, user_id)
+        if (meta_of(t).domain or "").startswith(_JOURNEY_PREFIX) and (t.due_at is None or t.due_at >= horizon)
+    ]
+
+
+def resolve_journey(db: Session, user_id: int) -> bool:
+    """DEBT-080: the user says the complaint is better/gone -> every open journey chain ends (DONE for its first open task, the rest
+    cancelled, I7 user_done recorded by ``apply_done``). False when no journey is open."""
+    try:
+        tasks = _open_journey_tasks(db, user_id)
+        seen: set = set()
+        for t in tasks:
+            chain = meta_of(t).chain_id or t.id
+            if chain in seen:
+                continue
+            seen.add(chain)
+            apply_done(db, t)
+        return bool(seen)
+    except Exception:
+        logger.exception("[R-109] journey not resolved")
+        return False
+
+
+def escalate_journey(db: Session, user_id: int, step: str) -> bool:
+    """DEBT-080: the user says it is WORSE -> the open journey chain(s) are replaced by an ACUTE chain (follow-up within hours).
+    False when no journey is open (nothing to escalate) or nothing could be created."""
+    try:
+        tasks = _open_journey_tasks(db, user_id)
+        if not tasks:
+            return False
+        for t in tasks:
+            t.status = FollowUpTaskStatus.CANCELLED.value
+            t.updated_at = datetime.utcnow()
+        return create_journey_followup(db, user_id, step, "acute") is not None
+    except Exception:
+        logger.exception("[R-109] journey not escalated")
+        return False
+
+
 def create_journey_followup(db: Session, user_id: int, step: str, tier: str, *, now: Optional[datetime] = None) -> Optional[models.CareFollowUpTask]:
     """ONE tracked care-journey chain, attempt 1 due in hours (tier). Memory-write consent gated; None = nothing tracked."""
     try:

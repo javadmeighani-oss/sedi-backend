@@ -615,7 +615,18 @@ class IntelligenceOrchestrator:
         except Exception:  # noqa: BLE001
             return None
 
-    def _record_journey_answer(self, user_id: int, message: str) -> None:
+    def _apply_journey_status(self, user_id: int, message: str, lang: str) -> None:
+        """DEBT-080: «بهتر شدم» closes the open care journey, «بدتر شد» escalates it to hours-level follow-up (fail-open)."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return
+            from backend.app.services.care_journey import journey as _journey
+
+            _journey.apply_status(self._db, user_id, message, lang)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _record_journey_answer(self, user_id: int, message: str, lang: str = "fa") -> None:
         """R-109 step 1b-2: the answer to the journey interview becomes an I6 episode note (deterministic, consent-gated, fail-open)."""
         try:
             if self._db is None or not message or not message.strip():
@@ -628,11 +639,21 @@ class IntelligenceOrchestrator:
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return
-            rows = query_eligible_raw(self._db, user_id, limit=1)
+            rows = query_eligible_raw(self._db, user_id, limit=4) or []
             last = rows[0] if rows else None
             if last is None or last.created_at is None or datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(hours=6):
                 return
-            _journey.record_answer(self._db, user_id, message, getattr(last, "sedi_response", None))
+            # the run of consecutive turns in which Sedi kept asking: the complaint may have been stated several answers ago (Codex P2, PR 199)
+            context = []
+            for prev, nxt in zip(rows[1:], rows):
+                reply = getattr(prev, "sedi_response", None) or ""
+                if not ("؟" in reply or "?" in reply):
+                    break
+                context.append(getattr(prev, "user_message", None))
+            _journey.record_answer(
+                self._db, user_id, message, getattr(last, "sedi_response", None),
+                last_user_message=getattr(last, "user_message", None), language=lang, context=context,
+            )
         except Exception:  # noqa: BLE001
             return
 
@@ -1056,7 +1077,8 @@ class IntelligenceOrchestrator:
             )
 
             # R-109 step 1b-2: an answer to the journey interview is recorded as an episode note.
-            self._record_journey_answer(authenticated_user_id, message)
+            self._record_journey_answer(authenticated_user_id, message, lang)
+            self._apply_journey_status(authenticated_user_id, message, lang)
             # D-130: an answer to Sedi's own reminder question continues that reminder.
             message = self._continue_reminder_clarification(ctx, authenticated_user_id, message, lang)
             # R-033: «آره» to Sedi's offer to find a specialist is the find-a-specialist request.
