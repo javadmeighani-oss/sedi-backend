@@ -19323,6 +19323,83 @@
         ]
       }
     },
+    "/status-report": {
+      "get": {
+        "description": "The report as titled sections of short lines with stable ids (state: ready | empty | no_consent). Read-only, consent-gated.",
+        "operationId": "status_report_status_report_get",
+        "parameters": [
+          {
+            "description": "health_status | doctor_visit | nutrition | lifestyle | exercise_plan",
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "health_status | doctor_visit | nutrition | lifestyle | exercise_plan",
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Status Report",
+        "tags": [
+          "Status Report"
+        ]
+      }
+    },
+    "/status-report/kinds": {
+      "get": {
+        "description": "The kinds of report Sedi can prepare, with their titles in the user's language.",
+        "operationId": "status_report_kinds_status_report_kinds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Status Report Kinds",
+        "tags": [
+          "Status Report"
+        ]
+      }
+    },
     "/user/care-plan-items": {
       "get": {
         "operationId": "get_care_plan_items_user_care_plan_items_get",
