@@ -340,6 +340,18 @@ def journey_due(db: Session, user_id: int, *, base_utc: datetime, tier: str, att
     return local.astimezone(timezone.utc).replace(tzinfo=None)
 
 
+def journey_quiet_now(db: Session, task: Any, now: datetime) -> bool:
+    """True when ``task`` is a care-journey follow-up and it is currently quiet time (22:00-07:00 local): the worker WAITS."""
+    try:
+        if not (meta_of(task).domain or "").startswith(_JOURNEY_PREFIX):
+            return False
+        moment = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
+        local = moment.astimezone(_zone(db, task.user_id))
+        return local.hour >= JOURNEY_QUIET_FROM or local.hour < JOURNEY_QUIET_TO
+    except Exception:
+        return False
+
+
 def open_journey_count(db: Session, user_id: int) -> int:
     """Open care-journey chains of this user (the next doctor/lab request while one is open does not start another)."""
     try:

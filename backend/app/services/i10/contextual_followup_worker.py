@@ -167,8 +167,11 @@ def _is_commitment(task: models.CareFollowUpTask) -> bool:
 def _commitment_may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
     """R-068: a commitment follow-up obeys the smart-notification send guard like any Sedi notification. When blocked it
     WAITS (the worker retries every cycle) - it is never dropped: the user is never left."""
+    from backend.app.services.i10.commitment_followup import journey_quiet_now
     from backend.app.services.notifications.send_guard_v1 import can_send_v1
 
+    if journey_quiet_now(db, task, now):  # R-109: a journey follow-up never goes out between 22:00 and 07:00 (it waits)
+        return False
     now_naive = now.replace(tzinfo=None) if now.tzinfo else now
     verdict = can_send_v1(db, task.user_id, "companion", "commitment_follow_up", "normal", now_naive)
     return bool(verdict.get("allowed"))

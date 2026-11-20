@@ -293,3 +293,32 @@ def test_p2_an_exhausted_chain_no_longer_counts_as_an_open_journey(monkeypatch):
     assert cf.open_journey_count(MagicMock(), 1) == 0  # both chains are exhausted/aged out: a new doctor request starts a NEW journey
     monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid, statuses=None: [task(3, now - timedelta(days=1)), task(4, now, "other")])
     assert cf.open_journey_count(MagicMock(), 1) == 1  # a recent journey chain still counts; a plain commitment never does
+
+
+# --- Codex round 2 on PR 196 ----------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer", ["ممنون", "Thanks", "Find a dentist instead", "باشه بعداً", "نه ممنون بیخیال", "یه دکتر دیگر معرفی کن", "ok"])
+def test_p2_unrelated_replies_are_never_recorded_as_episodes(monkeypatch, answer):
+    from backend.app.services import candidate_promotion_service as cp
+    from backend.app.services.i6 import memory_writes
+
+    wrote = []
+    monkeypatch.setattr(cp, "_merge_list_value", lambda db, uid, dom, key, value: [value])
+    monkeypatch.setattr(memory_writes, "write_fact", lambda db, uid, dom, key, value, **k: wrote.append(value))
+    assert j.record_answer(MagicMock(), 1, answer, j.journey_text("fa", "chest", new_journey=True)) is False and wrote == []
+
+
+@pytest.mark.parametrize("answer", ["از دو روز پیش", "دیروز شروع شد", "since yesterday", "قلبم درد می‌کند", "هر بار پله بالا می‌روم", "a week ago, when I climb stairs"])
+def test_p2_real_answers_are_still_recorded(answer):
+    assert j._answers_the_interview(answer, "fa" if any("؀" <= c <= "ۿ" for c in answer) else "en")
+
+
+def test_p2_a_journey_follow_up_waits_in_quiet_hours_even_when_it_became_overdue_earlier(monkeypatch):
+    from backend.app.services.i10 import contextual_followup_worker as w
+
+    task = _task("journey_acute", 2)
+    late = TEHRAN.localize(datetime(2026, 11, 20, 22, 30)).astimezone(timezone.utc)  # due at 21:50, processed at 22:30
+    assert cf.journey_quiet_now(MagicMock(), task, late) is True
+    assert w._commitment_may_send(MagicMock(), task, late) is False  # waits, is not dropped
+    morning = TEHRAN.localize(datetime(2026, 11, 21, 7, 5)).astimezone(timezone.utc)
+    assert cf.journey_quiet_now(MagicMock(), task, morning) is False
+    assert cf.journey_quiet_now(MagicMock(), _task("other", 2), late) is False  # a plain commitment is unaffected

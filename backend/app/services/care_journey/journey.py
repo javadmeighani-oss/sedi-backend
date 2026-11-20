@@ -99,6 +99,35 @@ def start(db: Any, user_id: int, request_text: str, language: str) -> Optional[s
         return None
 
 
+# not an answer: thanks, refusal, topic change, a new request
+_NOT_AN_ANSWER = re.compile(
+    r"(?:ممنون|مرسی|متشکر|تشکر|باشه|اوکی|بیخیال|ولش|نمی\s*خوام|نه\s+ممنون|معرفی\s*کن|پیدا\s*کن|دکتر\s*دیگر|"
+    r"\b(?:thanks?|thank you|ok(?:ay)?|never ?mind|cancel|forget it|find (?:me )?(?:a|an|another)|introduce|instead)\b|"
+    r"شكرا|حسناً|لا أريد|ابحث|بدلاً)",
+    re.I,
+)
+# looks like an answer about a health episode: a symptom word, or when/how-long/before wording
+_EPISODE_WORDS = re.compile(
+    r"(?:روز|هفته|ماه|ساعت|دقیقه|دیروز|امروز|قبل|پیش|همیشه|گاهی|هر\s*بار|وقتی|بعد\s*از|شدید|خفیف|"
+    r"\b(?:since|ago|before|yesterday|today|week|day|month|hour|minute|when|after|always|sometimes|severe|mild|started|never|again)\b|"
+    r"منذ|أمس|اليوم|أسبوع|شهر|ساعة|دائماً|أحياناً|بعد)",
+    re.I,
+)
+
+
+def _answers_the_interview(answer: str, language: str = "fa") -> bool:
+    if _NOT_AN_ANSWER.search(answer or ""):
+        return False
+    if _EPISODE_WORDS.search(answer or ""):
+        return True
+    try:
+        from backend.app.services.interview.guide import detect_topics
+
+        return "symptom" in detect_topics(answer or "", language)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def is_interview_reply(sedi_reply: Optional[str]) -> bool:
     """Sedi's last reply carried the journey interview (any language)."""
     text = re.sub(r"[\W_]+", "", (sedi_reply or "").lower())
@@ -121,6 +150,8 @@ def record_answer(db: Any, user_id: int, answer: str, last_sedi_reply: Optional[
             return False
         from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
 
+        if not _answers_the_interview(answer):  # thanks / refusal / topic change / a new request is not an episode (Codex P2, PR 196)
+            return False
         if _about_relative(answer):  # «my mother has chest pain»: not the user's episode (Codex P2, PR 196)
             return False
         from backend.app.services.candidate_promotion_service import _merge_list_value
