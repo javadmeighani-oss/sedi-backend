@@ -315,7 +315,8 @@ def journey_due(db: Session, user_id: int, *, base_utc: datetime, tier: str, att
     """Naive-UTC due time of journey attempt ``attempt``: hours by tier, moved out of quiet hours, and past a full day (cap)."""
     seq = JOURNEY_HOURS.get(tier)
     if seq is None:
-        return follow_up_time(db, user_id, base_utc=base_utc, days_ahead=interval_days_after(attempt))
+        # ``attempt`` is the one being scheduled; the day ladder wants the attempt just DELIVERED (Codex P2, PR 196)
+        return follow_up_time(db, user_id, base_utc=base_utc, days_ahead=interval_days_after(max(int(attempt) - 1, 0)))
     hours = seq[min(max(int(attempt), 1) - 1, len(seq) - 1)]
     base = base_utc if base_utc.tzinfo else base_utc.replace(tzinfo=timezone.utc)
     zone = _zone(db, user_id)

@@ -322,3 +322,12 @@ def test_p2_a_journey_follow_up_waits_in_quiet_hours_even_when_it_became_overdue
     morning = TEHRAN.localize(datetime(2026, 11, 21, 7, 5)).astimezone(timezone.utc)
     assert cf.journey_quiet_now(MagicMock(), task, morning) is False
     assert cf.journey_quiet_now(MagicMock(), _task("other", 2), late) is False  # a plain commitment is unaffected
+
+
+def test_p2_a_routine_journey_keeps_the_commitment_day_ladder(monkeypatch):
+    seen = []
+    monkeypatch.setattr(cf, "follow_up_time", lambda db, uid, base_utc, days_ahead: seen.append(days_ahead) or datetime(2026, 11, 21, 5, 30))
+    base = datetime(2026, 11, 20, 8, 0, tzinfo=timezone.utc)
+    for attempt in (1, 2, 3, 4):  # attempt being scheduled
+        cf.journey_due(MagicMock(), 1, base_utc=base, tier="routine", attempt=attempt)
+    assert seen == [cf.interval_days_after(0), cf.interval_days_after(1), cf.interval_days_after(2), cf.interval_days_after(3)] == [1, 1, 2, 2]
