@@ -558,12 +558,62 @@ class IntelligenceOrchestrator:
             entity = _cn.parse_care_nav_request(request_text, language=lang).entity
             if entity is _cn.CareNavEntity.PHARMACY:
                 return directory_message, False
-            block = _journey.start(self._db, user_id, request_text, lang)
+            block = _journey.results_block(self._db, user_id, request_text, lang)
             if not block:
                 return directory_message, False
             return directory_message.rstrip() + "\n\n" + block, True
         except Exception:  # noqa: BLE001
             return directory_message, False
+
+    def _journey_intake(self, message: str, lang: str, user_id: int) -> Optional[str]:
+        """R-109: the interview that must come BEFORE a doctor/centre/lab introduction (None = introduce now). It needs the consent-gated
+        conversation to keep its state, so without it nothing is asked."""
+        try:
+            if self._db is None:
+                return None
+            from datetime import datetime, timedelta
+
+            from backend.app.services.i5 import care_navigation_directory as _cn
+            from backend.app.services.care_journey import journey as _journey
+            from backend.app.services.i6.consent_service import PERM_READ, PERM_WRITE, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
+
+            if not _cn.is_care_navigation_query(message) or _cn.is_directory_source_question(message):
+                return None
+            if _cn.parse_care_nav_request(message, language=lang).entity is _cn.CareNavEntity.PHARMACY:
+                return None
+            if not (has_permission(self._db, user_id, PERM_READ) and has_permission(self._db, user_id, PERM_WRITE)):
+                return None
+            rows = query_eligible_raw(self._db, user_id, limit=4) or []
+            now = datetime.utcnow()
+            from backend.app.services.i5 import specialty_lexicon as _sl
+
+            # the interview counts only for THIS request's specialty (Codex P2, PR 198): the earlier heart interview does not excuse a skin search
+            done = False
+            for i, r in enumerate(rows):
+                if (
+                    _journey.is_interview_reply(getattr(r, "sedi_response", None))
+                    and getattr(r, "created_at", None) is not None
+                    and now - r.created_at.replace(tzinfo=None) < timedelta(minutes=30)
+                ):
+                    def _kind(text: str):  # the provider request kind: entity + specialty (a lab / hospital has no specialty - Codex P2, round 2)
+                        if not _cn.is_care_navigation_query(text or ""):
+                            return None
+                        return (_cn.parse_care_nav_request(text, language=lang).entity, _sl.find_specialty(text))
+
+                    asked = {_kind(getattr(x, "user_message", None) or "") for x in rows[i:]} - {None}
+                    now_kind = _kind(message)
+                    # the interview is done unless THIS request is provably another one (another provider kind, or another named
+                    # specialty): raw turns of the reason flow carry no specialty, so a missing one on either side is no conflict (Codex P2, round 3)
+                    conflict = bool(asked) and now_kind is not None and (
+                        all(a[0] != now_kind[0] for a in asked)
+                        or (now_kind[1] is not None and any(a[1] is not None for a in asked) and now_kind[1] not in {a[1] for a in asked})
+                    )
+                    done = not conflict
+                    break
+            return _journey.intake_message(self._db, user_id, message, lang, intake_done=done)
+        except Exception:  # noqa: BLE001
+            return None
 
     def _record_journey_answer(self, user_id: int, message: str) -> None:
         """R-109 step 1b-2: the answer to the journey interview becomes an I6 episode note (deterministic, consent-gated, fail-open)."""
@@ -1379,11 +1429,19 @@ class IntelligenceOrchestrator:
             from backend.app.services.i5.care_nav_interview import first_question as reason_question
 
             _reason_q = reason_question(message, lang) if not is_directory_source_question(message) else None
+            # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
+            _intake_q = None if _reason_q else self._journey_intake(message, lang, authenticated_user_id)
             if _reason_q:
                 # J3-c: no specialty named -> ask WHY / WHICH doctor first (one question), never a list of random doctors.
                 care_nav_handled = True
                 directory_message = _reason_q
                 extra_reason_codes.append("CARE_NAVIGATION_REASON_ASKED")
+                skip_generator = True
+                clarification_message = None
+            elif _intake_q:
+                care_nav_handled = True
+                directory_message = _intake_q
+                extra_reason_codes.append("R109_CARE_JOURNEY_INTAKE")
                 skip_generator = True
                 clarification_message = None
             elif is_care_navigation_query(message) or is_directory_source_question(message):

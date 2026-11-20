@@ -33,6 +33,16 @@ _DONT_KNOW = re.compile(
 _NEVERMIND = re.compile(r"ولش ?کن|بیخیال|نمی ?خواهم|نمیخوام|نمی ?خوام|لازم ?نیست|never ?mind|forget it|cancel|لا أريد|لا حاجة", re.I)
 
 
+_SKIP_INTAKE = re.compile(
+    r"فقط\s*معرفی|همین\s*الان|بدون\s*سوال|سوال\s*نپرس|(?:^|\s)معرفی\s*کن|(?:^|\s)(?:just (?:introduce|find|show)|skip|no questions)\b|فقط\s*رشح|بدون\s*أسئلة",
+    re.I,
+)
+
+
+# a reminder / alarm request is its own flow, never an answer about the health episode (Codex P2, PR 198)
+_OTHER_REQUEST = re.compile(r"یاد(?:م|ما|مان)?\s*(?:بنداز|بده|بنداز)|یادآور|یاد\s*آور|\bremind(?:er)?\b|\balarm\b|ذكرني|تذكير|منبه", re.I)
+
+
 def _key(text: Optional[str]) -> str:
     return _NON_LETTERS.sub("", (text or "").lower())
 
@@ -225,11 +235,14 @@ def _names_another_place(prior_request: str, answer: str) -> bool:
 def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], answer: str, language: str) -> Optional[str]:
     """The completed doctor request when ``answer`` replies to the reason question, else None (the message stays as it is)."""
     try:
+        from backend.app.services.care_journey.journey import is_interview_reply
+
         asked_reason, asked_place = is_reason_question(sedi_reply), is_place_question(sedi_reply)
-        if not prior_request or not answer or not (asked_reason or asked_place):
+        asked_intake = is_interview_reply(sedi_reply)  # R-109: the grouped interview asked BEFORE the introduction
+        if not prior_request or not answer or not (asked_reason or asked_place or asked_intake):
             return None
         text = answer.strip().replace(chr(0x200c), " ")  # half-space -> space so the patterns below see «نمی دونم»
-        if not text or len(text.split()) > MAX_ANSWER_WORDS or _NEVERMIND.search(text):
+        if not text or len(text.split()) > (80 if asked_intake else MAX_ANSWER_WORDS) or _NEVERMIND.search(text):
             return None
         if (
             cn.is_care_navigation_query(text)
@@ -244,6 +257,14 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
         if symptom_triage.triage(text, language).red_flag:
             return None  # an emergency is never completed into a routine search, whatever else the answer says (Codex P1)
         urgent = symptom_triage.triage(text, language).urgency == "soon"
+        if asked_intake and not asked_reason and not asked_place:  # the interview is answered: introduce NOW, tailored by what was said
+            from backend.app.services.care_journey.journey import _answers_the_interview
+
+            # only a message that ANSWERS the health interview (or says «just introduce») binds; a reminder or another request stays as it is
+            if _OTHER_REQUEST.search(text) or cn.is_care_navigation_query(text) or not (_answers_the_interview(text, language) or _SKIP_INTAKE.search(text)):
+                return None
+            quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
+            return _with_qualifiers(prior_request.strip(), quals, language)
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
             confirmed = _confirmed_place_text(prior_request, text, lang3)
             done_place = _swap_place(prior_request, confirmed, lang3) if confirmed else None
@@ -284,7 +305,9 @@ def request_for_chain(rows: list, answer: str, language: str) -> Optional[str]:
         chain = []
         for r in rows or []:
             reply = getattr(r, "sedi_response", None)
-            if is_reason_question(reply) or is_place_question(reply):
+            from backend.app.services.care_journey.journey import is_interview_reply
+
+            if is_reason_question(reply) or is_place_question(reply) or is_interview_reply(reply):
                 chain.append(r)
             else:
                 break

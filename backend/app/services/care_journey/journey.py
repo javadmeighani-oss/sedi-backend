@@ -72,6 +72,46 @@ def _journey_open(db: Any, user_id: int) -> bool:
     return cf.open_journey_count(db, user_id) > 0
 
 
+def intake_message(db: Any, user_id: int, request_text: str, language: str, *, intake_done: bool) -> Optional[str]:
+    """R-109 (Javad 2026-11-20): the doctor is introduced AFTER Sedi has gathered what she wants to know, so the most suitable option is
+    chosen. For a doctor/centre/lab request whose reason and place are settled, this is the grouped interview (up to three questions)
+    asked BEFORE any search. The follow-up chain is tracked from this moment (even if the user never answers). None = search now
+    (already asked, emergency, no memory consent, disabled, error): the user is never held up by a question Sedi cannot keep."""
+    try:
+        if intake_done or not enabled() or db is None:
+            return None
+        tier = tier_for(request_text, language)
+        if tier is None:
+            return None
+        from backend.app.services.i10 import commitment_followup as cf
+
+        if not _journey_open(db, user_id):
+            lang3 = language if language in ("fa", "ar", "en") else "en"
+            if cf.create_journey_followup(db, user_id, sedi_copy.t("journey.step", lang3), tier) is None:
+                return None  # no memory-write consent: nothing is tracked, so nothing is asked or promised
+            db.commit()
+        lang = language if language in ("fa", "ar", "en") else "en"
+        return sedi_copy.t("journey.intake.lead", lang) + "\n\n" + sedi_copy.t(f"journey.interview.{area_of(request_text)}", lang)
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-109] journey intake skipped")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
+def results_block(db: Any, user_id: int, request_text: str, language: str) -> Optional[str]:
+    """After the introduction: the stabilising care + «how are you now?» of an OPEN journey (the interview was asked before)."""
+    try:
+        if not enabled() or db is None or tier_for(request_text, language) is None or not _journey_open(db, user_id):
+            return None
+        lang = language if language in ("fa", "ar", "en") else "en"
+        return sedi_copy.t(f"journey.care.{area_of(request_text)}", lang) + "\n\n" + sedi_copy.t("journey.status_only", lang)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def start(db: Any, user_id: int, request_text: str, language: str) -> Optional[str]:
     """The journey block to append to a doctor/lab answer, or None (disabled, emergency, no consent, error). Creates ONE tracked
     follow-up chain per journey (the next request while one is open only adds the «how are you now?» line)."""
