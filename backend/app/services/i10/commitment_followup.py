@@ -378,19 +378,23 @@ def open_follow_ups(db: Session, user_id: int) -> list[dict]:
     """R-108: the user's open follow-up chains as plain data, oldest first: ``{kind: 'journey'|'commitment', tier, domain, due_at,
     attempt}`` (``tier`` only for a journey). The single public read the care state uses (no caller touches the task rows)."""
     out: list[dict] = []
-    seen: set = set()
     try:
         horizon = datetime.utcnow() - JOURNEY_OPEN_WINDOW
-        for t in _commitment_tasks(db, user_id):
+        chosen: dict = {}  # chain id -> the task that DESCRIBES the chain: its pending (OPEN) attempt, else the latest delivered one
+        for t in _commitment_tasks(db, user_id):  # ascending id: later attempts replace earlier ones
+            meta = meta_of(t)
+            domain = meta.domain or ""
+            if domain.startswith(_JOURNEY_PREFIX) and t.due_at is not None and t.due_at < horizon:
+                continue  # an exhausted chain ages out (same rule as open_journey_count)
+            chain = meta.chain_id or t.id
+            current = chosen.get(chain)
+            if current is None or t.status == FollowUpTaskStatus.OPEN.value or current.status != FollowUpTaskStatus.OPEN.value:
+                chosen[chain] = t  # a delivered (NOTIFIED) attempt never hides the pending one that follows it (Codex P2, PR 202)
+        for chain in sorted(chosen):
+            t = chosen[chain]
             meta = meta_of(t)
             domain = meta.domain or ""
             is_journey = domain.startswith(_JOURNEY_PREFIX)
-            if is_journey and t.due_at is not None and t.due_at < horizon:
-                continue  # an exhausted chain ages out (same rule as open_journey_count)
-            chain = meta.chain_id or t.id
-            if chain in seen:
-                continue
-            seen.add(chain)
             out.append(
                 {
                     "kind": "journey" if is_journey else "commitment",

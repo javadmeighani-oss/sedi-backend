@@ -82,7 +82,8 @@ def _status_of(note: str) -> Optional[str]:
     flat = _clip(note, 200)
     for status, key in _STATUS_NOTE_KEYS.items():
         for lang in _LANGS:
-            if flat == _clip(sedi_copy.t(key, lang), 200):
+            base = _clip(sedi_copy.t(key, lang), 200)
+            if flat == base or flat.startswith(base + " ·"):  # the journey writes «note · YYYY-MM-DD»
                 return status
     return None
 
@@ -109,12 +110,14 @@ def _issues(db: Any, user_id: int) -> tuple[CareIssue, ...]:
             (concerns if row.key == "health_concerns" else episodes).extend(_items(value))
         status = "open"
         story: list[str] = []
-        for note in episodes:  # chronological: the newest status note wins; the other lines are the story
+        for note in episodes:  # chronological: a status note describes the story BEFORE it; a later story line starts «open» again
             marked = _status_of(note)
             if marked:
-                status = marked
+                if story:
+                    status = marked
             else:
                 story.append(note)
+                status = "open"  # a new statement is not yet reported better/worse (Codex P2, PR 202)
         text = concerns[0] if concerns else (story[-1] if story else "")
         return (CareIssue(text=text, status=status),) if text else ()
     except Exception:  # noqa: BLE001

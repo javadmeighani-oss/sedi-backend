@@ -85,13 +85,13 @@ def test_better_closes_the_journey_and_leaves_a_note(monkeypatch):
     calls, notes = _wire(monkeypatch)
     db = MagicMock()
     assert j.apply_status(db, 1, "الان بهترم", "fa") == "better"
-    assert calls == ["resolve"] and notes == [sedi_copy.t("journey.status_note.better", "fa")] and db.commit.call_count == 1
+    assert calls == ["resolve"] and len(notes) == 1 and notes[0].startswith(sedi_copy.t("journey.status_note.better", "fa") + " · ") and db.commit.call_count == 1
 
 
 def test_worse_escalates_the_journey_and_leaves_a_note(monkeypatch):
     calls, notes = _wire(monkeypatch)
     assert j.apply_status(MagicMock(), 1, "بدتر شدم", "fa") == "worse"
-    assert calls == [("escalate", sedi_copy.t("journey.step", "fa"))] and notes == [sedi_copy.t("journey.status_note.worse", "fa")]
+    assert calls == [("escalate", sedi_copy.t("journey.step", "fa"))] and len(notes) == 1 and notes[0].startswith(sedi_copy.t("journey.status_note.worse", "fa") + " · ")
 
 
 def test_no_open_journey_no_signal_or_the_kill_switch_changes_nothing(monkeypatch):

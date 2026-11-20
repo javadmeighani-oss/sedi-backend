@@ -124,7 +124,7 @@ def test_worse_replaces_the_chain_with_an_acute_one(db, user):
     state = cs.get_care_state(db, uid)
     assert state.is_acute and len(state.follow_ups) == 1  # the old chain is replaced, not duplicated
     notes = report._facts(db, uid)[("medical", "symptom_episodes")]
-    assert notes[-1] == sedi_copy.t("journey.status_note.worse", "fa")
+    assert notes[-1].startswith(sedi_copy.t("journey.status_note.worse", "fa") + " · ")
     assert state.issues[0].status == "worse"
 
 

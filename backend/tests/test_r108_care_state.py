@@ -150,3 +150,45 @@ def test_the_owner_exposes_the_plain_follow_up_read_the_state_uses():
 
     assert callable(cf.open_follow_ups) and callable(cf.resolved_journeys_since)
     assert isinstance(timedelta(days=7), timedelta) and st.RESOLVED_WINDOW == timedelta(days=7)
+
+
+# --- Codex round 1 on PR 202 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_status_note_with_its_day_is_recognised():
+    assert st._status_of(BETTER["fa"] + " · 2026-11-20") == "better" and st._status_of(WORSE["en"] + " · 2026-01-02") == "worse"
+    assert st._status_of(BETTER["fa"] + " و بعد دوباره شروع شد") is None  # only the exact «note · day» form
+
+
+def test_p2_a_new_complaint_does_not_inherit_the_old_improvement(monkeypatch):
+    _facts(monkeypatch, symptom_episodes=["سردرد از دو روز پیش", BETTER["fa"] + " · 2026-11-10", "حالا درد معده دارم"])
+    issue = st._issues(None, 1)[0]
+    assert issue.text == "حالا درد معده دارم" and issue.status == "open"  # not «improving» before the user said so
+    _facts(monkeypatch, symptom_episodes=["سردرد از دو روز پیش", BETTER["fa"] + " · 2026-11-10", "حالا درد معده دارم", BETTER["fa"] + " · 2026-11-18"])
+    assert st._issues(None, 1)[0].status == "better"  # a second «better» (different day) counts again
+    _facts(monkeypatch, symptom_episodes=[BETTER["fa"] + " · 2026-11-10"])
+    assert st._issues(None, 1) == ()  # an orphan note is not an issue
+
+
+def _task(task_id, status, chain, attempt, due, domain="journey_acute"):
+    meta = SimpleNamespace(chain_id=chain, domain=domain, attempt=attempt)
+    return SimpleNamespace(id=task_id, status=status, due_at=due, _meta=meta)
+
+
+def test_p2_the_pending_attempt_describes_the_chain_not_the_delivered_one(monkeypatch):
+    from backend.app.services.i10 import commitment_followup as cf
+
+    now = datetime.utcnow()
+    tasks = [
+        _task(1, "notified", 1, 1, now - timedelta(hours=2)),   # delivered
+        _task(2, "open", 1, 2, now + timedelta(hours=4)),       # the next one
+        _task(3, "notified", 9, 3, now - timedelta(hours=1)),  # another chain with only a delivered attempt
+        _task(4, "open", 7, 1, now + timedelta(hours=1), domain="other"),
+    ]
+    monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid, statuses=cf._OPEN_STATUSES: list(tasks))
+    monkeypatch.setattr(cf, "meta_of", lambda t: t._meta)
+    rows = cf.open_follow_ups(None, 1)
+    assert len(rows) == 3 and sorted(r["attempt"] for r in rows) == [1, 2, 3]  # one row per chain: attempts 2 (chain 1), 3 (chain 9), 1 (chain 7)
+    chain_one = [r for r in cf.open_follow_ups(None, 1) if r["tier"] == "acute" and r["attempt"] == 2]
+    assert len(chain_one) == 1 and chain_one[0]["due_at"] > now  # the pending attempt: a FUTURE due time, attempt 2
+    assert not [r for r in cf.open_follow_ups(None, 1) if r["attempt"] == 1 and r["tier"] == "acute"]
+    commitment = [r for r in cf.open_follow_ups(None, 1) if r["kind"] == "commitment"]
+    assert len(commitment) == 1 and commitment[0]["tier"] is None
