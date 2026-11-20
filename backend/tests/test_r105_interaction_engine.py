@@ -165,3 +165,48 @@ def test_orchestrator_the_confirmed_answer_runs_the_search_in_that_place(monkeyp
     orch.process(authenticated_user_id=42, message="قلبم درد می‌کند، بله شهر پردیس", language="fa")
     assert called["gen"] is False and seen and "قلب" in (seen[0][0] or "")
     assert seen[0][1] == "پردیس"
+
+
+# --- Codex round 1 on PR 194 ---------------------------------------------------------------------------------------------------------------
+def _turn(user, reply):
+    return SimpleNamespace(user_message=user, sedi_response=reply, created_at=datetime.utcnow())
+
+
+def test_p1_the_pending_request_survives_a_partial_answer():
+    """«متخصص قلب» settles only the specialty; the place question follows; the next «بله» must still know the specialty."""
+    place_q = ci.first_question(ci.request_for_answer(PRIOR, BOTH, "متخصص قلب", "fa"), "fa")
+    rows = [_turn("متخصص قلب", place_q), _turn(PRIOR, BOTH)]  # newest first
+    done = ci.request_for_chain(rows, "بله", "fa")
+    status, place = ci.place_status(done)
+    assert done and "قلب" in done and status == "ok" and place.city == "پردیس"
+
+
+def test_p1_a_single_question_chain_still_works():
+    done = ci.request_for_chain([_turn(PRIOR, BOTH)], "قلبم درد می‌کند، بله شهر پردیس", "fa")
+    assert done and "قلب" in done and ci.place_status(done)[0] == "ok"
+    assert ci.request_for_chain([_turn("سلام", "سلام! چه خبر؟")], "بله", "fa") is None
+
+
+def test_p1_through_the_orchestrator_two_partial_answers_reach_the_search(monkeypatch):
+    place_q = ci.first_question(ci.request_for_answer(PRIOR, BOTH, "متخصص قلب", "fa"), "fa")
+    import backend.app.services.i7.retention as retention
+
+    seen = []
+    orch, called = _orch(monkeypatch, seen=seen)
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: [_turn("متخصص قلب", place_q), _turn(PRIOR, BOTH)])
+    orch.process(authenticated_user_id=42, message="بله", language="fa")
+    assert called["gen"] is False and seen and "قلب" in (seen[0][0] or "") and seen[0][1] == "پردیس"
+
+
+def test_p2_every_spelling_of_the_old_place_is_removed():
+    prior = "یه دکتر قلب در سعادت آباد"  # spaced spelling; the canonical form is «سعادت‌آباد»
+    q = ci.first_question(prior, "fa")
+    done = ci.request_for_answer(prior, q, "نه، نارمک تهران", "fa")
+    assert done and "سعادت" not in done and "نارمک" in done and "قلب" in done
+    assert ci.place_status(done)[1].area.replace(chr(0x200c), "") == "نارمک"
+
+
+def test_p2_a_complete_replacement_request_keeps_its_own_specialty():
+    prior = "یه دکتر قلب در پردیس"
+    q = ci.first_question(prior, "fa")
+    assert ci.request_for_answer(prior, q, "یه دکتر پوست در شیراز معرفی کن", "fa") is None  # it is a request of its own

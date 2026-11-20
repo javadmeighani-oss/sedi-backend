@@ -554,18 +554,23 @@ class IntelligenceOrchestrator:
 
             from backend.app.services.i6.consent_service import PERM_READ, has_permission
             from backend.app.services.i7.retention import query_eligible_raw
-            from backend.app.services.i5.care_nav_interview import request_for_answer, request_for_source_followup
+            from backend.app.services.i5.care_nav_interview import request_for_answer, request_for_chain, request_for_source_followup
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return message
-            rows = query_eligible_raw(self._db, user_id, limit=1)
+            rows = query_eligible_raw(self._db, user_id, limit=4)
             last = rows[0] if rows else None
             if last is None or last.created_at is None:
                 return message
             if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
                 return message
             prior_q, prior_a = getattr(last, "user_message", None), getattr(last, "sedi_response", None)
-            return request_for_answer(prior_q, prior_a, message, lang) or request_for_source_followup(prior_q, prior_a, message, lang) or message
+            return (
+                request_for_chain(rows, message, lang)  # the pending request survives partial answers (Codex P1, PR 194)
+                or request_for_answer(prior_q, prior_a, message, lang)
+                or request_for_source_followup(prior_q, prior_a, message, lang)
+                or message
+            )
         except Exception:
             return message
 

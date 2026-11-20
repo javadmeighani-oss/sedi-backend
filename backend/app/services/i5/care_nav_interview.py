@@ -133,13 +133,7 @@ def _confirmed_place_text(prior_request: str, answer: str, lang: str) -> Optiona
 
 def _swap_place(prior_request: str, place_text: str, lang: str) -> str:
     """The prior request with its (unconfirmed) place replaced by the confirmed one."""
-    prior = cn._places.find_place(prior_request)
-    cleaned = prior_request
-    for name in (prior.area, prior.city):
-        if name:
-            pattern = re.escape(name).replace("\\ ", "[\\s\u200c]?")
-            cleaned = re.sub(pattern, " ", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    cleaned = cn._places.remove_places(prior_request)
     cleaned = re.sub(r"(?:\s|^)(?:در|in|في)\s*$", "", cleaned).strip()
     return f"{cleaned} در {place_text}" if lang == "fa" else f"{cleaned} in {place_text}"
 
@@ -221,6 +215,13 @@ def _with_qualifiers(request_text: str, quals: set, language: str) -> str:
     return request_text
 
 
+def _names_another_place(prior_request: str, answer: str) -> bool:
+    """True when the ANSWER names a place different from the one being confirmed (a new, complete request)."""
+    a, p = cn._places.find_place(answer), cn._places.find_place(prior_request)
+    norm = cn._places.normalize
+    return (norm(a.area or "") != norm(p.area or "")) or (norm(a.city or "") != norm(p.city or ""))
+
+
 def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], answer: str, language: str) -> Optional[str]:
     """The completed doctor request when ``answer`` replies to the reason question, else None (the message stays as it is)."""
     try:
@@ -230,8 +231,13 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
         text = answer.strip().replace(chr(0x200c), " ")  # half-space -> space so the patterns below see «نمی دونم»
         if not text or len(text.split()) > MAX_ANSWER_WORDS or _NEVERMIND.search(text):
             return None
-        if cn.is_care_navigation_query(text) and sl.find_specialty(text) and cn._has_real_location(text) and not asked_place:
-            return None  # a complete doctor request of its own (kind AND place)
+        if (
+            cn.is_care_navigation_query(text)
+            and sl.find_specialty(text)
+            and cn._has_real_location(text)
+            and (not asked_place or _names_another_place(prior_request, text))
+        ):
+            return None  # a complete doctor request of its own (kind AND place); while a place is pending it must name ANOTHER place
         lang3 = language if language in ("fa", "ar", "en") else "en"
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
             confirmed = _confirmed_place_text(prior_request, text, lang3)
@@ -258,6 +264,28 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             quals.add("urgent")
         done = _with_qualifiers(done, quals, language)  # preferences from BOTH turns survive (24h, high rating, urgent) - Codex P2
         return done
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def request_for_chain(rows: list, answer: str, language: str) -> Optional[str]:
+    """The completed request when ``answer`` replies to the LAST question of this interview, however many partial answers came
+    before («متخصص قلب» -> place question -> «بله»). ``rows`` are the recent turns NEWEST FIRST (user_message / sedi_response); the
+    chain is the run of newest turns whose Sedi reply is one of this interview's questions (Codex P1, PR 194)."""
+    try:
+        chain = []
+        for r in rows or []:
+            reply = getattr(r, "sedi_response", None)
+            if is_reason_question(reply) or is_place_question(reply):
+                chain.append(r)
+            else:
+                break
+        if not chain:
+            return None
+        cur = getattr(chain[-1], "user_message", None)  # the original request (the oldest question's own turn)
+        for i in range(len(chain) - 2, -1, -1):  # replay each earlier partial answer, oldest first
+            cur = request_for_answer(cur, getattr(chain[i + 1], "sedi_response", None), getattr(chain[i], "user_message", ""), language) or cur
+        return request_for_answer(cur, getattr(chain[0], "sedi_response", None), answer, language)
     except Exception:  # noqa: BLE001
         return None
 
