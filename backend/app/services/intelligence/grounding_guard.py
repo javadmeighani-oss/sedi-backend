@@ -142,6 +142,10 @@ def strip_self_limit_disclaimers(reply: str, language: str = "fa") -> str:
     return " ".join(out)
 
 
+# R-105 (Javad 2026-11-19): up to THREE short questions per reply, for ALL conversations (speeds the conversation, keeps its path).
+MAX_QUESTIONS_PER_REPLY = 3
+
+
 def limit_questions(reply: str, max_questions: int = 1) -> str:
     """R-020: Sedi talks like a friend, not an interviewer — keep at most ``max_questions`` question sentences
     (the first ones); every statement is kept. Deterministic, never empties a reply."""

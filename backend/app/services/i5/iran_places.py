@@ -121,6 +121,16 @@ def slug_for(city: Optional[str]) -> Optional[str]:
     return CITIES.get(alias) if alias else None
 
 
+def remove_places(text: str) -> str:
+    """The text without any place the gazetteer accepts, whatever its spelling (Codex P2, PR 194)."""
+    out = (text or "").replace("ي", "ی").replace("ك", "ک")
+    for _name, pat in _AREA_PATS:
+        out = pat.sub(" ", out)
+    for _name, pat in _CITY_PATS:
+        out = pat.sub(" ", out)
+    return re.sub(r"\s+", " ", out).strip()
+
+
 def find_place(text: str) -> Place:
     """City and/or neighbourhood named in ``text`` (longest match wins). Never raises."""
     raw = (text or "").replace("ي", "ی").replace("ك", "ک")
