@@ -543,6 +543,49 @@ class IntelligenceOrchestrator:
         except Exception:
             return message
 
+    def _with_care_journey(self, directory_message: Optional[str], request_text: str, lang: str, user_id: int) -> tuple[Optional[str], bool]:
+        """R-109 step 1b-2: append the care-journey block (stabilising care + up to three interview questions, or just «how are you
+        now?» while a journey is open) to a doctor/lab answer and track the follow-up. Specialist / hospital / centre / lab requests
+        only (a pharmacy lookup is not a care journey). Fail-open: the plain answer is returned unchanged."""
+        try:
+            if self._db is None or not directory_message:
+                return directory_message, False
+            from backend.app.services.i5 import care_navigation_directory as _cn
+            from backend.app.services.care_journey import journey as _journey
+
+            if _cn.is_directory_source_question(request_text):
+                return directory_message, False
+            entity = _cn.parse_care_nav_request(request_text, language=lang).entity
+            if entity is _cn.CareNavEntity.PHARMACY:
+                return directory_message, False
+            block = _journey.start(self._db, user_id, request_text, lang)
+            if not block:
+                return directory_message, False
+            return directory_message.rstrip() + "\n\n" + block, True
+        except Exception:  # noqa: BLE001
+            return directory_message, False
+
+    def _record_journey_answer(self, user_id: int, message: str) -> None:
+        """R-109 step 1b-2: the answer to the journey interview becomes an I6 episode note (deterministic, consent-gated, fail-open)."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return
+            from datetime import datetime, timedelta
+
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
+            from backend.app.services.care_journey import journey as _journey
+
+            if not has_permission(self._db, user_id, PERM_READ):
+                return
+            rows = query_eligible_raw(self._db, user_id, limit=1)
+            last = rows[0] if rows else None
+            if last is None or last.created_at is None or datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(hours=6):
+                return
+            _journey.record_answer(self._db, user_id, message, getattr(last, "sedi_response", None))
+        except Exception:  # noqa: BLE001
+            return
+
     def _continue_care_nav_interview(self, ctx, user_id: int, message: str, lang: str) -> str:
         """J3-c (D-410): Sedi asked «برای چه مشکل یا نیازی دنبال دکتر می‌گردی؟» and the user answers with a specialty, a complaint or
         «نمی‌دانم» - that answer completes the earlier doctor request. Deterministic, fail-open, only within 30 minutes. The earlier
@@ -962,6 +1005,8 @@ class IntelligenceOrchestrator:
                 else None
             )
 
+            # R-109 step 1b-2: an answer to the journey interview is recorded as an episode note.
+            self._record_journey_answer(authenticated_user_id, message)
             # D-130: an answer to Sedi's own reminder question continues that reminder.
             message = self._continue_reminder_clarification(ctx, authenticated_user_id, message, lang)
             # R-033: «آره» to Sedi's offer to find a specialist is the find-a-specialist request.
@@ -1374,6 +1419,10 @@ class IntelligenceOrchestrator:
                     )
                     extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
                     extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
+                # R-109 step 1b-2: a doctor/lab request is the start of a CARE JOURNEY (follow-up, interview, stabilising care)
+                directory_message, _journey_started = self._with_care_journey(directory_message, message, lang, authenticated_user_id)
+                if _journey_started:
+                    extra_reason_codes.append("R109_CARE_JOURNEY")
                 skip_generator = True
                 clarification_message = None
 

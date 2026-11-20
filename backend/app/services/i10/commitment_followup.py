@@ -175,13 +175,16 @@ _REASONS = frozenset({"no_time", "dont_like", "not_feeling_well", "other"})
 
 
 # ---- copy (lock-screen safe: never names an illness or the step) --------------------------------------------------------
-def commitment_copy(lang: str, attempt: int, approach: Optional[str] = None, reason: Optional[str] = None) -> tuple:
+def commitment_copy(lang: str, attempt: int, approach: Optional[str] = None, reason: Optional[str] = None, domain: Optional[str] = None) -> tuple:
     """The wording follows the approach: a «not done» answer made it «lighter» (and its bounded reason picks the text),
     otherwise the attempt's own ladder approach (R-068: every attempt changes approach)."""
     lang = lang if lang in ("fa", "ar", "en") else "en"
     title = sedi_copy.t("commitment.title", lang)
     attempt = int(attempt or 1)
     approach = approach or approach_for(attempt)
+    if (domain or "").startswith(_JOURNEY_PREFIX):  # the care journey asks how the user is NOW (R-109), not about «yesterday's plan»
+        key = "journey.followup.body.1" if attempt <= 1 else "journey.followup.body.2" if attempt == 2 else "journey.followup.body.3"
+        return title, sedi_copy.t(key, lang, pick=attempt % 3) if key.endswith(".3") else sedi_copy.t(key, lang)
     if reason and approach == "lighter" and attempt > 1:
         body = sedi_copy.t(f"commitment.lighter.{reason if reason in _REASONS else 'other'}", lang)
     elif attempt <= 1 or approach == "first":
@@ -298,6 +301,70 @@ def create_commitment(db: Session, user_id: int, step: str, *, now: Optional[dat
     return _create_task(db, user_id, step, due, attempt=1, domain=domain, chain_id=None, approach="first")
 
 
+# R-109 step 1b-2 (Javad 2026-11-20, approved table): the care JOURNEY follows up in HOURS, scaled by urgency.
+# Hours after the previous send (the last value repeats); «routine» keeps the day-based commitment ladder.
+JOURNEY_HOURS = {"acute": (2, 4, 6, 12), "soon": (4, 8, 16, 24)}
+JOURNEY_QUIET_FROM, JOURNEY_QUIET_TO = 22, 7  # no journey push between 22:00 and 07:00 local
+JOURNEY_DAILY_CAP = 5
+JOURNEY_MAX_ATTEMPTS = 14  # about a week of acute follow-up; then the chain ends (never an endless push)
+_JOURNEY_PREFIX = "journey_"
+
+
+def journey_due(db: Session, user_id: int, *, base_utc: datetime, tier: str, attempt: int) -> datetime:
+    """Naive-UTC due time of journey attempt ``attempt``: hours by tier, moved out of quiet hours, and past a full day (cap)."""
+    seq = JOURNEY_HOURS.get(tier)
+    if seq is None:
+        return follow_up_time(db, user_id, base_utc=base_utc, days_ahead=interval_days_after(attempt))
+    hours = seq[min(max(int(attempt), 1) - 1, len(seq) - 1)]
+    base = base_utc if base_utc.tzinfo else base_utc.replace(tzinfo=timezone.utc)
+    zone = _zone(db, user_id)
+    local = (base + timedelta(hours=hours)).astimezone(zone)
+    if local.hour >= JOURNEY_QUIET_FROM or local.hour < JOURNEY_QUIET_TO:
+        day = local.date() if local.hour < JOURNEY_QUIET_TO else local.date() + timedelta(days=1)
+        local = zone.localize(datetime.combine(day, time(JOURNEY_QUIET_TO, 0)))
+    start = zone.localize(datetime.combine(local.date(), time(0, 0))).astimezone(timezone.utc).replace(tzinfo=None)
+    taken = (
+        db.query(models.CareFollowUpTask)
+        .filter(
+            models.CareFollowUpTask.user_id == user_id,
+            models.CareFollowUpTask.status != FollowUpTaskStatus.CANCELLED.value,
+            models.CareFollowUpTask.due_at >= start,
+            models.CareFollowUpTask.due_at < start + timedelta(days=1),
+            models.CareFollowUpTask.description.contains(f'"domain":"{_JOURNEY_PREFIX}'),
+        )
+        .count()
+    )
+    if taken >= JOURNEY_DAILY_CAP:  # the day is full: tomorrow morning
+        local = zone.localize(datetime.combine(local.date() + timedelta(days=1), time(9, 0)))
+    return local.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def open_journey_count(db: Session, user_id: int) -> int:
+    """Open care-journey chains of this user (the next doctor/lab request while one is open does not start another)."""
+    try:
+        return len({meta_of(t).chain_id or t.id for t in _commitment_tasks(db, user_id) if (meta_of(t).domain or "").startswith(_JOURNEY_PREFIX)})
+    except Exception:
+        return 0
+
+
+def create_journey_followup(db: Session, user_id: int, step: str, tier: str, *, now: Optional[datetime] = None) -> Optional[models.CareFollowUpTask]:
+    """ONE tracked care-journey chain, attempt 1 due in hours (tier). Memory-write consent gated; None = nothing tracked."""
+    try:
+        from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
+
+        if not (step or "").strip() or tier not in JOURNEY_HOURS and tier != "routine" or not has_permission(db, user_id, PERM_WRITE):
+            return None
+        domain = _JOURNEY_PREFIX + tier
+        when = now or datetime.now(timezone.utc)
+        with db.begin_nested():
+            _supersede(db, user_id, domain)
+            due = journey_due(db, user_id, base_utc=when, tier=tier, attempt=1)
+            return _create_task(db, user_id, step, due, attempt=1, domain=domain, chain_id=None, approach="first")
+    except Exception:
+        logger.exception("[R-109] journey follow-up not created")
+        return None
+
+
 def open_commitment_count(db: Session, user_id: int) -> int:
     """How many commitment follow-ups of this user are still open (R-109: «how are you now?» belongs in a conversation that has one)."""
     try:
@@ -352,7 +419,13 @@ def schedule_next_attempt(
         if int(meta_of(existing).attempt or 1) > attempt:
             return existing  # idempotent
     base = now or datetime.now(timezone.utc)
-    due = follow_up_time(db, task.user_id, base_utc=base, days_ahead=interval_days_after(attempt))
+    domain_now = meta.domain or commitment_domain(task.title)
+    if domain_now.startswith(_JOURNEY_PREFIX):
+        if attempt >= JOURNEY_MAX_ATTEMPTS:
+            return None  # the journey chain ends after about a week
+        due = journey_due(db, task.user_id, base_utc=base, tier=domain_now[len(_JOURNEY_PREFIX):], attempt=attempt + 1)
+    else:
+        due = follow_up_time(db, task.user_id, base_utc=base, days_ahead=interval_days_after(attempt))
     return _create_task(
         db,
         task.user_id,
