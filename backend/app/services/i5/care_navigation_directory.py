@@ -823,7 +823,41 @@ def resolve_care_navigation(
         target_health_subject_id=target_health_subject_id,
         target_subject_kind=target_subject_kind,
     )
-    return query_governed_directory(db, req)
+    result = query_governed_directory(db, req)
+    return _nearest_area_result(db, req, result)
+
+
+def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResult) -> CareNavResult:
+    """R-106 (Javad 2026-11-20): nothing verified in the confirmed place -> look in the NEAREST areas (up to three, nearest first) and
+    say that the options are from the nearest area; the plain «not found» answer remains only when even those have nothing."""
+    try:
+        if result.status != STATUS_NO_VERIFIED or not (req.city or req.area):
+            return result
+        import dataclasses
+
+        from backend.app import sedi_copy
+        from backend.app.services.i5 import nearby_places as _nearby
+
+        origin = " ".join(x for x in (req.area, req.city) if x)
+        lang = (req.language or "en").lower()
+        k = _lk(lang)
+        for name in _nearby.nearby_places(origin):
+            place = _places.find_place(name)
+            # the name itself is a KNOWN CITY (not a neighbourhood whose city the gazetteer merely infers as Tehran)
+            is_city = bool(place.city and not place.area and not place.city_inferred)
+            if req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
+                # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
+                where = dataclasses.replace(req, area=name, city=req.city)
+            else:
+                # a DIFFERENT city: the original province no longer applies (Codex P2, PR 197)
+                where = dataclasses.replace(req, area=None, city=place.city if is_city else name, province=None)
+            alt = query_governed_directory(db, where)
+            if alt.status == STATUS_VERIFIED and alt.identities:
+                prefix = sedi_copy.t("care_nav.nearest_found", k, where=origin, found=name)
+                return dataclasses.replace(alt, user_message=prefix + "\n\n" + alt.user_message)
+        return result
+    except Exception:  # noqa: BLE001 - the ordinary answer stays
+        return result
 
 
 # --- Authority guards (server-side; defense-in-depth beyond primary gate) ---
