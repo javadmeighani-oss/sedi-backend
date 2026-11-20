@@ -843,12 +843,13 @@ def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResu
         k = _lk(lang)
         for name in _nearby.nearby_places(origin):
             place = _places.find_place(name)
-            if place.area:
-                where = dataclasses.replace(req, area=place.area, city=place.city or req.city)
-            elif place.city:
-                where = dataclasses.replace(req, area=None, city=place.city)
+            # the name itself is a KNOWN CITY (not a neighbourhood whose city the gazetteer merely infers as Tehran)
+            is_city = bool(place.city and not place.area and not place.city_inferred)
+            if req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
+                # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
+                where = dataclasses.replace(req, area=name, city=req.city)
             else:
-                where = dataclasses.replace(req, area=None, city=name)
+                where = dataclasses.replace(req, area=None, city=place.city if is_city else name)
             alt = query_governed_directory(db, where)
             if alt.status == STATUS_VERIFIED and alt.identities:
                 prefix = sedi_copy.t("care_nav.nearest_found", k, where=origin, found=name)

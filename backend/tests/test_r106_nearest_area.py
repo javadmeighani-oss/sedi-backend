@@ -115,13 +115,28 @@ def test_an_error_keeps_the_ordinary_answer(monkeypatch):
     assert cn._nearest_area_result(None, _req(), original) is original
 
 
-def test_a_neighbourhood_keeps_its_city_and_a_town_becomes_the_city(monkeypatch):
+def _searched(monkeypatch, origin_req, names):
     seen = []
     monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city)) or _result(cn.STATUS_NO_VERIFIED))
-    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: ["نارمک", "بومهن"])
-    cn._nearest_area_result(None, _req(area="تهران‌پارس", city="تهران"), _result(cn.STATUS_NO_VERIFIED))
-    assert seen[0][0] and "نارمک" in seen[0][0].replace(chr(0x200c), "") and seen[0][1] == "تهران"  # a Tehran neighbourhood stays in Tehran
-    assert seen[1] == (None, "بومهن")  # a town is searched as a city
+    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: list(names))
+    cn._nearest_area_result(None, origin_req, _result(cn.STATUS_NO_VERIFIED))
+    return [(a.replace(chr(0x200c), "") if a else a, c) for a, c in seen]
+
+
+def test_a_neighbourhood_keeps_its_confirmed_city_and_a_town_becomes_the_city(monkeypatch):
+    seen = _searched(monkeypatch, _req(area="تهران‌پارس", city="تهران"), ["نارمک", "کرج"])
+    assert seen[0] == ("نارمک", "تهران")  # a neighbouring neighbourhood stays in the confirmed city
+    assert seen[1] == (None, "کرج")        # a different KNOWN city is searched as a city
+
+
+def test_p2_a_neighbouring_name_that_the_gazetteer_calls_a_tehran_area_never_switches_a_mashhad_search_to_tehran(monkeypatch):
+    seen = _searched(monkeypatch, _req(area="وکیل‌آباد", city="مشهد"), ["نارمک", "احمدآباد"])
+    assert seen == [("نارمک", "مشهد"), ("احمدآباد", "مشهد")]  # never city «تهران»; an unknown neighbourhood stays inside Mashhad
+
+
+def test_p2_a_city_origin_searches_adjacent_towns_as_cities(monkeypatch):
+    seen = _searched(monkeypatch, _req(area=None, city="پردیس"), ["بومهن", "رودهن"])
+    assert seen == [(None, "بومهن"), (None, "رودهن")]
 
 
 @pytest.mark.parametrize("lang", ["fa", "ar", "en"])
