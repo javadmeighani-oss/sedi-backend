@@ -61,9 +61,15 @@ def _clip(text: Any, limit: int = MAX_ITEM_CHARS) -> str:
     return " ".join(str(text or "").split())[:limit].strip()
 
 
-def _items(value: Any) -> list[str]:
+def _items(value: Any, *, newest: bool = False) -> list[str]:
+    """Clean short lines from a stored fact (a list, a string or a number - e.g. sleep hours are stored as an integer). ``newest``: a
+    chronological list keeps its LAST items when it is longer than the cap (new statements are appended)."""
     if isinstance(value, (list, tuple)):
         raw = list(value)
+    elif isinstance(value, bool):
+        raw = []
+    elif isinstance(value, (int, float)):
+        raw = [value]
     elif isinstance(value, str) and value.strip():
         raw = [value]
     else:
@@ -73,9 +79,7 @@ def _items(value: Any) -> list[str]:
         text = _clip(item)
         if text and text not in out:
             out.append(text)
-        if len(out) >= MAX_ITEMS:
-            break
-    return out
+    return out[-MAX_ITEMS:] if newest else out[:MAX_ITEMS]
 
 
 def _facts(db: Any, user_id: int) -> dict[tuple[str, str], Any]:
@@ -91,13 +95,13 @@ def _facts(db: Any, user_id: int) -> dict[tuple[str, str], Any]:
     return out
 
 
-def _fact_lines(facts: dict, *pairs: tuple[str, str]) -> list[str]:
+def _fact_lines(facts: dict, *pairs: tuple[str, str], newest: bool = False) -> list[str]:
     lines: list[str] = []
     for pair in pairs:
-        for item in _items(facts.get(pair)):
+        for item in _items(facts.get(pair), newest=newest):
             if item not in lines:
                 lines.append(item)
-    return lines[:MAX_ITEMS]
+    return lines[-MAX_ITEMS:] if newest else lines[:MAX_ITEMS]
 
 
 def _about(db: Any, user_id: int, lang: str) -> list[str]:
@@ -142,6 +146,8 @@ def _plan_lines(db: Any, user_id: int, domain: str, lang: str) -> list[str]:
         from backend.app.services.lifestyle.a3_weekly_plan_projection import build_lifestyle_weekly_plan_projection
 
         projection = build_lifestyle_weekly_plan_projection(db, user_id)
+        if projection.get("state") in ("review_due", "empty", "unavailable"):
+            return []  # an ended cycle is history, not «this week's plan» (Codex P2, PR 200)
         lines: list[str] = []
         for day in projection.get("days") or []:
             for item in day.get(domain) or []:
@@ -185,11 +191,11 @@ def _section_lines(key: str, db: Any, user_id: int, facts: dict, lang: str) -> l
         return _about(db, user_id, lang)
     if key == "reason":  # the reason for the visit: what the user told Sedi is the problem, else the newest episode note
         concerns = _fact_lines(facts, ("medical", "health_concerns"))
-        return concerns or _fact_lines(facts, ("medical", "symptom_episodes"))[-1:]
+        return concerns or _fact_lines(facts, ("medical", "symptom_episodes"), newest=True)[-1:]
     if key == "concerns":
         return _fact_lines(facts, ("medical", "health_concerns"))
     if key == "timeline":
-        return _fact_lines(facts, ("medical", "symptom_episodes"))
+        return _fact_lines(facts, ("medical", "symptom_episodes"), newest=True)  # the latest updates, never the oldest eight
     if key == "history":
         return _fact_lines(facts, ("medical", "family_history"))
     if key == "allergies":

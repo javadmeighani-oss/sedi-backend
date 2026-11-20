@@ -131,7 +131,7 @@ def test_lines_are_cleaned_deduplicated_clipped_and_capped():
     assert b._items(["  a  b ", "a b", "", None, "x" * 500] + [f"i{n}" for n in range(20)])[0] == "a b"
     items = b._items(["x" * 500] + [f"i{n}" for n in range(20)])
     assert len(items) == b.MAX_ITEMS and len(items[0]) == b.MAX_ITEM_CHARS
-    assert b._items("one") == ["one"] and b._items(None) == [] and b._items(5) == []
+    assert b._items("one") == ["one"] and b._items(None) == [] and b._items({"a": 1}) == []
 
 
 def test_the_reason_falls_back_to_the_newest_episode():
@@ -224,3 +224,29 @@ def test_the_identity_lines_come_from_user_state(monkeypatch):
     assert b._about(None, 1, "fa") == ["نام: سارا", "سن: 34 سال"]
     monkeypatch.setattr(us, "get_user_state", lambda db, uid: None)
     assert b._about(None, 1, "fa") == []
+
+
+# --- Codex round 1 on PR 200 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_numeric_sleep_fact_is_reported():
+    assert b._items(6) == ["6"] and b._items(7.5) == ["7.5"] and b._items(True) == []
+    facts = {("lifestyle", "sleep_duration_hours"): 6}
+    assert b._section_lines("sleep", None, 1, facts, "en") == [sedi_copy.t("report.sleep.line", "en", hours="6")]
+
+
+def test_p2_the_newest_episodes_win_over_the_item_cap():
+    episodes = [f"e{n}" for n in range(12)]  # chronological: new statements are appended
+    facts = {("medical", "symptom_episodes"): episodes}
+    assert b._section_lines("timeline", None, 1, facts, "fa") == episodes[-b.MAX_ITEMS:]
+    assert b._section_lines("reason", None, 1, facts, "fa") == ["e11"]  # the latest update, not the eighth entry
+    assert b._items(episodes) == episodes[: b.MAX_ITEMS]  # other lists keep the first items
+
+
+def test_p2_an_ended_plan_cycle_is_not_reported_as_this_weeks_plan(monkeypatch):
+    from backend.app.services.lifestyle import a3_weekly_plan_projection as proj
+
+    days = [{"day_index": 1, "nutrition": [{"title": "املت"}], "exercise": []}]
+    for state in ("review_due", "empty", "unavailable"):
+        monkeypatch.setattr(proj, "build_lifestyle_weekly_plan_projection", lambda db, uid, s=state: {"state": s, "days": days})
+        assert b._plan_lines(None, 1, "nutrition", "fa") == []
+    monkeypatch.setattr(proj, "build_lifestyle_weekly_plan_projection", lambda db, uid: {"state": "active", "days": days})
+    assert b._plan_lines(None, 1, "nutrition", "fa") == ["روز 1: املت"]
