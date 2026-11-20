@@ -484,6 +484,19 @@ def _maybe_append_crisis_support(messages: list, db, user_id, user_message: str,
         pass
 
 
+def _maybe_append_interview_guide(messages: list, db, user_id, user_message: str, language: str) -> None:
+    """R-109: the slot-driven interview skeleton (symptom / work-life checklist, memory gaps, «how are you now?»). Fail-open; kill
+    switch SEDI_INTERVIEW_GUIDE_DISABLED (code default ON, no env change)."""
+    try:
+        from backend.app.services.interview import guide as _guide
+
+        hint = _guide.hint_for_turn(db, user_id, user_message, language)
+        if hint:
+            messages.append({"role": "system", "content": hint})
+    except Exception:  # noqa: BLE001 - optional enrichment; never break the chat
+        pass
+
+
 def _maybe_append_symptom_triage(messages: list, user_message: str, language: str) -> None:
     """R-094 / J2: deterministic symptom -> body area -> kind of doctor hint (emergencies first). Fail-open; kill switch
     SEDI_SYMPTOM_TRIAGE_DISABLED (code default ON, no env change)."""
@@ -857,6 +870,7 @@ class ConversationBrain:
             _maybe_append_public_web_facts(messages, user_message, lang)
             _maybe_append_symptom_triage(messages, user_message, lang)
             _maybe_append_crisis_support(messages, self.db, user_id, user_message, lang)
+            _maybe_append_interview_guide(messages, self.db, user_id, user_message, lang)
 
             if not structured_mode:
                 # Stage 17.5: Optional Local RAG context (gated)

@@ -370,7 +370,7 @@ def forget_memory_turn(
 # R-021 / M1 — the user's memory, visible and correctable. I7 owns this API; facts stay owned by I6 (consent, provenance);
 # life events live on the I7 timeline. JWT identity only; every call is ownership-scoped and consent-gated.
 # ---------------------------------------------------------------------------------------------------------------------
-_LIST_FACT_KEYS = frozenset({("medical", "health_concerns"), ("medical", "family_history"), ("preferences", "interests")})
+_LIST_FACT_KEYS = frozenset({("medical", "health_concerns"), ("medical", "symptom_episodes"), ("medical", "family_history"), ("preferences", "interests")})
 
 
 def _fact_dict(row: models.UserMemoryFact) -> dict:
