@@ -131,6 +131,14 @@ def _item(
     )
 
 
+# which context label each user-stated health key gets (a symptom episode is NOT family history - Codex P2, PR 195)
+_STATED_HEALTH_LABELS = {
+    "lab_results": "documented_lab_results",
+    "prescribed_medications": "documented_prescribed_medications",
+    "symptom_episodes": "stated_symptom_episodes",
+}
+
+
 class ProfileContextAdapter:
     """Basic USER_CONTEXT profile fields + USER_PROFILE knowledge already on brain path."""
 
@@ -985,10 +993,7 @@ class HealthContextAdapter:
                         )
                     )
                 continue
-            label = {
-                "lab_results": "documented_lab_results",
-                "prescribed_medications": "documented_prescribed_medications",
-            }.get(key, "stated_family_history")
+            label = _STATED_HEALTH_LABELS.get(key, "stated_family_history")
             out.append(
                 _item(
                     canonical_key=f"health.{label}",

@@ -142,3 +142,18 @@ def test_brain_appends_the_guide_as_one_system_message_and_never_breaks(monkeypa
     monkeypatch.setattr(g, "hint_for_turn", lambda *a: (_ for _ in ()).throw(RuntimeError("boom")))
     brain._maybe_append_interview_guide(msgs, MagicMock(), 1, "x", "fa")
     assert len(msgs) == 1
+
+
+# --- Codex round 1 on PR 195 ------------------------------------------------------------------------------------------------------------------------------
+def test_p2_the_new_facts_are_accepted_automatically_like_health_concerns():
+    from backend.app.services.knowledge.conversation_extraction_service import _AUTO_ACCEPT_KEYS
+
+    for key in ("symptom_episode", "work_schedule", "work_stressors"):
+        assert key in _AUTO_ACCEPT_KEYS  # otherwise the answers would stay pending and never reach memory
+
+
+def test_p2_a_symptom_episode_is_never_presented_as_family_history():
+    from backend.app.services.intelligence import adapters
+
+    assert adapters._STATED_HEALTH_LABELS["symptom_episodes"] == "stated_symptom_episodes"
+    assert adapters._STATED_HEALTH_LABELS.get("family_history", "stated_family_history") == "stated_family_history"
