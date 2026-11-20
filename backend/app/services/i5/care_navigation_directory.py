@@ -849,7 +849,8 @@ def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResu
                 # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
                 where = dataclasses.replace(req, area=name, city=req.city)
             else:
-                where = dataclasses.replace(req, area=None, city=place.city if is_city else name)
+                # a DIFFERENT city: the original province no longer applies (Codex P2, PR 197)
+                where = dataclasses.replace(req, area=None, city=place.city if is_city else name, province=None)
             alt = query_governed_directory(db, where)
             if alt.status == STATUS_VERIFIED and alt.identities:
                 prefix = sedi_copy.t("care_nav.nearest_found", k, where=origin, found=name)

@@ -150,3 +150,12 @@ def test_resolve_care_navigation_returns_the_nearest_area_answer(monkeypatch):
     _stub(monkeypatch, ["بومهن"], "بومهن")
     out = cn.resolve_care_navigation(None, "یه دکتر قلب در شهر پردیس معرفی کن", language="fa")
     assert out.status == cn.STATUS_VERIFIED and "بومهن" in out.user_message and out.user_message.endswith("LIST")
+
+
+def test_p2_a_neighbouring_city_drops_the_original_province_but_a_neighbourhood_keeps_it(monkeypatch):
+    seen = []
+    monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city, r.province)) or _result(cn.STATUS_NO_VERIFIED))
+    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: ["کرج", "نارمک"])
+    cn._nearest_area_result(None, _req(area="تهران‌پارس", city="تهران", province="تهران"), _result(cn.STATUS_NO_VERIFIED))
+    assert seen[0] == (None, "کرج", None)            # another city: no Tehran-province filter
+    assert seen[1][0].replace(chr(0x200c), "") == "نارمک" and seen[1][2] == "تهران"  # same city: the province still applies
