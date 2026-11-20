@@ -119,6 +119,10 @@ def record_answer(db: Any, user_id: int, answer: str, last_sedi_reply: Optional[
         text = " ".join(answer.split())[:90]
         if len(text) < 3:
             return False
+        from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
+
+        if _about_relative(answer):  # «my mother has chest pain»: not the user's episode (Codex P2, PR 196)
+            return False
         from backend.app.services.candidate_promotion_service import _merge_list_value
         from backend.app.services.i6.consent_service import ConsentDenied
         from backend.app.services.i6.memory_writes import write_fact

@@ -306,6 +306,7 @@ def create_commitment(db: Session, user_id: int, step: str, *, now: Optional[dat
 JOURNEY_HOURS = {"acute": (2, 4, 6, 12), "soon": (4, 8, 16, 24)}
 JOURNEY_QUIET_FROM, JOURNEY_QUIET_TO = 22, 7  # no journey push between 22:00 and 07:00 local
 JOURNEY_DAILY_CAP = 5
+JOURNEY_OPEN_WINDOW = timedelta(days=8)  # a journey chain older than this is no longer open
 JOURNEY_MAX_ATTEMPTS = 14  # about a week of acute follow-up; then the chain ends (never an endless push)
 _JOURNEY_PREFIX = "journey_"
 
@@ -342,7 +343,12 @@ def journey_due(db: Session, user_id: int, *, base_utc: datetime, tier: str, att
 def open_journey_count(db: Session, user_id: int) -> int:
     """Open care-journey chains of this user (the next doctor/lab request while one is open does not start another)."""
     try:
-        return len({meta_of(t).chain_id or t.id for t in _commitment_tasks(db, user_id) if (meta_of(t).domain or "").startswith(_JOURNEY_PREFIX)})
+        horizon = datetime.utcnow() - JOURNEY_OPEN_WINDOW  # an exhausted chain (every follow-up unanswered) ages out (Codex P2, PR 196)
+        return len({
+            meta_of(t).chain_id or t.id
+            for t in _commitment_tasks(db, user_id)
+            if (meta_of(t).domain or "").startswith(_JOURNEY_PREFIX) and (t.due_at is None or t.due_at >= horizon)
+        })
     except Exception:
         return 0
 

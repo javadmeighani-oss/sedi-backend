@@ -262,3 +262,34 @@ def test_orchestrator_records_the_answer_to_the_interview(monkeypatch):
     monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: [last])
     orch.process(authenticated_user_id=42, message="از دو روز پیش شروع شده و قبلاً نداشتم", language="fa")
     assert wrote and "دو روز" in wrote[0][0]
+
+
+# --- Codex round 1 on PR 196 ----------------------------------------------------------------------------------------------------------------------------
+def test_p2_a_relatives_symptom_is_never_recorded_as_the_users_episode(monkeypatch):
+    from backend.app.services import candidate_promotion_service as cp
+    from backend.app.services.i6 import memory_writes
+
+    wrote = []
+    monkeypatch.setattr(cp, "_merge_list_value", lambda db, uid, dom, key, value: [value])
+    monkeypatch.setattr(memory_writes, "write_fact", lambda db, uid, dom, key, value, **k: wrote.append(value))
+    reply = j.journey_text("fa", "chest", new_journey=True)
+    assert j.record_answer(MagicMock(), 1, "My mother has had chest pain since yesterday", reply) is False
+    assert j.record_answer(MagicMock(), 1, "مادرم از دیروز قلب درد دارد", reply) is False
+    assert wrote == []
+    assert j.record_answer(MagicMock(), 1, "من از دیروز قلب درد دارم", reply) is True
+
+
+def test_p2_an_exhausted_chain_no_longer_counts_as_an_open_journey(monkeypatch):
+    from datetime import timedelta
+
+    from backend.app.services.i10.contextual_followup_task_meta import BoundedFollowUpMeta, pack_description
+
+    def task(tid, due, domain="journey_acute"):
+        meta = BoundedFollowUpMeta(follow_up_kind=cf.COMMITMENT_KIND, attempt=14, domain=domain, chain_id=tid, approach="first")
+        return SimpleNamespace(id=tid, user_id=1, due_at=due, description=pack_description(None, meta))
+
+    now = datetime.utcnow()
+    monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid, statuses=None: [task(1, now - timedelta(days=20)), task(2, now - timedelta(days=9))])
+    assert cf.open_journey_count(MagicMock(), 1) == 0  # both chains are exhausted/aged out: a new doctor request starts a NEW journey
+    monkeypatch.setattr(cf, "_commitment_tasks", lambda db, uid, statuses=None: [task(3, now - timedelta(days=1)), task(4, now, "other")])
+    assert cf.open_journey_count(MagicMock(), 1) == 1  # a recent journey chain still counts; a plain commitment never does
