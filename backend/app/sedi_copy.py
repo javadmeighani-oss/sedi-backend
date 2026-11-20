@@ -2049,6 +2049,186 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ('لأساعدك بدقة أكبر',),
         'en': ('so i can help you more precisely',),
     },
+    'report.kind.health_status': {
+        'fa': 'گزارش وضعیت سلامت من',
+        'ar': 'تقرير حالتي الصحية',
+        'en': 'My health status report',
+    },
+    'report.kind.doctor_visit': {
+        'fa': 'خلاصه برای ملاقات پزشک',
+        'ar': 'ملخص لزيارة الطبيب',
+        'en': 'Summary for my doctor visit',
+    },
+    'report.kind.nutrition': {
+        'fa': 'گزارش رژیم غذایی من',
+        'ar': 'تقرير نظامي الغذائي',
+        'en': 'My nutrition report',
+    },
+    'report.kind.lifestyle': {
+        'fa': 'گزارش سبک زندگی من',
+        'ar': 'تقرير نمط حياتي',
+        'en': 'My lifestyle report',
+    },
+    'report.kind.exercise_plan': {
+        'fa': 'برنامهٔ ورزشی من',
+        'ar': 'برنامجي الرياضي',
+        'en': 'My exercise plan',
+    },
+    'report.section.about': {
+        'fa': 'درباره من',
+        'ar': 'عني',
+        'en': 'About me',
+    },
+    'report.section.reason': {
+        'fa': 'دلیل مراجعه',
+        'ar': 'سبب الزيارة',
+        'en': 'Reason for the visit',
+    },
+    'report.section.concerns': {
+        'fa': 'مشکلات و نگرانی\u200cهای سلامت',
+        'ar': 'المشكلات والمخاوف الصحية',
+        'en': 'Health concerns',
+    },
+    'report.section.timeline': {
+        'fa': 'سیر ماجرا',
+        'ar': 'تسلسل الأعراض',
+        'en': 'How it developed',
+    },
+    'report.section.history': {
+        'fa': 'سابقه',
+        'ar': 'السوابق',
+        'en': 'History',
+    },
+    'report.section.allergies': {
+        'fa': 'حساسیت\u200cها',
+        'ar': 'الحساسية',
+        'en': 'Allergies',
+    },
+    'report.section.meds': {
+        'fa': 'داروهایی که مصرف می\u200cکنم',
+        'ar': 'الأدوية التي أتناولها',
+        'en': 'Medicines I take',
+    },
+    'report.section.sleep': {
+        'fa': 'خواب',
+        'ar': 'النوم',
+        'en': 'Sleep',
+    },
+    'report.section.work': {
+        'fa': 'کار',
+        'ar': 'العمل',
+        'en': 'Work',
+    },
+    'report.section.goals': {
+        'fa': 'هدف\u200cها',
+        'ar': 'الأهداف',
+        'en': 'Goals',
+    },
+    'report.section.household': {
+        'fa': 'خانواده و زندگی',
+        'ar': 'الأسرة والحياة',
+        'en': 'Home and family',
+    },
+    'report.section.interests': {
+        'fa': 'علاقه\u200cمندی\u200cها',
+        'ar': 'الاهتمامات',
+        'en': 'Interests',
+    },
+    'report.section.food': {
+        'fa': 'ترجیح\u200cهای غذایی',
+        'ar': 'التفضيلات الغذائية',
+        'en': 'Food preferences',
+    },
+    'report.section.exercise': {
+        'fa': 'ترجیح\u200cهای ورزشی',
+        'ar': 'التفضيلات الرياضية',
+        'en': 'Exercise preferences',
+    },
+    'report.section.plan_nutrition': {
+        'fa': 'برنامهٔ غذایی این هفته',
+        'ar': 'الخطة الغذائية لهذا الأسبوع',
+        'en': "This week's meal plan",
+    },
+    'report.section.plan_exercise': {
+        'fa': 'برنامهٔ ورزش این هفته',
+        'ar': 'الخطة الرياضية لهذا الأسبوع',
+        'en': "This week's exercise plan",
+    },
+    'report.section.week': {
+        'fa': 'این هفته',
+        'ar': 'هذا الأسبوع',
+        'en': 'This week',
+    },
+    'report.section.follow_up': {
+        'fa': 'پیگیری',
+        'ar': 'المتابعة',
+        'en': 'Follow-up',
+    },
+    'report.section.questions': {
+        'fa': 'سؤال\u200cهایی که می\u200cخواهم از پزشک بپرسم',
+        'ar': 'أسئلة أريد أن أطرحها على الطبيب',
+        'en': 'Questions I want to ask the doctor',
+    },
+    'report.about.name': {
+        'fa': 'نام: {name}',
+        'ar': 'الاسم: {name}',
+        'en': 'Name: {name}',
+    },
+    'report.about.age': {
+        'fa': 'سن: {age} سال',
+        'ar': 'العمر: {age} سنة',
+        'en': 'Age: {age} years',
+    },
+    'report.meds.times': {
+        'fa': 'ساعت مصرف: {times}',
+        'ar': 'مواعيد التناول: {times}',
+        'en': 'times: {times}',
+    },
+    'report.plan.line': {
+        'fa': 'روز {day}: {title}',
+        'ar': 'اليوم {day}: {title}',
+        'en': 'Day {day}: {title}',
+    },
+    'report.plan.line_timed': {
+        'fa': 'روز {day}، ساعت {time}: {title}',
+        'ar': 'اليوم {day}، الساعة {time}: {title}',
+        'en': 'Day {day}, {time}: {title}',
+    },
+    'report.week.line': {
+        'fa': 'این هفته {done} کار را انجام دادم و {not_done} کار را انجام ندادم',
+        'ar': 'هذا الأسبوع أنجزت {done} وفاتني {not_done}',
+        'en': 'This week I did {done} and did not do {not_done}',
+    },
+    'report.followup.open': {
+        'fa': 'برای این موضوع پیگیری مراقبتی فعال است',
+        'ar': 'هناك متابعة رعاية نشطة لهذا الموضوع',
+        'en': 'A care follow-up is active for this',
+    },
+    'report.sleep.line': {
+        'fa': 'خواب: {hours} ساعت',
+        'ar': 'النوم: {hours} ساعات',
+        'en': 'Sleep: {hours} hours',
+    },
+    'report.question.1': {
+        'fa': 'علت احتمالی این مشکل چیست و چه بررسی\u200cهایی لازم است؟',
+        'ar': 'ما السبب المحتمل لهذه المشكلة وما الفحوصات اللازمة؟',
+        'en': 'What could be causing this, and which tests are needed?',
+    },
+    'report.question.2': {
+        'fa': 'تا ملاقات بعدی چه کارهایی را انجام بدهم و از چه کارهایی پرهیز کنم؟',
+        'ar': 'ماذا أفعل وماذا أتجنب حتى الموعد القادم؟',
+        'en': 'What should I do and avoid until the next visit?',
+    },
+    'report.question.3': {
+        'fa': 'چه نشانه\u200cهایی یعنی باید زودتر مراجعه کنم؟',
+        'ar': 'ما العلامات التي تعني أن عليّ المراجعة قبل الموعد؟',
+        'en': 'Which signs mean I should come back sooner?',
+    },
+    'report.note': {
+        'fa': 'این گزارش فقط از چیزهایی ساخته شده که خودت به صدی گفته\u200cای یا ثبت کرده\u200cای و تشخیص پزشکی نیست.',
+        'ar': 'بُني هذا التقرير فقط على ما أخبرتَ به صدي أو سجّلته بنفسك، وهو ليس تشخيصاً طبياً.',
+        'en': 'This report is built only from what you told Sedi or recorded yourself. It is not a medical diagnosis.',
+    },
     'journey.status_note.better': {
         'fa': 'وضعیت بعدی: بهتر شده است',
         'ar': 'الحالة لاحقاً: تحسّنت',
