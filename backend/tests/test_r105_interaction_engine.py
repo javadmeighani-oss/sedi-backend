@@ -221,3 +221,23 @@ def test_p2_a_replacement_request_in_the_middle_becomes_the_new_chain_root():
     done = ci.request_for_chain(rows, "بله", "fa")
     status, place = ci.place_status(done)
     assert done and "پوست" in done and "قلب" not in done and status == "ok" and place.city == "کرمانشاه"
+
+
+# --- Codex round 3 on PR 194 ----------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("answer", ["بله، ناگهان بدترین سردرد عمرم را دارم", "بله، قفسه سینه‌ام درد می‌کند و نفسم تنگ است"])
+def test_p1_a_red_flag_next_to_a_place_confirmation_is_never_a_routine_search(answer):
+    prior = "یه دکتر قلب در پردیس"
+    q = ci.first_question(prior, "fa")
+    assert ci.request_for_answer(prior, q, answer, "fa") is None  # normal (safety) handling takes it
+
+
+def test_p1_the_combined_question_checks_red_flags_too():
+    assert ci.request_for_answer(PRIOR, BOTH, "ناگهان نفسم بند آمد و قفسه سینه‌ام درد می‌کند، بله", "fa") is None
+
+
+@pytest.mark.parametrize("answer,city", [("بله", "پردیس"), ("نه، شیراز", "شیراز")])
+def test_p2_a_location_only_answer_to_the_combined_question_keeps_the_place_and_asks_the_reason(answer, city):
+    done = ci.request_for_answer(PRIOR, BOTH, answer, "fa")
+    assert done and ci.place_status(done)[0] == "ok" and ci.place_status(done)[1].city == city
+    q = ci.first_question(done, "fa")
+    assert q and ci.is_reason_question(q) and not ci.is_place_question(q)  # only the missing reason is asked next

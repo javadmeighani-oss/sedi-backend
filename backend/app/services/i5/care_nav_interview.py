@@ -239,17 +239,21 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
         ):
             return None  # a complete doctor request of its own (kind AND place); while a place is pending it must name ANOTHER place
         lang3 = language if language in ("fa", "ar", "en") else "en"
-        if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
-            confirmed = _confirmed_place_text(prior_request, text, lang3)
-            return _swap_place(prior_request, confirmed, lang3) if confirmed else None
         from backend.app.services.care_navigation import symptom_triage
 
         if symptom_triage.triage(text, language).red_flag:
             return None  # an emergency is never completed into a routine search, whatever else the answer says (Codex P1)
         urgent = symptom_triage.triage(text, language).urgency == "soon"
+        if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
+            confirmed = _confirmed_place_text(prior_request, text, lang3)
+            done_place = _swap_place(prior_request, confirmed, lang3) if confirmed else None
+            return _with_qualifiers(done_place, {"urgent"}, language) if (done_place and urgent) else done_place
         spec = _specialty_for_answer(text, language)
         if spec is None and _DONT_KNOW.search(text):
             spec = "پزشک عمومی"
+        if spec is None and asked_place:  # «بله» / «نه، شیراز»: the place is settled; the reason is asked next
+            confirmed_only = _confirmed_place_text(prior_request, text, lang3)
+            return _swap_place(prior_request, confirmed_only, lang3) if confirmed_only else None
         if spec is None:
             return None  # an emergency or something that names no specialty: normal handling
         place = (_confirmed_place_text(prior_request, text, lang3) if asked_place else None) or _place_in(text)
