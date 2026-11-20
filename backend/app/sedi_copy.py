@@ -2049,6 +2049,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': ('لأساعدك بدقة أكبر',),
         'en': ('so i can help you more precisely',),
     },
+    'journey.intake.lead': {
+        'fa': 'قبل از معرفی پزشک، باید وضعیتت را دقیق بفهمم تا مناسب‌ترین گزینه را برایت انتخاب کنم.',
+        'ar': 'قبل أن أرشّح لك طبيباً، أحتاج أن أفهم وضعك بدقة لأختار لك الأنسب.',
+        'en': 'Before I introduce a doctor, I need to understand your situation well so I can pick the best fit for you.',
+    },
     'journey.followup.body.1': {
         'fa': 'الان وضعیتت چطور است؟',
         'ar': 'كيف حالك الآن؟',

@@ -237,10 +237,16 @@ def _orch(monkeypatch):
 
 
 def test_orchestrator_appends_the_journey_to_a_doctor_answer(monkeypatch):
-    _owners(monkeypatch)
-    out = _orch(monkeypatch).process(authenticated_user_id=42, message="یه دکتر قلب در شهر پردیس معرفی کن", language="fa")
+    _owners(monkeypatch, open_count=1)
+    import backend.app.services.i7.retention as retention
+
+    orch = _orch(monkeypatch)
+    # the interview was already asked (intake done): the introduction now carries the stabilising care + the status question
+    last = SimpleNamespace(user_message="x", sedi_response=j.journey_text("fa", "chest", new_journey=True), created_at=datetime.utcnow())
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: [last])
+    out = orch.process(authenticated_user_id=42, message="یه دکتر قلب در شهر پردیس معرفی کن", language="fa")
     assert "R109_CARE_JOURNEY" in out.reason_codes
-    assert "فعالیت سنگین نکن" in out.message and j.is_interview_reply(out.message)
+    assert "فعالیت سنگین نکن" in out.message and "الان وضعیتت چطور است" in out.message
 
 
 def test_orchestrator_adds_no_journey_to_a_pharmacy_lookup(monkeypatch):
