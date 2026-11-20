@@ -205,10 +205,12 @@ def _week_lines(db: Any, user_id: int, lang: str) -> list[str]:
 
 
 def _follow_up_lines(db: Any, user_id: int, lang: str) -> list[str]:
+    """R-108: the care picture comes from the shared CareState (one reading of I6 / I10 / events), not from a private count."""
     try:
-        from backend.app.services.i10 import commitment_followup as cf
+        from backend.app.services.care_state import get_care_state
 
-        return [sedi_copy.t("report.followup.open", lang)] if cf.open_journey_count(db, user_id) > 0 else []
+        state = get_care_state(db, user_id)
+        return [sedi_copy.t("report.followup.open", lang)] if state is not None and state.has_open_journey else []
     except Exception:  # noqa: BLE001
         return []
 

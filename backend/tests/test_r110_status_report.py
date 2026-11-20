@@ -211,9 +211,14 @@ def test_the_medicine_plan_week_and_follow_up_adapters_read_their_owners(monkeyp
     assert "4" in b._week_lines(None, 1, "fa")[0] and "1" in b._week_lines(None, 1, "fa")[0]
     monkeypatch.setattr(wur, "build_weekly_user_report", lambda db, uid, language=None: {"state": "empty", "totals": {"done": 0, "not_done": 0}})
     assert b._week_lines(None, 1, "fa") == []  # nothing marked: no invented number
-    monkeypatch.setattr(cf, "open_journey_count", lambda db, uid: 1)
+    from backend.app.services import care_state as cs
+
+    journey = cs.CareState(user_id=1, follow_ups=(cs.CareFollowUp(kind="journey", tier="acute"),))
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: journey)
     assert b._follow_up_lines(None, 1, "en") == [sedi_copy.t("report.followup.open", "en")]
-    monkeypatch.setattr(cf, "open_journey_count", lambda db, uid: 0)
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: cs.CareState(user_id=1))
+    assert b._follow_up_lines(None, 1, "en") == []
+    monkeypatch.setattr(cs, "get_care_state", lambda db, uid: None)
     assert b._follow_up_lines(None, 1, "en") == []
 
 
