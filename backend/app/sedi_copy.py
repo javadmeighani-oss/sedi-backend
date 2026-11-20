@@ -1515,9 +1515,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'I saw its number or address on its own page',
     },
     'care_nav.nearest_found': {
-        'fa': 'در نزدیک‌ترین منطقه به «{where}»، یعنی «{found}»، این گزینه‌ها را پیدا کردم:',
-        'ar': 'في أقرب منطقة إلى «{where}»، أي «{found}»، وجدت هذه الخيارات:',
-        'en': 'In the nearest area to “{where}”, which is “{found}”, I found these options:',
+        'fa': 'نزدیک «{found}»، که نزدیک‌ترین منطقه به «{where}» است، این گزینه‌ها را پیدا کردم:',
+        'ar': 'قرب «{found}»، أقرب منطقة إلى «{where}»، وجدت هذه الخيارات:',
+        'en': 'Near “{found}”, the nearest area to “{where}”, I found these options:',
     },
     'care_nav.ask_place': {
         'fa': 'منظورت {place} است یا جای دیگری؟ اگر جای دیگری است، نام محله و شهرش را بگو.',

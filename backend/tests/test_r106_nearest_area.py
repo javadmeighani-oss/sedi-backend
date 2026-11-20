@@ -159,3 +159,9 @@ def test_p2_a_neighbouring_city_drops_the_original_province_but_a_neighbourhood_
     cn._nearest_area_result(None, _req(area="تهران‌پارس", city="تهران", province="تهران"), _result(cn.STATUS_NO_VERIFIED))
     assert seen[0] == (None, "کرج", None)            # another city: no Tehran-province filter
     assert seen[1][0].replace(chr(0x200c), "") == "نارمک" and seen[1][2] == "تهران"  # same city: the province still applies
+
+
+def test_p2_the_wording_claims_only_nearness_never_that_every_provider_is_inside_the_suggested_area():
+    """The governed search verifies the provider and its city, not the exact neighbourhood: «Near Y», never «in Y»."""
+    for lang, marker in (("fa", "نزدیک «بومهن»"), ("ar", "قرب «بومهن»"), ("en", "Near “بومهن”")):
+        assert sedi_copy.t("care_nav.nearest_found", lang, where="پردیس", found="بومهن").startswith(marker)
