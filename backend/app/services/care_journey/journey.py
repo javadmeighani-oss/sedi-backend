@@ -185,7 +185,7 @@ _NEG = re.compile(r"(?:نشد|نشده|نیست|نمی\s*شود|نمیشه|\bnot
 _BETTER = re.compile(
     r"(?:بهتر(?:م|\s*شد(?:م|ه)?|\s*هستم|\s*شده)|حالم\s*بهتر|خوب\s*شد(?:م|ه)|خوب\s*شده|برطرف\s*شد|بر\s*طرف\s*شد|رفع\s*شد|تمام\s*شد|"
     r"دیگه\s*درد\s*(?:ندارم|نمی\s*کند)|"
-    r"\b(?:feel(?:ing)?|getting|am|much|bit|lot) better\b|\bit(?:'s| is| has) (?:gone|stopped|passed)\b|\bno more pain\b|\bresolved\b|"
+    r"\b(?:feel(?:ing)?|getting|got|gotten|am|much|bit|lot) better\b|\bit(?:'s| is| has) (?:gone|stopped|passed)\b|\bno more pain\b|\bresolved\b|"
     r"تحسنت|أفضل الآن|اختفى الألم|زال الألم)",
     re.I,
 )
@@ -265,7 +265,10 @@ def _guide_asked(last_user_message: Optional[str], last_sedi_reply: Optional[str
     interview when the user's previous message was a complaint (guide topic «symptom») and Sedi's reply asked something."""
     try:
         from backend.app.services.interview.guide import detect_topics
+        from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
 
+        if _about_relative(last_user_message or ""):
+            return False  # the complaint was a relative's: the answer is not the user's episode (Codex P2, PR 199)
         reply = last_sedi_reply or ""
         return bool(last_user_message) and ("؟" in reply or "?" in reply) and "symptom" in detect_topics(last_user_message or "", language)
     except Exception:  # noqa: BLE001

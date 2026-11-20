@@ -149,3 +149,21 @@ def test_the_orchestrator_applies_the_status_before_answering(monkeypatch):
 )
 def test_p1_only_a_real_first_person_status_counts(text, lang, expected):
     assert j.status_signal(text, lang) == expected
+
+
+# --- Codex round 2 on PR 199 ------------------------------------------------------------------------------------------------------------------
+def test_p2_it_got_better_is_an_improvement_report():
+    assert j.status_signal("it got better", "en") == "better" and j.status_signal("it has gotten better", "en") == "better"
+
+
+def test_p2_a_relatives_earlier_complaint_makes_the_answer_not_the_users_episode(monkeypatch):
+    from backend.app.services import candidate_promotion_service as cp
+    from backend.app.services.i6 import memory_writes
+
+    wrote = []
+    monkeypatch.setattr(cp, "_merge_list_value", lambda db, uid, dom, key, value: [value])
+    monkeypatch.setattr(memory_writes, "write_fact", lambda db, uid, dom, key, value, **k: wrote.append(value))
+    assert j.record_answer(MagicMock(), 1, "It started two days ago", "When did her pain start?", last_user_message="My mother has pain", language="en") is False
+    assert j.record_answer(MagicMock(), 1, "از دو روز پیش شروع شد", "از کی شروع شده؟", last_user_message="مادرم درد دارد") is False
+    assert wrote == []
+    assert j.record_answer(MagicMock(), 1, "از دو روز پیش شروع شد", "از کی شروع شده؟", last_user_message="سرم درد دارد") is True
