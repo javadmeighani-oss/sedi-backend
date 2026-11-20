@@ -639,12 +639,20 @@ class IntelligenceOrchestrator:
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return
-            rows = query_eligible_raw(self._db, user_id, limit=1)
+            rows = query_eligible_raw(self._db, user_id, limit=4) or []
             last = rows[0] if rows else None
             if last is None or last.created_at is None or datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(hours=6):
                 return
+            # the run of consecutive turns in which Sedi kept asking: the complaint may have been stated several answers ago (Codex P2, PR 199)
+            context = []
+            for prev, nxt in zip(rows[1:], rows):
+                reply = getattr(prev, "sedi_response", None) or ""
+                if not ("؟" in reply or "?" in reply):
+                    break
+                context.append(getattr(prev, "user_message", None))
             _journey.record_answer(
-                self._db, user_id, message, getattr(last, "sedi_response", None), last_user_message=getattr(last, "user_message", None), language=lang
+                self._db, user_id, message, getattr(last, "sedi_response", None),
+                last_user_message=getattr(last, "user_message", None), language=lang, context=context,
             )
         except Exception:  # noqa: BLE001
             return

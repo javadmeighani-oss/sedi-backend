@@ -260,17 +260,21 @@ def apply_status(db: Any, user_id: int, text: str, language: str) -> Optional[st
         return None
 
 
-def _guide_asked(last_user_message: Optional[str], last_sedi_reply: Optional[str], language: str) -> bool:
+def _guide_asked(
+    last_user_message: Optional[str], last_sedi_reply: Optional[str], language: str, context: Optional[list] = None
+) -> bool:
     """DEBT-079: on the CHAT path the interview guide steers the model, so Sedi's question has no fixed marker. The turn counts as an
-    interview when the user's previous message was a complaint (guide topic «symptom») and Sedi's reply asked something."""
+    interview when Sedi's reply asked something and the conversation so far (the previous message plus the earlier turns of the SAME
+    question run, ``context``) holds a complaint (guide topic «symptom»), none of it about a relative (Codex P2, PR 199)."""
     try:
         from backend.app.services.interview.guide import detect_topics
         from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
 
-        if _about_relative(last_user_message or ""):
-            return False  # the complaint was a relative's: the answer is not the user's episode (Codex P2, PR 199)
+        messages = [m for m in [last_user_message, *(context or [])] if m and m.strip()]
+        if not messages or any(_about_relative(m) for m in messages):
+            return False  # a relative's complaint: the answer is not the user's episode
         reply = last_sedi_reply or ""
-        return bool(last_user_message) and ("؟" in reply or "?" in reply) and "symptom" in detect_topics(last_user_message or "", language)
+        return ("؟" in reply or "?" in reply) and any("symptom" in detect_topics(m, language) for m in messages)
     except Exception:  # noqa: BLE001
         return False
 
@@ -290,14 +294,21 @@ def _store_episode(db: Any, user_id: int, text: str) -> bool:
 
 
 def record_answer(
-    db: Any, user_id: int, answer: str, last_sedi_reply: Optional[str], *, last_user_message: Optional[str] = None, language: str = "fa"
+    db: Any,
+    user_id: int,
+    answer: str,
+    last_sedi_reply: Optional[str],
+    *,
+    last_user_message: Optional[str] = None,
+    language: str = "fa",
+    context: Optional[list] = None,
 ) -> bool:
     """The user's answer to the journey interview - or to the chat-path interview guide's question about a complaint (DEBT-079) -
     becomes a short I6 episode note (deterministic, consent-gated, fail-open)."""
     try:
         if db is None or not (answer or "").strip():
             return False
-        if not (is_interview_reply(last_sedi_reply) or _guide_asked(last_user_message, last_sedi_reply, language)):
+        if not (is_interview_reply(last_sedi_reply) or _guide_asked(last_user_message, last_sedi_reply, language, context)):
             return False
         text = " ".join(answer.split())[:90]
         if len(text) < 3:

@@ -167,3 +167,33 @@ def test_p2_a_relatives_earlier_complaint_makes_the_answer_not_the_users_episode
     assert j.record_answer(MagicMock(), 1, "از دو روز پیش شروع شد", "از کی شروع شده؟", last_user_message="مادرم درد دارد") is False
     assert wrote == []
     assert j.record_answer(MagicMock(), 1, "از دو روز پیش شروع شد", "از کی شروع شده؟", last_user_message="سرم درد دارد") is True
+
+
+# --- Codex round 3 on PR 199 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_later_answer_in_the_same_question_run_is_recorded_without_restating_the_complaint(monkeypatch):
+    from backend.app.services import candidate_promotion_service as cp
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    import backend.app.services.i6.consent_service as consent
+    import backend.app.services.i7.retention as retention
+    from backend.app.services.i6 import memory_writes
+
+    wrote = []
+    monkeypatch.setattr(cp, "_merge_list_value", lambda db, uid, dom, key, value: [value])
+    monkeypatch.setattr(memory_writes, "write_fact", lambda db, uid, dom, key, value, **k: wrote.append(value[0]))
+    monkeypatch.setattr(consent, "has_permission", lambda *a, **k: True)
+    now = datetime.utcnow()
+    rows = [  # newest first: headache -> «when did it start?» -> «two days ago» -> «when does it get worse?»
+        SimpleNamespace(user_message="It started two days ago", sedi_response="When does it get worse?", created_at=now),
+        SimpleNamespace(user_message="I have a headache", sedi_response="When did it start?", created_at=now),
+    ]
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: rows)
+    orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
+    orch.process(authenticated_user_id=42, message="Every day after meals it gets worse", language="en")
+    assert wrote and "after meals" in wrote[0]
+
+
+def test_p2_the_run_stops_where_sedi_asked_nothing_and_a_relative_anywhere_in_it_blocks_capture():
+    assert j._guide_asked("It started two days ago", "When does it get worse?", "en", ["I have a headache"]) is True
+    assert j._guide_asked("It started two days ago", "When does it get worse?", "en", ["My mother has a headache"]) is False
+    assert j._guide_asked("It started two days ago", "Thanks.", "en", ["I have a headache"]) is False  # Sedi asked nothing now
+    assert j._guide_asked("Hello", "How are you?", "en", ["Good morning"]) is False  # no complaint anywhere
