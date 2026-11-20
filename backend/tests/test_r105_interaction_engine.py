@@ -210,3 +210,14 @@ def test_p2_a_complete_replacement_request_keeps_its_own_specialty():
     prior = "یه دکتر قلب در پردیس"
     q = ci.first_question(prior, "fa")
     assert ci.request_for_answer(prior, q, "یه دکتر پوست در شیراز معرفی کن", "fa") is None  # it is a request of its own
+
+
+def test_p2_a_replacement_request_in_the_middle_becomes_the_new_chain_root():
+    first_q = ci.first_question("یه دکتر قلب در پردیس", "fa")
+    new_request = "یه دکتر پوست در کرمانشاه معرفی کن"
+    second_q = ci.first_question(new_request, "fa")
+    assert ci.is_place_question(second_q)
+    rows = [_turn(new_request, second_q), _turn("یه دکتر قلب در پردیس", first_q)]
+    done = ci.request_for_chain(rows, "بله", "fa")
+    status, place = ci.place_status(done)
+    assert done and "پوست" in done and "قلب" not in done and status == "ok" and place.city == "کرمانشاه"

@@ -284,7 +284,10 @@ def request_for_chain(rows: list, answer: str, language: str) -> Optional[str]:
             return None
         cur = getattr(chain[-1], "user_message", None)  # the original request (the oldest question's own turn)
         for i in range(len(chain) - 2, -1, -1):  # replay each earlier partial answer, oldest first
-            cur = request_for_answer(cur, getattr(chain[i + 1], "sedi_response", None), getattr(chain[i], "user_message", ""), language) or cur
+            said = getattr(chain[i], "user_message", "") or ""
+            step = request_for_answer(cur, getattr(chain[i + 1], "sedi_response", None), said, language)
+            # a standalone replacement request («یه دکتر پوست در کرمانشاه معرفی کن») starts a NEW chain root (Codex P2, PR 194)
+            cur = step or (said if cn.is_care_navigation_query(said) and sl.find_specialty(said) else cur)
         return request_for_answer(cur, getattr(chain[0], "sedi_response", None), answer, language)
     except Exception:  # noqa: BLE001
         return None
