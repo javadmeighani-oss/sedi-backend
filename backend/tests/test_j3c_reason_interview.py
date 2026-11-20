@@ -109,8 +109,9 @@ def test_the_answer_runs_the_search_for_the_right_specialty(monkeypatch):
     seen = []
     orch, called = _orch(monkeypatch, last_row=last, seen=seen)
     out = orch.process(authenticated_user_id=42, message="سردرد دارم", language="fa")
-    assert called["gen"] is False and "CARE_NAVIGATION_REASON_ASKED" not in out.reason_codes
-    assert seen and "اعصاب" in (seen[0] or "")  # the neurology stem reached the directory search
+    # R-106 (Javad 2026-11-19): «پردیس» is NOT trusted silently - the specialty is understood, then the PLACE is confirmed first
+    assert called["gen"] is False and seen == []
+    assert ci.is_place_question(out.message) and "پردیس" in out.message
 
 
 def test_an_old_question_is_not_continued(monkeypatch):

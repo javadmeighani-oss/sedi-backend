@@ -1326,7 +1326,7 @@ class IntelligenceOrchestrator:
                 resolve_care_navigation,
             )
 
-            from backend.app.services.i5.care_nav_interview import reason_question
+            from backend.app.services.i5.care_nav_interview import first_question as reason_question
 
             _reason_q = reason_question(message, lang) if not is_directory_source_question(message) else None
             if _reason_q:

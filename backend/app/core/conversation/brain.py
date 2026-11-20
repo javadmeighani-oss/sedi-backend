@@ -1003,6 +1003,7 @@ class ConversationBrain:
                         # R-014 grounding: no relative/condition claim that the user or their memory never supplied.
                         from backend.app.services.intelligence.grounding_guard import (
                             collapse_repetitions,
+                            MAX_QUESTIONS_PER_REPLY,
                             limit_questions,
                             strip_hedging_offers,
                             strip_self_limit_disclaimers,
@@ -1031,7 +1032,7 @@ class ConversationBrain:
                         from backend.app.services.intelligence.conversation_flow import strip_echo
 
                         sedi_response = strip_echo(sedi_response, user_message, lang)
-                        sedi_response = limit_questions(sedi_response, 1)
+                        sedi_response = limit_questions(sedi_response, MAX_QUESTIONS_PER_REPLY)
                         # R-064: one typography contract (paragraphs, punctuation, half-space, digits) for every reply.
                         from backend.app.typography import normalize as _normalize_typography
 

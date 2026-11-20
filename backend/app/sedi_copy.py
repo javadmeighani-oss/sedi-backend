@@ -1514,6 +1514,26 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'رأيت رقمه أو عنوانه في صفحته',
         'en': 'I saw its number or address on its own page',
     },
+    'care_nav.ask_place': {
+        'fa': 'منظورت {place} است یا جای دیگری؟ اگر جای دیگری است، نام محله و شهرش را بگو.',
+        'ar': 'هل تقصد {place} أم مكاناً آخر؟ وإن كان مكاناً آخر فاذكر الحي والمدينة.',
+        'en': 'Do you mean {place}, or somewhere else? If somewhere else, tell me the neighbourhood and the city.',
+    },
+    'care_nav.markers.place': {
+        'fa': ('یا جای دیگری',),
+        'ar': ('أم مكاناً آخر',),
+        'en': ('or somewhere else',),
+    },
+    'care_nav.ask_place_city': {
+        'fa': '«{area}» در کدام شهر است؟',
+        'ar': 'في أي مدينة يقع «{area}»؟',
+        'en': 'Which city is “{area}” in?',
+    },
+    'care_nav.markers.place_city': {
+        'fa': ('در کدام شهر است',),
+        'ar': ('في أي مدينة يقع',),
+        'en': ('which city is',),
+    },
     'care_nav.ask_location': {
         'fa': 'برای اینکه پزشک یا مرکز نزدیک تو را پیدا کنم، در کدام شهر و چه محله‌ای هستی؟ مثلاً «تهران، نارمک».',
         'ar': 'لأجد لك طبيباً أو مركزاً قريباً، في أي مدينة وأي حيّ أنت؟ مثلاً «طهران، نارمك».',
