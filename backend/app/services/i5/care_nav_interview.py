@@ -261,7 +261,7 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             from backend.app.services.care_journey.journey import _answers_the_interview
 
             # only a message that ANSWERS the health interview (or says «just introduce») binds; a reminder or another request stays as it is
-            if _OTHER_REQUEST.search(text) or not (_answers_the_interview(text, language) or _SKIP_INTAKE.search(text)):
+            if _OTHER_REQUEST.search(text) or cn.is_care_navigation_query(text) or not (_answers_the_interview(text, language) or _SKIP_INTAKE.search(text)):
                 return None
             quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
             return _with_qualifiers(prior_request.strip(), quals, language)

@@ -602,7 +602,14 @@ class IntelligenceOrchestrator:
                         return (_cn.parse_care_nav_request(text, language=lang).entity, _sl.find_specialty(text))
 
                     asked = {_kind(getattr(x, "user_message", None) or "") for x in rows[i:]} - {None}
-                    done = _kind(message) in asked
+                    now_kind = _kind(message)
+                    # the interview is done unless THIS request is provably another one (another provider kind, or another named
+                    # specialty): raw turns of the reason flow carry no specialty, so a missing one on either side is no conflict (Codex P2, round 3)
+                    conflict = bool(asked) and now_kind is not None and (
+                        all(a[0] != now_kind[0] for a in asked)
+                        or (now_kind[1] is not None and any(a[1] is not None for a in asked) and now_kind[1] not in {a[1] for a in asked})
+                    )
+                    done = not conflict
                     break
             return _journey.intake_message(self._db, user_id, message, lang, intake_done=done)
         except Exception:  # noqa: BLE001

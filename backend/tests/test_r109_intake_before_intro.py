@@ -192,3 +192,25 @@ def test_p2_a_lab_request_without_a_specialty_is_not_interviewed_twice(monkeypat
     assert "R109_CARE_JOURNEY_INTAKE" not in second.reason_codes and "آزمایشگاه" in second.message and not j.is_interview_reply(second.message)  # the skip reaches the directory (lab path)
     third = orch2.process(authenticated_user_id=42, message=lab, language="fa")
     assert "R109_CARE_JOURNEY_INTAKE" not in third.reason_codes
+
+
+# --- Codex round 3 on PR 198 ------------------------------------------------------------------------------------------------------------------
+def test_p2_the_reason_flow_does_not_ask_the_intake_twice(monkeypatch):
+    """«a good doctor in Pardis» -> «my heart hurts sometimes» (reason flow) -> intake -> answer: the raw turns carry no specialty."""
+    _owners(monkeypatch, open_count=1)
+    rows = [
+        SimpleNamespace(user_message="گاهی قلبم درد می‌کند", sedi_response=_interview_reply(), created_at=datetime.utcnow()),
+        SimpleNamespace(user_message="یه دکتر خوب در شهر پردیس معرفی کن", sedi_response=cni.reason_question("یه دکتر خوب در شهر پردیس معرفی کن", "fa"), created_at=datetime.utcnow()),
+    ]
+    orch, searched = _orch(monkeypatch, rows=rows)
+    out = orch.process(authenticated_user_id=42, message="از دو روز پیش شروع شده و قبلاً نداشتم", language="fa")
+    assert "R109_CARE_JOURNEY_INTAKE" not in out.reason_codes and searched
+
+
+def test_p2_another_kind_or_specialty_still_gets_its_own_intake(monkeypatch):
+    _owners(monkeypatch)
+    heart = SimpleNamespace(user_message=REQUEST, sedi_response=_interview_reply(), created_at=datetime.utcnow())
+    orch, searched = _orch(monkeypatch, rows=[heart])
+    assert "R109_CARE_JOURNEY_INTAKE" in orch.process(authenticated_user_id=42, message="یه آزمایشگاه در شهر شیراز معرفی کن", language="fa").reason_codes
+    assert "R109_CARE_JOURNEY_INTAKE" in orch.process(authenticated_user_id=42, message="یه دکتر پوست در شهر شیراز معرفی کن", language="fa").reason_codes
+    assert searched == []
