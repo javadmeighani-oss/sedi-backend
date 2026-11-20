@@ -169,7 +169,7 @@ def test_p2_thanks_denials_and_information_questions_are_not_symptom_turns(messa
 
 
 def test_p2_a_real_complaint_next_to_an_idiom_is_still_a_symptom():
-    assert "symptom" in g.detect_topics("دستت درد نکنه، ولی سرم خیلی درد می‌کند", "fa") or True  # the idiom alone never decides
+    assert "symptom" in g.detect_topics("دستت درد نکنه، ولی سرم خیلی درد می‌کند", "fa")
     assert "symptom" in g.detect_topics("my head hurts a lot", "en")
 
 
@@ -179,3 +179,22 @@ def test_p2_a_relatives_symptom_never_becomes_the_users_episode():
     assert "symptom_episode" in ex.ALLOWED_FACTS
     assert ex._about_relative("My mother has chest pain since yesterday") and ex._about_relative("مادرم دو روز است قلب درد دارد")
     assert not ex._about_relative("I have chest pain since yesterday")
+
+
+# --- Codex round 3 on PR 195 ------------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "message",
+    ["I have chest pain since yesterday, no cough", "دستت درد نکنه، ولی سرم خیلی درد می‌کند", "ممنون؛ تب دارم و لرز", "thanks, but my back hurts"],
+)
+def test_p2_a_real_complaint_survives_an_idiom_or_denial_in_another_clause(message):
+    assert "symptom" in g.detect_topics(message, "fa" if any("؀" <= ch <= "ۿ" for ch in message) else "en")
+
+
+@pytest.mark.parametrize("message", ["تبریک میگم", "من اشتباه کردم", "در ارتباط با سفر سوال دارم", "دردسر نشه برات", "ورمز کامپیوتر خراب شده"])
+def test_p2_persian_symptom_words_never_match_inside_unrelated_words(message):
+    assert "symptom" not in g.detect_topics(message, "fa")
+
+
+@pytest.mark.parametrize("message", ["دردم شدید است", "سرم درد می‌کند", "تب دارم", "تبم بالا رفته", "سرفه‌هایم زیاد شده", "تنگی نفس دارم", "درد دارم"])
+def test_p2_inflected_persian_symptom_words_still_match(message):
+    assert "symptom" in g.detect_topics(message, "fa")

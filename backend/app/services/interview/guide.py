@@ -55,12 +55,14 @@ _WORK_LIFE = re.compile(
     r"الوظيفة|المدير|زميل|العمل|الأسرة|الزوج|الزوجة|الأولاد|الطلاق|وحيد|ديون)",
     re.I,
 )
+_SFX = r"(?:م|ت|ش|ی|ان|ها|هایم|هایش|مان|تان|شان)?"  # Persian possessive / plural clitics
 _PAIN = re.compile(
-    r"(?:درد|سوزش|گرفتگی|تپش|خفقان|سرگیجه|تهوع|تنگی نفس|خارش|ورم|تب|سرفه|بی ?حال|ضعف|لرز|"
+    r"(?<!\w)(?:درد|سوزش|گرفتگی|تپش|خفقان|سرگیجه|تهوع|تنگی\s*نفس|خارش|ورم|تب|سرفه|بی\s*حال|ضعف|لرز)" + _SFX + r"(?!\w)|"
     r"\b(?:pain|hurts?|ache|aching|dizzy|nausea|palpitations?|short of breath|fever|cough|swelling|itch|symptom)s?\b|"
-    r"ألم|يؤلم|دوخة|غثيان|خفقان|ضيق في التنفس|حمى|سعال|تورم|حكة)",
+    r"(?<!\w)(?:ألم|يؤلم|دوخة|غثيان|خفقان|ضيق في التنفس|حمى|سعال|تورم|حكة)(?:ني|ي|ه|ها|ك|نا|ات|ان)?(?!\w)",
     re.I,
 )
+_CLAUSES = re.compile(r"[،,؛;.!?؟\n]+|\s(?:ولی|اما|اگرچه|but|however|although)\s", re.I)
 
 
 # not a complaint: the Persian thank-you idiom, a denial («I have no pain»), a definition/information question
@@ -84,11 +86,10 @@ def detect_topics(message: str, language: str = "fa") -> set[str]:
     """{'symptom', 'work_life'} - the interview topics this message is about (may be both, may be neither)."""
     text = message or ""
     out: set[str] = set()
-    if _NOT_A_COMPLAINT.search(text):
-        pass  # thanks / denial / information question: not a symptom turn (the work-life check below still runs)
-    elif _PAIN.search(text):
+    # per CLAUSE: a thanks idiom / denial / information question in ONE clause must not hide a real complaint in another (Codex P2)
+    if any(c.strip() and not _NOT_A_COMPLAINT.search(c) and _PAIN.search(c) for c in _CLAUSES.split(text)):
         out.add("symptom")
-    else:
+    elif not _NOT_A_COMPLAINT.search(text):
         try:
             from backend.app.services.care_navigation import symptom_triage
 
