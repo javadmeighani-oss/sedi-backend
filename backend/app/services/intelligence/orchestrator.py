@@ -586,12 +586,19 @@ class IntelligenceOrchestrator:
                 return None
             rows = query_eligible_raw(self._db, user_id, limit=4) or []
             now = datetime.utcnow()
-            done = any(
-                _journey.is_interview_reply(getattr(r, "sedi_response", None))
-                and getattr(r, "created_at", None) is not None
-                and now - r.created_at.replace(tzinfo=None) < timedelta(minutes=30)
-                for r in rows
-            )
+            from backend.app.services.i5 import specialty_lexicon as _sl
+
+            # the interview counts only for THIS request's specialty (Codex P2, PR 198): the earlier heart interview does not excuse a skin search
+            done = False
+            for i, r in enumerate(rows):
+                if (
+                    _journey.is_interview_reply(getattr(r, "sedi_response", None))
+                    and getattr(r, "created_at", None) is not None
+                    and now - r.created_at.replace(tzinfo=None) < timedelta(minutes=30)
+                ):
+                    asked = {_sl.find_specialty(getattr(x, "user_message", None) or "") for x in rows[i:]} - {None}
+                    done = _sl.find_specialty(message) in asked
+                    break
             return _journey.intake_message(self._db, user_id, message, lang, intake_done=done)
         except Exception:  # noqa: BLE001
             return None

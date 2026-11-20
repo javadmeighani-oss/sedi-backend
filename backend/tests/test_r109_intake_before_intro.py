@@ -154,3 +154,26 @@ def test_without_memory_consent_the_user_gets_the_search_not_a_question_that_can
     out = orch.process(authenticated_user_id=42, message=REQUEST, language="fa")
     assert "R109_CARE_JOURNEY_INTAKE" not in out.reason_codes and searched
     assert consent is not None
+
+
+# --- Codex round 1 on PR 198 ------------------------------------------------------------------------------------------------------------------
+def test_p2_an_unrelated_message_after_the_interview_is_not_bound_to_the_doctor_request():
+    reply = _interview_reply()
+    assert cni.request_for_answer(REQUEST, reply, "فردا ساعت ۸ یادم بنداز قرصم را بخورم", "fa") is None
+    assert cni.request_for_answer(REQUEST, reply, "remind me to take my medicine tomorrow", "en") is None
+    assert cni.request_for_answer(REQUEST, reply, "یه دندانپزشک پیدا کن", "fa") is None
+
+
+def test_p2_a_skip_phrase_still_proceeds_to_the_introduction():
+    reply = _interview_reply()
+    for phrase in ("فقط معرفی کن", "بدون سوال همین الان معرفی کن", "just introduce someone"):
+        out = cni.request_for_answer(REQUEST, reply, phrase, "fa" if phrase[0] != "j" else "en")
+        assert out and "پردیس" in out, phrase
+
+
+def test_p2_the_earlier_heart_interview_does_not_excuse_a_skin_request(monkeypatch):
+    _owners(monkeypatch)
+    asked = SimpleNamespace(user_message=REQUEST, sedi_response=_interview_reply(), created_at=datetime.utcnow())
+    orch, searched = _orch(monkeypatch, rows=[asked])
+    out = orch.process(authenticated_user_id=42, message="یه دکتر پوست در شهر شیراز معرفی کن", language="fa")
+    assert "R109_CARE_JOURNEY_INTAKE" in out.reason_codes and searched == []  # a new complaint gets its own intake

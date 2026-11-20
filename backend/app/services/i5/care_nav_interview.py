@@ -33,6 +33,16 @@ _DONT_KNOW = re.compile(
 _NEVERMIND = re.compile(r"ولش ?کن|بیخیال|نمی ?خواهم|نمیخوام|نمی ?خوام|لازم ?نیست|never ?mind|forget it|cancel|لا أريد|لا حاجة", re.I)
 
 
+_SKIP_INTAKE = re.compile(
+    r"فقط\s*معرفی|همین\s*الان|بدون\s*سوال|سوال\s*نپرس|(?:^|\s)معرفی\s*کن|(?:^|\s)(?:just (?:introduce|find|show)|skip|no questions)\b|فقط\s*رشح|بدون\s*أسئلة",
+    re.I,
+)
+
+
+# a reminder / alarm request is its own flow, never an answer about the health episode (Codex P2, PR 198)
+_OTHER_REQUEST = re.compile(r"یاد(?:م|ما|مان)?\s*(?:بنداز|بده|بنداز)|یادآور|یاد\s*آور|\bremind(?:er)?\b|\balarm\b|ذكرني|تذكير|منبه", re.I)
+
+
 def _key(text: Optional[str]) -> str:
     return _NON_LETTERS.sub("", (text or "").lower())
 
@@ -248,6 +258,11 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             return None  # an emergency is never completed into a routine search, whatever else the answer says (Codex P1)
         urgent = symptom_triage.triage(text, language).urgency == "soon"
         if asked_intake and not asked_reason and not asked_place:  # the interview is answered: introduce NOW, tailored by what was said
+            from backend.app.services.care_journey.journey import _answers_the_interview
+
+            # only a message that ANSWERS the health interview (or says «just introduce») binds; a reminder or another request stays as it is
+            if _OTHER_REQUEST.search(text) or not (_answers_the_interview(text, language) or _SKIP_INTAKE.search(text)):
+                return None
             quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
             return _with_qualifiers(prior_request.strip(), quals, language)
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
