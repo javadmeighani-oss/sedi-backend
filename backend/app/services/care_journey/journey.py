@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from datetime import datetime
 from typing import Any, Optional
 
 from backend.app import sedi_copy
@@ -249,7 +250,8 @@ def apply_status(db: Any, user_id: int, text: str, language: str) -> Optional[st
             db.rollback()
             return None
         db.commit()
-        _store_episode(db, user_id, sedi_copy.t(f"journey.status_note.{signal}", lang))
+        # the note carries its day: the episode list de-duplicates equal strings, so a second «better» (a later complaint) must differ
+        _store_episode(db, user_id, f"{sedi_copy.t(f'journey.status_note.{signal}', lang)} · {datetime.utcnow().date().isoformat()}")
         return signal
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] journey status not applied")

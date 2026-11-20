@@ -374,6 +374,59 @@ def _open_journey_tasks(db: Session, user_id: int) -> list:
     ]
 
 
+def open_follow_ups(db: Session, user_id: int) -> list[dict]:
+    """R-108: the user's open follow-up chains as plain data, oldest first: ``{kind: 'journey'|'commitment', tier, domain, due_at,
+    attempt}`` (``tier`` only for a journey). The single public read the care state uses (no caller touches the task rows)."""
+    out: list[dict] = []
+    try:
+        horizon = datetime.utcnow() - JOURNEY_OPEN_WINDOW
+        chosen: dict = {}  # chain id -> the task that DESCRIBES the chain: its pending (OPEN) attempt, else the latest delivered one
+        for t in _commitment_tasks(db, user_id):  # ascending id: later attempts replace earlier ones
+            meta = meta_of(t)
+            domain = meta.domain or ""
+            if domain.startswith(_JOURNEY_PREFIX) and t.due_at is not None and t.due_at < horizon:
+                continue  # an exhausted chain ages out (same rule as open_journey_count)
+            chain = meta.chain_id or t.id
+            current = chosen.get(chain)
+            if current is None or t.status == FollowUpTaskStatus.OPEN.value or current.status != FollowUpTaskStatus.OPEN.value:
+                chosen[chain] = t  # a delivered (NOTIFIED) attempt never hides the pending one that follows it (Codex P2, PR 202)
+        for chain in sorted(chosen):
+            t = chosen[chain]
+            meta = meta_of(t)
+            domain = meta.domain or ""
+            is_journey = domain.startswith(_JOURNEY_PREFIX)
+            out.append(
+                {
+                    "kind": "journey" if is_journey else "commitment",
+                    "tier": domain[len(_JOURNEY_PREFIX):] if is_journey else None,
+                    "domain": domain,
+                    "due_at": t.due_at,
+                    "attempt": int(getattr(meta, "attempt", 1) or 1),
+                }
+            )
+    except Exception:
+        logger.exception("[R-108] open follow-ups not read")
+    return out
+
+
+def resolved_journeys_since(db: Session, user_id: int, since: datetime) -> int:
+    """How many care-journey chains the user closed (DONE) since ``since`` - the «recently resolved» count of the care state."""
+    try:
+        rows = (
+            db.query(models.CareFollowUpTask)
+            .filter(
+                models.CareFollowUpTask.user_id == user_id,
+                models.CareFollowUpTask.status == FollowUpTaskStatus.DONE.value,
+                models.CareFollowUpTask.updated_at >= since,
+                models.CareFollowUpTask.description.contains(f'"domain":"{_JOURNEY_PREFIX}'),
+            )
+            .all()
+        )
+        return len({meta_of(t).chain_id or t.id for t in rows})
+    except Exception:
+        return 0
+
+
 def resolve_journey(db: Session, user_id: int) -> bool:
     """DEBT-080: the user says the complaint is better/gone -> every open journey chain ends (DONE for its first open task, the rest
     cancelled, I7 user_done recorded by ``apply_done``). False when no journey is open."""

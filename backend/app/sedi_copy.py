@@ -2229,6 +2229,36 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'بُني هذا التقرير فقط على ما أخبرتَ به صدي أو سجّلته بنفسك، وهو ليس تشخيصاً طبياً.',
         'en': 'This report is built only from what you told Sedi or recorded yourself. It is not a medical diagnosis.',
     },
+    'care_state.issue.open': {
+        'fa': 'موضوع باز: «{text}»',
+        'ar': 'موضوع مفتوح: «{text}»',
+        'en': 'Open issue: “{text}”',
+    },
+    'care_state.issue.better': {
+        'fa': 'موضوع باز، رو به بهبود: «{text}»',
+        'ar': 'موضوع مفتوح، في تحسّن: «{text}»',
+        'en': 'Open issue, improving: “{text}”',
+    },
+    'care_state.issue.worse': {
+        'fa': 'موضوع باز، بدتر شده: «{text}»',
+        'ar': 'موضوع مفتوح، ساء: «{text}»',
+        'en': 'Open issue, getting worse: “{text}”',
+    },
+    'care_state.followup': {
+        'fa': 'پیگیری مراقبتی فعال است',
+        'ar': 'المتابعة الصحية نشطة',
+        'en': 'A care follow-up is active',
+    },
+    'care_state.event': {
+        'fa': 'نوبت پیش‌رو: {title}',
+        'ar': 'موعد قادم: {title}',
+        'en': 'Upcoming: {title}',
+    },
+    'care_state.resolved': {
+        'fa': 'این هفته {n} موضوع حل شد',
+        'ar': 'هذا الأسبوع تم حل {n} موضوع',
+        'en': '{n} issue(s) resolved this week',
+    },
     'journey.status_note.better': {
         'fa': 'وضعیت بعدی: بهتر شده است',
         'ar': 'الحالة لاحقاً: تحسّنت',
