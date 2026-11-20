@@ -104,6 +104,33 @@ def _fact_lines(facts: dict, *pairs: tuple[str, str], newest: bool = False) -> l
     return lines[-MAX_ITEMS:] if newest else lines[:MAX_ITEMS]
 
 
+def _structured_allergies(db: Any, user_id: int) -> list[str]:
+    """Currently valid allergies of the structured owner (UserProfileFact ``allergy``) - the same ones the plan builder trusts
+    (i8/context.load_trusted_context). Accepted allergy statements land here, not in the intake facts (Codex P2, PR 200)."""
+    try:
+        from backend.app import models
+
+        now = datetime.utcnow()
+        out: list[str] = []
+        for row in (
+            db.query(models.UserProfileFact)
+            .filter(models.UserProfileFact.user_id == user_id, models.UserProfileFact.fact_type == "allergy")
+            .all()
+        ):
+            if (row.valid_to is not None and row.valid_to <= now) or (row.valid_from is not None and row.valid_from > now):
+                continue
+            try:
+                value = json.loads(row.value_json)
+            except Exception:  # noqa: BLE001
+                continue
+            for item in _items(value):
+                if item not in out:
+                    out.append(item)
+        return out[:MAX_ITEMS]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def _about(db: Any, user_id: int, lang: str) -> list[str]:
     try:
         from backend.app.services.user_context.user_state import get_user_state
@@ -199,7 +226,11 @@ def _section_lines(key: str, db: Any, user_id: int, facts: dict, lang: str) -> l
     if key == "history":
         return _fact_lines(facts, ("medical", "family_history"))
     if key == "allergies":
-        return _fact_lines(facts, ("intake", "allergies"))
+        lines = _fact_lines(facts, ("intake", "allergies"))
+        for item in _structured_allergies(db, user_id):
+            if item not in lines:
+                lines.append(item)
+        return lines[:MAX_ITEMS]
     if key == "meds":
         return _meds(db, user_id, lang)
     if key == "sleep":

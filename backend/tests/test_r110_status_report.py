@@ -250,3 +250,33 @@ def test_p2_an_ended_plan_cycle_is_not_reported_as_this_weeks_plan(monkeypatch):
         assert b._plan_lines(None, 1, "nutrition", "fa") == []
     monkeypatch.setattr(proj, "build_lifestyle_weekly_plan_projection", lambda db, uid: {"state": "active", "days": days})
     assert b._plan_lines(None, 1, "nutrition", "fa") == ["روز 1: املت"]
+
+
+# --- Codex round 2 on PR 200 ------------------------------------------------------------------------------------------------------------------
+def _allergy_db(rows):
+    from unittest.mock import MagicMock
+
+    db = MagicMock()
+    db.query.return_value.filter.return_value.all.return_value = rows
+    return db
+
+
+def test_p2_structured_allergies_are_merged_with_the_intake_ones():
+    from datetime import datetime, timedelta
+
+    now = datetime.utcnow()
+    rows = [
+        SimpleNamespace(value_json='["بادام زمینی"]', valid_from=None, valid_to=None),
+        SimpleNamespace(value_json='"پنی‌سیلین"', valid_from=now - timedelta(days=3), valid_to=now + timedelta(days=3)),
+        SimpleNamespace(value_json='["قدیمی"]', valid_from=None, valid_to=now - timedelta(days=1)),   # ended
+        SimpleNamespace(value_json='["آینده"]', valid_from=now + timedelta(days=1), valid_to=None),    # not yet valid
+        SimpleNamespace(value_json="{broken", valid_from=None, valid_to=None),
+    ]
+    assert b._structured_allergies(_allergy_db(rows), 1) == ["بادام زمینی", "پنی‌سیلین"]
+    facts = {("intake", "allergies"): ["پنی‌سیلین", "گرد و غبار"]}
+    assert b._section_lines("allergies", _allergy_db(rows), 1, facts, "fa") == ["پنی‌سیلین", "گرد و غبار", "بادام زمینی"]
+
+
+def test_p2_the_structured_allergy_reader_fails_open():
+    assert b._structured_allergies(None, 1) == []
+    assert b._section_lines("allergies", None, 1, {("intake", "allergies"): ["الف"]}, "fa") == ["الف"]
