@@ -41,12 +41,13 @@ def _commitments(db, user):
 def test_the_reason_after_a_promotion_is_left_to_the_chat_model_and_the_companionship_is_tracked(db, user):
     _to_the_reason_question(db, user)
     assert _commitments(db, user) == 0
-    assert cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ) is None  # no canned reply
+    assert cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ) == cr.MODEL_OWNED_REPLY  # no canned reply: the model answers
     assert _commitments(db, user) == 1  # ONE tracked commitment (the existing I10 loop) - the follow-up is real
 
 
 def test_the_hint_carries_the_schedule_the_reason_frame_and_the_caretaker_steps(db, user):
     _to_the_reason_question(db, user)
+    cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ)  # the flow runs first: the commitment exists
     hint = guide.hint_for_turn(db, user.id, REASON, "fa")
     assert hint.startswith("REASON ANSWER (R-112)")
     assert "«قرص مکمل»" in hint and "09:00، 16:00" in hint                      # the facts from memory: the pill and ITS NEW times
@@ -61,6 +62,7 @@ def test_a_known_age_and_sex_are_given_to_the_model(db, user, monkeypatch):
     from backend.app.services.user_context import user_state as us
 
     _to_the_reason_question(db, user)
+    cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ)
     monkeypatch.setattr(us, "get_user_state", lambda d, u: us.UserState(user_id=u, age=34, sex="male"))
     hint = guide.hint_for_turn(db, user.id, REASON, "fa")
     assert "34, male" in hint and "normal at that age" in hint and "age is unknown" not in hint
@@ -73,7 +75,7 @@ def test_a_new_pill_follows_the_same_path_after_its_reason(db, user):
     reply = cr.continue_interview(db, user_id=user.id, message="ویتامین دی", language="fa", timezone_name=TZ)
     assert cr._stage_of(reply, "fa") == "ask_reason"
     _say(db, user, "ویتامین دی", reply)
-    assert cr.continue_interview(db, user_id=user.id, message="چون کمبود دارم و خسته‌ام", language="fa", timezone_name=TZ) is None
+    assert cr.continue_interview(db, user_id=user.id, message="چون کمبود دارم و خسته‌ام", language="fa", timezone_name=TZ) == cr.MODEL_OWNED_REPLY
     assert _commitments(db, user) == 1
     hint = guide.hint_for_turn(db, user.id, "چون کمبود دارم و خسته‌ام", "fa")
     assert "«ویتامین دی»" in hint and "09:00، 16:00" in hint
@@ -145,3 +147,32 @@ def test_p2_the_models_own_promise_does_not_create_a_second_follow_up_chain(db, 
     index = source.index("_reason_turn = any(")
     assert "capture_from_reply(self.db, user_id, sedi_response, lang, user_message=user_message)" in source[index:index + 700]
     assert source[index:index + 700].index("if not _reason_turn") < source[index:index + 700].index("capture_from_reply(self.db")
+
+
+# --- Codex round 2 on PR 207 ------------------------------------------------------------------------------------------------------------------
+def test_p2_the_follow_up_promise_is_requested_only_when_a_commitment_really_exists(db, user, monkeypatch):
+    from backend.app.services.i10 import commitment_followup as cf
+
+    _to_the_reason_question(db, user)
+    monkeypatch.setattr(cf, "capture_step", lambda *a, **k: None)  # e.g. a «bleeding» reason: the severe-symptom floor refuses the commitment
+    cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ)
+    hint = guide.hint_for_turn(db, user.id, REASON, "fa")
+    assert "do NOT promise a check-in tomorrow" in hint and "concrete follow-up promise" not in hint
+
+
+def test_p2_a_tracked_commitment_gets_the_promise_wording(db, user):
+    _to_the_reason_question(db, user)
+    cr.continue_interview(db, user_id=user.id, message=REASON, language="fa", timezone_name=TZ)
+    hint = guide.hint_for_turn(db, user.id, REASON, "fa")
+    assert "concrete follow-up promise" in hint and "do NOT promise" not in hint
+
+
+def test_p2_a_completed_reason_with_reminder_wording_is_answered_by_the_model_not_by_a_time_question(db, user):
+    """«…مصرفش می‌کنم، یادم بنداز»: the generic «what time?» clarification would fire; the completed interview clears it (Codex P2)."""
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+
+    _to_the_reason_question(db, user)
+    orch = IntelligenceOrchestrator(db=db, legacy_generator=lambda *a, **k: {"message": "MODEL-REPLY", "detected_name": None}, structured_mode=False)
+    out = orch.process(authenticated_user_id=user.id, message="برای ریزش مو مصرفش می‌کنم، یادم بنداز", language="fa")
+    assert "MODEL-REPLY" in out.message and "R112_REASON_ANSWER_BY_MODEL" in out.reason_codes
+    assert _commitments(db, user) == 1

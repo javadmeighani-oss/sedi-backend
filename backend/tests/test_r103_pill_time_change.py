@@ -160,7 +160,7 @@ def test_a_new_pill_request_with_two_times_creates_both_doses(db, user):
     reply = cr.continue_interview(db, user_id=user.id, message="ویتامین دی", language="fa", timezone_name=TZ)
     assert reply  # the name is taken, the reason is asked
     _say(db, user, "ویتامین دی", reply)
-    assert cr.continue_interview(db, user_id=user.id, message="چون کمبود دارم", language="fa", timezone_name=TZ) is None  # R-112: the model answers the reason
+    assert cr.continue_interview(db, user_id=user.id, message="چون کمبود دارم", language="fa", timezone_name=TZ) == ""  # R-112: the model answers the reason
     pills = reg.existing_pills(db, user.id)
     assert len(pills) == 1 and pills[0]["kind"] == "med" and pills[0]["times"] == ["09:00", "16:00"]  # both doses exist on the new medicine
 

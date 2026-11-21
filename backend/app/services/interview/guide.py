@@ -183,7 +183,12 @@ def reason_hint(db: Any, user_id: int, language: str = "fa", message: Optional[s
             "exercise); add suitable food and exercise suggestions in a short line. "
             + (f"Use the user's age and sex ({age}): say plainly what is normal at that age and what is not. " if age else "Their age is unknown: ask it as one of the questions. ")
             + "(5) Never diagnose, never start/stop/change a medicine or dose; one explicit «see a doctor / emergency if ...» line when it fits. "
-            "(6) End with a concrete follow-up promise (what you will ask them tomorrow). Speak with certainty, no hedging offers, no disclaimers."
+            + (
+                "(6) End with a concrete follow-up promise (what you will ask them tomorrow). "
+                if ctx.get("tracked")
+                else "(6) No follow-up could be tracked: do NOT promise a check-in tomorrow; invite them to tell you how it goes. "
+            )
+            + "Speak with certainty, no hedging offers, no disclaimers."
         )
     except Exception:  # noqa: BLE001
         return None

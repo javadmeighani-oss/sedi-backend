@@ -1664,6 +1664,12 @@ class IntelligenceOrchestrator:
                         skip_generator = True
                         clarification_message = None
                         extra_reason_codes.append("R088_MEDICATION_INTERVIEW_STEP")
+                    elif _med_reply == _med_chat.MODEL_OWNED_REPLY:
+                        # R-112: the interview completed on this message; the chat model answers the reason. A pending generic
+                        # «what time?» clarification is stale now (the schedule was already given) - clear it and let the model reply
+                        clarification_message = None
+                        skip_generator = False
+                        extra_reason_codes.append("R112_REASON_ANSWER_BY_MODEL")
             except Exception:  # noqa: BLE001
                 pass
 

@@ -146,6 +146,9 @@ def _fold(text: str) -> str:
     return _ARABIC_MARKS.sub("", out)
 
 
+MODEL_OWNED_REPLY = ""  # continue_interview: the interview COMPLETED on this message and the chat model writes the reply (R-112); None = not ours
+
+
 def enabled() -> bool:
     return os.getenv(DISABLED_ENV, "").strip().lower() not in {"1", "true", "yes", "on"}
 
@@ -626,7 +629,9 @@ def reason_context(
         times = reg.times_of(db, user_id, name)
         if not times:
             return None  # nothing is registered under that name: the model must not confirm a registration that did not happen
-        return {"name": name, "times": times}
+        from backend.app.services.i10 import commitment_followup as cf
+
+        return {"name": name, "times": times, "tracked": cf.recent_commitment_exists(db, user_id)}
     except Exception:  # noqa: BLE001
         return None
 
@@ -731,7 +736,7 @@ def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: st
         # R-112: a real REASON is answered like a caretaker by the chat model (reflection, clinician questions, how-to steps); the
         # deterministic part is only the tracked companionship - the schedule facts reach the model through the interview hint
         _accompany(db, user_id, lang, name, message)
-        return None
+        return MODEL_OWNED_REPLY
     return sedi_copy.t("medication.chat.promoted.done", lang, name=name, times=reg.times_text(reg.times_of(db, user_id, name), lang))
 
 
@@ -773,7 +778,7 @@ def continue_interview(
             if defer_reply:  # R-112: the reason is answered by the chat model; the registration + companionship are already done
                 if accompany:
                     _accompany(db, user_id, lang, out.get("name", ""), message)
-                return None
+                return MODEL_OWNED_REPLY
             text = sedi_copy.t(key_named if final_name else key_unnamed, lang, name=out.get("name", ""), time=out.get("time", ""))
             if accompany and _accompany(db, user_id, lang, out.get("name", ""), message):
                 text = text + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)

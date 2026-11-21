@@ -311,7 +311,7 @@ def test_an_independent_reminder_request_is_never_swallowed_by_the_interview(mon
 def test_a_reason_that_mentions_a_time_without_reminder_words_still_completes_the_interview(monkeypatch, interview):
     ask_reason = sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")
     reply = _go(monkeypatch, ask_reason, "برای کم‌کاری تیروئید؛ صبح‌ها ساعت ۸ ناشتا می‌خورمش")
-    assert interview == ["لووتیروکسین"] and reply is None  # R-112: created; the chat model answers the reason (reflection, questions, how-to)
+    assert interview == ["لووتیروکسین"] and reply == ""  # R-112: created; the chat model answers the reason (reflection, questions, how-to)
 
 
 @pytest.mark.parametrize(
