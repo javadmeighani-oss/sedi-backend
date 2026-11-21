@@ -536,25 +536,19 @@ class IntelligenceOrchestrator:
                 return message
             from datetime import datetime, timedelta
 
-            from backend.app import models
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
+            from backend.app.services.i7.retention import query_eligible_raw
             from backend.app.services.intelligence.specialist_offer import specialist_request_for_reply
 
-            last = (
-                self._db.query(models.Memory)
-                .filter(models.Memory.user_id == user_id)
-                .order_by(models.Memory.created_at.desc())
-                .first()
-            )
+            if not has_permission_readonly(self._db, user_id, PERM_READ):
+                return message  # past conversation is not read without memory-read consent (Codex P1, PR 208)
+            rows = query_eligible_raw(self._db, user_id, limit=4) or []  # the retention-eligible reader, newest first
+            last = rows[0] if rows else None
             if last is None or last.created_at is None:
                 return message
             if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
                 return message
-            recent = [
-                getattr(r, "user_message", None)
-                for r in (
-                    self._db.query(models.Memory).filter(models.Memory.user_id == user_id).order_by(models.Memory.created_at.desc()).limit(4).all()
-                )
-            ]
+            recent = [getattr(r, "user_message", None) for r in rows]
             return specialist_request_for_reply(getattr(last, "sedi_response", None), message, lang, context=recent) or message
         except Exception:
             return message

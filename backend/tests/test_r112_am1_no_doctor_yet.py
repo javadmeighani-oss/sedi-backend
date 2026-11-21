@@ -142,3 +142,16 @@ def test_p1_without_memory_read_consent_past_conversations_are_not_read(db, user
 def test_p2_the_specialty_of_the_offer_beats_a_complaint_word_in_the_same_reply():
     reply = "برای ریزش مو شاید بررسی هورمون لازم باشد. می‌خوای یه متخصص غدد پیدا کنم؟"
     assert offer_reply(reply, "آره", "fa") == "یه دکتر غدد برام پیدا کن"
+
+
+def test_p1_a_yes_to_an_offer_does_not_read_past_conversation_without_consent(db, user):
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    from backend.app.services.i6 import consent_service as consent
+
+    _say(db, user, "ریزش مو دارم", "از کی شروع شد؟")
+    _say(db, user, "دکتر نرفتم", "می‌خوای یه متخصص پیدا کنم؟")
+    orch = IntelligenceOrchestrator(db=db, legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
+    with_consent = orch._continue_specialist_offer(None, user.id, "آره", "fa")
+    assert with_consent == "یه دکتر پوست برام پیدا کن"          # permitted history: the specialty of the complaint is carried
+    consent.revoke_memory_consent(db, user.id)
+    assert orch._continue_specialist_offer(None, user.id, "آره", "fa") == "آره"  # revoked: nothing is read, the message stays as it is
