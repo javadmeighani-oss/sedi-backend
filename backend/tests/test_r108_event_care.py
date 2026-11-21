@@ -361,3 +361,28 @@ def test_p2_the_candidate_carries_the_expiry_and_other_followups_are_unchanged(d
     plain = models.CareFollowUpTask(user_id=user.id, title="x", description=pack_description(None, BoundedFollowUpMeta(follow_up_kind="commitment")),
                                     status="open", source="general_ctx")
     assert _event_care_validity(db, plain) == {}  # other follow-ups keep the default I10 lifetime
+
+
+# --- Codex round 3 on PR 204 ------------------------------------------------------------------------------------------------------------------
+def test_p2_revoked_consent_stops_an_existing_task(db, user):
+    _add_event(db, user)
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 08:55"))
+    task = _tasks(db)[0][1]
+    consent.revoke_memory_consent(db, user.id)
+    assert ec.may_send(db, task, _utc(f"{DAY} 09:00")) is False and task.status == "cancelled"  # title and place are never sent
+
+
+def test_p2_the_quiet_cutoff_holds_at_send_time(db, user):
+    _add_event(db, user, hhmm="23:50")
+    assert ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 21:55")) == 1     # check-in due 21:50, still before 22:00
+    pre = [t for k, t in _tasks(db) if k == ec.KIND_PRE][0]
+    assert ec.may_send(db, pre, _utc(f"{DAY} 22:10")) is False and pre.status == "cancelled"  # a late tick after 22:00 does not send it
+
+
+def test_p2_the_push_expiry_is_bounded_by_the_quiet_cutoff(db, user):
+    from datetime import timezone as tz
+
+    _add_event(db, user, hhmm="23:50")
+    ec.create_due_event_care_tasks(db, now=_utc(f"{DAY} 21:55"))
+    pre = [t for k, t in _tasks(db) if k == ec.KIND_PRE][0]
+    assert ec.expires_at(db, pre) == _utc(f"{DAY} 22:00").replace(tzinfo=tz.utc)  # 21:50 + 45 min would be 22:35: cut at 22:00

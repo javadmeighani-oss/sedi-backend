@@ -194,6 +194,10 @@ def expires_at(db: Session, task: models.CareFollowUpTask) -> Optional[datetime]
     if kind is None or start is None or due is None:
         return None
     limit = min(start, due + (_DAY_OF_GRACE if kind == KIND_DAY_OF else _PRE_GRACE))
+    zone = _zone(db, task.user_id)
+    local_due = _local(due, zone)
+    if local_due.hour < QUIET_FROM:  # a queued push cannot be delivered after 22:00 local either
+        limit = min(limit, _local_to_utc(datetime.combine(local_due.date(), time(QUIET_FROM, 0)), zone))
     return limit.replace(tzinfo=timezone.utc)
 
 
@@ -282,10 +286,16 @@ def may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
 
     if event is None or kind is None or not enabled() or (event.status or "") not in _ACTIVE_STATUSES:
         return drop()
+    from backend.app.services.i6.consent_service import PERM_WRITE, has_permission
+
+    if not has_permission(db, task.user_id, PERM_WRITE):
+        return drop()  # consent revoked after the task was created: the appointment's title and place are never sent (Codex P2, round 3)
     start = _starts_utc(event)
     if start is None or now_naive >= start:
         return drop()
     zone = _zone(db, task.user_id)
+    if not (QUIET_TO <= _local(now_naive, zone).hour < QUIET_FROM):
+        return drop()  # the 22:00-07:00 cutoff holds at SEND time too, not only when the task was scheduled (Codex P2, round 3)
     expected = due_times(event, zone, created_before_day_of=True).get(kind)
     due = _naive_utc(task.due_at)
     if expected is None or due is None or abs(expected - due) > _MOVED_TOLERANCE:
