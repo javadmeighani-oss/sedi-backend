@@ -174,15 +174,26 @@ def no_doctor_hint(db: Any, user_id: int, message: str, language: str = "fa") ->
         from backend.app.services.i5 import specialty_lexicon as sl
 
         problem, spec = "", None
+        # the complaint of THIS message beats a stored one («معده درد دارم و دکتر نرفتم» is not about the stored hair loss) - Codex P2, PR 208
         try:
-            from backend.app.services.care_state import get_care_state
+            from backend.app.services.care_navigation import symptom_triage
 
-            state = get_care_state(db, user_id)
-            if state is not None and state.issues:
-                problem = state.issues[0].text
-                spec = sl.find_specialty(problem)
+            spec = sl.find_specialty(message)
+            if spec is None:
+                tri = symptom_triage.triage(message, language)
+                spec = tri.specialties[0] if tri.areas and tri.specialties else None
         except Exception:  # noqa: BLE001
-            pass
+            spec = None
+        if spec is None:
+            try:
+                from backend.app.services.care_state import get_care_state
+
+                state = get_care_state(db, user_id)
+                if state is not None and state.issues:
+                    problem = state.issues[0].text
+                    spec = sl.find_specialty(problem)
+            except Exception:  # noqa: BLE001
+                pass
         if spec is None:
             try:
                 from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly

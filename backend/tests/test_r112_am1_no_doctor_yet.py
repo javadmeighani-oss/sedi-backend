@@ -155,3 +155,19 @@ def test_p1_a_yes_to_an_offer_does_not_read_past_conversation_without_consent(db
     assert with_consent == "یه دکتر پوست برام پیدا کن"          # permitted history: the specialty of the complaint is carried
     consent.revoke_memory_consent(db, user.id)
     assert orch._continue_specialist_offer(None, user.id, "آره", "fa") == "آره"  # revoked: nothing is read, the message stays as it is
+
+
+# --- Codex round 3 on PR 208 ------------------------------------------------------------------------------------------------------------------
+def test_p2_an_explicitly_named_specialty_beats_a_hair_complaint_word():
+    assert sl.find_specialty("یه متخصص غدد برای ریزش مو پیدا کن") == "غدد"
+    assert sl.find_specialty("دکتر زنان برای ریزش مو بعد از زایمان") == "زنان"
+    assert sl.find_specialty("ریزش مو دارم") == "پوست" and sl.find_specialty("hair loss") == "پوست"   # no specialty named: the complaint decides
+    assert sl.find_specialty("موضوع مهمی دارم") is None
+
+
+def test_p2_the_current_complaint_beats_a_stored_one(db, user):
+    _hair_issue(db, user)
+    stomach = guide.hint_for_turn(db, user.id, "معده درد دارم و دکتر نرفتم", "fa")
+    assert stomach.startswith(guide.NO_DOCTOR_PREFIX) and "for «ریزش مو»" not in stomach and "گوارش" in stomach
+    stored = guide.hint_for_turn(db, user.id, "دکتر نرفتم", "fa")
+    assert "for «ریزش مو»" in stored and "پوست" in stored                     # a bare «دکتر نرفتم» still uses what memory knows
