@@ -206,6 +206,51 @@ def fire_times(draft: Any) -> Optional[list[str]]:
     return [f"{start.hour:02d}:{start.minute:02d}"]
 
 
+_CHANGE = re.compile(
+    r"(?:تغییر\s*(?:بده|بدی|بدین|ده)|عوض\s*(?:کن|کنی|کنید|بشه|شود)|عوضش|جابه?\s*جا|به\s*جای|بجای|"
+    r"\b(?:change|replace|instead|move|switch|update)\b|غ[يی]ر|بدّل|بدل)",
+    re.IGNORECASE,
+)
+_SEGMENTS = re.compile(r"\s+و\s+|\s*[،,;]\s*|\s+and\s+|\s*&\s*|\s+و\s*بعد\s+|\s+بعدش\s+", re.IGNORECASE)
+MAX_REQUEST_TIMES = 6
+
+
+def says_change(text: str) -> bool:
+    """The user asks to CHANGE the time of the pill («ساعتشو تغییر بده», «change its time»), not to add one."""
+    return bool(_CHANGE.search(_fold(text or "")))
+
+
+def request_times(message: str) -> list[str]:
+    """Every clock time the user named, in the order said: «هر روز ۹ صبح و ۴ عصر» -> ['09:00', '16:00'] (Javad 2026-11-21: the second
+    time was silently dropped). One entry per distinct time; [] when the message names none."""
+    try:
+        from backend.app.services.intelligence import reminder_event_readiness as rer
+
+        out: list[str] = []
+        for seg in _SEGMENTS.split(rer._normalize(message or "")):
+            found = rer._resolve_time(seg) if seg.strip() else None
+            if found is None:
+                continue
+            hhmm = f"{found[0]:02d}:{found[1]:02d}"
+            if hhmm not in out:
+                out.append(hhmm)
+            if len(out) >= MAX_REQUEST_TIMES:
+                break
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def dose_times(draft: Any, message: Optional[str] = None) -> Optional[list[str]]:
+    """All dose times of the request: the several times the user said, else the one the parser found (None = the medication route
+    cannot represent the request, see ``fire_times``)."""
+    base = fire_times(draft)
+    if base is None:
+        return None
+    many = request_times(message) if message else []
+    return many if len(many) >= 2 else base
+
+
 def _days_of_week(rule: Optional[str]) -> Optional[str]:
     """«FREQ=WEEKLY;BYDAY=MO,TH» -> «0,3» (Monday = 0); daily -> None (every day)."""
     m = re.search(r"BYDAY=([A-Z,]+)", rule or "")
@@ -252,14 +297,15 @@ def history_available(db: Session, user_id: int) -> bool:
 
 
 def _create(
-    db: Session, *, user_id: int, draft: Any, language: Optional[str], timezone_name: Optional[str], name: Optional[str]
+    db: Session, *, user_id: int, draft: Any, language: Optional[str], timezone_name: Optional[str], name: Optional[str],
+    message: Optional[str] = None,
 ) -> Optional[dict[str, Any]]:
     """The ONLY medication-owner write of this flow. ``name`` None -> provisional name (A4 keeps asking later)."""
     try:
         from backend.app.schemas.medical import UserMedicationCreateIn
         from backend.app.services import user_medication_service as svc
 
-        times = fire_times(draft)
+        times = dose_times(draft, message)
         if not times:
             return None
         hhmm = times[0]
@@ -291,21 +337,48 @@ def _create(
 
 
 # --- turn 1: the request ------------------------------------------------------------------------------------------
-def _same_action(db: Session, *, user_id: int, pill: dict[str, Any], draft: Any, lang: str) -> Optional[dict[str, Any]]:
+def _same_action(
+    db: Session, *, user_id: int, pill: dict[str, Any], draft: Any, lang: str, message: Optional[str] = None, replace: bool = False
+) -> Optional[dict[str, Any]]:
     """The user's request is another dose of a pill that already exists: add the dose (registered pill) or PROMOTE the older
     reminder into the medicine owner (R-103 step B). None -> the caller continues with the ordinary interview."""
     try:
         from backend.app.services import user_medication_service as svc
         from backend.app.services.medication_care import pill_registry as reg
 
-        time_ = (fire_times(draft) or [_hhmm(draft)])[0]
+        wanted = dose_times(draft, message) or [_hhmm(draft)]
+        time_ = wanted[0]
         days = _days_of_week(getattr(draft, "recurrence_rule", None))
+        tz = getattr(draft, "timezone_name", None)
         try:
             if pill["kind"] == "med":
-                times = reg.add_dose(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
+                if replace:  # «change its time»: the doses become exactly what the user said
+                    times = reg.replace_times(db, user_id, pill, wanted, days, tz)
+                    return {"kind": "medication", "created": True, "flow": "dose_added", "name": pill["name"], "time": time_,
+                            "times": reg.times_text(times, lang)}
+                times, added = [], 0
+                for t in wanted:  # every time the user said is added; one that already exists is skipped
+                    try:
+                        times = reg.add_dose(db, user_id, pill, t, days, tz)
+                        added += 1
+                    except svc.ScheduleTimeCollisionError:
+                        continue
+                if not added:
+                    raise svc.ScheduleTimeCollisionError()
                 return {"kind": "medication", "created": True, "flow": "dose_added", "name": pill["name"], "time": time_,
                         "times": reg.times_text(times, lang)}
-            times = reg.promote(db, user_id, pill, time_, days, getattr(draft, "timezone_name", None))
+            times = reg.promote(db, user_id, pill, time_, days, tz)
+            if replace or len(wanted) > 1:  # the older reminder is now a registered pill: apply the rest of what the user said
+                registered = reg.find_registered(db, user_id, pill["name"])
+                if registered is not None:
+                    if replace:
+                        times = reg.replace_times(db, user_id, registered, wanted, days, tz)
+                    else:
+                        for t in wanted[1:]:
+                            try:
+                                times = reg.add_dose(db, user_id, registered, t, days, tz)
+                            except svc.ScheduleTimeCollisionError:
+                                continue
         except (svc.ScheduleTimeCollisionError, svc.IntervalOnlyScheduleError, svc.PromotionWindowError) as declined:
             if db is not None:
                 db.rollback()  # a declined write leaves NOTHING behind (Codex P1, PR 193)
@@ -346,7 +419,7 @@ def _begin(
         pills = []
     hit = reg.match(found, pills)
     if hit is not None:  # «ساعت ۹ صبح هم قرص مکمل»: the name says it is the same pill
-        res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang)
+        res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang, message=message, replace=says_change(message))
         if res is not None:
             return res
     flow = None
@@ -355,7 +428,7 @@ def _begin(
     elif not history_available(db, user_id):
         flow = "no_history"
     if flow:
-        out = _create(db, user_id=user_id, draft=draft, language=language, timezone_name=timezone_name, name=found)
+        out = _create(db, user_id=user_id, draft=draft, language=language, timezone_name=timezone_name, name=found, message=message)
         if out is not None:
             out["flow"] = flow
         return out
@@ -627,7 +700,7 @@ def continue_interview(
         text = _fold(message).strip()
 
         def finish(final_name: Optional[str], key_named: str, key_unnamed: str, *, accompany: bool = False) -> Optional[str]:
-            out = _create(db, user_id=user_id, draft=draft, language=lang, timezone_name=timezone_name, name=final_name)
+            out = _create(db, user_id=user_id, draft=draft, language=lang, timezone_name=timezone_name, name=final_name, message=orig_text)
             if out is None:
                 return None
             if out.get("duplicate"):
@@ -676,7 +749,8 @@ def continue_interview(
             hit = reg.pick(text, pills)
             if hit is None:
                 return sedi_copy.t("medication.chat.q.ask_same", lang, names=reg.names_text(pills, lang))
-            res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang)
+            # the answer may carry the real intent: «همون قرص است، ساعتشو تغییر بده» = CHANGE the time, not add one (Javad 2026-11-21)
+            res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang, message=orig_text, replace=says_change(text))
             return confirmation(res, lang, "") if res is not None else None
         # «unrecognised»: Sedi asked for the correct name, so a short reply there is that correction (Codex P2, PR 185)
         answer = _candidate_name(message) if stage in ("ask_name", "confirm_name", "unrecognised") else None

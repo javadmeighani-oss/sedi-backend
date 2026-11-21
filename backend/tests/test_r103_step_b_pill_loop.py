@@ -49,7 +49,7 @@ def world(monkeypatch):
     monkeypatch.setattr(reg, "promote", lambda db, uid, pill, hhmm, days, from_tz=None: state.promoted.append((pill["id"], hhmm)) or sorted(pill["times"] + [hhmm]))
     monkeypatch.setattr(reg, "times_of", lambda db, uid, name: ["09:00", "14:00"])
 
-    def fake_create(db, *, user_id, draft, language, timezone_name, name):
+    def fake_create(db, *, user_id, draft, language, timezone_name, name, message=None):
         state.created.append(name)
         return {"kind": "medication", "created": True, "duplicate": False, "name": name or mc.provisional_name(language), "named": bool(name), "time": "09:00", "days": None}
 

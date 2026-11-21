@@ -346,6 +346,29 @@ def _hhmm_of(moment: datetime) -> str:
     return f"{moment.hour:02d}:{moment.minute:02d}"
 
 
+def replace_schedule_times(
+    db: Session, user_id: int, um_id: int, times: List[str], days_of_week: Optional[str] = None, from_tz: Optional[str] = None
+) -> dict:
+    """The user said «change its time»: the registered medicine's dose times become EXACTLY ``times`` (spoken in ``from_tz``, converted
+    into the medicine's own timezone), in one transaction; ``days_of_week`` applies to every dose. Raises ValueError for an empty or
+    over-long list (nothing is changed)."""
+    from backend.app.schemas.medical import MAX_REMINDER_TIMES
+
+    um, med = get_user_medication_owned(db, user_id, um_id)
+    converted = [convert_hhmm(t, from_tz, getattr(um, "timezone", None)) for t in times]
+    if not converted or len(set(converted)) > MAX_REMINDER_TIMES:
+        raise ValueError("invalid reminder times")
+    _replace_schedules(db, um, converted)
+    db.flush()
+    if days_of_week:
+        for row in um.schedules:
+            row.days_of_week = days_of_week
+    um.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(um)
+    return build_user_medication_out(um, med)
+
+
 def promote_event_to_medication(
     db: Session, user_id: int, event_id: int, name: str, new_hhmm: str, days_of_week: Optional[str] = None, from_tz: Optional[str] = None,
     also_event_ids: Optional[list[int]] = None,

@@ -224,6 +224,22 @@ def promote(db: Session, user_id: int, pill: dict[str, Any], hhmm: str, days: Op
     return sorted(out.get("reminder_times") or [hhmm])
 
 
+def find_registered(db: Session, user_id: int, name: str) -> Optional[dict[str, Any]]:
+    """The REGISTERED (medicine owner) pill of that name, or None."""
+    for p in existing_pills(db, user_id):
+        if p["kind"] == "med" and same_pill(name, p["name"]):
+            return p
+    return None
+
+
+def replace_times(db: Session, user_id: int, pill: dict[str, Any], times: list[str], days: Optional[str], from_tz: Optional[str] = None) -> list[str]:
+    """«Change its time»: the registered pill's doses become exactly ``times`` (never the old ones plus the new ones)."""
+    from backend.app.services import user_medication_service as svc
+
+    out = svc.replace_schedule_times(db, user_id, int(pill["id"]), times, days, from_tz)
+    return sorted(out.get("reminder_times") or times)
+
+
 def times_of(db: Session, user_id: int, name: str) -> list[str]:
     for p in existing_pills(db, user_id):
         if p["kind"] == "med" and same_pill(name, p["name"]):
