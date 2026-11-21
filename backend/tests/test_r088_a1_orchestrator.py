@@ -19,7 +19,7 @@ def _orch(monkeypatch, rows, created):
     monkeypatch.setattr(mc, "history_available", lambda db, uid: True)
     monkeypatch.setattr(mc, "_recent_turns", lambda db, uid, now: rows)
 
-    def fake_create(db, *, user_id, draft, language, timezone_name, name):
+    def fake_create(db, *, user_id, draft, language, timezone_name, name, message=None):
         created.append(name)
         return {"kind": "medication", "created": True, "duplicate": False, "name": name or mc.provisional_name(language),
                 "named": bool(name), "time": "14:00", "days": None}
