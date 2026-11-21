@@ -602,12 +602,19 @@ def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
     return None
 
 
-def reason_context(db: Session, user_id: int, language: Optional[str], now: Optional[datetime] = None) -> Optional[dict[str, Any]]:
-    """R-112: when Sedi's LAST reply asked WHY a medicine is taken, the registered pill behind it: ``{name, times}`` (the user's next
-    message is the reason). None when the last reply was anything else. Read-only; fail-open."""
+def reason_context(
+    db: Session, user_id: int, language: Optional[str], now: Optional[datetime] = None, message: Optional[str] = None
+) -> Optional[dict[str, Any]]:
+    """R-112: when Sedi's LAST reply asked WHY a medicine is taken AND this message was accepted as the reason (the interview completed:
+    the pill is registered), the pill behind it: ``{name, times}``. None otherwise - a non-answer, a withdrawal, a very long message or a
+    registration that did not happen (Codex P2, PR 207). Read-only; fail-open."""
     try:
         if not enabled() or not history_available(db, user_id):
             return None
+        if message is not None:
+            text = _fold(message).strip()
+            if not text or len(text.split()) > 40 or insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text):
+                return None  # not accepted as a reason: the interview did not complete on this message
         turns = _recent_turns(db, user_id, now or datetime.now(timezone.utc))
         last = next((str(t.sedi_response) for t in turns if getattr(t, "sedi_response", None)), "")
         if _stage_of(last, language) not in ("ask_reason", "ask_reason_promoted"):
@@ -616,7 +623,10 @@ def reason_context(db: Session, user_id: int, language: Optional[str], now: Opti
 
         quoted = _QUOTED.search(last)
         name = quoted.group(1).strip() if quoted else provisional_name(language)
-        return {"name": name, "times": reg.times_of(db, user_id, name)}
+        times = reg.times_of(db, user_id, name)
+        if not times:
+            return None  # nothing is registered under that name: the model must not confirm a registration that did not happen
+        return {"name": name, "times": times}
     except Exception:  # noqa: BLE001
         return None
 

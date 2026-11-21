@@ -117,3 +117,31 @@ def test_the_reason_hint_comes_first_and_the_usual_guide_follows(db, user):
 def test_an_emergency_in_the_reason_is_left_to_the_safety_path(db, user):
     _to_the_reason_question(db, user)
     assert guide.hint_for_turn(db, user.id, "برای قلبم مصرفش می‌کنم و الان قفسه سینه‌ام درد می‌کند و نفسم بند آمده", "fa") is None
+
+
+# --- Codex round 1 on PR 207 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_non_answer_or_a_long_message_gets_no_reason_hint(db, user):
+    _to_the_reason_question(db, user)
+    assert guide.reason_hint(db, user.id, "fa", "نمی‌دانم") is None                     # a non-answer closes the step
+    assert guide.reason_hint(db, user.id, "fa", "فقط یادم بنداز") is None
+    assert guide.reason_hint(db, user.id, "fa", " ".join(["کلمه"] * 41)) is None        # >40 words: another topic, nothing was registered for it
+    assert guide.reason_hint(db, user.id, "fa", REASON).startswith(guide.REASON_HINT_PREFIX)
+
+
+def test_p2_no_registration_no_confirmation_instruction(db, user):
+    """The reason question exists but nothing is registered under that name: the model is never told to confirm a registration."""
+    _say(db, user, "ویتامین", sedi_copy.t("medication.chat.q.ask_reason", "fa", name="ویتامین ناموجود"))
+    assert cr.reason_context(db, user.id, "fa", message=REASON) is None and guide.reason_hint(db, user.id, "fa", REASON) is None
+
+
+def test_p2_the_models_own_promise_does_not_create_a_second_follow_up_chain(db, user, monkeypatch):
+    """The brain skips capture_from_reply on a turn steered by the reason hint (the medication flow already made the commitment)."""
+    import inspect
+
+    from backend.app.core.conversation import brain
+
+    source = inspect.getsource(brain)
+    assert "REASON ANSWER (R-112)" in source and "_reason_turn" in source
+    index = source.index("_reason_turn = any(")
+    assert "capture_from_reply(self.db, user_id, sedi_response, lang, user_message=user_message)" in source[index:index + 700]
+    assert source[index:index + 700].index("if not _reason_turn") < source[index:index + 700].index("capture_from_reply(self.db")

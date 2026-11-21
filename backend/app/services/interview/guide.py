@@ -147,14 +147,17 @@ def open_care_follow_ups(db: Any, user_id: int) -> int:
     return care_picture(db, user_id)[0]
 
 
-def reason_hint(db: Any, user_id: int, language: str = "fa") -> Optional[str]:
+REASON_HINT_PREFIX = "REASON ANSWER (R-112)"
+
+
+def reason_hint(db: Any, user_id: int, language: str = "fa", message: Optional[str] = None) -> Optional[str]:
     """R-112 (Javad 2026-11-21): the user's message answers «what do you take it for?». The model answers like a caretaker: the schedule
     confirmation, a reflection, clinician questions, practical non-drug steps WITH the how-to, age-aware, diet + exercise, a follow-up.
     The facts (name, times, age) come from memory; None when the last Sedi reply was not that question. Never raises."""
     try:
         from backend.app.services.medication_care import chat_reminder as _mc
 
-        ctx = _mc.reason_context(db, user_id, language)
+        ctx = _mc.reason_context(db, user_id, language, message=message)
         if ctx is None:
             return None
         times = "، ".join(ctx.get("times") or []) if language in ("fa", "ar") else ", ".join(ctx.get("times") or [])
@@ -168,7 +171,7 @@ def reason_hint(db: Any, user_id: int, language: str = "fa") -> Optional[str]:
         except Exception:  # noqa: BLE001
             age = ""
         return (
-            f"REASON ANSWER (R-112). The user's message tells you WHY they take «{ctx.get('name')}»"
+            f"{REASON_HINT_PREFIX}. The user's message tells you WHY they take «{ctx.get('name')}»"
             + (f" (registered at {times})" if times else "")
             + ". Answer like a careful, warm caretaker whose goal is CONTINUOUS follow-up and care, compact, in this order: "
             + (f"(1) ONE short line confirming «{ctx.get('name')}» is registered at {times}. " if times else "(1) ONE short line saying it is registered. ")
@@ -238,7 +241,7 @@ def hint_for_turn(db: Any, user_id: int, message: str, language: str = "fa") -> 
         gaps = memory_gaps(db, user_id, topics) if topics else []
         follow_ups, care_line = care_picture(db, user_id, language)
         base = build_hint(topics, gaps, follow_ups, care_line)
-        reason = reason_hint(db, user_id, language)  # R-112: the answer to «what do you take it for?»
+        reason = reason_hint(db, user_id, language, message)  # R-112: the answer to «what do you take it for?»
         return "\n".join(p for p in (reason, base) if p) or None
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] interview guide skipped")
