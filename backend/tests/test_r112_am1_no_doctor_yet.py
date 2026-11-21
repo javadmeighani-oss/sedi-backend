@@ -127,3 +127,18 @@ def test_the_whole_conversation_does_not_ask_the_reason_again(db, user, monkeypa
 
     assert out.message != "GEN" and "برای چه مشکل یا نیازی" not in out.message          # the reason is NOT asked again
     assert journey.is_interview_reply(out.message) or "کجا" in out.message or "شهر" in out.message  # the care journey intake (or the place question) follows
+
+
+# --- Codex round 1 on PR 208 ------------------------------------------------------------------------------------------------------------------
+def test_p1_without_memory_read_consent_past_conversations_are_not_read(db, user):
+    from backend.app.services.i6 import consent_service as consent
+
+    _say(db, user, "ریزش مو دارم", "از کی شروع شد؟")
+    consent.revoke_memory_consent(db, user.id)
+    hint = guide.hint_for_turn(db, user.id, "دکتر نرفتم", "fa")
+    assert hint.startswith(guide.NO_DOCTOR_PREFIX) and "پوست" not in hint and "the right specialist" in hint  # generic: nothing inferred
+
+
+def test_p2_the_specialty_of_the_offer_beats_a_complaint_word_in_the_same_reply():
+    reply = "برای ریزش مو شاید بررسی هورمون لازم باشد. می‌خوای یه متخصص غدد پیدا کنم؟"
+    assert offer_reply(reply, "آره", "fa") == "یه دکتر غدد برام پیدا کن"

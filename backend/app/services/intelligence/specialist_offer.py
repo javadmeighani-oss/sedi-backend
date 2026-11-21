@@ -79,7 +79,10 @@ def _named_specialty(sedi_reply: Optional[str], context: Optional[list]) -> Opti
     """The medical specialty the offer names («متخصص پوست و مو»), else the one the conversation is about (the user's own complaint words)."""
     from backend.app.services.i5 import specialty_lexicon as sl
 
-    for text in [sedi_reply or "", *[str(c or "") for c in (context or [])]]:
+    # the specialist the user ACCEPTED is the one in the offer sentence, not a complaint word elsewhere in the reply (Codex P2, PR 208)
+    sentences = [x.strip() for x in re.split(r"(?<=[.!?؟…])\s+|[\r\n]+", sedi_reply or "") if x.strip()]
+    offer = next((x for x in reversed(sentences) if _FIND.search(x) and any(w in x.lower() for w in _SPECIALIST)), "")
+    for text in [offer, sedi_reply or "", *[str(c or "") for c in (context or [])]]:
         found = sl.find_specialty(text) if text.strip() else None
         if found:
             return found

@@ -185,8 +185,11 @@ def no_doctor_hint(db: Any, user_id: int, message: str, language: str = "fa") ->
             pass
         if spec is None:
             try:
+                from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
                 from backend.app.services.i7.retention import query_eligible_raw
 
+                if not has_permission_readonly(db, user_id, PERM_READ):
+                    raise PermissionError("memory read consent is missing")  # past conversations are NOT read without consent (Codex P1)
                 for row in query_eligible_raw(db, user_id, limit=6) or []:
                     spec = sl.find_specialty(str(getattr(row, "user_message", "") or ""))
                     if spec:
