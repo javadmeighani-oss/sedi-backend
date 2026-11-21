@@ -243,6 +243,39 @@ _TALK_TAIL = {
 _TALK_TITLE = sedi_copy.by_lang("reminder.talk_title")
 
 
+def _asks_sedi_to_reach_out(text: str) -> bool:
+    """A reminder WORD («یادآوری», «remind») or the CONCEPT of asking Sedi to reach out («به من پیام مصرف قرص بدی», «send me a message»)
+    - R-042 / Javad 2026-11-21: «هر روز ساعت ۹ صبح به من پیام مصرف قرص بدی» is a daily reminder, never a habit statement."""
+    if _REMINDER_WORDS.search(text):
+        return True
+    if _COMPLAINT_OR_NEGATION.search(text):
+        return False
+    return bool(_NOTIFY_CONCEPT.search(text) or _NOUN_VERB.search(text))
+
+
+# the user's own «I am saying / I said» is a remark, never the topic of a reminder («میگم ۹ صبح» must not become the title «میگم»)
+_SPEECH_REMARK = r"می\s*گ[مو]یم|می\s*گم|میگم|گفتم|منظورم|منظور\s*من|i\s+said|i\s+mean|i'?m\s+saying"
+
+
+def is_recurrence_question(sedi_text: Optional[str]) -> bool:
+    """True when [sedi_text] is Sedi's «every day or every week - which one?» question."""
+    t = _plain(sedi_text or "")
+    return any(_plain(op) in t for op in _RECURRENCE_OPENINGS)
+
+
+_ONCE = re.compile(
+    r"(?:فقط\s*)?(?:یک\s*بار|یکبار|یه\s*بار|همین\s*یک\s*بار|once|one\s*time|just\s*once|only\s*once|مرة\s*واحدة|مرة\s*واحده)",
+    re.IGNORECASE,
+)
+
+
+def answer_names_recurrence(answer: str) -> bool:
+    """The answer to «every day or every week?» must actually say it («هر روز», «هفتگی», «daily», «just once»). A message that only
+    repeats a time («میگم ۹ صبح») answers nothing and is left to the normal conversation instead of being bound to the question."""
+    text = _normalize(answer or "")
+    return bool(_RECURRENCE.search(text) or _ONCE.search(text) or re.search(r"روزانه|هفتگی|ماهانه|each\s+(?:day|week|month)|every\s+(?:day|week|month)", text, re.IGNORECASE))
+
+
 def _split_topic(text: str, lang: str) -> tuple[Optional[str], str]:
     """«… برای صحبت در مورد شنبه» -> («صحبت درباره‌ی شنبه», «… »): the topic phrase is NOT a date or time."""
     marker = _TOPIC_MARKERS.get(lang)
@@ -348,6 +381,8 @@ _CLARIFICATION_OPENINGS = tuple(
     for lang in ("en", "fa", "ar")
     for which in ("datetime", "past", "title", "period")
 )
+
+_RECURRENCE_OPENINGS = tuple(sedi_copy.by_lang("reminder.clarify.recurrence")[lang][:24] for lang in ("en", "fa", "ar"))
 
 _ANSWER_PREFIX = sedi_copy.by_lang("reminder.answer_prefix")
 
@@ -649,13 +684,17 @@ _TITLE_NOISE = (
 _FILLER = re.compile(
     r"(?<![\w])(?:لطفا|لطفاً|please|کن|کنی|کنید|بکن|بده|بهم|به من|برام|برای من|برایم|بگو|که|تا|برای|را|رو|"
     r"that|me|set|reminder|دارم|دارید|هست|ساعت|صبح|ظهر|عصر|شب|am|pm|before|prior|"
-    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|میخوام|میخواهم|کنم|حدود|تقریبا|تقریباً|about|around|صباحا|صباحاً|مساء|مساءً|ظهرا|دیگه|دیگر|دوباره|مجدد|مجددا|مجدداً|یکی|another|again|مرة|اخری|أخرى|اخرى|لي|لی|أرسل|ارسل|إشعاراً|إشعارا|إشعار|آخر|send|notification|notifications)(?![\w])",
+    r"هر|every|each|نوتیف|نوتیفیکیشن|اعلان|بفرست|ارسال|یه|یک|میخوام|میخواهم|کنم|می\s*گ[مو]یم|می\s*گم|میگم|گفتم|منظورم|حدود|تقریبا|تقریباً|about|around|صباحا|صباحاً|مساء|مساءً|ظهرا|دیگه|دیگر|دوباره|مجدد|مجددا|مجدداً|یکی|another|again|مرة|اخری|أخرى|اخرى|لي|لی|أرسل|ارسل|إشعاراً|إشعارا|إشعار|آخر|send|notification|notifications)(?![\w])",
     re.IGNORECASE,
 )
 
 
+_MESSAGE_ASK = re.compile(r"(?<![\w])(?:پیام|پیغام)\s+((?:\S+\s+){0,5}?)(?:بدی|بدید|بده|بفرستی|بفرست|بزنی|بزن)(?![\w])")
+
+
 def _clean_title(text: str) -> str:
     t = _normalize(text)
+    t = _MESSAGE_ASK.sub(lambda m: m.group(1), t)  # «پیام مصرف قرص بدی» -> the topic «مصرف قرص» (the asking words are not the topic)
     t = re.sub("[" + chr(0x64b) + "-" + chr(0x652) + "]", "", t)  # Arabic marks (tanween, shadda...) never split a word (Codex P2)
     for rx in _TITLE_NOISE:
         t = rx.sub(" ", t)
@@ -691,7 +730,7 @@ def parse_reminder_event_draft(
     if _EVERY_N.search(text):
         return None, "recurrence"  # sub-daily repetition is not supported
     recurring = _detect_recurrence(text, datetime.now()) is not None
-    if recurring and not _REMINDER_WORDS.search(text):
+    if recurring and not _asks_sedi_to_reach_out(text):
         return None, "recurrence"  # a habit statement ("هر شب ساعت ۱۱ می‌خوابم") is not a reminder request
 
     if not timezone_name or not str(timezone_name).strip():

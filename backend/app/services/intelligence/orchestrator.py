@@ -502,9 +502,19 @@ class IntelligenceOrchestrator:
                         continue
                     _, prior_missing = parse_reminder_event_draft(message=prior, timezone_name=tz_name, language=lang)
                     asked = prior_missing is not None  # the earlier request never got its time
+                    if prior_missing == "recurrence":
+                        # the earlier request waits for «daily / weekly / once»: only a reply that SAYS it continues it
+                        # («میگم ۹ صبح» repeats a time, it is not that answer - Javad 2026-11-21)
+                        from backend.app.services.intelligence.reminder_event_readiness import answer_names_recurrence
+
+                        asked = answer_names_recurrence(message)
                     break
             if not asked:
                 return message
+            from backend.app.services.intelligence.reminder_event_readiness import answer_names_recurrence, is_recurrence_question
+
+            if is_recurrence_question(getattr(fresh[0], "sedi_response", None)) and not answer_names_recurrence(message):
+                return message  # «میگم ۹ صبح» repeats a time; it does not answer «every day or every week?» (Javad 2026-11-21)
             candidate = answer_as_reminder_request(message, lang)
             draft, missing = parse_reminder_event_draft(
                 message=candidate,
