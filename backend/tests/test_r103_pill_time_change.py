@@ -55,8 +55,8 @@ def test_change_is_told_apart_from_add(answer, expected):
     assert cr.says_change(answer) is expected
 
 
-def _draft(message=REQUEST):
-    draft, missing = rer.parse_reminder_event_draft(message=message, timezone_name=TZ, language="fa")
+def _draft(message=REQUEST, lang="fa"):
+    draft, missing = rer.parse_reminder_event_draft(message=message, timezone_name=TZ, language=lang)
     assert missing is None
     return draft
 
@@ -201,8 +201,38 @@ def test_p1_a_weekly_pill_change_keeps_its_days(db, user):
     assert sorted(r.time_of_day.strftime("%H:%M") for r in rows) == ["09:00", "16:00"] and {r.days_of_week for r in rows} == {"0"}  # Monday only
 
 
-def test_p2_a_mixed_morning_evening_sentence_the_parser_reads_as_one_period_still_gives_both_doses():
-    message = "هر دوشنبه ساعت ۹ صبح و ۴ عصر قرصمو یادم بنداز"
-    draft = _draft(message)
-    assert draft.starts_at_local.strftime("%H:%M") == "21:00"  # the parser's single period misreads the sentence ...
-    assert cr.dose_times(draft, message) == ["09:00", "16:00"]  # ... the per-time reading is what the user said
+# --- Codex round 2 on PR 206 ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "message,expected",
+    [
+        ("every day at 9 and 10 pm remind me to take my pill", ["21:00", "22:00"]),       # a shared pm
+        ("هر روز ساعت ۸ و ۱۰ شب یادم بنداز قرصمو بخورم", ["20:00", "22:00"]),             # a shared night
+        ("هر روز ساعت ۹ صبح و ۴ عصر یادم بنداز", ["09:00", "16:00"]),                      # mixed: each has its own period
+        ("هر روز ساعت ۹ صبح و ۱۰ صبح یادم بنداز", ["09:00", "10:00"]),
+    ],
+)
+def test_p1_a_shared_period_applies_to_every_hour_it_covers(message, expected):
+    assert cr.request_times(message) == expected
+    assert cr.dose_times(_draft(message, "en" if message.startswith("every") else "fa"), message) == expected
+
+
+def test_p1_the_first_dose_is_never_moved_twelve_hours_early():
+    message = "every day at 9 and 10 pm remind me to take my pill"
+    assert cr.dose_times(_draft(message, "en"), message)[0] == "21:00"  # not 09:00
+
+
+def test_p1_a_list_with_no_period_at_all_is_flagged_ambiguous():
+    """«۹ و ۱۰» with no morning/evening word: the parser itself asks AM/PM first, and the per-time reading never claims certainty."""
+    times, explicit = cr._request_times_info("هر روز ساعت ۹ و ۱۰ یادم بنداز قرصمو بخورم")
+    assert explicit is False
+    assert rer.parse_reminder_event_draft(message="هر روز ساعت ۹ و ۱۰ یادم بنداز قرصمو بخورم", timezone_name=TZ, language="fa")[1] == "period"
+
+
+def test_p2_the_change_asked_in_the_original_request_survives_the_clarification(db, user):
+    _old_reminder(db, user, "14:00")
+    request = "هر روز ساعت ۹ صبح و ۴ عصر قرصمو یادم بنداز، ساعتشو تغییر بده"
+    res = cr.start_interview(db, user_id=user.id, message=request, draft=_draft(request), language="fa", timezone_name=TZ)
+    assert res and res["interview"] == "ask_same"
+    _say(db, user, request, cr.confirmation(res, "fa", ""))
+    cr.continue_interview(db, user_id=user.id, message="همون قرص مکمل است", language="fa", timezone_name=TZ)  # the answer repeats no «change»
+    assert _times_of(db, user) == ["09:00", "16:00"]  # the old 14:00 is replaced: the original request's intent was kept

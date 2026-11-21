@@ -224,43 +224,61 @@ def says_change(text: str) -> bool:
     return bool(_CHANGE.search(_fold(text or "")))
 
 
+def _request_times_info(message: str) -> tuple[list[str], bool]:
+    """(times in the order said, whether EVERY one of them is unambiguous). A segment without its own morning/evening word inherits the
+    period of the next segment that has one («۸ و ۱۰ شب» -> both at night, «9 and 10 pm» -> both pm); a time stays ambiguous when no
+    period is said at all and the hour is 12 or less (Codex P1, PR 206)."""
+    from backend.app.services.intelligence import reminder_event_readiness as rer
+
+    segments = [seg for seg in _SEGMENTS.split(rer._normalize(message or "")) if seg and seg.strip()]
+    periods = [rer._ANY_PERIOD_WORD.search(seg) for seg in segments]
+    out: list[str] = []
+    explicit = True
+    for i, seg in enumerate(segments):
+        text = seg
+        has_period = periods[i] is not None
+        if not has_period:  # a shared trailing period: the NEXT segment that names one applies to this hour too
+            nxt = next((periods[j] for j in range(i + 1, len(segments)) if periods[j] is not None), None)
+            if nxt is not None:
+                text = f"{seg} {nxt.group(0)}"
+                has_period = True
+        found = rer._resolve_time(text)
+        if found is None:
+            continue
+        if not has_period and found[0] <= 12:
+            explicit = False
+        hhmm = f"{found[0]:02d}:{found[1]:02d}"
+        if hhmm not in out:
+            out.append(hhmm)
+        if len(out) >= MAX_REQUEST_TIMES:
+            break
+    return out, explicit
+
+
 def request_times(message: str) -> list[str]:
     """Every clock time the user named, in the order said: «هر روز ۹ صبح و ۴ عصر» -> ['09:00', '16:00'] (Javad 2026-11-21: the second
     time was silently dropped). One entry per distinct time; [] when the message names none."""
     try:
-        from backend.app.services.intelligence import reminder_event_readiness as rer
-
-        out: list[str] = []
-        for seg in _SEGMENTS.split(rer._normalize(message or "")):
-            found = rer._resolve_time(seg) if seg.strip() else None
-            if found is None:
-                continue
-            hhmm = f"{found[0]:02d}:{found[1]:02d}"
-            if hhmm not in out:
-                out.append(hhmm)
-            if len(out) >= MAX_REQUEST_TIMES:
-                break
-        return out
+        return _request_times_info(message)[0]
     except Exception:  # noqa: BLE001
         return []
 
 
-def _same_dose(a: str, b: str) -> bool:
-    (ha, ma), (hb, mb) = (int(x) for x in a.split(":")), (int(x) for x in b.split(":"))
-    return ma == mb and (ha - hb) % 12 == 0
-
-
 def dose_times(draft: Any, message: Optional[str] = None) -> Optional[list[str]]:
     """All dose times of the request: the several times the user said, else the one the parser found (None = the medication route
-    cannot represent the request, see ``fire_times``)."""
+    cannot represent the request, see ``fire_times``).
+
+    The per-time reading replaces the parser's single time only when it is SAFE: every time carries its own (or a shared) morning /
+    evening word - then it is exactly what was said, even where the whole-text parser reads one period for the sentence («۹ صبح و ۴ عصر»
+    -> 21:00) - or the parser's time is one of them. A dose is never moved on a guess (Codex P1, PR 206)."""
     base = fire_times(draft)
     if base is None:
         return None
-    many = request_times(message) if message else []
-    # the several times replace the parser's one only when they AGREE with it: it is one of them, or it differs from one only by the
-    # 12 hours of a mixed morning/evening sentence (the parser reads ONE period for the whole text: «۹ صبح و ۴ عصر» -> 21:00).
-    # A mis-split that agrees with neither never moves a dose.
-    if len(many) >= 2 and any(_same_dose(base[0], t) for t in many):
+    try:
+        many, explicit = _request_times_info(message) if message else ([], False)
+    except Exception:  # noqa: BLE001
+        many, explicit = [], False
+    if len(many) >= 2 and (explicit or base[0] in many):
         return many
     return base
 
@@ -764,7 +782,7 @@ def continue_interview(
             if hit is None:
                 return sedi_copy.t("medication.chat.q.ask_same", lang, names=reg.names_text(pills, lang))
             # the answer may carry the real intent: «همون قرص است، ساعتشو تغییر بده» = CHANGE the time, not add one (Javad 2026-11-21)
-            res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang, message=orig_text, replace=says_change(text))
+            res = _same_action(db, user_id=user_id, pill=hit, draft=draft, lang=lang, message=orig_text, replace=says_change(text) or says_change(orig_text))
             return confirmation(res, lang, "") if res is not None else None
         # «unrecognised»: Sedi asked for the correct name, so a short reply there is that correction (Codex P2, PR 185)
         answer = _candidate_name(message) if stage in ("ask_name", "confirm_name", "unrecognised") else None
