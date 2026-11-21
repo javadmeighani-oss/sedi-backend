@@ -549,7 +549,13 @@ class IntelligenceOrchestrator:
                 return message
             if datetime.utcnow() - last.created_at.replace(tzinfo=None) > timedelta(minutes=30):
                 return message
-            return specialist_request_for_reply(getattr(last, "sedi_response", None), message, lang) or message
+            recent = [
+                getattr(r, "user_message", None)
+                for r in (
+                    self._db.query(models.Memory).filter(models.Memory.user_id == user_id).order_by(models.Memory.created_at.desc()).limit(4).all()
+                )
+            ]
+            return specialist_request_for_reply(getattr(last, "sedi_response", None), message, lang, context=recent) or message
         except Exception:
             return message
 

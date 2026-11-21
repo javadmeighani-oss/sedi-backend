@@ -75,13 +75,40 @@ _REQUEST = {
 }
 
 
-def specialist_request_for_reply(sedi_reply: Optional[str], user_message: Optional[str], language: str = "fa") -> Optional[str]:
-    """The explicit find-a-specialist request when the user just accepted Sedi's offer, else None."""
+def _named_specialty(sedi_reply: Optional[str], context: Optional[list]) -> Optional[str]:
+    """The medical specialty the offer names («متخصص پوست و مو»), else the one the conversation is about (the user's own complaint words)."""
+    from backend.app.services.i5 import specialty_lexicon as sl
+
+    for text in [sedi_reply or "", *[str(c or "") for c in (context or [])]]:
+        found = sl.find_specialty(text) if text.strip() else None
+        if found:
+            return found
+    return None
+
+
+_NAMED_REQUEST = {
+    "fa": "یه دکتر {spec} برام پیدا کن",
+    "en": "Please find me a doctor {spec}",
+    "ar": "ابحث لي عن طبيب {spec}",
+}
+
+
+def specialist_request_for_reply(
+    sedi_reply: Optional[str], user_message: Optional[str], language: str = "fa", context: Optional[list] = None
+) -> Optional[str]:
+    """The explicit find-a-specialist request when the user just accepted Sedi's offer, else None. R-112 am.1 (DEBT-101): when the offer
+    (or the conversation, ``context`` = the user's recent messages) names the specialty, the request NAMES it - the directory flow then
+    does not ask the reason again."""
     try:
         if not (is_specialist_offer(sedi_reply) and is_affirmative(user_message)):
             return None
         lang = (language or "fa").split("-")[0].lower()
         lang = lang if lang in _REQUEST else "en"
-        return _REQUEST[lang][_specialty(sedi_reply or "")]
+        kind = _specialty(sedi_reply or "")
+        if kind != "psychologist":
+            named = _named_specialty(sedi_reply, context)
+            if named:
+                return _NAMED_REQUEST[lang].format(spec=named)
+        return _REQUEST[lang][kind]
     except Exception:
         return None

@@ -102,7 +102,8 @@ _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("chest", _rx(r"قفسه(?: ?ی)? سینه", r"درد سینه", r"سینه ?ام", r"قلبم.{0,12}(?:درد|فشار|سنگین)", r"chest pain"), ("قلب", "داخلی")),
     ("head", _rx(r"سردرد", r"سر درد", r"میگرن", r"سرگیجه", r"سرم.{0,12}(?:درد|می ?زنه|میزنه)", r"headache", r"migraine", r"dizz"), ("مغز و اعصاب",)),
     ("back_joint", _rx(r"زانو", r"کمردرد", r"کمر درد", r"کمرم", r"مفصل", r"شانه ?ام", r"گردن ?درد", r"گردنم", r"پشتم", r"ستون فقرات", r"\bknee\b", r"back pain", r"joint"), ("ارتوپدی",)),
-    ("skin", _rx(r"پوست", r"خارش", r"قرمزی", r"جوش", r"لکه", r"راش", r"کهیر", r"\brash\b", r"itch"), ("پوست",)),
+    ("skin", _rx(r"پوست", r"خارش", r"قرمزی", r"جوش", r"لکه", r"راش", r"کهیر", r"\brash\b", r"itch",
+                 r"ریزش ?مو", r"تساقط ?مو", r"طاسی", r"موهام.{0,12}(?:می ?ریزه|میریزه|کم|نازک)", r"hair ?(?:loss|fall)", r"alopecia", r"تساقط ?الشعر"), ("پوست",)),
     ("stomach", _rx(r"معده", r"نفخ", r"ریفلاکس", r"دل ?درد", r"اسهال", r"یبوست", r"سوزش سر ?دل", r"تهوع", r"stomach", r"heartburn", r"bloating"), ("گوارش",)),
     ("mind", _rx(r"اضطراب", r"افسردگی", r"افسرده", r"پانیک", r"استرس شدید", r"بی ?خوابی", r"خوابم نمی ?بره", r"خوابم نمیبره", r"anxiety", r"depress", r"insomnia"), ("روانپزشکی",)),
     ("ent", _rx(r"گلو", r"سینوس", r"گوش ?درد", r"گوشم", r"(?:درد|گرفتگی|آب ?ریزش|خون ?ریزی|ورم|عفونت|سوزش|انسداد) ?(?:از |ی )?بینی", r"بینی ?(?:ام|م)? ?(?:درد|گرفته|بسته|ورم|خون|می ?سوزه|آب ?ریزش)", r"\bnose\b", r"\bnasal\b", r"آب ?ریزش", r"تونسیل", r"ear ?ache", r"sore throat", r"sinus"), ("گوش و حلق و بینی",)),
@@ -199,6 +200,8 @@ _COMPLAINT_CUE = re.compile(_fold(
 # Words that ARE a symptom by themselves (no extra complaint cue needed): Codex P2, PR 187.
 _UNAMBIGUOUS_SYMPTOM = re.compile(_fold(
     r"سردرد|سر ?درد|میگرن|سرگیجه|تپش قلب|طپش قلب|ریفلاکس|دل ?درد|گوش ?درد|دندان ?درد|کمر ?درد|گردن ?درد|زانو ?درد|بی ?خوابی|"
+    r"ریزش ?مو|تساقط ?مو|طاسی|موهام.{0,12}(?:می ?ریزه|میریزه)|"
+    r"\b(?:hair ?(?:loss|fall)|alopecia)\b|"
     r"\b(?:headache|earache|toothache|stomachache|backache|insomnia|palpitations?|migraine|heartburn|diarrh(?:ea|oea)|constipation|"
     r"vertigo|hives|bloating|sore throat|back pain|chest pain)\b"), re.I)
 
