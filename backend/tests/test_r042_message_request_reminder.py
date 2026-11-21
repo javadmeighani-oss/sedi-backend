@@ -123,3 +123,23 @@ def test_the_pilot_conversation_end_to_end():
     assert missing is None and draft.recurrence_rule == "FREQ=DAILY"  # no «every day or every week?» question
     orch = _orchestrator([SimpleNamespace(user_message=first, sedi_response="باشه، ثبتش کردم", created_at=datetime.utcnow() - timedelta(minutes=1))])
     assert orch._continue_reminder_clarification(_ctx(), 1, "میگم ۹ صبح", "fa") == "میگم ۹ صبح"  # a remark is never turned into a reminder titled «میگم»
+
+
+# --- Codex round 1 on PR 205 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_message_request_fires_at_the_stated_time_not_an_hour_before():
+    for message, hour in (("میخواهم برای هر روز ساعت ۹ صبح به من پیام مصرف قرص بدی", "09:00"), ("میخواهم برای هر روز ساعت ۹ صبح به من پیام ورزش بدی", "09:00")):
+        draft, missing = _draft(message)
+        assert missing is None and draft.reminder_offsets == (0,) and draft.starts_at_local.strftime("%H:%M") == hour  # not (60,) = 08:00
+    draft, _ = _draft("every day at 9 am send me a message to take my pill", "en")
+    assert draft.reminder_offsets == (0,)
+
+
+@pytest.mark.parametrize("answer", ["هر دوشنبه ساعت ۹ صبح", "every Monday at 9am", "هر جمعه", "every Friday"])
+def test_p2_weekday_based_answers_still_name_a_recurrence(answer):
+    assert r.answer_names_recurrence(answer) is True
+
+
+def test_p2_a_weekday_recurrence_answer_still_continues_the_waiting_request():
+    orch = _orchestrator(_waiting_for_recurrence())
+    out = orch._continue_reminder_clarification(_ctx(), 1, "هر دوشنبه ساعت ۹ صبح", "fa")
+    assert out != "هر دوشنبه ساعت ۹ صبح" and "دوشنبه" in out

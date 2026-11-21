@@ -273,6 +273,8 @@ def answer_names_recurrence(answer: str) -> bool:
     """The answer to «every day or every week?» must actually say it («هر روز», «هفتگی», «daily», «just once»). A message that only
     repeats a time («میگم ۹ صبح») answers nothing and is left to the normal conversation instead of being bound to the question."""
     text = _normalize(answer or "")
+    if _detect_recurrence(text, datetime.now()) is not None:  # also «every Monday», «هر دوشنبه» (weekday patterns, Codex P2)
+        return True
     return bool(_RECURRENCE.search(text) or _ONCE.search(text) or re.search(r"روزانه|هفتگی|ماهانه|each\s+(?:day|week|month)|every\s+(?:day|week|month)", text, re.IGNORECASE))
 
 
@@ -431,6 +433,7 @@ def _parse_offsets(text: str) -> tuple[bool, tuple[int, ...], bool]:
     t = _normalize(text)
     requested = bool(
         _REMINDER_WORDS.search(t) or _NOTIFY_CONCEPT.search(t) or _OFFSET.search(t) or _AT_EVENT_TIME.search(t)
+        or _asks_sedi_to_reach_out(t)  # «به من پیام ورزش بدی»: an explicit request fires AT the stated time (Codex P2, PR 205)
     )
     if not requested:
         return False, (), False
