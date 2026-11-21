@@ -217,7 +217,7 @@ def test_reason_answer_creates_the_reminder_with_the_learned_name(monkeypatch, o
     ask_reason = sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")
     rows = [SimpleNamespace(user_message="لووتیروکسین", sedi_response=ask_reason, created_at=datetime.utcnow())] + _turns()
     reply = _go(monkeypatch, rows, "برای کم‌کاری تیروئید مصرفش می‌کنم")
-    assert owner == ["لووتیروکسین"] and "14:00" in reply and "لووتیروکسین" in reply and "همراهتم" in reply
+    assert owner == ["لووتیروکسین"] and reply is None  # R-112: the reminder exists; the REPLY to the reason is the chat model's
 
 
 def test_confirm_stage_yes_no_and_new_name(monkeypatch, owner):
@@ -283,7 +283,7 @@ def test_request_completed_by_a_period_answer_is_reconstructed(monkeypatch, owne
         SimpleNamespace(user_message="هر روز ساعت ۲ یادم بنداز قرص بخورم", sedi_response=period_question, created_at=now),
     ]
     reply = _go(monkeypatch, rows, "برای کم‌کاری تیروئید مصرفش می‌کنم")
-    assert owner == ["لووتیروکسین"] and reply and "14:00" in reply
+    assert owner == ["لووتیروکسین"] and reply is None  # R-112: created, the model answers the reason
 
 
 # --- Codex P2 (PR 185): the medication schedule has no start date -------------------------------------------------
@@ -398,11 +398,10 @@ def test_the_commitment_step_is_generic_named_and_never_cancels_another_subject(
 def test_the_reason_creates_one_tracked_commitment_and_the_reply_promises_it(monkeypatch, owner, captured, lang, reason):
     db = _FakeDb()
     reply = _go_db(monkeypatch, _reason_rows(lang=lang), reason, db, lang=lang)
-    assert reply and sedi_copy.t("medication.chat.created.followup_promise", lang) in reply
+    assert reply is None  # R-112: the reply to the reason is the chat model's (reflection, clinician questions, how-to); the loop below is deterministic
     assert len(captured) == 1 and captured[0][0] == 1 and captured[0][2] == reason
     assert "لووتیروکسین" in captured[0][1]
     assert db.commits == 1
-    assert reply.count("?") + reply.count("؟") == 0  # the companionship is a statement, one question per reply (R-020)
 
 
 def test_no_promise_when_the_commitment_could_not_be_created(monkeypatch, owner):
@@ -412,8 +411,7 @@ def test_no_promise_when_the_commitment_could_not_be_created(monkeypatch, owner)
     monkeypatch.setattr(cf, "capture_step", lambda db, uid, step, *, user_message="": None)
     db = _FakeDb()
     reply = _go_db(monkeypatch, _reason_rows(), "برای کم‌کاری تیروئید", db)
-    assert reply and "14:00" in reply
-    assert sedi_copy.t("medication.chat.created.followup_promise", "fa") not in reply and db.commits == 0
+    assert reply is None and db.commits == 0  # R-112: no commitment was made, so the model is told nothing about one
 
 
 def test_insistence_and_duplicates_create_no_commitment(monkeypatch, owner, captured):
@@ -497,7 +495,7 @@ def test_cancellation_also_ends_the_name_stage_and_a_bare_refusal_still_keeps_th
 def test_a_cancelled_event_in_the_reason_is_not_a_withdrawal(monkeypatch, owner, captured, lang, text):
     """Codex P2 round 5 (PR 185): «cancel» inside a REASON must not end the interview; the reminder is created."""
     reply = _go_db(monkeypatch, _reason_rows(lang=lang), text, _FakeDb(), lang=lang)
-    assert reply != sedi_copy.t("medication.chat.cancelled", lang) and "14:00" in reply
+    assert reply != sedi_copy.t("medication.chat.cancelled", lang) and reply is None  # not a withdrawal: created, the model answers
     assert owner == ["لووتیروکسین"]
 
 

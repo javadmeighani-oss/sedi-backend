@@ -147,6 +147,45 @@ def open_care_follow_ups(db: Any, user_id: int) -> int:
     return care_picture(db, user_id)[0]
 
 
+def reason_hint(db: Any, user_id: int, language: str = "fa") -> Optional[str]:
+    """R-112 (Javad 2026-11-21): the user's message answers «what do you take it for?». The model answers like a caretaker: the schedule
+    confirmation, a reflection, clinician questions, practical non-drug steps WITH the how-to, age-aware, diet + exercise, a follow-up.
+    The facts (name, times, age) come from memory; None when the last Sedi reply was not that question. Never raises."""
+    try:
+        from backend.app.services.medication_care import chat_reminder as _mc
+
+        ctx = _mc.reason_context(db, user_id, language)
+        if ctx is None:
+            return None
+        times = "، ".join(ctx.get("times") or []) if language in ("fa", "ar") else ", ".join(ctx.get("times") or [])
+        age = ""
+        try:
+            from backend.app.services.user_context.user_state import get_user_state
+
+            state = get_user_state(db, user_id)
+            if state is not None and state.age:
+                age = f"{state.age}" + (f", {state.sex}" if state.sex else "")
+        except Exception:  # noqa: BLE001
+            age = ""
+        return (
+            f"REASON ANSWER (R-112). The user's message tells you WHY they take «{ctx.get('name')}»"
+            + (f" (registered at {times})" if times else "")
+            + ". Answer like a careful, warm caretaker whose goal is CONTINUOUS follow-up and care, compact, in this order: "
+            + (f"(1) ONE short line confirming «{ctx.get('name')}» is registered at {times}. " if times else "(1) ONE short line saying it is registered. ")
+            + "(2) ONE line reflecting their reason in their own words. "
+            "(3) If the reason is a health or appearance PROBLEM (hair, skin, sleep, energy, digestion, mood, pain, immunity ...) and not only «the "
+            "doctor told me», ask like a clinician - at most THREE short questions together: did you see a doctor for it and what did they say; is "
+            "there stress or another change (sleep, diet, illness, family history, a new medicine); since when. "
+            "(4) Give 2-3 practical NON-DRUG management steps and for EACH say HOW to do it (how often, how long, concrete foods, amounts or "
+            "exercise); add suitable food and exercise suggestions in a short line. "
+            + (f"Use the user's age and sex ({age}): say plainly what is normal at that age and what is not. " if age else "Their age is unknown: ask it as one of the questions. ")
+            + "(5) Never diagnose, never start/stop/change a medicine or dose; one explicit «see a doctor / emergency if ...» line when it fits. "
+            "(6) End with a concrete follow-up promise (what you will ask them tomorrow). Speak with certainty, no hedging offers, no disclaimers."
+        )
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def build_hint(topics: set[str], gaps: list[str], open_follow_ups: int, care_line: str = "") -> Optional[str]:
     """The ONE system hint (English; the model answers in the user's language). None when there is nothing to guide."""
     parts: list[str] = []
@@ -198,7 +237,9 @@ def hint_for_turn(db: Any, user_id: int, message: str, language: str = "fa") -> 
         topics = detect_topics(message, language)
         gaps = memory_gaps(db, user_id, topics) if topics else []
         follow_ups, care_line = care_picture(db, user_id, language)
-        return build_hint(topics, gaps, follow_ups, care_line)
+        base = build_hint(topics, gaps, follow_ups, care_line)
+        reason = reason_hint(db, user_id, language)  # R-112: the answer to «what do you take it for?»
+        return "\n".join(p for p in (reason, base) if p) or None
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] interview guide skipped")
         return None

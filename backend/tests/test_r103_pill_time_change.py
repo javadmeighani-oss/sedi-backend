@@ -24,6 +24,10 @@ def _pinned(monkeypatch):
     from backend.app.services.gate4 import policy_prefs_bridge
 
     monkeypatch.setattr(policy_prefs_bridge, "resolve_validated_user_timezone", lambda d, u: TZ)
+    # the medicine owner declines a promotion in the 20 minutes after a dose time: pin the clock away from every dose time used here
+    from backend.app.services import user_medication_service as svc
+
+    monkeypatch.setattr(svc, "_now_in", lambda tz: pytz.timezone("Asia/Tehran").localize(datetime(2026, 11, 21, 3, 0)).astimezone(tz))
 
 
 # --- pure helpers --------------------------------------------------------------------------------------------------------------------------------
@@ -153,10 +157,10 @@ def test_a_new_pill_request_with_two_times_creates_both_doses(db, user):
     assert res["interview"] in ("ask_name", "confirm_name")
     reply = cr.confirmation(res, "fa", "")
     _say(db, user, REQUEST, reply)
-    for answer in ("ویتامین دی", "چون کمبود دارم"):  # every turn is stored, as in the real chat, so the next one finds its question
-        reply = cr.continue_interview(db, user_id=user.id, message=answer, language="fa", timezone_name=TZ)
-        assert reply
-        _say(db, user, answer, reply)
+    reply = cr.continue_interview(db, user_id=user.id, message="ویتامین دی", language="fa", timezone_name=TZ)
+    assert reply  # the name is taken, the reason is asked
+    _say(db, user, "ویتامین دی", reply)
+    assert cr.continue_interview(db, user_id=user.id, message="چون کمبود دارم", language="fa", timezone_name=TZ) is None  # R-112: the model answers the reason
     pills = reg.existing_pills(db, user.id)
     assert len(pills) == 1 and pills[0]["kind"] == "med" and pills[0]["times"] == ["09:00", "16:00"]  # both doses exist on the new medicine
 
