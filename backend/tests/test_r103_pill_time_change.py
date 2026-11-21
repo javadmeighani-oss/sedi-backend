@@ -159,3 +159,50 @@ def test_a_new_pill_request_with_two_times_creates_both_doses(db, user):
         _say(db, user, answer, reply)
     pills = reg.existing_pills(db, user.id)
     assert len(pills) == 1 and pills[0]["kind"] == "med" and pills[0]["times"] == ["09:00", "16:00"]  # both doses exist on the new medicine
+
+
+# --- Codex round 1 on PR 206 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_conjunction_inside_a_clock_time_is_not_a_separator():
+    assert cr.request_times("هر روز ساعت ۸ و نیم شب و ساعت ۱۰ شب یادآوری کن قرصمو بخورم") == ["20:30", "22:00"]
+    message = "هر روز ساعت ۸ و نیم شب و ساعت ۱۰ شب یادآوری کن قرصمو بخورم"
+    assert cr.dose_times(_draft(message), message) == ["20:30", "22:00"]  # the first dose is not moved twelve hours early
+
+
+def test_p2_the_several_times_never_override_a_parse_they_disagree_with(monkeypatch):
+    draft = _draft("هر روز ساعت ۹ صبح یادم بنداز قرصمو بخورم")
+    monkeypatch.setattr(cr, "request_times", lambda message: ["03:00", "05:00"])  # a mis-split that does not contain the parsed 09:00
+    assert cr.dose_times(draft, "x") == ["09:00"]
+
+
+def test_p1_a_weekday_restriction_lands_on_the_replacement_rows(db, user):
+    from backend.app.schemas.medical import UserMedicationCreateIn
+    from backend.app.services import user_medication_service as svc
+
+    out = svc.create_user_medication(db, user.id, UserMedicationCreateIn(name="قرص هفتگی", reminder_times=["08:00"], timezone=TZ))
+    svc.replace_schedule_times(db, user.id, out["id"], ["09:00", "16:00"], "0,3", TZ)
+    rows = db.query(models.UserMedicationSchedule).filter(models.UserMedicationSchedule.user_medication_id == out["id"]).all()
+    assert sorted(r.time_of_day.strftime("%H:%M") for r in rows) == ["09:00", "16:00"] and {r.days_of_week for r in rows} == {"0,3"}
+    svc.replace_schedule_times(db, user.id, out["id"], ["10:00"], None, TZ)  # no restriction: daily again
+    rows = db.query(models.UserMedicationSchedule).filter(models.UserMedicationSchedule.user_medication_id == out["id"]).all()
+    assert [r.time_of_day.strftime("%H:%M") for r in rows] == ["10:00"] and rows[0].days_of_week is None
+
+
+def test_p1_a_weekly_pill_change_keeps_its_days(db, user):
+    """A weekly request that reaches the same-pill action (a series that already started) keeps its weekday on every replaced dose."""
+    from backend.app.schemas.medical import UserMedicationCreateIn
+    from backend.app.services import user_medication_service as svc
+
+    msg = "هر دوشنبه ساعت ۹ صبح و ۴ عصر قرصمو یادم بنداز"
+    svc.create_user_medication(db, user.id, UserMedicationCreateIn(name="قرص مکمل", reminder_times=["14:00"], timezone=TZ))
+    pill = reg.find_registered(db, user.id, "قرص مکمل")
+    out = cr._same_action(db, user_id=user.id, pill=pill, draft=_draft(msg), lang="fa", message=msg, replace=True)
+    assert out and out["flow"] == "dose_added" and out["times"] == "09:00، 16:00"
+    rows = db.query(models.UserMedicationSchedule).all()
+    assert sorted(r.time_of_day.strftime("%H:%M") for r in rows) == ["09:00", "16:00"] and {r.days_of_week for r in rows} == {"0"}  # Monday only
+
+
+def test_p2_a_mixed_morning_evening_sentence_the_parser_reads_as_one_period_still_gives_both_doses():
+    message = "هر دوشنبه ساعت ۹ صبح و ۴ عصر قرصمو یادم بنداز"
+    draft = _draft(message)
+    assert draft.starts_at_local.strftime("%H:%M") == "21:00"  # the parser's single period misreads the sentence ...
+    assert cr.dose_times(draft, message) == ["09:00", "16:00"]  # ... the per-time reading is what the user said

@@ -211,7 +211,11 @@ _CHANGE = re.compile(
     r"\b(?:change|replace|instead|move|switch|update)\b|غ[يی]ر|بدّل|بدل)",
     re.IGNORECASE,
 )
-_SEGMENTS = re.compile(r"\s+و\s+|\s*[،,;]\s*|\s+and\s+|\s*&\s*|\s+و\s*بعد\s+|\s+بعدش\s+", re.IGNORECASE)
+# a «و» that belongs INSIDE a clock time («۸ و نیم», «۹ و ربع», «۱۰ و ۱۵ دقیقه») is not a separator between two doses (Codex P2, PR 206)
+_SEGMENTS = re.compile(
+    r"\s+و\s+(?!نیم(?![\w])|ربع(?![\w])|\d+\s*(?:دق[يی]قه|دق[يی]قة)|[يی]ک\s*ربع|سی(?![\w])|پانزده(?![\w]))|\s*[،,;]\s*|\s+and\s+(?!a\s+half|half)|\s*&\s*|\s+و\s*بعد\s+|\s+بعدش\s+",
+    re.IGNORECASE,
+)
 MAX_REQUEST_TIMES = 6
 
 
@@ -241,6 +245,11 @@ def request_times(message: str) -> list[str]:
         return []
 
 
+def _same_dose(a: str, b: str) -> bool:
+    (ha, ma), (hb, mb) = (int(x) for x in a.split(":")), (int(x) for x in b.split(":"))
+    return ma == mb and (ha - hb) % 12 == 0
+
+
 def dose_times(draft: Any, message: Optional[str] = None) -> Optional[list[str]]:
     """All dose times of the request: the several times the user said, else the one the parser found (None = the medication route
     cannot represent the request, see ``fire_times``)."""
@@ -248,7 +257,12 @@ def dose_times(draft: Any, message: Optional[str] = None) -> Optional[list[str]]
     if base is None:
         return None
     many = request_times(message) if message else []
-    return many if len(many) >= 2 else base
+    # the several times replace the parser's one only when they AGREE with it: it is one of them, or it differs from one only by the
+    # 12 hours of a mixed morning/evening sentence (the parser reads ONE period for the whole text: «۹ صبح و ۴ عصر» -> 21:00).
+    # A mis-split that agrees with neither never moves a dose.
+    if len(many) >= 2 and any(_same_dose(base[0], t) for t in many):
+        return many
+    return base
 
 
 def _days_of_week(rule: Optional[str]) -> Optional[str]:

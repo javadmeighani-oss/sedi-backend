@@ -360,6 +360,7 @@ def replace_schedule_times(
         raise ValueError("invalid reminder times")
     _replace_schedules(db, um, converted)
     db.flush()
+    db.refresh(um)  # the loaded collection still holds the DELETED rows: reload it so the weekday restriction lands on the NEW rows
     if days_of_week:
         for row in um.schedules:
             row.days_of_week = days_of_week
