@@ -48,7 +48,8 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("pediatrician", "paediatrician", "طبیب اطفال", "متخصص کودکان")),
     Specialty("زنان", "زنان", ("زنان", "زایمان", "زنان و زایمان", "gynecology", "gynaecology", "obstetrics", "النساء", "امراض النساء", "نسائیه", "نسائی"),
               ("gynecologist", "gynaecologist", "obstetrician", "طبیب نسائی", "طبیبه نسائیه")),
-    Specialty("پوست", "پوست", ("پوست", "پوست و مو", "درماتولوژی", "dermatology", "skin", "جلدیه", "امراض جلدیه", "جلد"),
+    Specialty("پوست", "پوست", ("پوست", "پوست و مو", "درماتولوژی", "dermatology", "skin", "جلدیه", "امراض جلدیه", "جلد",
+                "دکتر مو", "متخصص مو"),
               ("dermatologist", "درماتولوژیست", "طبیب جلدیه")),
     Specialty("ارتوپدی", "ارتوپد", ("ارتوپدی", "ارتوپد", "orthopedics", "orthopaedics", "orthopedic", "orthopaedic", "bone", "عظام", "جراحه عظام"),
               ("orthopedist", "orthopaedist", "طبیب عظام")),
@@ -124,9 +125,17 @@ def find_specialty(text: str) -> Optional[str]:
                         best = (len(m.group(0)), sp.canonical)
             if best[1]:
                 return best[1]
+        # a hair COMPLAINT («ریزش مو») names a field only when no specialty was named: «متخصص غدد برای ریزش مو» is endocrinology
+        if _HAIR_COMPLAINT.search(t):
+            return "پوست"
         return None
     except Exception:  # noqa: BLE001
         return None
+
+
+_HAIR_COMPLAINT = re.compile(
+    r"(?:ریزش|تساقط) ?(?:موی?|الشعر)|طاسی|(?<![\w])hair ?(?:loss|fall)(?![\w])|(?<![\w])alopecia(?![\w])|موهام.{0,12}(?:می ?ریزه|میریزه)"
+)
 
 
 def governed_stem(name: Optional[str]) -> Optional[str]:

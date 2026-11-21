@@ -148,6 +148,78 @@ def open_care_follow_ups(db: Any, user_id: int) -> int:
 
 
 REASON_HINT_PREFIX = "REASON ANSWER (R-112)"
+NO_DOCTOR_PREFIX = "NO DOCTOR YET (R-112 am.1)"
+
+# «I have not seen a doctor (yet)» in the user's own words
+_NO_DOCTOR = re.compile(
+    r"(?:(?:هنوز|تا\s*حالا|تاحالا)\s*)?(?:به\s*)?(?:پیش\s*)?(?:دکتر|پزشک|متخصص)\s*(?:هم\s*)?(?:نرفتم|نرفته\s*ام|نرفته‌ام|ندیدم|نمی\s*رفتم)"
+    r"|(?:نرفتم|نرفته‌ام|نرفته\s*ام)\s*(?:پیش\s*)?(?:دکتر|پزشک|متخصص)"
+    r"|(?:no|not)\s+(?:doctor|dr)\s+yet|(?:not|never)\s+(?:seen|been\s+to|visited)\s+(?:a\s+|the\s+|any\s+)?(?:doctor|physician|specialist)|haven'?t\s+(?:seen|been\s+to|visited|gone\s+to|consulted)\s+(?:a\s+|the\s+|any\s+)?(?:doctor|physician|dermatologist|specialist|gp)"
+    r"|(?:did\s*n'?t|did\s+not|have\s+not|haven'?t)\s+(?:see|seen|visit|visited|go|gone)\s+(?:a\s+|the\s+)?(?:doctor|physician|specialist)"
+    r"|لم\s+(?:أذهب|اذهب|أزر|ازر|أراجع|اراجع)\s+(?:إلى|الى|ل)?\s*(?:ال)?(?:طبيب|دكتور)",
+    re.IGNORECASE,
+)
+
+
+def says_no_doctor_yet(message: str) -> bool:
+    return bool(_NO_DOCTOR.search((message or "").replace("\u200c", " ")))
+
+
+def no_doctor_hint(db: Any, user_id: int, message: str, language: str = "fa") -> Optional[str]:
+    """R-112 am.1 (Javad 2026-11-21: «اگر کاربر بگوید دکتر نرفته‌ام»): no judgement, why a visit helps for THIS problem, ONE direct offer to
+    find the specialist (named when known), the practical steps go on, the reason is not asked again. Never raises."""
+    try:
+        if not says_no_doctor_yet(message):
+            return None
+        from backend.app.services.i5 import specialty_lexicon as sl
+
+        problem, spec = "", None
+        # the complaint of THIS message beats a stored one («معده درد دارم و دکتر نرفتم» is not about the stored hair loss) - Codex P2, PR 208
+        try:
+            from backend.app.services.care_navigation import symptom_triage
+
+            spec = sl.find_specialty(message)
+            if spec is None:
+                tri = symptom_triage.triage(message, language)
+                spec = tri.specialties[0] if tri.areas and tri.specialties else None
+        except Exception:  # noqa: BLE001
+            spec = None
+        if spec is None:
+            try:
+                from backend.app.services.care_state import get_care_state
+
+                state = get_care_state(db, user_id)
+                if state is not None and state.issues:
+                    problem = state.issues[0].text
+                    spec = sl.find_specialty(problem)
+            except Exception:  # noqa: BLE001
+                pass
+        if spec is None:
+            try:
+                from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
+                from backend.app.services.i7.retention import query_eligible_raw
+
+                if not has_permission_readonly(db, user_id, PERM_READ):
+                    raise PermissionError("memory read consent is missing")  # past conversations are NOT read without consent (Codex P1)
+                for row in query_eligible_raw(db, user_id, limit=6) or []:
+                    spec = sl.find_specialty(str(getattr(row, "user_message", "") or ""))
+                    if spec:
+                        break
+            except Exception:  # noqa: BLE001
+                pass
+        about = f" for «{problem}»" if problem else ""
+        ask = f"«do you want me to find a {spec} specialist in your area?» (say the specialty in the user's language)" if spec else "«do you want me to find the right specialist in your area?»"
+        return (
+            f"{NO_DOCTOR_PREFIX}. The user says they have not seen a doctor yet{about}. Do NOT judge, scold or press. Reply compact, in this order: "
+            "(1) ONE line on why a visit helps for THIS problem and what the doctor usually checks (name the 2-3 typical checks only when you know them "
+            "well - e.g. hair loss: iron stores/ferritin, thyroid, vitamin D, hormones, stress; otherwise say it plainly without inventing tests). "
+            f"(2) Ask ONE direct question: {ask} - no softeners, no menu of offers (R-049). "
+            "(3) Keep giving the practical non-drug steps with their how-to while they decide. "
+            "(4) One explicit «see a doctor soon / emergency if ...» line only when a red flag fits. "
+            "(5) Do not ask the reason or the doctor question again; never diagnose; never start/stop/change a medicine."
+        )
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def reason_hint(db: Any, user_id: int, language: str = "fa", message: Optional[str] = None) -> Optional[str]:
@@ -247,7 +319,8 @@ def hint_for_turn(db: Any, user_id: int, message: str, language: str = "fa") -> 
         follow_ups, care_line = care_picture(db, user_id, language)
         base = build_hint(topics, gaps, follow_ups, care_line)
         reason = reason_hint(db, user_id, language, message)  # R-112: the answer to «what do you take it for?»
-        return "\n".join(p for p in (reason, base) if p) or None
+        no_doctor = no_doctor_hint(db, user_id, message, language)  # R-112 am.1: «دکتر نرفته‌ام»
+        return "\n".join(p for p in (no_doctor, reason, base) if p) or None
     except Exception:  # noqa: BLE001
         logger.exception("[R-109] interview guide skipped")
         return None
