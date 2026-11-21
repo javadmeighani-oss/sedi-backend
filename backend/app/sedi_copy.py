@@ -1738,9 +1738,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': '“{name}” already has a dose at {time}, so I changed nothing.',
     },
     'medication.chat.promoted.done': {
-        'fa': 'ثبت شد: «{name}» حالا در مراقبتت ثبت است و ساعت‌هایش {times} است. در کنار این دارو، مراقبت و پیگیری‌اش را با هم ادامه می‌دهیم؛ من همراهتم.',
-        'ar': 'تم: «{name}» مسجّل الآن في رعايتك وأوقاته {times}. وبجانب هذا الدواء سنتابع معاً الرعاية والمتابعة؛ أنا معك.',
-        'en': 'Done: “{name}” is now registered in your care and its times are {times}. Alongside this medicine we will go through care and follow-up together; I am with you.',
+        'fa': '«{name}» حالا در مراقبت توست و ساعت‌هایش {times} است. مراقبت و پیگیری‌اش را با هم ادامه می‌دهیم؛ من همراهتم.',
+        'ar': '«{name}» صار الآن في رعايتك وأوقاته {times}. سنتابع معاً الرعاية والمتابعة؛ أنا معك.',
+        'en': '“{name}” is now in your care and its times are {times}. We will go through care and follow-up together; I am with you.',
     },
     'medication.chat.cancelled': {
         'fa': 'باشه، یادآوری را نگذاشتم. هر وقت خواستی بگو تا برایت تنظیمش کنم.',

@@ -1054,7 +1054,14 @@ class ConversationBrain:
                         # R-068: a follow-up promise in her reply becomes a real, tracked commitment (consent-gated, fail-open)
                         from backend.app.services.i10.commitment_followup import capture_from_reply
 
-                        capture_from_reply(self.db, user_id, sedi_response, lang, user_message=user_message)
+                        # R-112: when the reason hint steered this reply, the medication flow ALREADY created the commitment of this
+                        # exchange: the follow-up promise in the reply must not create a second chain (Codex P2, PR 207)
+                        _reason_turn = any(
+                            isinstance(m, dict) and m.get("role") == "system" and str(m.get("content", "")).startswith("REASON ANSWER (R-112)")
+                            for m in messages
+                        )
+                        if not _reason_turn:
+                            capture_from_reply(self.db, user_id, sedi_response, lang, user_message=user_message)
                     except Exception as _guard_err:
                         print(f"[BRAIN WARNING] grounding guard skipped: {_guard_err}")
                     if not use_intelligence_safety:

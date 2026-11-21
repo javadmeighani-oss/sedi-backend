@@ -479,6 +479,15 @@ def create_journey_followup(db: Session, user_id: int, step: str, tier: str, *, 
         return None
 
 
+def recent_commitment_exists(db: Session, user_id: int, minutes: int = 10) -> bool:
+    """True when a follow-up chain was created for this user in the last ``minutes`` - the care flow that just ran really made one."""
+    try:
+        since = datetime.utcnow() - timedelta(minutes=minutes)
+        return any(t.created_at is not None and t.created_at >= since for t in _commitment_tasks(db, user_id))
+    except Exception:
+        return False
+
+
 def open_commitment_count(db: Session, user_id: int) -> int:
     """How many commitment follow-ups of this user are still open (R-109: «how are you now?» belongs in a conversation that has one)."""
     try:

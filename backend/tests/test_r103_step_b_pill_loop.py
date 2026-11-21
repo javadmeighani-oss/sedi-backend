@@ -224,7 +224,7 @@ def test_the_reason_after_a_promotion_becomes_one_tracked_commitment(monkeypatch
     ask = sedi_copy.t("medication.chat.q.ask_reason_promoted", "fa", name="قرص مکمل", times="09:00، 14:00")
     reply = _go(monkeypatch, _rows(("هم", ask)), "برای کمبود ویتامین")
     assert len(seen) == 1 and "قرص مکمل" in seen[0]
-    assert sedi_copy.t("medication.chat.created.followup_promise", "fa") in reply and "09:00" in reply
+    assert reply == ""  # R-112: the reason is answered by the chat model; the commitment above is the deterministic part
     seen.clear()
     reply2 = _go(monkeypatch, _rows(("هم", ask)), "نمی‌دانم")
     assert seen == [] and sedi_copy.t("medication.chat.created.followup_promise", "fa") not in reply2
@@ -390,7 +390,7 @@ def test_p2_a_confirmed_repeat_survives_the_following_turns(monkeypatch, world):
     assert reply and "لووتیروکسین" in reply and mc._stage_of(reply, "fa") == "ask_reason"
     rows2 = _rows(("لووتیروکسین", sedi_copy.t("medication.chat.q.ask_reason", "fa", name="لووتیروکسین")), ("هر روز", ask_name), (DAY_REQ, ask_rep))
     final = _go(monkeypatch, rows2, "برای تیروئید")
-    assert world.created == ["لووتیروکسین"] and final and "09:00" in final
+    assert world.created == ["لووتیروکسین"] and final == ""  # R-112: created; the model answers the reason
 
 
 def test_p2_without_the_repeat_answer_a_dated_request_is_still_dropped(monkeypatch, world):

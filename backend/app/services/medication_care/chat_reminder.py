@@ -146,6 +146,9 @@ def _fold(text: str) -> str:
     return _ARABIC_MARKS.sub("", out)
 
 
+MODEL_OWNED_REPLY = ""  # continue_interview: the interview COMPLETED on this message and the chat model writes the reply (R-112); None = not ours
+
+
 def enabled() -> bool:
     return os.getenv(DISABLED_ENV, "").strip().lower() not in {"1", "true", "yes", "on"}
 
@@ -602,6 +605,37 @@ def _stage_of(reply: Optional[str], language: Optional[str]) -> Optional[str]:
     return None
 
 
+def reason_context(
+    db: Session, user_id: int, language: Optional[str], now: Optional[datetime] = None, message: Optional[str] = None
+) -> Optional[dict[str, Any]]:
+    """R-112: when Sedi's LAST reply asked WHY a medicine is taken AND this message was accepted as the reason (the interview completed:
+    the pill is registered), the pill behind it: ``{name, times}``. None otherwise - a non-answer, a withdrawal, a very long message or a
+    registration that did not happen (Codex P2, PR 207). Read-only; fail-open."""
+    try:
+        if not enabled() or not history_available(db, user_id):
+            return None
+        if message is not None:
+            text = _fold(message).strip()
+            if not text or len(text.split()) > 40 or insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text):
+                return None  # not accepted as a reason: the interview did not complete on this message
+        turns = _recent_turns(db, user_id, now or datetime.now(timezone.utc))
+        last = next((str(t.sedi_response) for t in turns if getattr(t, "sedi_response", None)), "")
+        if _stage_of(last, language) not in ("ask_reason", "ask_reason_promoted"):
+            return None
+        from backend.app.services.medication_care import pill_registry as reg
+
+        quoted = _QUOTED.search(last)
+        name = quoted.group(1).strip() if quoted else provisional_name(language)
+        times = reg.times_of(db, user_id, name)
+        if not times:
+            return None  # nothing is registered under that name: the model must not confirm a registration that did not happen
+        from backend.app.services.i10 import commitment_followup as cf
+
+        return {"name": name, "times": times, "tracked": cf.recent_commitment_exists(db, user_id)}
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _request_candidates(turns: list[Any]) -> list[tuple[str, Any]]:
     """Texts that may hold the original request, newest first: a turn's own message, and that message completed by the
     clarification answer the user gave to Sedi's «morning or evening?» / «when?» question (Codex P2, PR 185)."""
@@ -698,10 +732,12 @@ def _after_promoted(db: Session, user_id: int, lang: str, last: str, message: st
     # a long message is another topic, and an INDEPENDENT reminder request keeps its own routing (Codex P2, PR 193)
     if len(text.split()) > 40 or _is_new_reminder_request(message, lang, timezone_name):
         return None
-    reply = sedi_copy.t("medication.chat.promoted.done", lang, name=name, times=reg.times_text(reg.times_of(db, user_id, name), lang))
-    if not (insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text)) and _accompany(db, user_id, lang, name, message):
-        reply = reply + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)
-    return reply
+    if not (insists(message) or _NON_ANSWER.match(text) or _CANCEL.search(text)):
+        # R-112: a real REASON is answered like a caretaker by the chat model (reflection, clinician questions, how-to steps); the
+        # deterministic part is only the tracked companionship - the schedule facts reach the model through the interview hint
+        _accompany(db, user_id, lang, name, message)
+        return MODEL_OWNED_REPLY
+    return sedi_copy.t("medication.chat.promoted.done", lang, name=name, times=reg.times_text(reg.times_of(db, user_id, name), lang))
 
 
 def continue_interview(
@@ -731,12 +767,18 @@ def continue_interview(
         name = quoted.group(1).strip() if quoted else None
         text = _fold(message).strip()
 
-        def finish(final_name: Optional[str], key_named: str, key_unnamed: str, *, accompany: bool = False) -> Optional[str]:
+        def finish(
+            final_name: Optional[str], key_named: str, key_unnamed: str, *, accompany: bool = False, defer_reply: bool = False
+        ) -> Optional[str]:
             out = _create(db, user_id=user_id, draft=draft, language=lang, timezone_name=timezone_name, name=final_name, message=orig_text)
             if out is None:
                 return None
             if out.get("duplicate"):
                 return sedi_copy.t("medication.chat.already_tracked", lang, name=out.get("name", ""))
+            if defer_reply:  # R-112: the reason is answered by the chat model; the registration + companionship are already done
+                if accompany:
+                    _accompany(db, user_id, lang, out.get("name", ""), message)
+                return MODEL_OWNED_REPLY
             text = sedi_copy.t(key_named if final_name else key_unnamed, lang, name=out.get("name", ""), time=out.get("time", ""))
             if accompany and _accompany(db, user_id, lang, out.get("name", ""), message):
                 text = text + " " + sedi_copy.t("medication.chat.created.followup_promise", lang)
@@ -799,7 +841,7 @@ def continue_interview(
             if not text or len(text.split()) > 40:  # a long message is another topic: the normal flow answers it
                 return None
             return finish(
-                name, "medication.chat.created.after_reason", "medication.chat.created.after_reason_unnamed", accompany=True
+                name, "medication.chat.created.after_reason", "medication.chat.created.after_reason_unnamed", accompany=True, defer_reply=True
             )
         return None
     except Exception:  # noqa: BLE001
