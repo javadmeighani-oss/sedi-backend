@@ -15,7 +15,7 @@ case "${FLAG}" in
   SEDI_EVENT_REMINDER_SCHEDULER_ENABLED) ;;
   SEDI_I8_WEEKLY_REVIEW_ENABLED|SEDI_I8_MOTIVATION_ENABLED) ;;
   SEDI_I5_LINK_DISCOVERY_ENABLED|SEDI_PUBLIC_WEB_LOOKUP_ENABLED) ;;
-  SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED) ;;  # R-021: I7 daily/weekly/monthly/yearly memory summaries (deterministic compression, consent-gated)
+  SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED|SEDI_EVENT_CARE_NOTIFS_ENABLED) ;;  # R-021: I7 daily/weekly/monthly/yearly memory summaries (deterministic compression, consent-gated)
   *) echo "FLAG_NOT_ALLOWED"; exit 2 ;;
 esac
 s "flag_name" "${FLAG}"

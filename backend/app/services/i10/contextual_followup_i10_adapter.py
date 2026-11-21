@@ -50,6 +50,8 @@ def _non_medical_post_event(task: models.CareFollowUpTask) -> bool:
 def resolve_privacy_class(task: models.CareFollowUpTask) -> I10PrivacyClass:
     if task.source == FollowUpTaskSource.POST_EVENT.value and not _non_medical_post_event(task):
         return I10PrivacyClass.HEALTH_SENSITIVE
+    if parse_bounded_meta(task.description)[1].follow_up_kind in ("event_day_of", "event_pre_check"):
+        return I10PrivacyClass.HEALTH_SENSITIVE  # R-108: a care appointment (doctor, lab, imaging, surgery, physiotherapy)
     return I10PrivacyClass.PRIVATE
 
 
@@ -111,6 +113,29 @@ def _commitment_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[
         pass
     title, body = commitment_copy(lang, int(meta.attempt or 1), meta.approach, meta.reason, getattr(meta, "domain", None))
     return title, body, COMMITMENT_TEMPLATE_KEY
+
+
+def _event_care_copy(db: Session, task: models.CareFollowUpTask, name: Optional[str]) -> tuple[str, str, str]:
+    """R-108 / Javad 2026-11-20: the appointment is NAMED exactly as the user gave it, with its local time and place (R-084)."""
+    from backend.app.services.i10 import event_care as ec
+
+    lang = "fa"
+    try:
+        row = db.query(models.User.preferred_language).filter(models.User.id == task.user_id).first()
+        raw = ((row[0] if row else None) or "fa").strip().lower().split("-")[0]
+        lang = raw if raw in ("fa", "en", "ar") else "en"
+    except Exception:
+        pass
+    facts = ec.event_facts(db, task)
+    which = "pre" if (facts or {}).get("kind") == ec.KIND_PRE else "day_of"
+    who = sedi_copy.t("address.followup", lang, name=name) if name else ""
+    if facts is None:  # the event vanished between the sweep and the send: nothing specific is claimed
+        return sedi_copy.t("followup.title.brand", lang), sedi_copy.t("followup.care_checkin.body", lang, who=who), "care_checkin"
+    place = sedi_copy.t("event_care.place", lang, location=facts["place"]) if facts["place"] else ""
+    body = sedi_copy.t(f"event_care.body.{which}", lang, who=who, time=facts["time"], title=facts["title"], place=place)
+    if lang == "en" and not who:
+        body = body[:1].upper() + body[1:]
+    return sedi_copy.t(f"event_care.title.{which}", lang), body, facts["kind"]
 
 
 def _assurance_copy(db: Session, task: models.CareFollowUpTask, meta) -> tuple[str, str, str]:
@@ -183,6 +208,8 @@ def render_followup_copy(
         return _commitment_copy(db, task, meta)
     if meta.follow_up_kind == "assurance":
         return _assurance_copy(db, task, meta)
+    if meta.follow_up_kind in ("event_day_of", "event_pre_check"):
+        return _event_care_copy(db, task, name)
 
     # P7: the follow-up speaks the user's language, and learns from reactions - a user who said the last one was not
     # relevant / unclear gets the gentle wording without the topic.
@@ -265,6 +292,21 @@ def build_followup_payload(
     )
 
 
+def _event_care_validity(db: Session, task: models.CareFollowUpTask) -> dict:
+    """Candidate validity of an appointment message: deliverable only until its grace ends / the appointment starts (R-108)."""
+    try:
+        if parse_bounded_meta(task.description)[1].follow_up_kind not in ("event_day_of", "event_pre_check"):
+            return {}
+        from datetime import datetime as _dt, timezone as _tz
+
+        from backend.app.services.i10 import event_care as ec
+
+        expires = ec.expires_at(db, task)
+        return {"valid_from": _dt.now(_tz.utc), "expires_at": expires} if expires is not None else {}
+    except Exception:  # noqa: BLE001 - the default I10 lifetime then applies
+        return {}
+
+
 def enqueue_contextual_followup_notification(
     db: Session,
     *,
@@ -285,6 +327,7 @@ def enqueue_contextual_followup_notification(
         semantic_family=semantic,
         privacy_hint=resolve_privacy_class(task),
         provenance_refs=(f"care_follow_up_task:{task.id}", f"source:{task.source}"),
+        **_event_care_validity(db, task),
     )
     result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
     if result.decision != I10DecisionValue.SEND or result.notification_id is None:
