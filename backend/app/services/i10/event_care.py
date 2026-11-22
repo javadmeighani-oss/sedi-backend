@@ -305,6 +305,21 @@ def may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
     return bool(can_send_v1(db, task.user_id, "companion", kind, "normal", now_naive).get("allowed"))
 
 
+def _still_upcoming(db: Session, task: models.CareFollowUpTask, kind: str, now: Optional[datetime] = None) -> bool:
+    """The appointment is still active, has not started, and - for the day-of message - is still TODAY in the user's zone."""
+    event, _kind = _event_and_kind(db, task)
+    if event is None or (event.status or "") not in _ACTIVE_STATUSES:
+        return False
+    start = _starts_utc(event)
+    now_naive = _naive_utc(now or datetime.now(timezone.utc))
+    if start is None or now_naive >= start:
+        return False
+    if kind == KIND_DAY_OF:
+        zone = _zone(db, task.user_id)
+        return _local(start, zone).date() == _local(now_naive, zone).date()
+    return True
+
+
 def opener(db: Session, user_id: int, notification: models.Notification, lang: str) -> Optional[str]:
     """R-108 / R-052 (2c-2): the chat that opens from a day-of / pre-check push continues the SAME subject: the appointment (title, time,
     place as the push named them) and, when the shared care state holds an open issue, that issue - ONE specific question, never the
@@ -315,8 +330,8 @@ def opener(db: Session, user_id: int, notification: models.Notification, lang: s
 
         task = task_of_notification(db, notification, user_id)
         facts = event_facts(db, task) if task is not None else None
-        if facts is None:
-            return None
+        if facts is None or not _still_upcoming(db, task, facts["kind"]):
+            return None  # cancelled, past or moved to another day: an old push must not announce it as upcoming (Codex P2, PR 209)
         issue = ""
         try:
             from backend.app.services.care_state import get_care_state
