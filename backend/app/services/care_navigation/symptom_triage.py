@@ -45,7 +45,7 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
         r"chest pain.{0,40}(?:breath|sweat|arm|jaw)", r"(?:breath|short of breath).{0,40}chest pain")),
     ("severe_chest_pain", _rx(
         r"(?:درد|فشار)(?: ?ی)? (?:خیلی )?(?:شدید|وحشتناک|له کننده|فشارنده).{0,15}(?:قفسه(?: ?ی)? سینه|سینه)",
-        r"(?:قفسه(?: ?ی)? سینه|سینه ?ام).{0,20}(?:خیلی )?(?:شدید|وحشتناک|له ?می ?شه|فشرده می ?شه)",
+        r"(?:قفسه(?: ?ی)? سینه|سینه ?ام).{0,20}(?:(?:درد|فشار|سنگینی).{0,15}(?:شدید|وحشتناک)|(?:شدید|وحشتناک).{0,12}(?:درد|فشار)|له ?می ?شه|فشرده می ?شه)",
         r"\b(?:severe|crushing|sudden|intense|squeezing|excruciating)\b.{0,15}chest (?:pain|pressure|tightness)",
         r"chest (?:pain|pressure|tightness).{0,20}\b(?:severe|crushing|unbearable|excruciating)\b")),
     ("stroke_signs", _rx(

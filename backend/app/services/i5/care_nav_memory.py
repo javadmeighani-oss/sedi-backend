@@ -104,6 +104,11 @@ def _request_text(specialty: str, place: Optional[str], lang: str, qualifiers: s
     return ci._with_qualifiers(text, qualifiers, lang)
 
 
+def _without_tone(message: str) -> str:
+    """The message without the «I already told you / the same problem» wording: the triage treats «قبلا» as history and would skip the complaint."""
+    return _WS.sub(" ", _REFERS.sub(" ", _PROCEED.sub(" ", _norm(message)))).strip()
+
+
 def _spec_of(text: str, lang: str) -> Optional[str]:
     """The specialty a complaint text points to (triage; an emergency gives None so the safety path keeps it)."""
     try:
@@ -172,7 +177,7 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
         if named:
             spec = req.specialty_or_service  # already in the request (a doctor's NAME keeps the request text); only the place may be missing
         else:
-            spec = _spec_of(base, lang)
+            spec = _spec_of(_without_tone(message), lang) or _spec_of(base, lang)  # the CURRENT answer's symptoms first (Codex P2, PR 211 round 3)
             if spec is None:
                 best = -1
                 for issue in issues:  # the problem the message mentions wins; otherwise the primary (first) one

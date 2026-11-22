@@ -321,3 +321,21 @@ def test_p2_a_requested_source_survives_the_rewrite(db, user):
     _remember(db, user)
     out = mem.complete_request(db, user.id, "برام یه دکتر پیدا کن و منبعش را هم بگو", "fa", rows=[])
     assert out is not None and cn.wants_sources(out.text)
+
+
+# --- Codex round 3 on PR 211 ------------------------------------------------------------------------------------------------------------------
+def test_p2_the_current_answers_symptoms_beat_memory_in_a_pending_thread(db, user):
+    _remember(db, user, issues=("معده درد دارم",))
+    _turn(db, user, "یه دکتر پیدا کن", "برای پیدا کردن پزشک مشخص، در کدام شهر یا محدوده می‌خواهی ویزیت شوی؟", minutes_ago=2)
+    out = mem.complete_request(db, user.id, "قبلا گفتم زانوم درد می کنه", "fa", rows=_rows(db, user))
+    assert out is not None and "ارتوپدی" in out.text and "گوارش" not in out.text
+
+
+@pytest.mark.parametrize("text", ["قفسه سینه ام شدیدا می خاره", "سینه ام خیلی خارش دارد", "قفسه سینه‌ام قرمز و شدید ملتهب شده"])
+def test_p2_severe_itching_or_rash_on_the_chest_is_not_a_heart_emergency(text):
+    assert not symptom_triage.triage(text, "fa").red_flag
+
+
+@pytest.mark.parametrize("text", ["قفسه سینه ام خیلی شدید درد می کند", "قفسه سینه‌ام فشار شدید دارد", "سینه ام له می شه"])
+def test_p2_the_reverse_chest_emergency_wordings_still_flag(text):
+    assert symptom_triage.triage(text, "fa").red_flag
