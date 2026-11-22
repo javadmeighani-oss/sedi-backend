@@ -43,6 +43,11 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
         r"(?:قفسه(?: ?ی)? سینه|درد سینه|سینه ام درد|سینه‌ام درد).{0,40}(?:نفس|تنگی|عرق سرد|دست چپ|فک|سنگینی)",
         r"(?:نفس|تنگی نفس|عرق سرد).{0,40}(?:قفسه(?: ?ی)? سینه|درد سینه)",
         r"chest pain.{0,40}(?:breath|sweat|arm|jaw)", r"(?:breath|short of breath).{0,40}chest pain")),
+    ("severe_chest_pain", _rx(
+        r"(?:درد|فشار)(?: ?ی)? (?:خیلی )?(?:شدید|وحشتناک|له کننده|فشارنده).{0,15}(?:قفسه(?: ?ی)? سینه|سینه)",
+        r"(?:قفسه(?: ?ی)? سینه|سینه ?ام).{0,20}(?:(?:درد|فشار|سنگینی).{0,15}(?:شدید|وحشتناک)|(?:شدید|وحشتناک).{0,12}(?:درد|فشار)|له ?می ?شه|فشرده می ?شه)",
+        r"\b(?:severe|crushing|sudden|intense|squeezing|excruciating)\b.{0,15}chest (?:pain|pressure|tightness)",
+        r"chest (?:pain|pressure|tightness).{0,20}\b(?:severe|crushing|unbearable|excruciating)\b")),
     ("stroke_signs", _rx(
         r"(?:یک طرف|یه طرف|نیمی از).{0,15}(?:صورت|بدن).{0,30}(?:افتاده|ضعیف|بی ?حس|کج)",
         r"(?:صورت|لبم|دهانم).{0,15}(?:افتاده|کج شده)", r"ناگهان.{0,40}(?:ضعف|بی ?حس).{0,25}(?:دست|پا|صورت)",
@@ -65,6 +70,7 @@ _RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
 # --- Arabic (D-404): the same red flags / areas / specialties as Persian + English, expressed in Arabic -------------------------
 _AR_RED_FLAGS: tuple[tuple[str, re.Pattern], ...] = (
     ("chest_pain_with_breathing", _rx(r"ألم (?:في )?(?:ال)?صدر.{0,40}(?:تنفس|نفس|ضيق|عرق|الذراع|الفك)", r"(?:ضيق|صعوبة)(?: في)? (?:ال)?تنفس.{0,40}(?:ال)?صدر")),
+    ("severe_chest_pain", _rx(r"ألم (?:شديد|حاد|ساحق|مفاجئ) (?:في )?(?:ال)?صدر", r"(?:ال)?صدر.{0,20}(?:ألم|وجع) (?:شديد|حاد|ساحق)")),
     ("stroke_signs", _rx(r"(?:تدلي|اعوجاج|التواء) (?:في )?(?:ال)?(?:وجه|فم)", r"ثقل (?:في )?(?:ال)?كلام", r"(?:ال)?كلام (?:غير )?(?:واضح|مفهوم) فجأة", r"ضعف مفاجئ.{0,25}(?:يد|ذراع|ساق|وجه)")),
     ("worst_headache", _rx(r"أسوأ صداع", r"صداع مفاجئ (?:و)?(?:شديد|رهيب)")),
     ("heavy_bleeding", _rx(r"نزيف (?:شديد|حاد|غزير|لا يتوقف)")),
@@ -99,7 +105,12 @@ _SOON: tuple[re.Pattern, ...] = (
 # area key -> (patterns, specialties best-first)
 _AREAS: tuple[tuple[str, re.Pattern, tuple[str, ...]], ...] = (
     ("heart_rhythm", _rx(r"ضربان", r"تپش قلب", r"طپش قلب", r"قلبم.{0,15}(?:می ?زنه|میزنه|نامنظم|تند)", r"palpitation", r"irregular heart"), ("قلب",)),
-    ("chest", _rx(r"قفسه(?: ?ی)? سینه", r"درد سینه", r"سینه ?ام", r"قلبم.{0,12}(?:درد|فشار|سنگین)", r"chest pain"), ("قلب", "داخلی")),
+    # R-114: pain UNDER the ribs / the right upper abdomen is a digestive-internal complaint, not a heart one (pilot chat D-485)
+    ("abdomen_upper", _rx(r"زیر ?(?:ی )?(?:قفسه(?: ?ی)? سینه|دنده)", r"سمت راست شکم", r"بالای شکم", r"پهلوی راست", r"زیر دنده",
+                          r"(?:under|below) (?:the |my )?(?:right )?rib", r"right (?:upper )?(?:abdomen|side) pain", r"upper abdomen", r"أسفل الأضلاع", r"أعلى البطن"), ("گوارش", "داخلی")),
+    ("chest", _rx(r"(?<!زیر )(?<!زیر)قفسه(?: ?ی)? سینه", r"درد سینه", r"سینه ?ام", r"قلبم.{0,12}(?:درد|فشار|سنگین)", r"درد قلبم", r"chest pain"), ("قلب", "داخلی")),
+    ("neck_jaw", _rx(r"(?:ورم|برجستگی|توده|تورم|غده|آماس).{0,14}(?:زیر فک|گردن|پشت گوش)", r"زیر فک",
+                     r"(?:swollen|lump|swelling).{0,15}(?:neck|jaw|gland)", r"(?:neck|jaw) (?:lump|swelling)"), ("گوش و حلق و بینی", "داخلی")),
     ("head", _rx(r"سردرد", r"سر درد", r"میگرن", r"سرگیجه", r"سرم.{0,12}(?:درد|می ?زنه|میزنه)", r"headache", r"migraine", r"dizz"), ("مغز و اعصاب",)),
     ("back_joint", _rx(r"زانو", r"کمردرد", r"کمر درد", r"کمرم", r"مفصل", r"شانه ?ام", r"گردن ?درد", r"گردنم", r"پشتم", r"ستون فقرات", r"\bknee\b", r"back pain", r"joint"), ("ارتوپدی",)),
     ("skin", _rx(r"پوست", r"خارش", r"قرمزی", r"جوش", r"لکه", r"راش", r"کهیر", r"\brash\b", r"itch",
@@ -124,7 +135,7 @@ _COMPANIONS: tuple[tuple[str, re.Pattern, str], ...] = (
 )
 # the first question per area (keys of the copy catalog, texts added with the interview package J4)
 _QUESTION_BY_AREA = {
-    "head": "care_nav.q.headache_detail", "chest": "care_nav.q.duration", "back_joint": "care_nav.q.which_side_and_duration",
+    "head": "care_nav.q.headache_detail", "chest": "care_nav.q.duration", "abdomen_upper": "care_nav.q.duration", "neck_jaw": "care_nav.q.duration", "back_joint": "care_nav.q.which_side_and_duration",
     "skin": "care_nav.q.skin_where_since", "stomach": "care_nav.q.stomach_since_food", "mind": "care_nav.q.mind_since_sleep",
     "ent": "care_nav.q.ent_fever_days", "endocrine": "care_nav.q.last_lab", "eye": "care_nav.q.eye_sudden_or_slow",
     "dental": "care_nav.q.dental_swelling", "urinary": "care_nav.q.sex_and_fever", "heart_rhythm": "care_nav.q.palpitation_when",
@@ -200,8 +211,8 @@ _COMPLAINT_CUE = re.compile(_fold(
 # Words that ARE a symptom by themselves (no extra complaint cue needed): Codex P2, PR 187.
 _UNAMBIGUOUS_SYMPTOM = re.compile(_fold(
     r"سردرد|سر ?درد|میگرن|سرگیجه|تپش قلب|طپش قلب|ریفلاکس|دل ?درد|گوش ?درد|دندان ?درد|کمر ?درد|گردن ?درد|زانو ?درد|بی ?خوابی|"
-    r"ریزش ?مو|تساقط ?مو|طاسی|موهام.{0,12}(?:می ?ریزه|میریزه)|"
-    r"\b(?:hair ?(?:loss|fall)|alopecia)\b|"
+    r"ریزش ?مو|تساقط ?مو|طاسی|موهام.{0,12}(?:می ?ریزه|میریزه)|زیر ?(?:ی )?دنده|زیر فک|"
+    r"\b(?:lump|swollen (?:gland|lymph)|swelling) (?:under|in|on) (?:my )?(?:jaw|neck)\b|\b(?:hair ?(?:loss|fall)|alopecia)\b|"
     r"\b(?:headache|earache|toothache|stomachache|backache|insomnia|palpitations?|migraine|heartburn|diarrh(?:ea|oea)|constipation|"
     r"vertigo|hives|bloating|sore throat|back pain|chest pain)\b"), re.I)
 

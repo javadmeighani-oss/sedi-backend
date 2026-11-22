@@ -575,6 +575,20 @@ class IntelligenceOrchestrator:
         except Exception:  # noqa: BLE001
             return directory_message, False
 
+    def _memory_first_request(self, user_id: int, message: str, lang: str):
+        """R-114: ``care_nav_memory.complete_request`` with the consent-gated recent turns; None = the existing flow (fail-open)."""
+        try:
+            if self._db is None or not message or not message.strip():
+                return None
+            from backend.app.services.i5 import care_nav_memory
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
+            from backend.app.services.i7.retention import query_eligible_raw
+
+            rows = (query_eligible_raw(self._db, user_id, limit=4) or []) if has_permission_readonly(self._db, user_id, PERM_READ) else []
+            return care_nav_memory.complete_request(self._db, user_id, message, lang, rows=list(rows))
+        except Exception:  # noqa: BLE001
+            return None
+
     def _journey_intake(self, message: str, lang: str, user_id: int) -> Optional[str]:
         """R-109: the interview that must come BEFORE a doctor/centre/lab introduction (None = introduce now). It needs the consent-gated
         conversation to keep its state, so without it nothing is asked."""
@@ -1095,6 +1109,12 @@ class IntelligenceOrchestrator:
             message = self._continue_specialist_offer(ctx, authenticated_user_id, message, lang)
             # J3-c: «which kind of doctor / why?» was asked first; the answer completes THAT doctor request.
             message = self._continue_care_nav_interview(ctx, authenticated_user_id, message, lang)
+            # R-114 / R-115: an incomplete doctor request is completed from MEMORY (problem, stored place, insistence) - never re-asked.
+            _memory_req = self._memory_first_request(authenticated_user_id, message, lang)
+            _memory_notes: tuple = ()
+            if _memory_req is not None:
+                message, _memory_notes = _memory_req.text, _memory_req.notes
+                extra_reason_codes.extend(_memory_req.reason_codes)
 
             # 7–9) I3 stages
             if rollout_mode != "structured":
@@ -1462,7 +1482,11 @@ class IntelligenceOrchestrator:
 
             _reason_q = reason_question(message, lang) if not is_directory_source_question(message) else None
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
-            _intake_q = None if _reason_q else self._journey_intake(message, lang, authenticated_user_id)
+            _intake_q = None if _reason_q else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id))
+            if _memory_req is not None and not _reason_q and self._db is not None:
+                from backend.app.services.care_journey import journey as _cj
+
+                _cj.track(self._db, authenticated_user_id, _memory_req.tier_text or message, lang)  # the follow-up starts even though no interview is asked (urgency from the ORIGINAL complaint)
             if _reason_q:
                 # J3-c: no specialty named -> ask WHY / WHICH doctor first (one question), never a list of random doctors.
                 care_nav_handled = True
@@ -1510,9 +1534,13 @@ class IntelligenceOrchestrator:
                     extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
                     extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
                 # R-109 step 1b-2: a doctor/lab request is the start of a CARE JOURNEY (follow-up, interview, stabilising care)
-                directory_message, _journey_started = self._with_care_journey(directory_message, message, lang, authenticated_user_id)
+                directory_message, _journey_started = self._with_care_journey(
+                    directory_message, (_memory_req.tier_text if _memory_req is not None and _memory_req.tier_text else message), lang, authenticated_user_id
+                )
                 if _journey_started:
                     extra_reason_codes.append("R109_CARE_JOURNEY")
+                if _memory_notes and directory_message:
+                    directory_message = chr(10).join(_memory_notes) + chr(10) * 2 + directory_message  # where the place came from, the other problem
                 skip_generator = True
                 clarification_message = None
 

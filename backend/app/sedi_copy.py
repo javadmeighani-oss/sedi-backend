@@ -1447,6 +1447,22 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'رقم الطوارئ هو {emergency}.',
         'en': 'The emergency number is {emergency}.',
     },
+    # ---- care navigation: completed from memory (R-114 / R-115, D-485)
+    'care_nav.memory.place_used': {
+        'fa': 'بر اساس محله‌ای که قبلاً گفته بودی ({place}) جست‌وجو کردم؛ اگر عوض شده، بگو.',
+        'ar': 'بحثت بحسب المنطقة التي ذكرتها سابقاً ({place})؛ إن تغيّرت، أخبرني.',
+        'en': 'I searched in the area you mentioned earlier ({place}); tell me if that has changed.',
+    },
+    'care_nav.memory.place_default': {
+        'fa': 'چون شهر برایت مهم نبود، از {city} شروع کردم.',
+        'ar': 'بما أن المدينة لا تهمّك، بدأت من {city}.',
+        'en': 'Since the city does not matter to you, I started from {city}.',
+    },
+    'care_nav.memory.other_issue': {
+        'fa': 'برای «{issue}» هم متخصص {specialty} مناسب است؛ بعد از این یکی سراغ آن می‌رویم.',
+        'ar': 'بالنسبة إلى «{issue}» يناسبك أيضاً طبيب {specialty}؛ ننتقل إليه بعد هذا.',
+        'en': 'For “{issue}” a {specialty} specialist fits too; we will take that one next.',
+    },
     # ---- care navigation: the reason first (J3-c, D-410)
     'care_nav.ask_reason': {
         'fa': 'برای چه مشکل یا نیازی دنبال دکتر می‌گردی؟ اگر نوع تخصص را می‌دانی همان را بگو؛ اگر نه، فقط بگو چه چیزی آزارت می‌دهد تا دقیق‌ترین گزینه را پیدا کنم.',

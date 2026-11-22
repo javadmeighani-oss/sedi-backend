@@ -102,6 +102,33 @@ def intake_message(db: Any, user_id: int, request_text: str, language: str, *, i
         return None
 
 
+def track(db: Any, user_id: int, request_text: str, language: str) -> bool:
+    """R-114: the care-journey chain is tracked WITHOUT the interview (the request was completed from memory, or the user asked not to be
+    asked): the follow-up still starts, the questions are skipped. False = nothing tracked (consent, emergency, error)."""
+    try:
+        if not enabled() or db is None:
+            return False
+        tier = tier_for(request_text, language)
+        if tier is None:
+            return False
+        if _journey_open(db, user_id):
+            return True
+        from backend.app.services.i10 import commitment_followup as cf
+
+        lang3 = language if language in ("fa", "ar", "en") else "en"
+        if cf.create_journey_followup(db, user_id, sedi_copy.t("journey.step", lang3), tier) is None:
+            return False
+        db.commit()
+        return True
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-114] care journey not tracked")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return False
+
+
 def results_block(db: Any, user_id: int, request_text: str, language: str) -> Optional[str]:
     """After the introduction: the stabilising care + «how are you now?» of an OPEN journey (the interview was asked before)."""
     try:
