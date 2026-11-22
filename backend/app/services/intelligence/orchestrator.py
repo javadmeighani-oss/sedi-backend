@@ -2321,13 +2321,17 @@ class IntelligenceOrchestrator:
             try:
                 from backend.app.core.conversation.memory import ConversationMemory
 
-                ConversationMemory(self._db).save_conversation(
+                saved_turn = ConversationMemory(self._db).save_conversation(
                     authenticated_user_id,
                     original_user_message,
                     out_message.strip(),
                     out_language,
                     actor_user_id=authenticated_user_id,
                 )
+                if saved_turn is not None and care_nav_handled and directory_links:
+                    from backend.app.services.i7.governed_raw import attach_reply_links
+
+                    attach_reply_links(self._db, user_id=authenticated_user_id, sedi_response=out_message.strip(), links=list(directory_links))
             except Exception:
                 try:
                     self._db.rollback()

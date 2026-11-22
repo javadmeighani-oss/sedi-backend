@@ -128,7 +128,8 @@ def strip_urls(text: str, links: Sequence[dict], language: Optional[str]) -> str
         if cleaned.strip():
             lines_out.append(cleaned)
     body = re.sub(r"\n{3,}", "\n\n", "\n".join(lines_out)).strip()
-    return body + "\n\n" + sedi_copy.t("care_nav.links.below", lang)
+    pointer = sedi_copy.t("care_nav.links.below", lang)
+    return (body + "\n\n" + pointer) if body else pointer
 
 
 def reply_with_links(text: str, links: Optional[Sequence[dict]], supports_links: Optional[bool], language: Optional[str]) -> tuple:

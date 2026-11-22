@@ -185,3 +185,36 @@ def test_p2_a_sparse_provider_entry_keeps_its_name_specialty_and_city():
     out = pl.strip_urls(text, links, "fa")
     assert "• دکتر الف — گوارش، پردیس" in out and "https://" not in out and "• پذیرش۲۴" not in out      # the entry stays, the link-only line goes
     assert pl.strip_urls("https://www.paziresh24.com/dr/alef/", LINKS, "fa").startswith(sedi_copy.t("care_nav.links.below", "fa")[:10])
+
+
+# --- Codex round 1 on PR 214: the links are kept with the stored turn and come back in the history -----------------------------------------------------------------
+def test_p2_the_links_are_stored_with_the_turn_and_returned_by_the_history(db, user, monkeypatch):
+    from backend.app.routers.interact import get_user_history
+    from backend.app.services.i7.governed_raw import attach_reply_links, links_of_turn
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    from backend.app import models
+
+    reply = "• دکتر الف؛ آدرس: خیابان اصلی"
+    monkeypatch.setattr(cn, "resolve_care_navigation", lambda *a, **k: SimpleNamespace(user_message=reply, status=cn.STATUS_VERIFIED, links=tuple(LINKS)))
+    monkeypatch.setattr(IntelligenceOrchestrator, "_journey_intake", lambda self, message, lang, user_id: None)
+    orch = IntelligenceOrchestrator(db=db, legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
+    orch.process(authenticated_user_id=user.id, message="یه دکتر پوست در شیراز پیدا کن", language="fa")
+    from backend.app.core.conversation.memory import ConversationMemory
+
+    assert ConversationMemory(db).save_conversation(user.id, "سلام", "سلام!", "fa") is not None   # an ordinary turn, stored by the brain
+    rows = db.query(models.Memory).filter(models.Memory.user_id == user.id).order_by(models.Memory.id).all()
+    assert [bool(links_of_turn(r)) for r in rows] == [True, False]                   # only the doctor turn carries links
+    history = get_user_history(user=user, user_id=None, limit=10, db=db)["messages"]
+    with_links = [m for m in history if m.get("links")]
+    assert len(with_links) == 1 and with_links[0]["links"][0]["url"] == LINKS[0]["url"] and with_links[0]["sedi_response"] == reply
+    assert all("links" not in m for m in history if m is not with_links[0])           # a plain turn keeps the old shape
+
+
+def test_p2_attaching_links_is_fail_open_and_ignores_junk(db, user):
+    from backend.app.services.i7.governed_raw import attach_reply_links, links_of_turn
+
+    assert attach_reply_links(db, user_id=user.id, sedi_response="never stored", links=LINKS) is False        # no such turn
+    assert attach_reply_links(db, user_id=user.id, sedi_response="x", links=[]) is False
+    assert attach_reply_links(db, user_id=user.id, sedi_response="", links=LINKS) is False
+    assert links_of_turn(SimpleNamespace(provenance_json="not json")) == [] and links_of_turn(SimpleNamespace(provenance_json=None)) == []
+    assert links_of_turn(SimpleNamespace(provenance_json='{"links": "x"}')) == []

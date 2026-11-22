@@ -943,6 +943,7 @@ def get_user_history(
             detail="user_id does not match authenticated user",
         )
 
+    from backend.app.services.i7.governed_raw import links_of_turn
     from backend.app.services.i7.retention import query_eligible_raw
 
     memories = query_eligible_raw(db, user.id, limit=limit)
@@ -955,7 +956,8 @@ def get_user_history(
                 "user_message": m.user_message,
                 "sedi_response": m.sedi_response,
                 "language": m.language,
-                "created_at": m.created_at.isoformat()
+                "created_at": m.created_at.isoformat(),
+                **({"links": _turn_links} if (_turn_links := links_of_turn(m)) else {}),  # R-107 am.3
             }
             for m in memories
         ]
