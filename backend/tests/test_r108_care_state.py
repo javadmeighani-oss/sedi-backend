@@ -128,6 +128,7 @@ def test_the_summary_line_is_empty_when_there_is_nothing_to_say_or_no_consent():
 
 # --- the guard: consumers are listed so a new reader is a conscious decision ------------------------------------------------------------------------
 APPROVED_READERS = {
+    "backend/app/services/care_journey/journey.py",
     "backend/app/services/i10/event_care.py",
     "backend/app/services/interview/guide.py",
     "backend/app/services/status_report/builder.py",
@@ -194,3 +195,11 @@ def test_p2_the_pending_attempt_describes_the_chain_not_the_delivered_one(monkey
     assert not [r for r in cf.open_follow_ups(None, 1) if r["attempt"] == 1 and r["tier"] == "acute"]
     commitment = [r for r in cf.open_follow_ups(None, 1) if r["kind"] == "commitment"]
     assert len(commitment) == 1 and commitment[0]["tier"] is None
+
+
+def test_a_status_note_describes_the_stated_concern_even_without_an_episode_line(monkeypatch):
+    """2c-3: the answer to an appointment push («الان بدترم») is a dated note on a stated concern that has no story line yet."""
+    _facts(monkeypatch, health_concerns=["درد زانو"], symptom_episodes=[WORSE["fa"] + " · 2026-11-21"])
+    assert st._issues(None, 1)[0].status == "worse"
+    _facts(monkeypatch, symptom_episodes=[WORSE["fa"] + " · 2026-11-21"])
+    assert st._issues(None, 1) == ()  # still no concern and no story: nothing to attach it to
