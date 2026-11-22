@@ -249,7 +249,8 @@ def _status_after_appointment_push(db: Any, user_id: int, signal: str, lang: str
         horizon = datetime.utcnow() - APPOINTMENT_PUSH_WINDOW
         pushed = (
             db.query(models.Notification.id)
-            .filter(models.Notification.user_id == user_id, models.Notification.created_at >= horizon,
+            .filter(models.Notification.user_id == user_id, models.Notification.is_sent.is_(True),
+                    models.Notification.sent_at >= horizon,  # delivered (not queued/failed/blocked), within the window (Codex P2, PR 210)
                     models.Notification.template_key.in_((event_care.KIND_DAY_OF, event_care.KIND_PRE)))
             .first()
         )
