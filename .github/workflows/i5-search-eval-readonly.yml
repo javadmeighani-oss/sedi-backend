@@ -1,0 +1,95 @@
+# R-114 am.1 (PR-A2a) — Read-only measurement of the provider web search (golden set of specialty x place), workflow_dispatch only.
+# Runs backend/ops/search_eval/search_eval.py INSIDE the running production container: the same search functions the chat uses, synthetic
+# structured queries only (specialty + place, never user data). It writes nothing (no env, flag, DB, file or container change) and prints
+# no secret. The OpenAI key stays inside the container; only EVAL| lines (counts, domains, timings) leave it.
+name: I5 Search Eval Read-only
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "SEARCH_EVAL_READONLY"
+        required: true
+      deployed_image_sha:
+        description: "40-char SHA of the deployed backend image"
+        required: true
+      set_label:
+        description: "Label echoed in the result (baseline | after | model-ab)"
+        required: false
+        default: "baseline"
+      model:
+        description: "Optional model under test (SEDI_DIRECTORY_WEB_LOOKUP_MODEL for this run only); empty = the running default"
+        required: false
+        default: ""
+      max_queries:
+        description: "Number of golden queries (1-48)"
+        required: false
+        default: "24"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    name: I5 search eval (read-only)
+    if: github.event.inputs.confirmation == 'SEARCH_EVAL_READONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          LABEL: ${{ github.event.inputs.set_label }}
+          MODEL: ${{ github.event.inputs.model }}
+          MAXQ: ${{ github.event.inputs.max_queries }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${LABEL:-baseline}" | grep -Eq '^[A-Za-z0-9_.-]{1,40}$'
+          echo "${MODEL}" | grep -Eq '^[A-Za-z0-9_.:-]{0,64}$'
+          echo "${MAXQ:-24}" | grep -Eq '^[0-9]{1,2}$'
+          [ "${MAXQ:-24}" -ge 1 ] && [ "${MAXQ:-24}" -le 48 ]
+      - name: SSH read-only search eval
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          LABEL: ${{ github.event.inputs.set_label }}
+          MODEL: ${{ github.event.inputs.model }}
+          MAXQ: ${{ github.event.inputs.max_queries }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          SCRIPT_B64="$(base64 -w0 backend/ops/search_eval/search_eval.py)"
+          ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "IMAGE_SHA=$(printf '%q' "${SHA}") EVAL_SET=$(printf '%q' "${LABEL:-baseline}") EVAL_MODEL=$(printf '%q' "${MODEL}") EVAL_MAXQ=$(printf '%q' "${MAXQ:-24}") SCRIPT_B64=${SCRIPT_B64} bash -s" \
+            2>&1 <<'REMOTE' | tee /tmp/search_eval.log
+          set -Eeuo pipefail
+          s() { echo "EVAL|$1|$2"; }
+          IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
+          echo "${IMG}" | grep -Fq "${IMAGE_SHA}" || { s image_tag_guard FAIL; exit 10; }
+          REVL="$(docker image inspect "$(docker inspect sedi-backend --format '{{.Image}}')" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          [ "${REVL}" = "${IMAGE_SHA}" ] || { s oci_revision_guard FAIL; exit 11; }
+          s image_guard PASS
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health PASS
+          s now_utc "$(date -u +%FT%TZ)"
+          ENVARGS="-e SEDI_EVAL_SET=${EVAL_SET} -e SEDI_EVAL_MAX_QUERIES=${EVAL_MAXQ}"
+          if [ -n "${EVAL_MODEL}" ]; then ENVARGS="${ENVARGS} -e SEDI_DIRECTORY_WEB_LOOKUP_MODEL=${EVAL_MODEL}"; fi
+          echo "${SCRIPT_B64}" | base64 -d | docker exec -i ${ENVARGS} sedi-backend python -
+          s now_utc_end "$(date -u +%FT%TZ)"
+          REMOTE
+          grep -Eq 'EVAL\|phase_search_eval\|PASS' /tmp/search_eval.log
+          if grep -Eiq 'SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres|OPENAI_API_KEY=|sk-[A-Za-z0-9]{20,}' /tmp/search_eval.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-search-eval
+          path: /tmp/search_eval.log
+          retention-days: 30
