@@ -10,12 +10,15 @@ Behind a flag (SEDI_DIRECTORY_WEB_LOOKUP_ENABLED) with a daily cap.
 """
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
+import logging
 import os
 import re
 import threading
 import time
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from typing import Any, Optional, Sequence
 from urllib.parse import urlparse
@@ -46,6 +49,39 @@ TRUSTED_DOMAINS: dict[str, tuple[str, ...]] = {
 TRUSTED_SUFFIXES: tuple[str, ...] = (".gov.ir", ".ac.ir", ".gov", ".edu", ".nhs.uk")
 # Never a provider listing: search engines, maps share links, generic social posts without a profile.
 _BLOCKED_HOSTS = ("google.", "bing.com", "duckduckgo.com", "wikipedia.org", "facebook.com", "twitter.com", "x.com")
+
+logger = logging.getLogger(__name__)
+SPEC_FILTER_DISABLED_ENV = "SEDI_DIRECTORY_SPEC_FILTER_DISABLED"  # kill switch (code default ON)
+REQUEST_BUDGET = 8  # R-114 am.1: web searches ONE user request may spend (area + the nearest-area rings together)
+_BUDGET: "contextvars.ContextVar[Optional[dict]]" = contextvars.ContextVar("sedi_web_budget", default=None)
+
+
+@contextmanager
+def request_budget(limit: int = REQUEST_BUDGET):
+    """Scope of one user request: every provider web search inside it counts against ``limit``; the yielded dict is the request's
+    telemetry (queries spent, results dropped for the wrong specialty) - structured counters only, never user data."""
+    state = {"limit": int(limit), "queries": 0, "dropped": 0}
+    token = _BUDGET.set(state)
+    try:
+        yield state
+    finally:
+        _BUDGET.reset(token)
+
+
+def _take_request_budget() -> bool:
+    state = _BUDGET.get()
+    if state is None:
+        return True
+    if state["queries"] >= state["limit"]:
+        return False
+    state["queries"] += 1
+    return True
+
+
+def budget_left() -> bool:
+    state = _BUDGET.get()
+    return state is None or state["queries"] < state["limit"]
+
 
 _lock = threading.Lock()
 _usage: dict[str, int] = {}
@@ -106,18 +142,25 @@ _ENTITY_WORDS = {
 
 def build_query(entity: str, specialty: Optional[str], city: Optional[str], province: Optional[str],
                 country: str = "IR", area: Optional[str] = None, qualifiers: Sequence[str] = ()) -> Optional[str]:
-    """Structured-only query. No city → no lookup (too broad, likely low quality). ``area`` = neighbourhood (R-089)."""
-    if not city:
+    """Structured-only query. No place at all (neither city nor area) -> no lookup (too broad). R-114 am.1: a doctor query reads like the
+    booking sites name it («متخصص گوارش در بومهن, تهران»); an area WITHOUT a city is still a place (it used to skip the search)."""
+    if not (city or area):
         return None
     en, fa = _ENTITY_WORDS.get(entity, _ENTITY_WORDS["SPECIALIST"])
     ir = country.upper() == "IR"
     word = fa if ir else en
-    what = f"{specialty} {word}" if specialty else word
+    doctor_by_specialty = entity == "SPECIALIST" and bool(specialty) and ir
+    if doctor_by_specialty:
+        what = f"متخصص {specialty}"
+    else:
+        what = f"{specialty} {word}" if specialty else word
     if "24h" in qualifiers:
         what += " شبانه‌روزی" if ir else " open 24 hours"
     if "high_rating" in qualifiers:
         what += " با امتیاز بالا" if ir else " highly rated"
     where = ", ".join(x for x in (area, city, province) if x)
+    if doctor_by_specialty:
+        return f"{what} در {where}"
     return f"{what} {where}" if ir else f"{what} in {where}"
 
 
@@ -201,6 +244,8 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
         # spacing/half-space tolerant: «تهرانپارس» == «تهران‌پارس»; a neighbourhood match is enough (R-089)
         if city and not _mentions(place_text, city) and not area_hit:
             continue
+        if not city and area and not area_hit:
+            continue  # R-114: area-only search - the result must name that area
         # ...unless the result explicitly names ANOTHER city (e.g. «شیراز، منطقه ۸» for Tehran's district 8) - Codex P2
         if city and item_city and not _mentions(_norm_place(item_city), city) and not (
             area and _norm_place(area) in _norm_place(item_city)
@@ -224,6 +269,7 @@ def validate_results(items: Sequence[dict[str, Any]], *, city: Optional[str], co
 
 
 _VERIFY_WORKERS = 5
+RATING_PRIOR_WEIGHT = 10  # reviews' worth of doubt added to every average
 
 
 def _score(r: dict[str, Any], *, specialty: Optional[str], area: Optional[str], qualifiers: Sequence[str]) -> float:
@@ -236,8 +282,10 @@ def _score(r: dict[str, Any], *, specialty: Optional[str], area: Optional[str], 
     score += 0.5 if r.get("visit_days") or r.get("next_turn") else 0.0
     avg, cnt = r.get("rating_avg"), r.get("rating_count") or 0
     if avg:
-        weight = 1.5 if "high_rating" in qualifiers else 0.2
-        score += weight * float(avg) * (1.0 if cnt >= 10 else 0.4)
+        # R-114 am.1 (Javad: Sedi recommends by the patients' ratings): shrink the average toward 4.0 by how few reviews back it
+        weight = 1.5 if "high_rating" in qualifiers else 0.6
+        shrunk = (float(avg) * cnt + 4.0 * RATING_PRIOR_WEIGHT) / (cnt + RATING_PRIOR_WEIGHT)
+        score += weight * shrunk
     if "24h" in qualifiers:
         score += 3.0 if r.get("open_24h") else (-2.0 if r.get("page_read") else 0.0)
     return score
@@ -297,7 +345,11 @@ def _query_variants(query: str, entity: str, country: str) -> list[str]:
     if ir and entity == "LABORATORY":
         out.append(query.replace("آزمایشگاه", "آزمایشگاه تشخیص طبی", 1) + " آدرس")
     if ir:  # R-089: last try aimed at the Iranian booking / listing sites
-        out.append(query + " نوبت‌دهی پذیرش۲۴ دکترتو دکتر دکتر")
+        site = query + " نوبت‌دهی پذیرش۲۴ دکترتو دکتر دکتر"
+        if entity == "SPECIALIST":  # R-114 am.1: for a doctor the booking sites are what find the doctor pages - they come SECOND
+            out.insert(1, site)
+        else:
+            out.append(site)
     return out
 
 
@@ -323,11 +375,14 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
         for i, variant in enumerate(_query_variants(query, entity, country)):
             if i and not _take_quota():  # web search is non-deterministic: retry with other wording
                 break
+            if not _take_request_budget():  # R-114 am.1: one request never drains the daily cap (area + rings share this budget)
+                break
             raw = _call_web_search(variant, country, client)
             if raw:
                 break
         results = validate_results(raw, city=city, country=country, area=area)
         results = verify_and_rank(results, specialty=specialty, area=area, qualifiers=tuple(qualifiers or ()))
+        results = _only_the_specialty(results, entity, specialty)
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
     with _lock:
@@ -335,6 +390,20 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
             _cache.pop(next(iter(_cache)))
         _cache[query] = (now, [dict(r) for r in results])
     return results
+
+
+def _only_the_specialty(results: list[dict[str, Any]], entity: str, specialty: Optional[str]) -> list[dict[str, Any]]:
+    """R-114 am.1 (Javad E2): a doctor result must BE the requested specialty (its own specialty text or name says so); a pediatrician for a
+    gastro request is dropped, not merely ranked lower. Entities other than doctors and unknown specialty labels are never filtered."""
+    if entity != "SPECIALIST" or not specialty or os.getenv(SPEC_FILTER_DISABLED_ENV, "").strip().lower() in {"1", "true", "yes", "on"}:
+        return results
+    from backend.app.services.i5 import specialty_lexicon as _lex
+
+    kept = [r for r in results if _lex.result_matches_specialty(specialty, r.get("specialty"), r.get("name"))]
+    state = _BUDGET.get()
+    if state is not None:
+        state["dropped"] += len(results) - len(kept)
+    return kept
 
 
 def web_record_key(source_url: str) -> str:

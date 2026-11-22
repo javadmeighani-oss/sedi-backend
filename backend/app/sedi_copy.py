@@ -1535,6 +1535,11 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'قرب «{found}»، أقرب منطقة إلى «{where}»، وجدت هذه الخيارات:',
         'en': 'Near “{found}”, the nearest area to “{where}”, I found these options:',
     },
+    'care_nav.nearest_chain': {
+        'fa': 'در {tried} پزشک مناسبی پیدا نکردم؛ نزدیک «{found}» این گزینه‌ها را پیدا کردم:',
+        'ar': 'لم أجد طبيباً مناسباً في {tried}؛ وجدت هذه الخيارات قرب «{found}»:',
+        'en': 'I found no suitable doctor in {tried}; near “{found}” I found these options:',
+    },
     'care_nav.ask_place': {
         'fa': 'منظورت {place} است یا جای دیگری؟ اگر جای دیگری است، نام محله و شهرش را بگو.',
         'ar': 'هل تقصد {place} أم مكاناً آخر؟ وإن كان مكاناً آخر فاذكر الحي والمدينة.',

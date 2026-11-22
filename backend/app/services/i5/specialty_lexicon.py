@@ -57,7 +57,7 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("gastroenterologist", "گاستروانترولوژیست")),
     Specialty("چشم", "چشم", ("چشم", "چشم پزشکی", "چشم پزشک", "افتالمولوژی", "ophthalmology", "eye", "عیون", "طب العیون"),
               ("ophthalmologist", "optometrist", "چشم پزشک", "طبیب عیون")),
-    Specialty("گوش و حلق و بینی", "گوش و حلق و بینی", ("گوش و حلق و بینی", "گوش و حلق", "ای ان تی", "ent", "otolaryngology", "انف و اذن و حنجره"),
+    Specialty("گوش و حلق و بینی", "گوش و حلق و بینی", ("گوش و حلق و بینی", "گوش و حلق", "گوش حلق و بینی", "گوش حلق بینی", "ای ان تی", "ent", "otolaryngology", "انف و اذن و حنجره"),
               ("otolaryngologist", "ent doctor", "ent specialist")),
     Specialty("روانپزشکی", "روان", ("روانپزشکی", "روان پزشکی", "روانپزشک", "روان پزشک", "psychiatry", "الطب النفسی", "طب نفسی"),
               ("psychiatrist", "طبیب نفسی", "روانپزشک", "روان پزشک")),
@@ -136,6 +136,24 @@ def find_specialty(text: str) -> Optional[str]:
 _HAIR_COMPLAINT = re.compile(
     r"(?:ریزش|تساقط) ?(?:موی?|الشعر)|طاسی|(?<![\w])hair ?(?:loss|fall)(?![\w])|(?<![\w])alopecia(?![\w])|موهام.{0,12}(?:می ?ریزه|میریزه)"
 )
+
+
+_ALIAS_RX_BY_NAME = {sp.canonical: rx for sp, rx in _ALIAS_RX}
+_PUNCT = re.compile(r"[،,.;:/|()\-–]+")
+
+
+def result_matches_specialty(canonical: Optional[str], *texts: object) -> bool:
+    """R-114 am.1: a search RESULT is that specialty when its own specialty text (or name) carries one of the specialty's words, matched at
+    word boundaries with the same vocabulary the request side uses («dentist» is not ENT, a psychologist is not a psychiatrist). An unknown
+    label has no vocabulary to judge by, so it never filters (True)."""
+    try:
+        rx = _ALIAS_RX_BY_NAME.get(canonical or "")
+        if rx is None:
+            return True
+        haystack = _PUNCT.sub(" ", fold(" | ".join(str(t or "") for t in texts)))  # «گوش، حلق و بینی» == «گوش حلق و بینی»
+        return bool(rx.search(haystack))
+    except Exception:  # noqa: BLE001
+        return True
 
 
 def governed_stem(name: Optional[str]) -> Optional[str]:
