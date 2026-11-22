@@ -305,6 +305,36 @@ def may_send(db: Session, task: models.CareFollowUpTask, now: datetime) -> bool:
     return bool(can_send_v1(db, task.user_id, "companion", kind, "normal", now_naive).get("allowed"))
 
 
+def opener(db: Session, user_id: int, notification: models.Notification, lang: str) -> Optional[str]:
+    """R-108 / R-052 (2c-2): the chat that opens from a day-of / pre-check push continues the SAME subject: the appointment (title, time,
+    place as the push named them) and, when the shared care state holds an open issue, that issue - ONE specific question, never the
+    generic greeting. None when the appointment is gone (the caller keeps its generic opener). Read-only; fail-open."""
+    try:
+        from backend.app import sedi_copy
+        from backend.app.services.i10.event_outcome import task_of_notification
+
+        task = task_of_notification(db, notification, user_id)
+        facts = event_facts(db, task) if task is not None else None
+        if facts is None:
+            return None
+        issue = ""
+        try:
+            from backend.app.services.care_state import get_care_state
+
+            state = get_care_state(db, user_id)
+            if state is not None and state.issues:
+                issue = state.issues[0].text
+        except Exception:  # noqa: BLE001
+            issue = ""
+        place = sedi_copy.t("event_care.place", lang, location=facts["place"]) if facts["place"] else ""
+        which = "event_pre" if facts["kind"] == KIND_PRE else "event_day_of"
+        key = f"session.origin.{which}_issue" if issue else f"session.origin.{which}"
+        return sedi_copy.t(key, lang, time=facts["time"], title=facts["title"], place=place, issue=issue)
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-108] event care opener skipped")
+        return None
+
+
 def event_facts(db: Session, task: models.CareFollowUpTask) -> Optional[dict]:
     """What the message names, exactly as the user gave it: title, local start time (HH:MM) and place; None when the event is gone."""
     event, kind = _event_and_kind(db, task)

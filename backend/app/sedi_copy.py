@@ -2229,6 +2229,26 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'بُني هذا التقرير فقط على ما أخبرتَ به صدي أو سجّلته بنفسك، وهو ليس تشخيصاً طبياً.',
         'en': 'This report is built only from what you told Sedi or recorded yourself. It is not a medical diagnosis.',
     },
+    'session.origin.event_day_of': {
+        'fa': 'امروز ساعت {time} «{title}»{place} داری. برای رفتن آماده\u200cای؟',
+        'ar': 'لديك اليوم الساعة {time} «{title}»{place}. هل أنت مستعد للذهاب؟',
+        'en': 'Today at {time} you have “{title}”{place}. Are you ready to go?',
+    },
+    'session.origin.event_day_of_issue': {
+        'fa': 'امروز ساعت {time} «{title}»{place} داری. دربارهٔ «{issue}» چیزی هست که بخواهی در این نوبت بگویی یا بپرسی؟',
+        'ar': 'لديك اليوم الساعة {time} «{title}»{place}. هل هناك ما تريد قوله أو سؤاله بشأن «{issue}» في هذا الموعد؟',
+        'en': 'Today at {time} you have “{title}”{place}. Is there anything about “{issue}” you want to say or ask at this appointment?',
+    },
+    'session.origin.event_pre': {
+        'fa': 'ساعت {time} «{title}»{place} داری. الان حالت چطور است؟',
+        'ar': 'الساعة {time} لديك «{title}»{place}. كيف حالك الآن؟',
+        'en': 'At {time} you have “{title}”{place}. How are you feeling right now?',
+    },
+    'session.origin.event_pre_issue': {
+        'fa': 'ساعت {time} «{title}»{place} داری. «{issue}» الان چطور است؟',
+        'ar': 'الساعة {time} لديك «{title}»{place}. كيف حال «{issue}» الآن؟',
+        'en': 'At {time} you have “{title}”{place}. How is “{issue}” right now?',
+    },
     'event_care.title.day_of': {
         'fa': 'نوبت امروز',
         'ar': 'موعد اليوم',

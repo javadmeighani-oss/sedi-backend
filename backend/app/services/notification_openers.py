@@ -101,6 +101,8 @@ def _key_for(notification: models.Notification) -> Optional[str]:
         return f"motivation_{kind}" if kind in ("workout_day", "comeback", "milestone") else None
     if template == "post_event_follow_up" or family == "POST_EVENT_FOLLOW_UP":
         return "post_event"
+    if template in ("event_day_of", "event_pre_check"):
+        return "event_care"  # R-108: the day-of 09:00 message and the 2-hours-before check-in
     return None
 
 
@@ -125,6 +127,12 @@ def family_opener(
             from backend.app.services.i10.event_outcome import opener as post_event_opener
 
             body = post_event_opener(db, user_id, notification, lang) or sedi_copy.t("session.origin.post_event", lang)
+        elif key == "event_care":
+            from backend.app.services.i10.event_care import opener as event_care_opener
+
+            body = event_care_opener(db, user_id, notification, lang)
+            if body is None:
+                return None  # the appointment is gone: the generic opener stays
         elif key == "assurance":
             body = sedi_copy.t("session.origin.assurance", lang)
             try:
