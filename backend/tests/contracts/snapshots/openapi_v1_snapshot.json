@@ -950,6 +950,18 @@
             "description": "Optional; links chat to originating notification",
             "title": "Source Notification Id"
           },
+          "supports_links": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "R-107 am.3: the app shows `links` below the bubble; the reply text then carries no raw doctor URLs",
+            "title": "Supports Links"
+          },
           "thread_id": {
             "anyOf": [
               {
@@ -3694,6 +3706,21 @@
           "language": {
             "title": "Language",
             "type": "string"
+          },
+          "links": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Links"
           },
           "message": {
             "title": "Message",

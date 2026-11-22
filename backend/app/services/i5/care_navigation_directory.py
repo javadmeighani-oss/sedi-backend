@@ -116,6 +116,7 @@ class CareNavResult:
     authority: str = CANONICAL_AUTHORITY
     lab_population_authorized: bool = LAB_POPULATION_AUTHORIZED
     identity_notes: tuple[str, ...] = ()
+    links: tuple = ()  # R-107 am.3: [{label, url, kind, host}] shown OUTSIDE the bubble (built only from verified results / the directory's own search pages)
 
 
 # --- Intent detection (application-side; not prompt-only) ---
@@ -832,8 +833,24 @@ def resolve_care_navigation(
         result = _nearest_area_result(db, req, result)
     logger.info("[R-114] provider search status=%s web_queries=%s dropped_wrong_specialty=%s", result.status, budget["queries"], budget["dropped"])
     return dataclasses.replace(
-        result, identity_notes=tuple(result.identity_notes) + (f"WEB_QUERIES_{budget['queries']}", f"SPEC_DROPPED_{budget['dropped']}")
+        result,
+        identity_notes=tuple(result.identity_notes) + (f"WEB_QUERIES_{budget['queries']}", f"SPEC_DROPPED_{budget['dropped']}"),
+        links=tuple(_links_of(result, req)),
     )
+
+
+def _links_of(result: CareNavResult, req: "CareNavRequest") -> list:
+    """R-107 am.3: the page of each verified doctor on the ORIGINAL site; when nothing verified was found, the booking sites' own search pages."""
+    try:
+        from backend.app.services.i5 import provider_links
+
+        if result.identities:
+            return provider_links.links_for_identities(result.identities, req.language)
+        if result.status == STATUS_NO_VERIFIED and (req.city or req.area):
+            return provider_links.links_for_search(directory_search_links(req), req.language)
+    except Exception:  # noqa: BLE001 - links are an enrichment: the text answer never breaks
+        logger.exception("[R-107] provider links skipped")
+    return []
 
 
 def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResult) -> CareNavResult:

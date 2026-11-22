@@ -1535,6 +1535,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'قرب «{found}»، أقرب منطقة إلى «{where}»، وجدت هذه الخيارات:',
         'en': 'Near “{found}”, the nearest area to “{where}”, I found these options:',
     },
+    'care_nav.links.below': {
+        'fa': 'لینک صفحهٔ هر مورد را زیر همین پیام گذاشتم؛ با لمس آن، سایت اصلی باز می‌شود.',
+        'ar': 'وضعتُ رابط صفحة كل نتيجة تحت هذه الرسالة؛ بلمسه يُفتح الموقع الأصلي.',
+        'en': 'I put the link to each result below this message; tap it to open the original site.',
+    },
+    'care_nav.links.search_on': {
+        'fa': 'جست‌وجو در {site}',
+        'ar': 'البحث في {site}',
+        'en': 'Search on {site}',
+    },
     'care_nav.nearest_chain': {
         'fa': 'در {tried} پزشک مناسبی پیدا نکردم؛ نزدیک «{found}» این گزینه‌ها را پیدا کردم:',
         'ar': 'لم أجد طبيباً مناسباً في {tried}؛ وجدت هذه الخيارات قرب «{found}»:',

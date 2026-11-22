@@ -1458,6 +1458,7 @@ class IntelligenceOrchestrator:
         # Never fall through to LLM provider generation.
         # REMINDER/event (I3) owns schedule phrasing — do not let care-nav steal it.
         directory_message: Optional[str] = None
+        directory_links: tuple = ()  # R-107 am.3
         care_nav_handled = False
         _reminder_owned = (
             intent_meta is not None
@@ -1520,6 +1521,7 @@ class IntelligenceOrchestrator:
                         extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
                     else:
                         directory_message = care_nav.user_message
+                        directory_links = tuple(getattr(care_nav, "links", ()) or ())
                         extra_reason_codes.append(
                             "CARE_NAVIGATION_VERIFIED"
                             if care_nav.status == STATUS_VERIFIED
@@ -2393,5 +2395,6 @@ class IntelligenceOrchestrator:
             safety_rule_id=assessment.rule_id,
             discovery_question_id=discovery_question_id,
             discovery_target_key=discovery_target_key,
+            links=directory_links if care_nav_handled and directory_message else (),
             interaction_need=interaction_need_value,
         )
