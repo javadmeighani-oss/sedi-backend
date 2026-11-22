@@ -323,3 +323,29 @@ def test_p2_the_city_comes_from_the_geography_so_a_same_named_area_of_another_ci
     monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city)) or _result(cn.STATUS_NO_VERIFIED))
     cn._nearest_area_result(None, _req(area=None, city="طرقبه", province="خراسان رضوی"), _result(cn.STATUS_NO_VERIFIED))
     assert seen == [("نارمک", "مشهد")]                                                # Mashhad's Narmak, not the gazetteer's Tehran one
+
+
+# --- Codex round 3 on PR 213 ------------------------------------------------------------------------------------------------------------------
+def _doc(name, spec):
+    return {"name": name, "specialty": spec, "city": "پردیس", "address": "پردیس، خیابان اصلی", "phone": "02112345678", "source_url": f"https://www.drdr.ir/{name}"}
+
+
+def test_p2_wrong_specialties_do_not_end_the_search_the_other_wordings_are_tried(monkeypatch):
+    answers = iter([[_doc("a", "کودکان")], [_doc("b", "کودکان"), _doc("c", "متخصص گوارش")]])
+    calls = []
+    monkeypatch.setattr(web, "_call_web_search", lambda q, c, client=None: calls.append(q) or next(answers))
+    monkeypatch.setattr(web, "verify_and_rank", lambda results, **k: results)
+    out = web.search_web_providers(entity="SPECIALIST", specialty="گوارش", city="پردیس", province="تهران")
+    assert [r["name"] for r in out] == ["c"] and len(calls) == 2 and "پذیرش۲۴" in calls[1]     # the booking-site wording found the gastro doctor
+
+
+def test_p2_a_miss_caused_by_the_budget_is_not_remembered(monkeypatch):
+    calls = []
+    monkeypatch.setattr(web, "_call_web_search", lambda q, c, client=None: calls.append(q) or [])
+    with web.request_budget(1):
+        assert web.search_web_providers(entity="SPECIALIST", specialty="گوارش", city="پردیس", province="تهران") == []   # only one wording was allowed
+    assert not web._cache                                                                                     # so the miss is NOT cached
+    with web.request_budget(8):
+        web.search_web_providers(entity="SPECIALIST", specialty="گوارش", city="پردیس", province="تهران")
+    assert len(calls) == 1 + 3                                                                                  # a fresh request tried every wording
+    assert len(web._cache) == 1                                                                                 # a COMPLETE miss is cached as before

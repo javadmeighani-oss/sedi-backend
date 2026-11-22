@@ -370,21 +370,28 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
     if not _take_quota():
         return []
     results: list[dict[str, Any]] = []
+    incomplete = False  # the budget / quota stopped the search before every wording was tried: a miss then must not be remembered
     try:
         raw: list[dict[str, Any]] = []
         for i, variant in enumerate(_query_variants(query, entity, country)):
             if i and not _take_quota():  # web search is non-deterministic: retry with other wording
+                incomplete = True
                 break
             if not _take_request_budget():  # R-114 am.1: one request never drains the daily cap (area + rings share this budget)
+                incomplete = True
                 break
-            raw = _call_web_search(variant, country, client)
+            found = _call_web_search(variant, country, client)
+            # the specialty filter runs on the RAW answer, BEFORE the candidate limit and INSIDE the retry loop: wrong specialties neither use up
+            # the slots nor end the search - the other wordings (booking sites, address) are still tried (Codex P2, PR 213)
+            raw = _only_the_specialty(found, entity, specialty)
             if raw:
                 break
-        raw = _only_the_specialty(raw, entity, specialty)  # BEFORE the candidate limit: wrong specialties must not use up the slots (Codex P2, PR 213)
         results = validate_results(raw, city=city, country=country, area=area)
         results = verify_and_rank(results, specialty=specialty, area=area, qualifiers=tuple(qualifiers or ()))
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
+    if incomplete and not results:
+        return results  # not cached: a fresh request with budget left may still find the provider
     with _lock:
         if len(_cache) >= _CACHE_MAX:
             _cache.pop(next(iter(_cache)))
