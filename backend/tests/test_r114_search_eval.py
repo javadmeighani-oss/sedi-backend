@@ -172,7 +172,7 @@ def test_p2_a_psychologist_is_not_a_psychiatrist_and_every_golden_specialty_has_
     assert ev.suitable({"specialty": "متخصص کودکان", "name": "دکتر ج"}, "مغز و اعصاب") is False
     from backend.app.services.i5 import specialty_lexicon as lexicon
 
-    assert set(ev.SPECIALTIES) <= set(lexicon._ALIAS_RX_BY_NAME)         # every golden specialty has its own vocabulary
+    assert set(ev.SPECIALTIES) <= set(lexicon._BY_NAME)                  # every golden specialty is a known lexicon specialty
 
 
 def test_p2_short_latin_stems_do_not_match_inside_other_words(ev):

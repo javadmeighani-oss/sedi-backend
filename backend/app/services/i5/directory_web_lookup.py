@@ -380,9 +380,9 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
             raw = _call_web_search(variant, country, client)
             if raw:
                 break
+        raw = _only_the_specialty(raw, entity, specialty)  # BEFORE the candidate limit: wrong specialties must not use up the slots (Codex P2, PR 213)
         results = validate_results(raw, city=city, country=country, area=area)
         results = verify_and_rank(results, specialty=specialty, area=area, qualifiers=tuple(qualifiers or ()))
-        results = _only_the_specialty(results, entity, specialty)
     except Exception:  # noqa: BLE001 — optional enrichment; the governed answer path must not break
         return []
     with _lock:

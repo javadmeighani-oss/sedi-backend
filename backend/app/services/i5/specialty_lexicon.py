@@ -59,7 +59,7 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("ophthalmologist", "optometrist", "چشم پزشک", "طبیب عیون")),
     Specialty("گوش و حلق و بینی", "گوش و حلق و بینی", ("گوش و حلق و بینی", "گوش و حلق", "گوش حلق و بینی", "گوش حلق بینی", "ای ان تی", "ent", "otolaryngology", "انف و اذن و حنجره"),
               ("otolaryngologist", "ent doctor", "ent specialist")),
-    Specialty("روانپزشکی", "روان", ("روانپزشکی", "روان پزشکی", "روانپزشک", "روان پزشک", "psychiatry", "الطب النفسی", "طب نفسی"),
+    Specialty("روانپزشکی", "روان", ("روانپزشکی", "اعصاب و روان", "روان پزشکی", "روانپزشک", "روان پزشک", "psychiatry", "الطب النفسی", "طب نفسی"),
               ("psychiatrist", "طبیب نفسی", "روانپزشک", "روان پزشک")),
     Specialty("روان‌شناسی", "روان", ("روان شناس", "روانشناسی", "روان شناسی", "مشاوره", "psychology", "counselling", "counseling", "علم النفس", "ارشاد نفسی"),
               ("psychologist", "therapist", "counselor", "counsellor", "روانشناس", "روان شناس", "اخصائی نفسی")),
@@ -138,20 +138,23 @@ _HAIR_COMPLAINT = re.compile(
 )
 
 
-_ALIAS_RX_BY_NAME = {sp.canonical: rx for sp, rx in _ALIAS_RX}
 _PUNCT = re.compile(r"[،,.;:/|()\-–]+")
 
 
 def result_matches_specialty(canonical: Optional[str], *texts: object) -> bool:
-    """R-114 am.1: a search RESULT is that specialty when its own specialty text (or name) carries one of the specialty's words, matched at
-    word boundaries with the same vocabulary the request side uses («dentist» is not ENT, a psychologist is not a psychiatrist). An unknown
-    label has no vocabulary to judge by, so it never filters (True)."""
+    """R-114 am.1: a search RESULT is that specialty when the specialty its OWN text names IS it. The texts are judged in order (the result's
+    specialty field first, then its name) and the FIRST one that names a specialty decides, by the same longest-match vocabulary the request
+    side uses - so a neurosurgeon is not a general surgeon («مغز و اعصاب» outranks the generic «جراح»), a psychiatrist is not a neurologist,
+    a psychologist is not a psychiatrist and «dentist» is not ENT (Codex P2, PR 213). No specialty named anywhere = no evidence = False;
+    an unknown label has no vocabulary to judge by, so it never filters (True)."""
     try:
-        rx = _ALIAS_RX_BY_NAME.get(canonical or "")
-        if rx is None:
+        if (canonical or "") not in _BY_NAME:
             return True
-        haystack = _PUNCT.sub(" ", fold(" | ".join(str(t or "") for t in texts)))  # «گوش، حلق و بینی» == «گوش حلق و بینی»
-        return bool(rx.search(haystack))
+        for text in texts:
+            found = find_specialty(_PUNCT.sub(" ", str(text or "")))  # «گوش، حلق و بینی» == «گوش حلق و بینی»
+            if found:
+                return found == canonical
+        return False
     except Exception:  # noqa: BLE001
         return True
 

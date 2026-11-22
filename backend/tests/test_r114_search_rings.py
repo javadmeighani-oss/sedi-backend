@@ -263,3 +263,29 @@ def test_the_whole_request_reports_its_search_counters(monkeypatch):
 def test_the_chain_wording_exists_in_every_language(lang):
     text = sedi_copy.t("care_nav.nearest_chain", lang, tried="A، B", found="C")
     assert "A" in text and "C" in text and "{" not in text
+
+
+# --- Codex round 1 on PR 213 ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("requested,spec_field,name,expected", [
+    ("جراحی عمومی", "جراح مغز و اعصاب", "دکتر الف", False),          # a neurosurgeon is not a general surgeon
+    ("مغز و اعصاب", "متخصص اعصاب و روان", "دکتر ب", False),         # a psychiatrist is not a neurologist
+    ("مغز و اعصاب", "متخصص مغز و اعصاب", "دکتر ج", True),
+    ("جراحی عمومی", "جراح عمومی", "دکتر د", True),
+    ("گوارش", "کودکان", "دکتر گوارش علوی", False),                  # the specialty FIELD decides before the name
+    ("گوارش", "", "دکتر گوارش علوی", True),                         # no field: the name is the evidence
+    ("گوارش", "", "دکتر علوی", False),                             # nothing names a specialty: no evidence
+])
+def test_p2_the_result_text_decides_by_the_longest_specialty_it_names(requested, spec_field, name, expected):
+    assert lexicon.result_matches_specialty(requested, spec_field, name) is expected
+
+
+def test_p2_wrong_specialties_cannot_use_up_the_candidate_slots(monkeypatch):
+    def doc(i, spec):
+        return {"name": f"دکتر {i}", "specialty": spec, "city": "پردیس", "address": f"پردیس، خیابان {i}", "phone": f"02112345{i:03d}", "source_url": f"https://www.drdr.ir/{i}"}
+
+    rows = [doc(i, "کودکان") for i in range(1, 7)] + [doc(7, "متخصص گوارش")]          # six pediatricians first, the gastro doctor last
+    monkeypatch.setattr(web, "_call_web_search", lambda q, c, client=None: rows)
+    monkeypatch.setattr(web, "verify_and_rank", lambda results, **k: results)
+    with web.request_budget(8) as budget:
+        out = web.search_web_providers(entity="SPECIALIST", specialty="گوارش", city="پردیس", province="تهران")
+    assert [r["name"] for r in out] == ["دکتر 7"] and budget["dropped"] == 6
