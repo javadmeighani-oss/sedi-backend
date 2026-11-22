@@ -29,7 +29,6 @@ _SITE_NAMES = {
 }
 _URL = re.compile(r"https?://[^\s<>«»\"']+", re.I)
 _SOURCE_LEAD = re.compile(r"[؛;،,]?\s*(?:منبع|المصدر|source)\s*[:：]\s*$", re.I)
-_BULLET_LABEL = re.compile(r"^\s*[•\-*]\s*[^:\n]{0,40}:\s*$")
 
 
 def _host(url: str) -> str:
@@ -110,18 +109,24 @@ def strip_urls(text: str, links: Sequence[dict], language: Optional[str]) -> str
     lang = _lang(language)
     from backend.app import sedi_copy
 
+    # the label of a link-only line is a SITE name («• پذیرش۲۴: https://…») or the link's own label - never a doctor's description
+    labels = {name for names in _SITE_NAMES.values() for name in names.values()} | {str(item.get("label") or "") for item in links or ()}
+    label_rx = "|".join(re.escape(x) for x in sorted((x for x in labels if x), key=len, reverse=True)) or "(?!)"
     lines_out: list[str] = []
     for line in text.split("\n"):
         if not any(u in line for u in urls):
             lines_out.append(line)
             continue
+        # a line that is ONLY a link («• پذیرش۲۴: https://…» or the bare URL) moves below the bubble; a doctor's line that merely ends with its
+        # source («… ؛ منبع: https://…») keeps everything before it - a sparse entry must not vanish (Codex P2, PR 214)
+        if any(re.match(r"^\s*(?:[•\-*]\s*)?(?:(?:" + label_rx + r")\s*[:：]\s*)?" + re.escape(u) + r"\s*$", line) for u in urls):
+            continue
         cleaned = line
         for u in urls:
             cleaned = cleaned.replace(u, "")
         cleaned = _SOURCE_LEAD.sub("", cleaned.rstrip()).rstrip(" ؛;،,:")
-        if not cleaned.strip() or _BULLET_LABEL.match(cleaned + ":"):
-            continue  # the line was only a link: it is shown below the bubble
-        lines_out.append(cleaned)
+        if cleaned.strip():
+            lines_out.append(cleaned)
     body = re.sub(r"\n{3,}", "\n\n", "\n".join(lines_out)).strip()
     return body + "\n\n" + sedi_copy.t("care_nav.links.below", lang)
 

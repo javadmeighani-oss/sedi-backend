@@ -177,3 +177,11 @@ def test_the_orchestrator_result_carries_the_links_of_a_doctor_turn_and_only_of_
     assert doctor.links == tuple(LINKS) and doctor.public_brain_dict()["links"] == LINKS and "paziresh24.com/dr/alef" in doctor.message
     chat = orch.process(authenticated_user_id=user.id, message="سلام حالت چطوره", language="fa")
     assert chat.links == () and "links" not in chat.public_brain_dict()
+
+
+def test_p2_a_sparse_provider_entry_keeps_its_name_specialty_and_city():
+    text = "• دکتر الف — گوارش، پردیس؛ منبع: https://www.paziresh24.com/dr/alef/\n• پذیرش۲۴: https://www.paziresh24.com/s/?text=x"
+    links = LINKS + [{"label": "جست‌وجو در پذیرش۲۴", "url": "https://www.paziresh24.com/s/?text=x", "kind": "search", "host": "paziresh24.com"}]
+    out = pl.strip_urls(text, links, "fa")
+    assert "• دکتر الف — گوارش، پردیس" in out and "https://" not in out and "• پذیرش۲۴" not in out      # the entry stays, the link-only line goes
+    assert pl.strip_urls("https://www.paziresh24.com/dr/alef/", LINKS, "fa").startswith(sedi_copy.t("care_nav.links.below", "fa")[:10])
