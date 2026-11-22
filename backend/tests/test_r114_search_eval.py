@@ -29,8 +29,10 @@ def _row(name, specialty, **extra):
 def test_the_golden_set_is_deterministic_and_covers_the_pilot_place(ev):
     first, second = ev.golden_set(24), ev.golden_set(24)
     assert first == second and len(first) == 24
-    pilot = [r for r in first if r["city"] == "بومهن"]
-    assert len(pilot) >= 5                                   # the pilot place gets the most specialties
+    pilot = [r for r in ev.golden_set(48) if r["city"] == "بومهن"]
+    assert len(pilot) >= 6 and len([r for r in first if r["city"] == "بومهن"]) >= 4   # the pilot place gets the most specialties
+    assert {r["city"] for r in first} == {"بومهن", "پردیس", "رودهن", "تهران", "شیراز"}   # the DEFAULT sample covers every place, controls included
+    assert {r["city"] for r in ev.golden_set(6)} == {"بومهن", "پردیس", "رودهن", "تهران", "شیراز"}   # even a short prefix does
     assert {r["city"] for r in ev.golden_set(48)} >= {"بومهن", "پردیس", "رودهن", "تهران", "شیراز"}
     assert all(set(r) == {"specialty", "area", "city", "province"} for r in first)
     assert len(ev.golden_set(0)) == 1                        # never empty
@@ -121,3 +123,42 @@ def test_the_workflow_is_a_guarded_read_only_dispatch():
 
     data = yaml.safe_load(text)
     assert data["jobs"]["eval"]["steps"] and (data.get("on") or data[True])["workflow_dispatch"]["inputs"]["max_queries"]["default"] == "24"
+
+
+# --- Codex round 1 on PR 212 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_provider_failure_swallowed_by_the_wrapper_is_still_recorded(ev):
+    """search_web_providers is fail-open (returns []); the probe sees the exception before it is swallowed."""
+    probe = ev.FailureProbe()
+
+    def provider(*a, **k):
+        raise PermissionError("401")
+
+    wrapped = probe.wrap(provider)
+
+    def search(**k):  # what the production wrapper does: catch everything, return []
+        try:
+            return wrapped("q", "IR")
+        except Exception:  # noqa: BLE001
+            return []
+
+    out = ev.measure({"specialty": "پوست", "area": None, "city": "پردیس", "province": "تهران"}, search, lambda *a, **k: "q", probe)
+    assert out["error"] == "PermissionError" and out["results"] == 0
+
+
+def test_p2_an_eval_where_every_query_failed_does_not_pass(ev):
+    probe = ev.FailureProbe()
+
+    def provider(*a, **k):
+        raise RuntimeError("rate limit")
+
+    wrapped = probe.wrap(provider)
+
+    def search(**k):
+        try:
+            return wrapped()
+        except Exception:  # noqa: BLE001
+            return []
+
+    lines = []
+    ev.run(search, lambda *a, **k: None, None, limit=3, out=lines.append, probe=probe)
+    assert lines[-1] == "EVAL|phase_search_eval|FAIL" and '"errors": 3' in lines[-2]

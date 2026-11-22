@@ -35,13 +35,40 @@ NEARBY_ORIGINS = ("بومهن", "پردیس", "تهرانپارس")
 
 
 def golden_set(limit: int) -> list[dict[str, Any]]:
-    """Deterministic spread: every place meets several specialties; the pilot place gets the most."""
-    rows: list[dict[str, Any]] = []
+    """Deterministic spread, INTERLEAVED by place so any prefix (the default 24) still covers every place including the controls;
+    the pilot place gets the most specialties."""
+    per_place: list[list[dict[str, Any]]] = []
     for pi, (area, city, province) in enumerate(PLACES):
-        for si, spec in enumerate(SPECIALTIES):
-            if (si + pi * 2) % 3 == 0 or (pi == 0 and si < 6):
-                rows.append({"specialty": spec, "area": area, "city": city, "province": province})
+        items = [
+            {"specialty": spec, "area": area, "city": city, "province": province}
+            for si, spec in enumerate(SPECIALTIES)
+            if (si + pi * 2) % 3 == 0 or (pi == 0 and si < 6)
+        ]
+        per_place.append(items)
+    rows: list[dict[str, Any]] = []
+    for rank in range(max(len(x) for x in per_place)):
+        for items in per_place:
+            if rank < len(items):
+                rows.append(items[rank])
     return rows[: max(1, limit)]
+
+
+class FailureProbe:
+    """The production search wrapper is fail-open (it returns [] on a provider error), so an outage looks like «no result». The probe wraps the
+    provider call and records the exception classes before the wrapper swallows them."""
+
+    def __init__(self) -> None:
+        self.errors: list[str] = []
+
+    def wrap(self, fn: Callable[..., Any]) -> Callable[..., Any]:
+        def inner(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return fn(*args, **kwargs)
+            except Exception as exc:  # noqa: BLE001
+                self.errors.append(type(exc).__name__)
+                raise
+
+        return inner
 
 
 def _norm(text: Any) -> str:
@@ -60,13 +87,16 @@ def _host(url: str) -> str:
     return (urlparse(url or "").hostname or "").lower().removeprefix("www.")
 
 
-def measure(item: dict[str, Any], search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]]) -> dict[str, Any]:
+def measure(item: dict[str, Any], search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]], probe: Optional[FailureProbe] = None) -> dict[str, Any]:
     started = time.time()
+    seen = len(probe.errors) if probe is not None else 0
     try:
         results = search_fn(entity="SPECIALIST", specialty=item["specialty"], city=item["city"], province=item["province"], area=item["area"], qualifiers=())
         error = None
     except Exception as exc:  # noqa: BLE001 - a failing query is a data point, not a crash
         results, error = [], type(exc).__name__
+    if error is None and probe is not None and len(probe.errors) > seen:
+        error = probe.errors[-1]  # swallowed by the fail-open wrapper: still a provider failure, not an empty answer
     elapsed = round(time.time() - started, 2)
     rows = [r for r in results if isinstance(r, dict)]
     return {
@@ -107,11 +137,11 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]], nearby_fn: Optional[Callable[[str], list]],
-        *, limit: int = 24, label: str = "baseline", model: str = "", out: Callable[[str], None] = print) -> dict[str, Any]:
+        *, limit: int = 24, label: str = "baseline", model: str = "", out: Callable[[str], None] = print, probe: Optional[FailureProbe] = None) -> dict[str, Any]:
     items = golden_set(limit)
     rows = []
     for item in items:
-        row = measure(item, search_fn, build_query_fn)
+        row = measure(item, search_fn, build_query_fn, probe)
         rows.append(row)
         out("EVAL|query|" + json.dumps(row, ensure_ascii=False))
     nearby: dict[str, Any] = {}
@@ -125,7 +155,8 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
     agg = aggregate(rows)
     agg.update(set=label, model=model or "default")
     out("EVAL|aggregate|" + json.dumps(agg, ensure_ascii=False))
-    out("EVAL|phase_search_eval|PASS")
+    # an eval where EVERY query failed at the provider says nothing about search quality: fail it instead of reporting a false baseline
+    out("EVAL|phase_search_eval|" + ("FAIL" if rows and agg["errors"] == len(rows) else "PASS"))
     return agg
 
 
@@ -137,9 +168,11 @@ def main() -> int:
         print("EVAL|web_lookup|DISABLED")
         return 3
     limit = int(os.getenv("SEDI_EVAL_MAX_QUERIES", "24") or 24)
-    run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
-        label=os.getenv("SEDI_EVAL_SET", "baseline"), model=os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL))
-    return 0
+    probe = FailureProbe()
+    web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
+    agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
+              label=os.getenv("SEDI_EVAL_SET", "baseline"), model=os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL), probe=probe)
+    return 0 if agg["errors"] < agg["queries"] else 4
 
 
 if __name__ == "__main__":
