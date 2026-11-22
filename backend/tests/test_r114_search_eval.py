@@ -171,3 +171,10 @@ def test_p2_a_psychologist_is_not_a_psychiatrist_and_every_golden_specialty_has_
     assert ev.suitable({"specialty": "متخصص مغز و اعصاب", "name": "دکتر ج"}, "مغز و اعصاب") is True
     assert ev.suitable({"specialty": "متخصص کودکان", "name": "دکتر ج"}, "مغز و اعصاب") is False
     assert set(ev.SPECIALTIES) <= set(ev._ALIASES)                       # no golden specialty falls back to a blunt prefix
+
+
+def test_p2_short_latin_stems_do_not_match_inside_other_words(ev):
+    for wrong in ("Dentist", "Gastroenterologist", "Pediatrician", "dentistry"):
+        assert ev.suitable({"specialty": wrong, "name": "Dr X"}, "گوش و حلق و بینی") is False, wrong
+    assert ev.suitable({"specialty": "Otolaryngologist (ENT)", "name": "Dr X"}, "گوش و حلق و بینی") is True
+    assert all(len(stem) >= 4 for stems in ev._ALIASES.values() for stem in stems if stem.isascii())   # no short latin stem can hide in a longer word

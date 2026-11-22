@@ -78,7 +78,7 @@ def _norm(text: Any) -> str:
 # specialty -> the stems that make a result THAT specialty (a universal 4-letter prefix would call a psychologist a psychiatrist)
 _ALIASES = {
     "روانپزشکی": ("روانپزشک", "psychiatr"),
-    "گوش و حلق و بینی": ("گوشوحلق", "گوشحلق", "otolaryng", "ent"),
+    "گوش و حلق و بینی": ("گوشوحلق", "گوشحلق", "حلقوبینی", "otolaryng", "otorhino"),  # never the bare «ent»: it sits inside «dentist»
     "مغز و اعصاب": ("مغزواعصاب", "نورولوژ", "neurolog"),
     "داخلی": ("داخلی", "internal"),
     "قلب": ("قلب", "cardio"),
