@@ -25,6 +25,7 @@ from backend.app import sedi_copy
 logger = logging.getLogger(__name__)
 
 MAX_EVENTS = 3
+MAX_ISSUES = 3  # R-114: the primary issue first, then the user's other stated concerns (a person can bring two problems)
 RESOLVED_WINDOW = timedelta(days=7)
 _STATUS_NOTE_KEYS = {"better": "journey.status_note.better", "worse": "journey.status_note.worse"}
 _LANGS = ("fa", "ar", "en")
@@ -59,6 +60,8 @@ class CareState:
     events: tuple[CareEvent, ...] = ()
     medications: int = 0
     resolved_recent: int = 0
+    home_city: Optional[str] = None  # R-114: the user's own stated residence (I6 social.home_city / home_area) - never asked again
+    home_area: Optional[str] = None
 
     @property
     def has_open_journey(self) -> bool:
@@ -119,10 +122,33 @@ def _issues(db: Any, user_id: int) -> tuple[CareIssue, ...]:
                 story.append(note)
                 status = "open"  # a new statement is not yet reported better/worse (Codex P2, PR 202)
         text = concerns[0] if concerns else (story[-1] if story else "")
-        return (CareIssue(text=text, status=status),) if text else ()
+        if not text:
+            return ()
+        others = [c for c in concerns[1:] if c != text][: MAX_ISSUES - 1]
+        return (CareIssue(text=text, status=status), *(CareIssue(text=c) for c in others))
     except Exception:  # noqa: BLE001
         logger.exception("[R-108] care issues not read")
         return ()
+
+
+def _home(db: Any, user_id: int) -> tuple[Optional[str], Optional[str]]:
+    """(area, city) the user stated about where they live (I6 social facts, consent-gated reader), else (None, None)."""
+    try:
+        from backend.app.services.i6.memory_writes import list_facts_readonly_or_empty
+
+        found: dict[str, str] = {}
+        for row in list_facts_readonly_or_empty(db, user_id) or []:
+            if row.domain == "social" and row.key in ("home_area", "home_city"):
+                try:
+                    value = json.loads(row.value_json)
+                except Exception:  # noqa: BLE001
+                    continue
+                text = _clip(value if isinstance(value, str) else "", 60)
+                if text:
+                    found[row.key] = text
+        return found.get("home_area"), found.get("home_city")
+    except Exception:  # noqa: BLE001
+        return None, None
 
 
 def _follow_ups(db: Any, user_id: int) -> tuple[CareFollowUp, ...]:
@@ -188,9 +214,12 @@ def get_care_state(db: Any, user_id: int, *, now: Optional[datetime] = None) -> 
         moment = now or datetime.utcnow()
         if not _has_read_consent(db, user_id):
             return CareState(user_id=user_id, consent=False)
+        area, city = _home(db, user_id)
         return CareState(
             user_id=user_id,
             consent=True,
+            home_area=area,
+            home_city=city,
             issues=_issues(db, user_id),
             follow_ups=_follow_ups(db, user_id),
             events=_events(db, user_id, moment),
