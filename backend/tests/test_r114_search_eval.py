@@ -162,3 +162,12 @@ def test_p2_an_eval_where_every_query_failed_does_not_pass(ev):
     lines = []
     ev.run(search, lambda *a, **k: None, None, limit=3, out=lines.append, probe=probe)
     assert lines[-1] == "EVAL|phase_search_eval|FAIL" and '"errors": 3' in lines[-2]
+
+
+def test_p2_a_psychologist_is_not_a_psychiatrist_and_every_golden_specialty_has_its_own_stems(ev):
+    assert ev.suitable({"specialty": "روانشناس بالینی", "name": "دکتر الف"}, "روانپزشکی") is False
+    assert ev.suitable({"specialty": "متخصص روان‌پزشکی", "name": "دکتر الف"}, "روانپزشکی") is True
+    assert ev.suitable({"specialty": "گوش، حلق و بینی", "name": "دکتر ب"}, "گوش و حلق و بینی") is True
+    assert ev.suitable({"specialty": "متخصص مغز و اعصاب", "name": "دکتر ج"}, "مغز و اعصاب") is True
+    assert ev.suitable({"specialty": "متخصص کودکان", "name": "دکتر ج"}, "مغز و اعصاب") is False
+    assert set(ev.SPECIALTIES) <= set(ev._ALIASES)                       # no golden specialty falls back to a blunt prefix

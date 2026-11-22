@@ -75,10 +75,28 @@ def _norm(text: Any) -> str:
     return "".join(ch for ch in str(text or "").lower() if ch.isalnum())
 
 
+# specialty -> the stems that make a result THAT specialty (a universal 4-letter prefix would call a psychologist a psychiatrist)
+_ALIASES = {
+    "روانپزشکی": ("روانپزشک", "psychiatr"),
+    "گوش و حلق و بینی": ("گوشوحلق", "گوشحلق", "otolaryng", "ent"),
+    "مغز و اعصاب": ("مغزواعصاب", "نورولوژ", "neurolog"),
+    "داخلی": ("داخلی", "internal"),
+    "قلب": ("قلب", "cardio"),
+    "اورولوژی": ("اورولوژ", "urolog", "کلیهومجاریادراری"),
+    "ارتوپدی": ("ارتوپد", "orthop"),
+    "گوارش": ("گوارش", "gastro"),
+    "پوست": ("پوست", "derma"),
+    "زنان": ("زنان", "gynec", "obstet"),
+    "چشم": ("چشم", "ophthal"),
+    "غدد": ("غدد", "endocrin"),
+}
+
+
 def suitable(row: dict[str, Any], specialty: str) -> bool:
-    """The result is that specialty: the specialty field (or the name) carries the specialty's stem."""
-    stem = _norm(specialty)[:4]
-    return bool(stem) and (stem in _norm(row.get("specialty")) or stem in _norm(row.get("name")))
+    """The result is that specialty: its specialty field (or name) carries one of the specialty's own stems."""
+    stems = tuple(_norm(x) for x in _ALIASES.get(specialty, (specialty[:4],)) if _norm(x))
+    hay = _norm(row.get("specialty")) + "|" + _norm(row.get("name"))
+    return bool(stems) and any(stem in hay for stem in stems)
 
 
 def _host(url: str) -> str:
