@@ -282,3 +282,21 @@ def test_the_model_question_outside_a_doctor_thread_is_not_pending(db, user):
     _remember(db, user)
     _turn(db, user, "سلام", "امروز چطوری؟", minutes_ago=2)
     assert mem.complete_request(db, user.id, "قبلا گفتم", "fa", rows=_rows(db, user)) is None
+
+
+# --- Codex round 1 on PR 211 ------------------------------------------------------------------------------------------------------------------
+def test_p2_the_place_the_user_named_is_kept_when_the_specialty_comes_from_memory(db, user):
+    _remember(db, user)
+    out = mem.complete_request(db, user.id, "برام یه دکتر در شیراز پیدا کن", "fa", rows=[])
+    assert out is not None and "گوارش" in out.text and "شیراز" in out.text and "بومهن" not in out.text   # the explicit city wins, no stored place
+    assert not any("بومهن" in n for n in out.notes)
+
+
+def test_p2_the_journey_urgency_comes_from_the_original_complaint(db, user):
+    from backend.app.services.care_journey import journey as j
+
+    _remember(db, user, issues=("زانو درد دارم و نمی‌توانم راه بروم",))
+    out = mem.complete_request(db, user.id, "اما تو باید یه دکتر پیدا کنی", "fa", rows=[])
+    assert out is not None and "ارتوپدی" in out.text
+    assert "زانو" in out.tier_text and "زانو" not in out.text.replace("ارتوپدی", "")           # the rewritten query has no symptom words
+    assert j.tier_for(out.tier_text, "fa") == j.tier_for("زانو درد دارم و نمی‌توانم راه بروم", "fa")

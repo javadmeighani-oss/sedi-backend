@@ -1486,7 +1486,7 @@ class IntelligenceOrchestrator:
             if _memory_req is not None and not _reason_q and self._db is not None:
                 from backend.app.services.care_journey import journey as _cj
 
-                _cj.track(self._db, authenticated_user_id, message, lang)  # the follow-up starts even though no interview is asked
+                _cj.track(self._db, authenticated_user_id, _memory_req.tier_text or message, lang)  # the follow-up starts even though no interview is asked (urgency from the ORIGINAL complaint)
             if _reason_q:
                 # J3-c: no specialty named -> ask WHY / WHICH doctor first (one question), never a list of random doctors.
                 care_nav_handled = True
@@ -1534,7 +1534,9 @@ class IntelligenceOrchestrator:
                     extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
                     extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
                 # R-109 step 1b-2: a doctor/lab request is the start of a CARE JOURNEY (follow-up, interview, stabilising care)
-                directory_message, _journey_started = self._with_care_journey(directory_message, message, lang, authenticated_user_id)
+                directory_message, _journey_started = self._with_care_journey(
+                    directory_message, (_memory_req.tier_text if _memory_req is not None and _memory_req.tier_text else message), lang, authenticated_user_id
+                )
                 if _journey_started:
                     extra_reason_codes.append("R109_CARE_JOURNEY")
                 if _memory_notes and directory_message:

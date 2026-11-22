@@ -87,6 +87,7 @@ class MemoryRequest:
     text: str  # the explicit request for the directory flow
     notes: tuple[str, ...] = ()  # catalog lines shown before the answer (where the place came from, the other problem)
     reason_codes: tuple[str, ...] = ()
+    tier_text: str = ""  # the ORIGINAL message + the complaint it was completed from: the care-journey urgency/area come from this, not from the rewritten query
 
 
 def _lang3(language: Optional[str]) -> str:
@@ -159,7 +160,7 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
         known = state is not None and state.consent
         issues = list(state.issues) if known else []
 
-        spec, used_issue = None, None
+        spec, used_issue, src_text = None, None, ""
         if named:
             spec = None  # the specialty is already in the message; only the place may be missing
         else:
@@ -172,11 +173,12 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
                         continue
                     overlap = sum(1 for w in set(re.findall(r"\w{3,}", issue.text)) if w in message)
                     if overlap > best:
-                        best, spec, used_issue = overlap, candidate, issue
+                        best, spec, used_issue, src_text = overlap, candidate, issue, issue.text
             if spec is None and known:
                 for row in rows:  # the recent user turns (the retention-eligible reader, consent-gated by the caller)
                     spec = _spec_of(getattr(row, "user_message", "") or "", lang)
                     if spec:
+                        src_text = getattr(row, "user_message", "") or ""
                         break
             if spec is None and (proceed or any_place):
                 spec = _FALLBACK_SPECIALTY  # the user insists: a general practitioner first, never the same question again
@@ -186,6 +188,8 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
         notes: list[str] = []
         codes = ["CARE_NAV_MEMORY_FIRST"]
         place = None
+        if has_place and req is not None:  # the user's own place of THIS request is kept (Codex P2, PR 211)
+            place = " ".join(p for p in (req.area, req.city) if p) or None
         if not has_place:
             area, city = (state.home_area, state.home_city) if known else (None, None)
             if area or city:
@@ -212,7 +216,7 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
                 return None
         else:
             text = _request_text(spec, place, lang, set(sl.qualifiers(message)))
-        return MemoryRequest(text=text, notes=tuple(notes), reason_codes=tuple(codes))
+        return MemoryRequest(text=text, notes=tuple(notes), reason_codes=tuple(codes), tier_text=f"{message} {src_text}".strip())
     except Exception:  # noqa: BLE001
         logger.exception("[R-114] memory-first doctor request skipped")
         return None
