@@ -164,3 +164,90 @@ def test_p2_an_appointment_moved_to_another_day_is_not_announced_as_today(db, us
     pre_event.starts_at = pre_event.starts_at - timedelta(days=3)
     db.commit()
     assert family_opener(db, user, n, language="fa") is not None
+
+
+# --- 2c-3: the whole appointment loop, push -> opener -> the user's answer -> memory -> the picture (real session, no owner stubbed) -----------------
+def _delivered(db, n, at=None):
+    """What the delivery pipeline does after a successful send (the worker only queues the notification)."""
+    from datetime import datetime
+
+    n.is_sent, n.status, n.sent_at = True, "sent", at or datetime.utcnow()
+    db.commit()
+
+
+def _loop(db, user, kind=ec.KIND_PRE):
+    _issue(db, user, "درد زانو")
+    n = _send(db, user, kind, title="فیزیوتراپی زانو")
+    _delivered(db, n)
+    return n
+
+
+def test_loop_the_answer_to_the_pre_check_is_remembered_and_the_picture_follows(db, user):
+    from backend.app.services import care_state as cs
+    from backend.app.services.care_journey import journey as j
+    from backend.app.services.status_report import builder as report
+
+    n = _loop(db, user)
+    assert family_opener(db, user, n, language="fa") == "ساعت 15:00 «فیزیوتراپی زانو» داری. «درد زانو» الان چطور است؟"
+    state = cs.get_care_state(db, user.id)
+    assert state.issues[0].status == "open" and not state.has_open_journey and state.events          # the appointment is part of the picture
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") == "better"                              # the answer to the push's question
+    state = cs.get_care_state(db, user.id)
+    assert state.issues[0].status == "better" and not state.has_open_journey                         # remembered; no chain was needed
+    assert "رو به بهبود" in cs.summary_line(state, "fa")
+    sections = {s["key"]: [x["text"] for x in s["lines"]] for s in report.build_status_report(db, user.id, "doctor_visit", "fa")["sections"]}
+    assert sections                                                                                   # the report reads the same picture
+
+
+def test_loop_worse_after_the_push_starts_the_hours_level_chain(db, user):
+    from backend.app.services import care_state as cs
+    from backend.app.services.care_journey import journey as j
+
+    n = _loop(db, user, ec.KIND_DAY_OF)
+    assert family_opener(db, user, n, language="fa") is not None
+    assert j.apply_status(db, user.id, "حالم بدتر شده", "fa") == "worse"
+    state = cs.get_care_state(db, user.id)
+    assert state.issues[0].status == "worse" and state.has_open_journey and state.is_acute          # Sedi keeps following, within hours
+
+
+def test_loop_a_plain_better_without_a_push_or_an_issue_changes_nothing(db, user):
+    from backend.app.services import care_state as cs
+    from backend.app.services.care_journey import journey as j
+
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None                                   # no push, no issue
+    _issue(db, user, "درد زانو")
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None                                   # an issue but no appointment push
+    assert cs.get_care_state(db, user.id).issues[0].status == "open"
+
+
+def test_loop_an_old_push_or_revoked_consent_changes_nothing(db, user):
+    from datetime import timedelta
+
+    from backend.app.services.care_journey import journey as j
+    from backend.app.services.i6 import consent_service as consent
+
+    n = _loop(db, user)
+    n.sent_at = n.sent_at - timedelta(hours=30)
+    db.commit()
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None                                   # the push was sent more than 24 h ago
+    n.sent_at = n.sent_at + timedelta(hours=30)
+    db.commit()
+    consent.revoke_memory_consent(db, user.id)
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None                                   # nothing is read or written without consent
+
+
+def test_p2_a_push_that_was_never_delivered_does_not_count(db, user):
+    """Codex round 1 on PR 210: queued / failed / blocked appointment notifications were never seen by the user."""
+    from backend.app.services import care_state as cs
+    from backend.app.services.care_journey import journey as j
+
+    _issue(db, user, "درد زانو")
+    n = _send(db, user, ec.KIND_PRE, title="فیزیوتراپی زانو")                                       # created by the worker, not yet sent
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None and j.apply_status(db, user.id, "حالم بدتر شده", "fa") is None
+    n.status = "failed"
+    db.commit()
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") is None
+    state = cs.get_care_state(db, user.id)
+    assert state.issues[0].status == "open" and not state.has_open_journey
+    _delivered(db, n)
+    assert j.apply_status(db, user.id, "الان بهترم", "fa") == "better"

@@ -113,7 +113,7 @@ def _issues(db: Any, user_id: int) -> tuple[CareIssue, ...]:
         for note in episodes:  # chronological: a status note describes the story BEFORE it; a later story line starts «open» again
             marked = _status_of(note)
             if marked:
-                if story:
+                if story or concerns:  # the stated concern is the story the note is about
                     status = marked
             else:
                 story.append(note)

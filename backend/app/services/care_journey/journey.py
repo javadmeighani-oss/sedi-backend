@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from backend.app import sedi_copy
@@ -233,6 +233,45 @@ def status_signal(text: str, language: str = "fa") -> Optional[str]:
         return None
 
 
+APPOINTMENT_PUSH_WINDOW = timedelta(hours=24)
+
+
+def _status_after_appointment_push(db: Any, user_id: int, signal: str, lang: str) -> Optional[str]:
+    """R-108 / R-109 am.2 (2c-3): the user answers «how are you now?» from a care-appointment push (day-of / 2 h pre-check) while no
+    journey is open. Only then (a push of the last 24 h AND a known open issue, both consent-gated) the answer is remembered: a dated
+    status note on the issue, and «worse» also starts the hours-level acute chain. An unrelated «I am better» in plain chat stays untouched."""
+    try:
+        from backend.app import models
+        from backend.app.services import care_state as cs
+        from backend.app.services.i10 import commitment_followup as cf
+        from backend.app.services.i10 import event_care
+
+        horizon = datetime.utcnow() - APPOINTMENT_PUSH_WINDOW
+        pushed = (
+            db.query(models.Notification.id)
+            .filter(models.Notification.user_id == user_id, models.Notification.is_sent.is_(True),
+                    models.Notification.sent_at >= horizon,  # delivered (not queued/failed/blocked), within the window (Codex P2, PR 210)
+                    models.Notification.template_key.in_((event_care.KIND_DAY_OF, event_care.KIND_PRE)))
+            .first()
+        )
+        state = cs.get_care_state(db, user_id) if pushed else None
+        if state is None or not state.issues:
+            return None
+        if signal == "worse" and cf.create_journey_followup(db, user_id, sedi_copy.t("journey.step", lang), "acute") is None:
+            return None
+        db.commit()
+        _store_episode(db, user_id, f"{sedi_copy.t(f'journey.status_note.{signal}', lang)} · {datetime.utcnow().date().isoformat()}")
+        return signal
+    except Exception:  # noqa: BLE001
+        logger.exception("[R-108] appointment-push status not applied")
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
+
 def apply_status(db: Any, user_id: int, text: str, language: str) -> Optional[str]:
     """DEBT-080: «better» closes the open journey; «worse» replaces it with an acute chain (hours-level follow-up). Both leave a short
     I6 note. Returns 'better' / 'worse' when something changed, else None. Fail-open; commits only what it changed."""
@@ -240,11 +279,13 @@ def apply_status(db: Any, user_id: int, text: str, language: str) -> Optional[st
         if db is None or not enabled():
             return None
         signal = status_signal(text, language)
-        if signal is None or not _journey_open(db, user_id):
+        if signal is None:
             return None
+        lang = language if language in ("fa", "ar", "en") else "en"
+        if not _journey_open(db, user_id):
+            return _status_after_appointment_push(db, user_id, signal, lang)
         from backend.app.services.i10 import commitment_followup as cf
 
-        lang = language if language in ("fa", "ar", "en") else "en"
         changed = cf.resolve_journey(db, user_id) if signal == "better" else cf.escalate_journey(db, user_id, sedi_copy.t("journey.step", lang))
         if not changed:
             db.rollback()
