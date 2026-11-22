@@ -289,3 +289,37 @@ def test_p2_wrong_specialties_cannot_use_up_the_candidate_slots(monkeypatch):
     with web.request_budget(8) as budget:
         out = web.search_web_providers(entity="SPECIALIST", specialty="گوارش", city="پردیس", province="تهران")
     assert [r["name"] for r in out] == ["دکتر 7"] and budget["dropped"] == 6
+
+
+# --- Codex round 2 on PR 213 ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("requested,spec_field,expected", [
+    ("غدد", "متخصص داخلی، فوق تخصص غدد درون ریز و متابولیسم", True),      # a subspecialist listed beside the base specialty
+    ("داخلی", "متخصص داخلی، فوق تخصص غدد درون ریز و متابولیسم", True),
+    ("مغز و اعصاب", "متخصص اعصاب و روان", False),                          # the longest word wins: this is psychiatry
+    ("روانپزشکی", "متخصص اعصاب و روان", True),
+    ("جراحی عمومی", "جراح مغز و اعصاب", False),
+    ("گوارش", "متخصص کودکان", False),
+])
+def test_p2_subspecialties_listed_beside_the_parent_are_recognised(requested, spec_field, expected):
+    assert lexicon.result_matches_specialty(requested, spec_field, "دکتر الف") is expected
+
+
+def test_p2_a_towns_nearest_part_of_tehran_keeps_its_neighbourhood_and_its_city(monkeypatch):
+    seen = []
+    monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city, r.province)) or _result(cn.STATUS_NO_VERIFIED))
+    monkeypatch.setattr(nb, "nearby_rings", lambda origin, **k: [["تهرانپارس", "کرج"]])
+    monkeypatch.setattr(nb, "city_of", lambda origin, name: {"تهرانپارس": "تهران", "کرج": "کرج"}.get(name))   # what the geography says
+    cn._nearest_area_result(None, _req(area=None, city="پردیس", province="تهران"), _result(cn.STATUS_NO_VERIFIED))
+    area, city, province = seen[0]
+    assert area == "تهرانپارس" and city == "تهران" and province is None            # not city = «تهرانپارس»; another city: no Pardis province filter
+    assert seen[1] == (None, "کرج", None)                                            # a city itself: just the city
+
+
+def test_p2_the_city_comes_from_the_geography_so_a_same_named_area_of_another_city_is_not_swapped(monkeypatch):
+    client = _Client(json.dumps({"origin": {"lat": 36.30, "lon": 59.60}, "places": [
+        {"name": "نارمک", "city": "مشهد", "lat": 36.31, "lon": 59.62}]}, ensure_ascii=False))
+    assert nb.nearby_rings("طرقبه", client=client) == [["نارمک"]] and nb.city_of("طرقبه", "نارمک") == "مشهد" and nb.city_of("طرقبه", "ناشناخته") is None
+    seen = []
+    monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city)) or _result(cn.STATUS_NO_VERIFIED))
+    cn._nearest_area_result(None, _req(area=None, city="طرقبه", province="خراسان رضوی"), _result(cn.STATUS_NO_VERIFIED))
+    assert seen == [("نارمک", "مشهد")]                                                # Mashhad's Narmak, not the gazetteer's Tehran one

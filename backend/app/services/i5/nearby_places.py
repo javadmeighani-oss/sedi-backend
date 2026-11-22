@@ -32,7 +32,7 @@ _IRAN_LAT = (24.0, 40.5)
 _IRAN_LON = (43.5, 64.0)
 _CACHE_TTL = 7 * 24 * 3600
 _CACHE_MAX = 256
-_cache: dict[str, tuple[float, list[tuple[str, Optional[float]]], bool]] = {}
+_cache: dict[str, tuple[float, list[tuple[str, Optional[float]]], bool, dict]] = {}
 _COORD = {
     "type": "object",
     "additionalProperties": False,
@@ -50,8 +50,8 @@ _SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["name", "lat", "lon"],
-                "properties": {"name": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"}},
+                "required": ["name", "city", "lat", "lon"],
+                "properties": {"name": {"type": "string"}, "city": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"}},
             },
         },
     },
@@ -59,7 +59,7 @@ _SCHEMA = {
 _INSTRUCTIONS = (
     "You are a geography helper for Iran. Given a place (a city or a neighbourhood, in Persian), return its approximate centre (origin: lat, lon "
     "in WGS84 decimal degrees) and up to {n} DIFFERENT real places that are the closest to it, nearest first, each with its approximate centre "
-    "(lat, lon): neighbouring neighbourhoods when it is a neighbourhood, adjacent towns/cities (and the nearest neighbourhoods of a big city "
+    "(lat, lon) and the city it belongs to (city; for a town or city itself, its own name): neighbouring neighbourhoods when it is a neighbourhood, adjacent towns/cities (and the nearest neighbourhoods of a big city "
     "next to it) when it is a city or a small town. Use the common Persian names only. Never repeat the given place. No explanations."
 )
 
@@ -103,7 +103,7 @@ def _clean(names: Any, origin: str) -> list[str]:
     return out
 
 
-def rank_places(data: Any, origin: str) -> tuple[list[tuple[str, Optional[float]]], bool]:
+def rank_places(data: Any, origin: str, cities: Optional[dict] = None) -> tuple[list[tuple[str, Optional[float]]], bool]:
     """([(name, km)], validated): the candidates ordered by COMPUTED distance from the model's origin coordinates; a candidate whose
     coordinates are outside Iran or equal the origin is rejected. Without usable origin coordinates the model's own order is kept
     (validated=False, km None) - never worse than before."""
@@ -127,6 +127,8 @@ def rank_places(data: Any, origin: str) -> tuple[list[tuple[str, Optional[float]
                 continue
             seen.add(_key(name))
             scored.append((km, name))
+            if cities is not None and str(item.get("city") or "").strip():
+                cities[_key(name)] = " ".join(str(item["city"]).split())[:30]
         scored.sort()
         ranked = [(n, round(km, 1)) for km, n in scored[:CANDIDATES]]
         return ranked, True
@@ -179,10 +181,11 @@ def _ranked(place: str, client: Optional[Any]) -> tuple[list[tuple[str, Optional
         input=place,
         text={"format": {"type": "json_schema", "name": "places", "schema": _SCHEMA, "strict": True}},
     )
-    ranked, validated = rank_places(json.loads(getattr(resp, "output_text", "") or "{}"), place)
+    cities: dict = {}
+    ranked, validated = rank_places(json.loads(getattr(resp, "output_text", "") or "{}"), place, cities)
     if len(_cache) >= _CACHE_MAX:
         _cache.pop(next(iter(_cache)))
-    _cache[_key(place)] = (now, ranked, validated)
+    _cache[_key(place)] = (now, ranked, validated, cities)
     return list(ranked), validated
 
 
@@ -200,3 +203,12 @@ def nearby_places(place: str, *, client: Optional[Any] = None) -> list[str]:
     """Up to three places nearest to ``place`` (the first ring); [] when disabled, over the cap, or on any error."""
     rings = nearby_rings(place, client=client)
     return list(rings[0]) if rings else []
+
+
+def city_of(place: str, name: str) -> Optional[str]:
+    """The city the geography says ``name`` (one of ``place``'s nearest places) belongs to, from the same cached answer; None when unknown."""
+    try:
+        hit = _cache.get(_key(" ".join((place or "").split())))
+        return (hit[3] or {}).get(_key(name)) if hit else None
+    except Exception:  # noqa: BLE001
+        return None

@@ -858,7 +858,13 @@ def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResu
                 place = _places.find_place(name)
                 # the name itself is a KNOWN CITY (not a neighbourhood whose city the gazetteer merely infers as Tehran)
                 is_city = bool(place.city and not place.area and not place.city_inferred)
-                if req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
+                cand_city = _nearby.city_of(origin, name)  # the city the geography says this place belongs to (None when unknown)
+                if cand_city and _places.normalize(cand_city) != _places.normalize(name):
+                    # a NEIGHBOURHOOD of that city (a town's nearest part of Tehran: «تهرانپارس» of «تهران»; Mashhad's «نارمک» of «مشهد»): keep BOTH so
+                    # results listed under its real city are accepted and a same-named area of another city is never swapped in (Codex P2, PR 213)
+                    same_city = _places.normalize(cand_city) == _places.normalize(req.city or "")
+                    where = dataclasses.replace(req, area=name, city=cand_city, province=req.province if same_city else None)
+                elif req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
                     # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
                     where = dataclasses.replace(req, area=name, city=req.city)
                 else:
