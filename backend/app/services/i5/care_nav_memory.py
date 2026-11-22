@@ -148,12 +148,20 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
             return None
         if symptom_triage.triage(message, lang).red_flag:
             return None  # an emergency is never completed into a routine search
-        req = cn.parse_care_nav_request(message, language=lang) if is_query else None
-        if req is not None and req.entity is not cn.CareNavEntity.SPECIALIST:
-            return None  # labs, hospitals, pharmacies keep their own flow
-        named = (req.specialty_or_service or req.name_hint) if req is not None else None
-        has_place = cn._has_real_location(message)
-        if named and has_place:
+        # the message that CARRIES the doctor request: this one, or - when it only answers Sedi's pending question - the earlier request
+        base = message
+        if not is_query:
+            base = next((getattr(r, "user_message", "") or "" for r in rows if cn.is_care_navigation_query(getattr(r, "user_message", "") or "")), "")
+            if not base:
+                return None
+            if symptom_triage.triage(base, lang).red_flag:
+                return None
+        req = cn.parse_care_nav_request(base, language=lang)
+        if req.entity is not cn.CareNavEntity.SPECIALIST:
+            return None  # labs, hospitals, pharmacies keep their own flow (also when the pending request was one)
+        named = req.specialty_or_service or req.name_hint
+        has_place = cn._has_real_location(base)
+        if named and has_place and is_query:
             return None  # a complete request of its own
 
         state = get_care_state(db, user_id)
@@ -162,9 +170,9 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
 
         spec, used_issue, src_text = None, None, ""
         if named:
-            spec = None  # the specialty is already in the message; only the place may be missing
+            spec = req.specialty_or_service  # already in the request (a doctor's NAME keeps the request text); only the place may be missing
         else:
-            spec = _spec_of(message, lang)
+            spec = _spec_of(base, lang)
             if spec is None:
                 best = -1
                 for issue in issues:  # the problem the message mentions wins; otherwise the primary (first) one
@@ -188,9 +196,9 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
         notes: list[str] = []
         codes = ["CARE_NAV_MEMORY_FIRST"]
         place = None
-        if has_place and req is not None:  # the user's own place of THIS request is kept (Codex P2, PR 211)
+        if has_place:  # the user's own place of the request is kept (Codex P2, PR 211)
             place = " ".join(p for p in (req.area, req.city) if p) or None
-        if not has_place:
+        else:
             area, city = (state.home_area, state.home_city) if known else (None, None)
             if area or city:
                 place = f"{area} {city}".strip() if (area and city) else (area or city)
@@ -210,13 +218,21 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
                 if other_spec and other_spec != spec:
                     notes.append(sedi_copy.t("care_nav.memory.other_issue", lang, issue=other.text, specialty=other_spec))
                     break
-        if named:  # specialty named, place completed from memory: the original request plus the place
-            text = f"{message.strip()} در {place}" if (place and lang == "fa") else (f"{message.strip()} in {place}" if place else message)
+        quals = set(sl.qualifiers(message)) | set(sl.qualifiers(base))
+        if named and not spec:  # asked by a doctor's name: the original request text, plus the place
+            if not place or has_place:
+                return None
+            text = f"{base.strip()} در {place}" if lang == "fa" else f"{base.strip()} in {place}"
+        elif named and is_query and not has_place:  # specialty named, place completed from memory: the user's own wording plus the place
             if not place:
                 return None
+            text = f"{message.strip()} در {place}" if lang == "fa" else f"{message.strip()} in {place}"
         else:
-            text = _request_text(spec, place, lang, set(sl.qualifiers(message)))
-        return MemoryRequest(text=text, notes=tuple(notes), reason_codes=tuple(codes), tier_text=f"{message} {src_text}".strip())
+            text = _request_text(spec, place, lang, quals)
+        if (cn.wants_sources(message) or cn.wants_sources(base)) and not cn.wants_sources(text):  # a requested source survives (Codex P2, PR 211)
+            text += " منبعش را هم بگو" if lang == "fa" else " include the source"
+        tier_text = " ".join(x for x in (message, base if base != message else "", src_text) if x).strip()
+        return MemoryRequest(text=text, notes=tuple(notes), reason_codes=tuple(codes), tier_text=tier_text)
     except Exception:  # noqa: BLE001
         logger.exception("[R-114] memory-first doctor request skipped")
         return None

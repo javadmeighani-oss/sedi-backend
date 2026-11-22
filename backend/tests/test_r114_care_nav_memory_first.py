@@ -11,6 +11,7 @@ from backend.app import models, sedi_copy
 from backend.app.services.care_navigation import symptom_triage
 from backend.app.services.i5 import care_nav_interview as ci
 from backend.app.services.i5 import care_nav_memory as mem
+from backend.app.services.i5 import care_navigation_directory as cn
 from backend.tests.test_r108_care_loop_e2e import _fixed_timezone, db, user  # noqa: F401  (real-session fixtures)
 
 ISSUE = "درد سمت راست زیر قفسه سینه حدود یک سال"
@@ -300,3 +301,23 @@ def test_p2_the_journey_urgency_comes_from_the_original_complaint(db, user):
     assert out is not None and "ارتوپدی" in out.text
     assert "زانو" in out.tier_text and "زانو" not in out.text.replace("ارتوپدی", "")           # the rewritten query has no symptom words
     assert j.tier_for(out.tier_text, "fa") == j.tier_for("زانو درد دارم و نمی‌توانم راه بروم", "fa")
+
+
+# --- Codex round 2 on PR 211 ------------------------------------------------------------------------------------------------------------------
+def test_p2_a_pending_request_keeps_its_own_specialty_and_place(db, user):
+    _remember(db, user)  # a remembered digestive complaint must NOT replace the dermatologist the user asked for
+    _turn(db, user, "یه دکتر پوست در پردیس پیدا کن", sedi_copy.t("care_nav.ask_place_city", "fa", area="پردیس"), minutes_ago=2)
+    out = mem.complete_request(db, user.id, "شهرش مهم نیست", "fa", rows=_rows(db, user))
+    assert out is not None and "پوست" in out.text and "گوارش" not in out.text and "پردیس" in out.text
+
+
+def test_p2_a_pending_laboratory_request_stays_a_laboratory_request(db, user):
+    _remember(db, user)
+    _turn(db, user, "یه آزمایشگاه خوب پیدا کن", "در کدام شهر یا محدوده می‌خواهی؟", minutes_ago=2)
+    assert mem.complete_request(db, user.id, "شهرش مهم نیست", "fa", rows=_rows(db, user)) is None
+
+
+def test_p2_a_requested_source_survives_the_rewrite(db, user):
+    _remember(db, user)
+    out = mem.complete_request(db, user.id, "برام یه دکتر پیدا کن و منبعش را هم بگو", "fa", rows=[])
+    assert out is not None and cn.wants_sources(out.text)
