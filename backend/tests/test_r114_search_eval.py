@@ -239,6 +239,20 @@ def test_site_mode_restricts_the_search_tool_to_one_domain_and_restores_the_call
     assert kw["tools"][0]["type"] == "web_search" and kw["instructions"] == "instr" and kw["model"] == "m"
 
 
+def test_site_mode_gives_every_site_its_own_provider_quota(ev):
+    web = _FakeWeb()
+    web._usage = {"day": 10 ** 6}                                                                  # a quota already exhausted by earlier work
+    seen = []
+
+    def search(**k):
+        seen.append(dict(web._usage))                                                              # what the lookup would see for this site
+        web._usage["day"] = web._usage.get("day", 0) + 5
+        return []
+
+    ev.run_sites(["drsaina.com", "doctor-yab.ir"], 2, search, web, out=lambda s: None)
+    assert seen == [{}, {"day": 5}, {}, {"day": 5}]                                                # every site starts with a fresh quota
+
+
 def test_a_failing_provider_in_site_mode_is_counted_not_fatal(ev):
     web = _FakeWeb()
 
