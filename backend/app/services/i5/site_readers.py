@@ -1,0 +1,315 @@
+"""R-114 am.1 / R-116 am.1 (Javad 2026-11-23): Sedi READS the booking sites Javad named - real data, not a model's guess.
+
+Investigation (D-503): the provider web_search tool returns NOTHING from Doctoreto / Paziresh24 / Doctor-Doctor / Saina / Doctor-Yab, but the
+server's own page reader CAN read their public pages, and the pages carry structured data:
+
+  * Doctoreto   ``/doctors/speciality/{slug}/city/{city}``  - Next.js ``__NEXT_DATA__``: 25 doctors per page with address, coordinates, rating
+                (average, count, satisfaction %), next free time, profile route; plus the nearby cities / neighbourhoods of the page.
+  * Paziresh24  ``/s/{city}/{expertise}/``                  - Next.js ``__NEXT_DATA__``: 20 results per page with address, centers, satisfaction %,
+                number of ratings, visits, waiting time, profile URL.
+
+This module is the ONE reader for them: build the listing URLs, fetch through ``safe_fetch.fetch_page`` (public https only, robots honoured,
+size/time capped - R-045), parse the embedded JSON into one normalised ``SiteProvider``, rank by the patients' ratings (a shrunk average, so a
+5.0 from two reviews does not beat 4.7 from 400) and distance, page through the ranking FIVE at a time (Javad: five per introduction, the next
+five when the first do not suit). Reading is LIVE and transient (cached a short while in memory); nothing is stored here (the library of
+providers Sedi's users actually used is a separate, consented step). Fail-open: any site that cannot be read is reported and skipped.
+
+Reading goes behind ``SEDI_SITE_READERS_ENABLED`` (default OFF) when wired into the chat; the eval harness calls it directly.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import math
+import re
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional, Sequence
+from urllib.parse import quote
+
+from backend.app.services.i5 import safe_fetch
+
+logger = logging.getLogger(__name__)
+
+PAGE_SIZE = 5  # providers per introduction (Javad); the next five on request
+CACHE_TTL_SECONDS = 6 * 3600
+READ_TIMEOUT_SECONDS = 14.0  # the whole parallel read of one request
+RATING_PRIOR = 4.0  # shrink every average toward this by how few reviews back it
+RATING_PRIOR_WEIGHT = 10
+_NEXT_DATA = re.compile(r"<script id=.__NEXT_DATA__.[^>]*>")
+
+SITE_DOCTORETO = "doctoreto.com"
+SITE_P24 = "paziresh24.com"
+
+# canonical specialty (specialty_lexicon) -> the slug each site uses in its listing URL (verified against the live sites 2026-11-23)
+P24_SLUGS = {
+    "ارتوپدی": "orthopedics", "زنان": "obstetrics-gynecology", "چشم": "ophthalmology", "گوارش": "gastroenterology", "اورولوژی": "urology",
+    "غدد": "endocrinology", "قلب": "cardiovascular", "داخلی": "internal", "دندانپزشکی": "dental-oral", "پوست": "dermatology",
+    "جراحی عمومی": "surgery", "اطفال": "pediatrics", "روانپزشکی": "psychiatry", "ریه": "pulmonology", "گوش و حلق و بینی": "otorhinolaryngology",
+    "مغز و اعصاب": "neurology", "عفونی": "infectious", "پزشک عمومی": "general-practitioner", "روانشناسی": "psychology", "تغذیه": "nutrition",
+    "توانبخشی": "rehabilitation", "طب سنتی": "traditional-medicine", "آلرژی": "allergies", "دیابت": "diabetes",
+}
+DOCTORETO_SLUGS = {"گوارش": "gastroenterologist", "کلیه": "nephrologist", "روماتولوژی": "rheumatologist"}  # only slugs verified live so far
+_CITY_SLUGS = {
+    "تهران": "tehran", "شیراز": "shiraz", "اصفهان": "isfahan", "مشهد": "mashhad", "کرج": "karaj", "تبریز": "tabriz", "اهواز": "ahvaz",
+    "قم": "qom", "کرمانشاه": "kermanshah", "رشت": "rasht", "ارومیه": "urmia", "زاهدان": "zahedan", "کرمان": "kerman", "یزد": "yazd",
+    "ساری": "sari", "قزوین": "qazvin", "همدان": "hamedan", "اراک": "arak", "اردبیل": "ardabil", "پردیس": "pardis", "بومهن": "boomehen",
+}
+
+
+@dataclass(frozen=True)
+class SiteProvider:
+    site: str
+    name: str
+    specialty: str = ""
+    address: str = ""
+    city: str = ""
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    rating: Optional[float] = None  # 0-5
+    rating_count: int = 0
+    satisfaction_percent: Optional[int] = None
+    url: str = ""
+    next_free: str = ""
+    waiting_time: str = ""
+    visits: Optional[int] = None
+
+    @property
+    def key(self) -> str:
+        return re.sub(r"[\s‌]+", "", f"{self.name}|{self.city}").lower()
+
+
+@dataclass
+class ReadReport:
+    providers: list = field(default_factory=list)
+    sites: dict = field(default_factory=dict)  # site -> {"ok": bool, "reason": str, "count": int, "seconds": float}
+    nearby: list = field(default_factory=list)  # place names the site itself lists as nearby (Doctoreto)
+
+
+# --- parsing ------------------------------------------------------------------------------------------------------------------------------------
+def _next_data(raw: bytes) -> Optional[dict]:
+    try:
+        html = raw.decode("utf-8", "replace")
+        m = _NEXT_DATA.search(html)
+        if not m:
+            return None
+        body = html[m.end():]
+        return json.loads(body[: body.index("</script>")])
+    except (ValueError, KeyError):
+        return None
+
+
+def _num(value: Any) -> Optional[float]:
+    try:
+        return float(value) if value is not None and value != "" else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _int(value: Any) -> int:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _clean(text: Any, limit: int = 300) -> str:
+    return " ".join(str(text or "").split())[:limit]
+
+
+def _coords(box: Any) -> tuple:
+    """(lat, lon) from {lat,lng} / {latitude,longitude} / {lat,lon}; (None, None) when absent or outside Iran."""
+    if not isinstance(box, dict):
+        return None, None
+    lat = _num(box.get("lat", box.get("latitude")))
+    lon = _num(box.get("lng", box.get("lon", box.get("longitude"))))
+    if lat is None or lon is None or not (24.0 <= lat <= 40.5 and 43.5 <= lon <= 64.0):
+        return None, None
+    return lat, lon
+
+
+def parse_paziresh24(raw: bytes) -> list:
+    """Providers of a Paziresh24 listing page (``/s/{city}/{expertise}/``); [] when the page is not a listing."""
+    data = _next_data(raw)
+    out: list = []
+    try:
+        queries = data["props"]["pageProps"]["dehydratedState"]["queries"]  # type: ignore[index]
+        search = next(q["state"]["data"]["search"] for q in queries if isinstance(q.get("state", {}).get("data"), dict) and "search" in q["state"]["data"])
+        items = search.get("result") or []
+    except (TypeError, KeyError, StopIteration):
+        return out
+    for it in items:
+        if not isinstance(it, dict) or str(it.get("type") or it.get("record_type") or "doctor") != "doctor":
+            continue
+        core = _clean(it.get("display_name") or it.get("name"), 100)
+        if not core:
+            continue
+        name = _clean(" ".join(x for x in (it.get("prefix"), core) if x), 120)
+        centers = [c for c in (it.get("centers") or []) if isinstance(c, dict)]
+        center = centers[0] if centers else {}
+        lat, lon = _coords(center.get("map") or center.get("location"))
+        count = _int(it.get("rates_count"))
+        sat = _int(it.get("satisfaction")) if it.get("satisfaction") is not None else None
+        star = _num(it.get("star"))
+        rating = star if star else (round(sat / 20.0, 2) if sat is not None else None)  # the site's own 0-5 star, else its satisfaction % on a 0-5 scale
+        url = str(it.get("url") or "")
+        url = ("https://www.paziresh24.com" + url) if url.startswith("/") else url
+        out.append(SiteProvider(
+            site=SITE_P24, name=name, specialty=_clean(it.get("display_expertise"), 80),
+            address=_clean(center.get("address") or it.get("display_address")), city=_clean(center.get("city_name"), 40), lat=lat, lon=lon,
+            rating=rating if count else None, rating_count=count, satisfaction_percent=sat if count else None, url=url,
+            waiting_time=_clean(it.get("waiting_time"), 40), visits=_int(it.get("number_of_visits")) or None))
+    return out
+
+
+def parse_doctoreto(raw: bytes) -> tuple:
+    """(providers, nearby place names) of a Doctoreto listing page (``/doctors/speciality/{slug}/city/{city}``)."""
+    data = _next_data(raw)
+    providers: list = []
+    nearby: list = []
+    try:
+        queries = data["props"]["pageProps"]["dehydratedState"]["queries"]  # type: ignore[index]
+    except (TypeError, KeyError):
+        return providers, nearby
+    for q in queries:
+        key = str(q.get("queryKey"))
+        state = (q.get("state") or {}).get("data")
+        if key.startswith("['doctors', 'list'") and isinstance(state, dict):
+            for it in state.get("data") or []:
+                if not isinstance(it, dict) or not it.get("fullName"):
+                    continue
+                place = (it.get("places") or [{}])[0] if isinstance(it.get("places"), list) and it.get("places") else {}
+                coords = place.get("coordinates") if isinstance(place, dict) else None
+                lat, lon = _coords({"lat": (coords or {}).get("latitude"), "lon": (coords or {}).get("longitude")}) if isinstance(coords, dict) else (None, None)
+                rate = it.get("rate") if isinstance(it.get("rate"), dict) else {}
+                count = _int(rate.get("count"))
+                avg = _num(rate.get("rateAverage"))
+                nxt = ((it.get("nextFreeTimes") or {}).get("general") or {}) if isinstance(it.get("nextFreeTimes"), dict) else {}
+                route = str(it.get("profileRoute") or "")
+                providers.append(SiteProvider(
+                    site=SITE_DOCTORETO, name=_clean(it.get("fullName"), 120), specialty=_clean(it.get("specialityLabel"), 80),
+                    address=_clean((place or {}).get("address")), city=_clean(((place or {}).get("city") or {}).get("name"), 40), lat=lat, lon=lon,
+                    rating=avg if (count and avg is not None) else None, rating_count=count,
+                    satisfaction_percent=_int(rate.get("percent")) if (count and rate.get("percent") is not None) else None,
+                    url=("https://doctoreto.com" + route) if route.startswith("/") else route, next_free=_clean(nxt.get("fullTextDisplay"), 60)))
+        elif key.startswith("['doctors', 'nearbyNeighborhood'") and isinstance(state, dict):
+            for group in ("nearbyCities", "nearbyNeighborhoods"):
+                for item in (state.get(group) or [])[:12]:
+                    name = _clean(item.get("name") if isinstance(item, dict) else item, 40)
+                    if name:
+                        nearby.append(name)
+    return providers, nearby
+
+
+# --- URLs ---------------------------------------------------------------------------------------------------------------------------------------
+def city_slug(city: Optional[str]) -> Optional[str]:
+    return _CITY_SLUGS.get(re.sub(r"\s+", " ", (city or "").strip()))
+
+
+def listing_urls(specialty: Optional[str], city: Optional[str]) -> list:
+    """[(site, url)] listing pages for (canonical specialty, city); only sites whose slugs are known for BOTH the specialty and the city."""
+    slug = city_slug(city)
+    out: list = []
+    if not slug:
+        return out
+    if specialty in P24_SLUGS:
+        out.append((SITE_P24, f"https://www.paziresh24.com/s/{slug}/{P24_SLUGS[specialty]}/"))
+    if specialty in DOCTORETO_SLUGS:
+        out.append((SITE_DOCTORETO, f"https://doctoreto.com/doctors/speciality/{DOCTORETO_SLUGS[specialty]}/city/{slug}"))
+    return out
+
+
+# --- ranking ------------------------------------------------------------------------------------------------------------------------------------
+def haversine_km(a: tuple, b: tuple) -> float:
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return 2 * 6371.0088 * math.asin(math.sqrt(h))
+
+
+def trust_score(p: SiteProvider) -> float:
+    """0-5: the patients' average shrunk toward the prior by how few reviews back it (no reviews = the prior, never a perfect score)."""
+    avg = p.rating if p.rating is not None else RATING_PRIOR
+    n = p.rating_count if p.rating is not None else 0
+    return (avg * n + RATING_PRIOR * RATING_PRIOR_WEIGHT) / (n + RATING_PRIOR_WEIGHT)
+
+
+def rank(providers: Sequence[SiteProvider], *, origin: Optional[tuple] = None, exclude: Sequence[str] = ()) -> list:
+    """Most credible first: the shrunk rating dominates, the distance from ``origin`` (lat, lon) breaks near-ties and lifts what is close, and the
+    same doctor seen on two sites is one entry (the one with more reviews). ``exclude`` = keys already introduced (the next-five flow)."""
+    skip = set(exclude)
+    best: dict = {}
+    for p in providers:
+        if p.key in skip:
+            continue
+        cur = best.get(p.key)
+        if cur is None or p.rating_count > cur.rating_count:
+            best[p.key] = p
+
+    def score(p: SiteProvider) -> float:
+        s = trust_score(p)
+        if origin and p.lat is not None and p.lon is not None:
+            s -= min(haversine_km(origin, (p.lat, p.lon)), 60.0) / 60.0 * 0.8  # up to -0.8 star for being 60 km away
+        return s
+
+    return sorted(best.values(), key=lambda p: (-score(p), -p.rating_count, p.name))
+
+
+def page(ranked: Sequence[SiteProvider], number: int = 1) -> list:
+    """Page ``number`` (1-based) of FIVE."""
+    start = (max(1, number) - 1) * PAGE_SIZE
+    return list(ranked[start:start + PAGE_SIZE])
+
+
+# --- reading ------------------------------------------------------------------------------------------------------------------------------------
+_cache: dict = {}
+_lock = threading.Lock()
+
+
+def _read_one(site: str, url: str, fetch: Callable[[str], Any]) -> tuple:
+    started = time.time()
+    with _lock:
+        hit = _cache.get(url)
+        if hit and time.time() - hit[0] < CACHE_TTL_SECONDS:
+            return site, hit[1], hit[2], {"ok": True, "reason": "cache", "count": len(hit[1]), "seconds": 0.0}
+    try:
+        fr = fetch(url)
+        if not getattr(fr, "ok", False):
+            return site, [], [], {"ok": False, "reason": getattr(fr, "reason", "") or "unreadable", "count": 0, "seconds": round(time.time() - started, 2)}
+        if site == SITE_DOCTORETO:
+            items, nearby = parse_doctoreto(fr.body)
+        else:
+            items, nearby = parse_paziresh24(fr.body), []
+        with _lock:
+            if len(_cache) > 128:
+                _cache.pop(next(iter(_cache)))
+            _cache[url] = (time.time(), items, nearby)
+        return site, items, nearby, {"ok": True, "reason": "", "count": len(items), "seconds": round(time.time() - started, 2)}
+    except Exception as exc:  # noqa: BLE001 - one site down never breaks the answer
+        logger.info("site_reader_failed site=%s reason=%s", site, type(exc).__name__)
+        return site, [], [], {"ok": False, "reason": type(exc).__name__, "count": 0, "seconds": round(time.time() - started, 2)}
+
+
+def read_sites(specialty: Optional[str], city: Optional[str], *, fetch: Optional[Callable[[str], Any]] = None) -> ReadReport:
+    """Read the listing pages of every known site for (canonical specialty, city) IN PARALLEL within one time budget."""
+    report = ReadReport()
+    urls = listing_urls(specialty, city)
+    if not urls:
+        return report
+    fetcher = fetch or safe_fetch.fetch_page
+    pool = ThreadPoolExecutor(max_workers=len(urls))
+    try:
+        futures = [pool.submit(_read_one, site, url, fetcher) for site, url in urls]
+        deadline = time.time() + READ_TIMEOUT_SECONDS
+        for (site, _url), fut in zip(urls, futures):
+            try:
+                _s, items, nearby, status = fut.result(timeout=max(0.1, deadline - time.time()))
+            except Exception:  # noqa: BLE001
+                items, nearby, status = [], [], {"ok": False, "reason": "timeout", "count": 0, "seconds": READ_TIMEOUT_SECONDS}
+            report.providers.extend(items)
+            report.nearby.extend(n for n in nearby if n not in report.nearby)
+            report.sites[site] = status
+    finally:
+        pool.shutdown(wait=False)
+    return report
