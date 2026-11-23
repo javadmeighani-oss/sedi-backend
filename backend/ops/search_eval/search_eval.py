@@ -59,6 +59,7 @@ class FailureProbe:
 
     def __init__(self) -> None:
         self.errors: list[str] = []
+        self.messages: list[str] = []
 
     def wrap(self, fn: Callable[..., Any]) -> Callable[..., Any]:
         def inner(*args: Any, **kwargs: Any) -> Any:
@@ -66,6 +67,7 @@ class FailureProbe:
                 return fn(*args, **kwargs)
             except Exception as exc:  # noqa: BLE001
                 self.errors.append(type(exc).__name__)
+                self.messages.append(" ".join(str(exc).split())[:160])
                 raise
 
         return inner
@@ -215,6 +217,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
                     first_error = first_error or (type(exc).__name__ + ": " + " ".join(str(exc).split())[:160])
                 if probe is not None and len(probe.errors) > seen:
                     errors += 1
+                    first_error = first_error or (probe.errors[-1] + ": " + probe.messages[-1])
                 rows.append((item, results))
         finally:
             web_module._call_web_search = original_call
