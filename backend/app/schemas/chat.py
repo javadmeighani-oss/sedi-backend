@@ -14,6 +14,9 @@ class ChatRequest(BaseModel):
     interaction_source: Optional[str] = Field(
         None, description="Optional hint: chat, notification, device, or system"
     )
+    supports_links: Optional[bool] = Field(
+        None, description="R-107 am.3: the app shows `links` below the bubble; the reply text then carries no raw doctor URLs"
+    )
     health_subject_id: Optional[int] = Field(
         None,
         description="Active HealthSubject; JWT Account must hold AHSA; OTHER chat fail-closed until governed context",

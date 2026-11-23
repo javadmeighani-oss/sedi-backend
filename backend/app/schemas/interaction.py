@@ -21,3 +21,5 @@ class InteractionResponse(BaseModel):
     intro_completed: Optional[bool] = None
     health_subject_id: Optional[int] = None
     other_chat_blocked: Optional[bool] = None
+    # R-107 am.3: doctor-introduction links [{label, url, kind, host}] - the app shows them as blue lines OUTSIDE the bubble (additive; old apps ignore it)
+    links: Optional[list[dict]] = None

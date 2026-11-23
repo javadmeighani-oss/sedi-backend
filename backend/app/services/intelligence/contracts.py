@@ -431,6 +431,8 @@ class OrchestrationResult:
     discovery_target_key: Optional[str] = None
     # Internal CR-02 interaction-need metadata (not exposed by public_brain_dict)
     interaction_need: Optional[str] = None
+    # R-107 am.3: doctor-introduction links ([{label, url, kind, host}]) the app shows OUTSIDE the bubble; () for every other reply
+    links: tuple[dict, ...] = ()
 
     def public_brain_dict(self) -> dict[str, Any]:
         """Map to the legacy router-compatible generation dict."""
@@ -440,6 +442,8 @@ class OrchestrationResult:
         }
         if self.detected_name is not None:
             out["detected_name"] = self.detected_name
+        if self.links:
+            out["links"] = [dict(item) for item in self.links]
         return out
 
 

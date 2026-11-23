@@ -526,8 +526,12 @@ async def chat(
         print(f"[CHAT] Response language: {result.get('language', 'unknown')}")
         print(f"[CHAT] ===== END AFTER GPT =====")
 
+        from backend.app.services.i5.provider_links import reply_with_links
+
+        # R-107 am.3: doctor links go BELOW the bubble; an app that says it can show them gets the bubble text without raw URLs
+        reply_text, reply_links = reply_with_links(result["message"], result.get("links"), payload.supports_links, result["language"])
         return InteractionResponse(
-            message=result["message"],
+            message=reply_text,
             language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
@@ -536,6 +540,7 @@ async def chat(
             continued_from_notification=continued_from_notification or None,
             source_notification_id=response_source_notification_id,
             conversation_id=response_conversation_id,
+            links=reply_links,
         )
     except HTTPException:
         # Re-raise HTTP exceptions (validation errors, etc.)
@@ -938,6 +943,7 @@ def get_user_history(
             detail="user_id does not match authenticated user",
         )
 
+    from backend.app.services.i7.governed_raw import links_of_turn
     from backend.app.services.i7.retention import query_eligible_raw
 
     memories = query_eligible_raw(db, user.id, limit=limit)
@@ -950,7 +956,8 @@ def get_user_history(
                 "user_message": m.user_message,
                 "sedi_response": m.sedi_response,
                 "language": m.language,
-                "created_at": m.created_at.isoformat()
+                "created_at": m.created_at.isoformat(),
+                **({"links": _turn_links} if (_turn_links := links_of_turn(m)) else {}),  # R-107 am.3
             }
             for m in memories
         ]

@@ -70,6 +70,50 @@ def _load_provenance(row: models.Memory) -> dict[str, Any]:
         return {}
 
 
+def attach_reply_links(db: Session, *, user_id: int, sedi_response: str, links: Any) -> bool:
+    """R-107 am.3: the doctor-introduction links of a reply are kept with its stored turn (``provenance_json["links"]``), so a reloaded
+    conversation (/interact/history) can show them again. The stored text carries no URL (they live below the bubble); the newest turn of this
+    user with exactly this reply gets the links. Additive, fail-open: chat never breaks, False = nothing attached."""
+    try:
+        items = [
+            {"label": str(i.get("label") or "")[:80], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider")}
+            for i in (links or [])
+            if isinstance(i, dict) and i.get("url") and i.get("label")
+        ][:5]
+        if not items or not (sedi_response or "").strip():
+            return False
+        row = (
+            db.query(models.Memory)
+            .filter(models.Memory.user_id == int(user_id), models.Memory.sedi_response == sedi_response)
+            .order_by(models.Memory.id.desc())
+            .first()
+        )
+        if row is None:
+            return False
+        prov = _load_provenance(row)
+        prov["links"] = items
+        row.provenance_json = json.dumps(prov, sort_keys=True)
+        db.commit()
+        return True
+    except Exception:  # noqa: BLE001
+        logger.info("i7_raw_attach_links_failed user_id=%s", user_id)
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return False
+
+
+def links_of_turn(row: Any) -> list:
+    """The links stored with a turn (``provenance_json["links"]``), [] when none / unreadable."""
+    try:
+        loaded = json.loads(row.provenance_json) if getattr(row, "provenance_json", None) else {}
+        items = loaded.get("links") if isinstance(loaded, dict) else None
+        return [dict(i) for i in items if isinstance(i, dict) and i.get("url")] if isinstance(items, list) else []
+    except (TypeError, ValueError):
+        return []
+
+
 def _find_by_draft_idempotency_key(
     db: Session, *, user_id: int, draft_key: str
 ) -> Optional[models.Memory]:
