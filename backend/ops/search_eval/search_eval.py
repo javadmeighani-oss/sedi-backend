@@ -202,16 +202,17 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
             return [r for r in (data.get("results") or []) if isinstance(r, dict)]
 
         web_module._call_web_search = probe.wrap(restricted_call) if probe is not None else restricted_call
-        rows, errors = [], 0
+        rows, errors, first_error = [], 0, ""
         try:
             for item in golden_set(per_site):
                 seen = len(probe.errors) if probe is not None else 0
                 try:
                     results = [r for r in search_fn(entity="SPECIALIST", specialty=item["specialty"], city=item["city"], province=item["province"],
                                                     area=item["area"], qualifiers=()) if isinstance(r, dict)]
-                except Exception:  # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
                     results = []
                     errors += 1
+                    first_error = first_error or (type(exc).__name__ + ": " + " ".join(str(exc).split())[:160])
                 if probe is not None and len(probe.errors) > seen:
                     errors += 1
                 rows.append((item, results))
@@ -220,7 +221,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
         total = sum(len(r) for _, r in rows)
         mine = [(i, r) for i, res in rows for r in res if _from_site(r, site)]
         entry = {
-            "site": site, "queries": len(rows), "errors": errors, "results": total,
+            "site": site, "queries": len(rows), "errors": errors, "first_error": first_error, "results": total,
             "results_from_site": len(mine),
             "queries_with_site_result": len({id(i) for i, _ in mine}),
             "suitable_from_site": sum(1 for i, r in mine if suitable(r, i["specialty"])),
