@@ -132,8 +132,9 @@ def test_pages_of_five_and_the_next_five_exclude_what_was_shown():
 
 # --- reading (parallel, fail-open, cached) -------------------------------------------------------------------------------------------------------
 @pytest.fixture(autouse=True)
-def _fresh_cache():
+def _fresh_cache(monkeypatch):
     sr._cache.clear()
+    monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 0.0)  # no real waiting in tests (the pacing test sets its own gap)
     yield
     sr._cache.clear()
 
@@ -196,3 +197,68 @@ def test_an_empty_page_is_not_cached_so_the_next_read_retries():
     sr.read_sites("پوست", "شیراز", fetch=fetch)
     sr.read_sites("پوست", "شیراز", fetch=fetch)
     assert len(fetch.calls) == 2 and not sr._cache
+
+
+# --- wiring into the chat (R-114 / R-116: five per introduction, flag-gated, fail-open, paced) ----------------------------------------------------
+def _shiraz_fetch(count=8, bad=False):
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    items = [_p24_item(f"{i:02d}", 50 + i, 4.0 + i / 20, 80, address=("خیابان معالی‌آباد" if i == 7 else "خیابان زند"), city="شیراز") for i in range(count)]
+    return _fetcher({urls["paziresh24.com"]: (RuntimeError("down") if bad else _p24_page(items))})
+
+
+def test_provider_rows_are_five_chat_rows_with_the_sites_own_rating_and_link():
+    rows = sr.provider_rows("پوست", "شیراز", fetch=_shiraz_fetch())
+    assert len(rows) == 5 and all(r["trusted"] and r["source_url"].startswith("https://www.paziresh24.com/") for r in rows)
+    assert all(r["rating_avg"] and r["rating_count"] and r["phone"] is None and r["checked_on"] for r in rows)
+    assert rows[0]["rating_avg"] >= rows[-1]["rating_avg"]                                                        # most credible first
+    assert [r["name"] for r in sr.provider_rows("پوست", "شیراز", number=2, fetch=_shiraz_fetch())] == ["دکتر 02", "دکتر 01", "دکتر 00"]  # the next five
+
+
+def test_the_neighbourhood_the_user_named_comes_first():
+    rows = sr.provider_rows("پوست", "شیراز", area="معالی آباد", fetch=_shiraz_fetch())
+    assert rows[0]["name"] == "دکتر 07" and len(rows) == 5                                                       # half-space / space tolerant; the rest keep their order
+
+
+def test_provider_rows_fail_open_and_an_unmapped_place_reads_nothing():
+    assert sr.provider_rows("پوست", "شیراز", fetch=_shiraz_fetch(bad=True)) == []
+    fetch = _shiraz_fetch()
+    assert sr.provider_rows("پوست", "رودهن", fetch=fetch) == [] and fetch.calls == []                            # no slug for the city: no request at all
+
+
+def test_live_requests_are_paced_and_cache_hits_never_wait(monkeypatch):
+    monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 1.5)
+    sr._last_live_fetch[0] = 0.0
+    waits = []
+    monkeypatch.setattr(sr.time, "sleep", lambda s: waits.append(s))
+    fetch = _shiraz_fetch()
+    sr.provider_rows("پوست", "شیراز", fetch=fetch)
+    sr.provider_rows("پوست", "شیراز", fetch=fetch)                                                               # cached: no second live request
+    sr._last_live_fetch[0] = sr.time.time()
+    sr._cache.clear()
+    sr.provider_rows("پوست", "شیراز", fetch=fetch)                                                               # live again right after the last one: waits
+    assert len(fetch.calls) == 2 and len(waits) == 1 and 0 < waits[0] <= 1.5
+
+
+def _nav(monkeypatch, fetch, flag="1"):
+    from backend.app.services.i5 import care_navigation_directory as cn
+
+    monkeypatch.setenv(sr.ENABLED_ENV, flag)
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, request: [])
+    monkeypatch.setattr(sr.safe_fetch, "fetch_page", fetch)
+    request = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa")
+    return cn, cn.query_governed_directory(None, request)
+
+
+def test_the_chat_introduces_five_doctors_from_the_booking_site_when_the_flag_is_on(monkeypatch):
+    cn, result = _nav(monkeypatch, _shiraz_fetch())
+    assert result.status == cn.STATUS_VERIFIED and len(result.identities) == 5 and "SITE_READERS" in result.identity_notes
+    assert all(i.source_url.startswith("https://www.paziresh24.com/") and i.web_trusted and i.rating_avg for i in result.identities)
+    assert result.identities[0].canonical_name in result.user_message
+
+
+def test_the_flag_off_or_a_down_site_leaves_the_older_answer_untouched(monkeypatch):
+    cn, off = _nav(monkeypatch, _shiraz_fetch(), flag="0")
+    assert off.status == cn.STATUS_NO_VERIFIED and "SITE_READERS" not in off.identity_notes
+    cn, down = _nav(monkeypatch, _shiraz_fetch(bad=True))
+    assert down.status == cn.STATUS_NO_VERIFIED

@@ -21,9 +21,11 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 import re
 import threading
 import time
+from datetime import date
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence
@@ -33,6 +35,8 @@ from backend.app.services.i5 import safe_fetch
 
 logger = logging.getLogger(__name__)
 
+ENABLED_ENV = "SEDI_SITE_READERS_ENABLED"  # default OFF: the chat reads the booking sites only when this is switched on
+MIN_GAP_SECONDS = 1.5  # polite reading: a burst of requests can make a site answer with empty pages (D-503)
 PAGE_SIZE = 5  # providers per introduction (Javad); the next five on request
 CACHE_TTL_SECONDS = 6 * 3600
 READ_TIMEOUT_SECONDS = 14.0  # the whole parallel read of one request
@@ -265,6 +269,21 @@ def page(ranked: Sequence[SiteProvider], number: int = 1) -> list:
 # --- reading ------------------------------------------------------------------------------------------------------------------------------------
 _cache: dict = {}
 _lock = threading.Lock()
+_pace_lock = threading.Lock()
+_last_live_fetch = [0.0]
+
+
+def readers_enabled() -> bool:
+    return (os.getenv(ENABLED_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _pace_live_fetch() -> None:
+    """At least ``MIN_GAP_SECONDS`` between two LIVE page requests of this process (cache hits never wait)."""
+    with _pace_lock:
+        wait = _last_live_fetch[0] + MIN_GAP_SECONDS - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _last_live_fetch[0] = time.time()
 
 
 def _read_one(site: str, url: str, fetch: Callable[[str], Any]) -> tuple:
@@ -274,6 +293,7 @@ def _read_one(site: str, url: str, fetch: Callable[[str], Any]) -> tuple:
         if hit and time.time() - hit[0] < CACHE_TTL_SECONDS:
             return site, hit[1], hit[2], {"ok": True, "reason": "cache", "count": len(hit[1]), "seconds": 0.0}
     try:
+        _pace_live_fetch()
         fr = fetch(url)
         if not getattr(fr, "ok", False):
             return site, [], [], {"ok": False, "reason": getattr(fr, "reason", "") or "unreadable", "count": 0, "seconds": round(time.time() - started, 2)}
@@ -314,3 +334,40 @@ def read_sites(specialty: Optional[str], city: Optional[str], *, fetch: Optional
     finally:
         pool.shutdown(wait=False)
     return report
+
+
+def _squash(text: Any) -> str:
+    return re.sub(r"[\s‌‎‏\-_.,،]+", "", str(text or "")).lower()
+
+
+def _area_first(ranked: Sequence[SiteProvider], area: Optional[str]) -> list:
+    """Providers whose address names the user's neighbourhood come first (the credibility order is kept inside each group)."""
+    key = _squash(area)
+    if not key:
+        return list(ranked)
+    near = [p for p in ranked if key in _squash(p.address)]
+    return near + [p for p in ranked if p not in near]
+
+
+def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Optional[str] = None, number: int = 1, exclude: Sequence[str] = (),
+                  origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None) -> list:
+    """Page ``number`` (FIVE) of the most credible providers for (canonical specialty, city), as the SAME row dicts the web lookup returns, so the
+    chat's identities, links and wording need no second path. Every row is a page of a known listing site (``trusted``), carries the patients'
+    rating and count the site published, and is transient (nothing is stored). Fail-open: any problem = an empty list."""
+    try:
+        if not listing_urls(specialty, city):
+            return []
+        report = read_sites(specialty, city, fetch=fetch)
+        today = date.today().isoformat()
+        rows = []
+        for p in page(_area_first(rank(report.providers, origin=origin, exclude=exclude), area), number):
+            if not p.url.startswith("https://") or not p.name:
+                continue
+            rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
+                         "source_url": p.url, "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
+                         "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
+                         "page_read": True, "why": ()})
+        return rows
+    except Exception:  # noqa: BLE001 - the chat must never break because a site could not be read
+        logger.info("site_reader_rows_failed")
+        return []
