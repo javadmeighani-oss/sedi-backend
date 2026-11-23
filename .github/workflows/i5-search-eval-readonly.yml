@@ -22,9 +22,13 @@ on:
         required: false
         default: ""
       max_queries:
-        description: "Number of golden queries (1-48)"
+        description: "Number of golden queries (1-48; in site mode: per site)"
         required: false
         default: "24"
+      sites:
+        description: "Optional site mode: comma-separated domains to examine one by one (e.g. doctoreto.com,drdr.ir); empty = the general run"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -47,8 +51,10 @@ jobs:
           LABEL: ${{ github.event.inputs.set_label }}
           MODEL: ${{ github.event.inputs.model }}
           MAXQ: ${{ github.event.inputs.max_queries }}
+          SITES: ${{ github.event.inputs.sites }}
         run: |
           set -Eeuo pipefail
+          echo "${SITES}" | grep -Eq '^([a-z0-9.-]+\.[a-z]{2,}(,[a-z0-9.-]+\.[a-z]{2,}){0,5})?$'
           echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
           echo "${LABEL:-baseline}" | grep -Eq '^[A-Za-z0-9_.-]{1,40}$'
           echo "${MODEL}" | grep -Eq '^[A-Za-z0-9_.:-]{0,64}$'
@@ -60,6 +66,7 @@ jobs:
           LABEL: ${{ github.event.inputs.set_label }}
           MODEL: ${{ github.event.inputs.model }}
           MAXQ: ${{ github.event.inputs.max_queries }}
+          SITES: ${{ github.event.inputs.sites }}
         run: |
           set -Eeuo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -69,7 +76,7 @@ jobs:
           SCRIPT_B64="$(base64 -w0 backend/ops/search_eval/search_eval.py)"
           ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "IMAGE_SHA=$(printf '%q' "${SHA}") EVAL_SET=$(printf '%q' "${LABEL:-baseline}") EVAL_MODEL=$(printf '%q' "${MODEL}") EVAL_MAXQ=$(printf '%q' "${MAXQ:-24}") SCRIPT_B64=${SCRIPT_B64} bash -s" \
+            "IMAGE_SHA=$(printf '%q' "${SHA}") EVAL_SET=$(printf '%q' "${LABEL:-baseline}") EVAL_MODEL=$(printf '%q' "${MODEL}") EVAL_MAXQ=$(printf '%q' "${MAXQ:-24}") EVAL_SITES=$(printf '%q' "${SITES}") SCRIPT_B64=${SCRIPT_B64} bash -s" \
             2>&1 <<'REMOTE' | tee /tmp/search_eval.log
           set -Eeuo pipefail
           s() { echo "EVAL|$1|$2"; }
@@ -81,6 +88,7 @@ jobs:
           curl -fsS http://127.0.0.1:8000/healthz >/dev/null && s health PASS
           s now_utc "$(date -u +%FT%TZ)"
           ENVARGS="-e SEDI_EVAL_SET=${EVAL_SET} -e SEDI_EVAL_MAX_QUERIES=${EVAL_MAXQ}"
+          if [ -n "${EVAL_SITES}" ]; then ENVARGS="${ENVARGS} -e SEDI_EVAL_SITES=${EVAL_SITES}"; fi
           if [ -n "${EVAL_MODEL}" ]; then ENVARGS="${ENVARGS} -e SEDI_DIRECTORY_WEB_LOOKUP_MODEL=${EVAL_MODEL}"; fi
           echo "${SCRIPT_B64}" | base64 -d | docker exec -i ${ENVARGS} sedi-backend python -
           s now_utc_end "$(date -u +%FT%TZ)"

@@ -179,3 +179,63 @@ def test_p2_short_latin_stems_do_not_match_inside_other_words(ev):
     for wrong in ("Dentist", "Gastroenterologist", "Pediatrician", "dentistry"):
         assert ev.suitable({"specialty": wrong, "name": "Dr X"}, "گوش و حلق و بینی") is False, wrong
     assert ev.suitable({"specialty": "Otolaryngologist (ENT)", "name": "Dr X"}, "گوش و حلق و بینی") is True
+
+
+# --- site mode (Javad: «these sites must be examined») ------------------------------------------------------------------------------------------------
+class _FakeWeb:
+    """What the eval patches in site mode: the wording function of the web lookup module."""
+
+    def __init__(self):
+        self.seen = []
+
+    def _query_variants(self, query, entity, country):
+        return [query, query + " x", query + " y"]
+
+
+def test_site_mode_counts_what_each_site_really_returned_and_restores_the_wording(ev):
+    web = _FakeWeb()
+    original = web._query_variants
+    used = []
+
+    def search(**k):
+        used.append(web._query_variants("q", "SPECIALIST", "IR"))
+        return [_row("a", k["specialty"], source_url="https://www.drsaina.com/dr/a", trusted=False),
+                _row("b", "کودکان", source_url="https://doctor-yab.ir/dr/b", trusted=False, phone_status="unchecked", address_verified=False)]
+
+    lines = []
+    out = ev.run_sites(["drsaina.com", "doctor-yab.ir"], 3, search, web, out=lines.append)
+    assert web._query_variants == original                                                  # patched only while measuring
+    assert all(v == ["q drsaina.com"] for v in used[:3]) and all(v == ["q doctor-yab.ir"] for v in used[3:])  # only that site's wording was used
+    saina, yab = out_by_site(out)
+    assert saina["site"] == "drsaina.com" and saina["queries"] == 3 and saina["results_from_site"] == 3 and saina["suitable_from_site"] == 3
+    assert saina["phone_verified_from_site"] == 3 and saina["other_domains"] == ["doctor-yab.ir"]
+    assert yab["results_from_site"] == 3 and yab["suitable_from_site"] == 0 and yab["phone_verified_from_site"] == 0     # a pediatrician is not suitable
+    assert [ln.split("|")[1] for ln in lines] == ["site", "site"]
+
+
+def out_by_site(entries):
+    return entries[0], entries[1]
+
+
+def test_a_failing_provider_in_site_mode_is_counted_not_fatal(ev):
+    web = _FakeWeb()
+
+    def boom(**k):
+        raise RuntimeError("x")
+
+    entry = ev.run_sites(["drdr.ir"], 2, boom, web, out=lambda s: None)[0]
+    assert entry["errors"] == 2 and entry["results"] == 0 and web._query_variants("q", "S", "IR")[0] == "q"
+
+
+def test_the_workflow_validates_the_sites_input():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "sites:" in text and "SEDI_EVAL_SITES" in text and "SITES}" in text
+    import re
+    import yaml
+
+    pattern = re.search(r"grep -Eq '(\^\(\[a-z0-9[^']*)'", text).group(1)
+    ok = re.compile(pattern)
+    assert ok.match("") and ok.match("doctoreto.com,drdr.ir,drsaina.com,doctor-yab.ir")
+    for bad in ("evil.com;rm -rf", "a.com b.com", "x", "a.com,", "https://a.com"):
+        assert not ok.match(bad), bad
+    assert yaml.safe_load(text)["jobs"]["eval"]["steps"]

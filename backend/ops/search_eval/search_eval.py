@@ -168,6 +168,54 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
     return agg
 
 
+def _from_site(row: dict[str, Any], site: str) -> bool:
+    host = _host(str(row.get("source_url") or ""))
+    return host == site or host.endswith("." + site)
+
+
+def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_module: Any, *, out: Callable[[str], None] = print,
+              probe: Optional[FailureProbe] = None) -> list:
+    """R-114 am.1 (Javad: «these sites must be examined»): for EACH booking site the golden set is searched with the site's name added to the
+    query (only that wording is used, in this process only) and the result counts how many results truly came from that site, how many are the
+    requested specialty, and how many had phone / address confirmed by the result's own page. Read-only, like the rest of the eval."""
+    summary = []
+    for site in sites:
+        original = web_module._query_variants
+        web_module._query_variants = lambda query, entity, country, _site=site: [f"{query} {_site}"]
+        rows, errors = [], 0
+        try:
+            for item in golden_set(per_site):
+                seen = len(probe.errors) if probe is not None else 0
+                try:
+                    results = [r for r in search_fn(entity="SPECIALIST", specialty=item["specialty"], city=item["city"], province=item["province"],
+                                                    area=item["area"], qualifiers=()) if isinstance(r, dict)]
+                except Exception:  # noqa: BLE001
+                    results = []
+                    errors += 1
+                if probe is not None and len(probe.errors) > seen:
+                    errors += 1
+                rows.append((item, results))
+        finally:
+            web_module._query_variants = original
+        total = sum(len(r) for _, r in rows)
+        mine = [(i, r) for i, res in rows for r in res if _from_site(r, site)]
+        entry = {
+            "site": site, "queries": len(rows), "errors": errors, "results": total,
+            "results_from_site": len(mine),
+            "queries_with_site_result": len({id(i) for i, _ in mine}),
+            "suitable_from_site": sum(1 for i, r in mine if suitable(r, i["specialty"])),
+            "page_read_from_site": sum(1 for _, r in mine if r.get("page_read")),
+            "phone_verified_from_site": sum(1 for _, r in mine if r.get("phone_status") == "verified"),
+            "address_verified_from_site": sum(1 for _, r in mine if r.get("address_verified")),
+            "with_rating_from_site": sum(1 for _, r in mine if r.get("rating_avg")),
+            "trusted_flag": sum(1 for _, r in mine if r.get("trusted")),
+            "other_domains": sorted({_host(str(r.get("source_url") or "")) for _, res in rows for r in res if not _from_site(r, site)})[:8],
+        }
+        summary.append(entry)
+        out("EVAL|site|" + json.dumps(entry, ensure_ascii=False))
+    return summary
+
+
 def main() -> int:
     from backend.app.services.i5 import directory_web_lookup as web
     from backend.app.services.i5 import nearby_places as nearby
@@ -178,6 +226,11 @@ def main() -> int:
     limit = int(os.getenv("SEDI_EVAL_MAX_QUERIES", "24") or 24)
     probe = FailureProbe()
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
+    sites = [x.strip().lower() for x in (os.getenv("SEDI_EVAL_SITES", "") or "").split(",") if x.strip()]
+    if sites:  # site mode: examine each named site on a small golden subset instead of the general run
+        entries = run_sites(sites, limit, web.search_web_providers, web, probe=probe)
+        print("EVAL|phase_search_eval|" + ("FAIL" if entries and all(e["errors"] >= e["queries"] for e in entries) else "PASS"))
+        return 0
     agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
               label=os.getenv("SEDI_EVAL_SET", "baseline"), model=os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL), probe=probe)
     return 0 if agg["errors"] < agg["queries"] else 4
