@@ -218,3 +218,12 @@ def test_p2_attaching_links_is_fail_open_and_ignores_junk(db, user):
     assert attach_reply_links(db, user_id=user.id, sedi_response="", links=LINKS) is False
     assert links_of_turn(SimpleNamespace(provenance_json="not json")) == [] and links_of_turn(SimpleNamespace(provenance_json=None)) == []
     assert links_of_turn(SimpleNamespace(provenance_json='{"links": "x"}')) == []
+
+
+# --- Paziresh24's own cloud domain (baseline eval D-498: 12 of its results were "untrusted" because only paziresh24.com was listed) ----------------------------------
+def test_paziresh24_cloud_domain_is_trusted_and_named_paziresh24():
+    assert web.is_trusted_url("https://patient.p24cloud.ir/dr/alef") and web.is_trusted_url("https://profile.p24cloud.ir/x") and web.is_trusted_url("https://www.paziresh24.com/dr/x")
+    assert not web.is_trusted_url("https://p24cloud.ir.evil.example/x") and not web.is_trusted_url("https://notp24cloud.ir/x")
+    assert pl.site_name("https://patient.p24cloud.ir/dr/alef", "fa") == "پذیرش۲۴" and pl.site_name("https://profile.p24cloud.ir/x", "en") == "Paziresh24"
+    items = pl.links_for_identities([_ident("دکتر الف", "https://patient.p24cloud.ir/dr/alef")], "fa")
+    assert items[0]["label"] == "دکتر الف — پذیرش۲۴" and items[0]["host"] == "patient.p24cloud.ir"

@@ -43,7 +43,7 @@ _CACHE_MAX = 256
 
 # Known listing / official domains: results from these are shown without the "unverified site" caveat.
 TRUSTED_DOMAINS: dict[str, tuple[str, ...]] = {
-    "IR": ("paziresh24.com", "drdr.ir", "doctoreto.com", "nobat.ir", "irimc.org", "behdasht.gov.ir"),
+    "IR": ("paziresh24.com", "p24cloud.ir", "drdr.ir", "doctoreto.com", "nobat.ir", "irimc.org", "behdasht.gov.ir"),
     "*": ("nhs.uk", "who.int"),
 }
 TRUSTED_SUFFIXES: tuple[str, ...] = (".gov.ir", ".ac.ir", ".gov", ".edu", ".nhs.uk")
