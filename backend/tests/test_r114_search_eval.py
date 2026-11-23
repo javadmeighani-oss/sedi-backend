@@ -191,6 +191,7 @@ class _FakeWeb:
 
     def __init__(self):
         self.calls = []
+        self._cache = {"stale": (0, [])}
 
     @staticmethod
     def _instructions(country):
@@ -228,6 +229,7 @@ def test_site_mode_restricts_the_search_tool_to_one_domain_and_restores_the_call
 
     out = ev.run_sites(["drsaina.com", "doctor-yab.ir"], 3, search, web, out=lambda s: None)
     assert web._call_web_search == original                                                       # patched only while measuring
+    assert web._cache == {}                                                                        # each site starts with an empty query cache
     assert seen_sites == [["drsaina.com"]] * 3 + [["doctor-yab.ir"]] * 3                           # ONE domain per call
     saina, yab = out
     assert saina["site"] == "drsaina.com" and saina["queries"] == 3 and saina["results_from_site"] == 3 and saina["suitable_from_site"] == 3
