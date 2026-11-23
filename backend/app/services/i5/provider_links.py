@@ -21,6 +21,7 @@ KIND_PROVIDER = "provider"  # the page of one doctor / clinic / lab on the origi
 KIND_SEARCH = "search"  # a search page on a booking site (nothing verified was found)
 
 _SITE_NAMES = {
+    "p24cloud.ir": {"fa": "پذیرش۲۴", "ar": "Paziresh24", "en": "Paziresh24"},  # Paziresh24's own cloud domain (its home page links profile.p24cloud.ir; patient.p24cloud.ir redirects to www.paziresh24.com)
     "paziresh24.com": {"fa": "پذیرش۲۴", "ar": "Paziresh24", "en": "Paziresh24"},
     "drdr.ir": {"fa": "دکتر دکتر", "ar": "Doctor-Doctor", "en": "Doctor-Doctor"},
     "doctoreto.com": {"fa": "دکترتو", "ar": "Doctoreto", "en": "Doctoreto"},
