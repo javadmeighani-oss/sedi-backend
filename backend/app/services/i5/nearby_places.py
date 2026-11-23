@@ -172,14 +172,13 @@ def _ranked(place: str, client: Optional[Any]) -> tuple[list[tuple[str, Optional
     if not _web._take_quota() or not _web._take_request_budget():
         return [], False
     if client is None:
-        from openai import OpenAI
-
-        client = OpenAI()
+        client = _web.new_client()
     resp = client.responses.create(
-        model=os.getenv(_web.MODEL_ENV, _web.DEFAULT_MODEL),
+        model=_web.search_model(),
         instructions=_INSTRUCTIONS.format(n=CANDIDATES),
         input=place,
         text={"format": {"type": "json_schema", "name": "places", "schema": _SCHEMA, "strict": True}},
+        **_web.call_options(),
     )
     cities: dict = {}
     ranked, validated = rank_places(json.loads(getattr(resp, "output_text", "") or "{}"), place, cities)

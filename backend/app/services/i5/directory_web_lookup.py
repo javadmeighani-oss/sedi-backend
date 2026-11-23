@@ -33,7 +33,7 @@ FLAG = "SEDI_DIRECTORY_WEB_LOOKUP_ENABLED"
 MODEL_ENV = "SEDI_DIRECTORY_WEB_LOOKUP_MODEL"
 DAILY_CAP_ENV = "SEDI_DIRECTORY_WEB_LOOKUP_DAILY_CAP"
 EXTRA_DOMAINS_ENV = "SEDI_DIRECTORY_WEB_TRUSTED_DOMAINS"
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = "gpt-6-luna"  # R-117 (Javad 2026-11-23): Luna for provider search + nearby geography (eval D-505: phone-verified 66.7% vs 19.5%, address 75.6% vs 33.8%)
 DEFAULT_DAILY_CAP = 200
 FRESH_DAYS = 30
 MAX_RESULTS = 5
@@ -53,14 +53,15 @@ _BLOCKED_HOSTS = ("google.", "bing.com", "duckduckgo.com", "wikipedia.org", "fac
 logger = logging.getLogger(__name__)
 SPEC_FILTER_DISABLED_ENV = "SEDI_DIRECTORY_SPEC_FILTER_DISABLED"  # kill switch (code default ON)
 REQUEST_BUDGET = 8  # R-114 am.1: web searches ONE user request may spend (area + the nearest-area rings together)
+REQUEST_SECONDS = 60.0  # R-117: ... and the seconds it may spend (Luna answers in ~25 s: rings must never run for minutes)
 _BUDGET: "contextvars.ContextVar[Optional[dict]]" = contextvars.ContextVar("sedi_web_budget", default=None)
 
 
 @contextmanager
-def request_budget(limit: int = REQUEST_BUDGET):
+def request_budget(limit: int = REQUEST_BUDGET, seconds: float = REQUEST_SECONDS):
     """Scope of one user request: every provider web search inside it counts against ``limit``; the yielded dict is the request's
     telemetry (queries spent, results dropped for the wrong specialty) - structured counters only, never user data."""
-    state = {"limit": int(limit), "queries": 0, "dropped": 0}
+    state = {"limit": int(limit), "queries": 0, "dropped": 0, "deadline": time.monotonic() + float(seconds)}
     token = _BUDGET.set(state)
     try:
         yield state
@@ -72,7 +73,7 @@ def _take_request_budget() -> bool:
     state = _BUDGET.get()
     if state is None:
         return True
-    if state["queries"] >= state["limit"]:
+    if state["queries"] >= state["limit"] or time.monotonic() >= state["deadline"]:
         return False
     state["queries"] += 1
     return True
@@ -80,7 +81,32 @@ def _take_request_budget() -> bool:
 
 def budget_left() -> bool:
     state = _BUDGET.get()
-    return state is None or state["queries"] < state["limit"]
+    return state is None or (state["queries"] < state["limit"] and time.monotonic() < state["deadline"])
+
+
+def remaining_seconds() -> Optional[float]:
+    """Seconds left of the request's time budget (None = no budget scope); the provider call gets this as its own timeout."""
+    state = _BUDGET.get()
+    return None if state is None else max(0.0, state["deadline"] - time.monotonic())
+
+
+def search_model() -> str:
+    """The provider-search model: the env override, else Luna (R-117)."""
+    return (os.getenv(MODEL_ENV) or "").strip() or DEFAULT_MODEL
+
+
+def call_options() -> dict:
+    """Extra kwargs for the provider call inside a request budget: a timeout no longer than the seconds left (at least 5)."""
+    left = remaining_seconds()
+    return {} if left is None else {"timeout": max(5.0, left)}
+
+
+def new_client() -> Any:
+    """OpenAI client for the provider/geography calls. Inside a request budget the SDK's own retries are OFF (a timed-out call would
+    otherwise be retried twice with the same timeout and overrun the deadline); outside a budget the SDK default is kept."""
+    from openai import OpenAI
+
+    return OpenAI() if remaining_seconds() is None else OpenAI(max_retries=0)
 
 
 _lock = threading.Lock()
@@ -209,15 +235,14 @@ def _instructions(country: str) -> str:
 
 def _call_web_search(query: str, country: str, client: Any = None) -> list[dict[str, Any]]:
     if client is None:
-        from openai import OpenAI
-
-        client = OpenAI()
+        client = new_client()
     resp = client.responses.create(
-        model=os.getenv(MODEL_ENV, DEFAULT_MODEL),
+        model=search_model(),
         tools=[{"type": "web_search"}],
         instructions=_instructions(country),
         input=query,
         text={"format": {"type": "json_schema", "name": "providers", "schema": _SCHEMA, "strict": True}},
+        **call_options(),
     )
     data = json.loads(getattr(resp, "output_text", "") or "{}")
     return [r for r in (data.get("results") or []) if isinstance(r, dict)]
