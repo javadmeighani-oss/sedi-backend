@@ -172,7 +172,7 @@ def main() -> int:
     probe = FailureProbe()
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
     agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
-              label=os.getenv("SEDI_EVAL_SET", "baseline"), model=os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL), probe=probe)
+              label=os.getenv("SEDI_EVAL_SET", "baseline"), model=(web.search_model() if hasattr(web, "search_model") else os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL)), probe=probe)
     return 0 if agg["errors"] < agg["queries"] else 4
 
 
