@@ -172,6 +172,7 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
 
 def _from_site(row: dict[str, Any], site: str) -> bool:
     host = _host(str(row.get("source_url") or ""))
+    site = str(site).lower().removeprefix("www.")  # result hosts are www-stripped: the requested site must be too (Codex P2, PR 217)
     return host == site or host.endswith("." + site)
 
 
@@ -181,7 +182,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
     RESTRICTED to that domain (``allowed_domains``, in this process only; the first wording only) and the result counts how many results truly came from that site, how many are the
     requested specialty, and how many had phone / address confirmed by the result's own page. Read-only, like the rest of the eval."""
     summary = []
-    for site in sites:
+    for site in [str(x).strip().lower().removeprefix("www.") for x in sites]:
         original_call = web_module._call_web_search
         getattr(web_module, "_cache", {}).clear()  # the lookup caches per QUERY text: another site must not be answered from the previous site's results
         getattr(web_module, "_usage", {}).clear()  # the process-local daily provider quota is per SITE here: an exhausted quota must not make later sites look empty

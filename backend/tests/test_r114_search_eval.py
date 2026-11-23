@@ -317,3 +317,11 @@ def test_the_workflow_validates_fetch_urls_and_disables_globbing():
     assert ok.match("") and ok.match("https://www.paziresh24.com/dr/x/,https://doctor-yab.ir/Search/1/")
     for bad in ("http://a.ir/", "https://a.ir/ x", "https://a.ir/;rm", "https://a.ir/$(x)", "ftp://a.ir", "https://a.ir/*"):
         assert not ok.match(bad), bad
+
+
+def test_a_requested_site_with_www_still_matches_its_results_and_is_restricted_without_it(ev):
+    assert ev._from_site({"source_url": "https://www.drdr.ir/dr/a"}, "www.drdr.ir") and ev._from_site({"source_url": "https://drdr.ir/dr/a"}, "drdr.ir")
+    web = _FakeWeb()
+    client = _Client({})
+    ev.run_sites(["WWW.drdr.ir"], 1, lambda **k: web._call_web_search("q", "IR", client) and [], web, out=lambda s: None)
+    assert client.kwargs[0]["tools"][0]["filters"]["allowed_domains"] == ["drdr.ir"]
