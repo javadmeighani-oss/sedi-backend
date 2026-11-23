@@ -57,9 +57,9 @@ _SPECIALTIES: tuple[Specialty, ...] = (
               ("gastroenterologist", "گاستروانترولوژیست")),
     Specialty("چشم", "چشم", ("چشم", "چشم پزشکی", "چشم پزشک", "افتالمولوژی", "ophthalmology", "eye", "عیون", "طب العیون"),
               ("ophthalmologist", "optometrist", "چشم پزشک", "طبیب عیون")),
-    Specialty("گوش و حلق و بینی", "گوش و حلق و بینی", ("گوش و حلق و بینی", "گوش و حلق", "ای ان تی", "ent", "otolaryngology", "انف و اذن و حنجره"),
+    Specialty("گوش و حلق و بینی", "گوش و حلق و بینی", ("گوش و حلق و بینی", "گوش و حلق", "گوش حلق و بینی", "گوش حلق بینی", "ای ان تی", "ent", "otolaryngology", "انف و اذن و حنجره"),
               ("otolaryngologist", "ent doctor", "ent specialist")),
-    Specialty("روانپزشکی", "روان", ("روانپزشکی", "روان پزشکی", "روانپزشک", "روان پزشک", "psychiatry", "الطب النفسی", "طب نفسی"),
+    Specialty("روانپزشکی", "روان", ("روانپزشکی", "اعصاب و روان", "روان پزشکی", "روانپزشک", "روان پزشک", "psychiatry", "الطب النفسی", "طب نفسی"),
               ("psychiatrist", "طبیب نفسی", "روانپزشک", "روان پزشک")),
     Specialty("روان‌شناسی", "روان", ("روان شناس", "روانشناسی", "روان شناسی", "مشاوره", "psychology", "counselling", "counseling", "علم النفس", "ارشاد نفسی"),
               ("psychologist", "therapist", "counselor", "counsellor", "روانشناس", "روان شناس", "اخصائی نفسی")),
@@ -136,6 +136,51 @@ def find_specialty(text: str) -> Optional[str]:
 _HAIR_COMPLAINT = re.compile(
     r"(?:ریزش|تساقط) ?(?:موی?|الشعر)|طاسی|(?<![\w])hair ?(?:loss|fall)(?![\w])|(?<![\w])alopecia(?![\w])|موهام.{0,12}(?:می ?ریزه|میریزه)"
 )
+
+
+_PUNCT = re.compile(r"[،,.;:/|()\-–]+")
+
+
+def named_specialties(text: object) -> set:
+    """Every specialty a text names, WITHOUT double counting: matches are taken longest first and a shorter word that sits inside an
+    already-taken longer one is ignored («اعصاب و روان» is psychiatry, not also neurology). A generic practitioner word («جراح») counts only
+    when no specialty is named. «متخصص داخلی، فوق تخصص غدد» names both internal medicine and endocrinology."""
+    t = fold(str(text or ""))
+    found = []
+    for sp, rx in _ALIAS_RX:
+        if rx is None:
+            continue
+        for m in rx.finditer(t):
+            found.append((m.end() - m.start(), m.start(), m.end(), sp.canonical))
+    found.sort(key=lambda x: (-x[0], x[1]))
+    taken: list = []
+    names: set = set()
+    for length, start, end, canonical in found:
+        if any(start < e and end > s0 for s0, e in taken):
+            continue
+        taken.append((start, end))
+        names.add(canonical)
+    if len(names) > 1 or (names and not names <= _GENERIC):
+        names -= _GENERIC
+    return names
+
+
+def result_matches_specialty(canonical: Optional[str], *texts: object) -> bool:
+    """R-114 am.1: a search RESULT is that specialty when the specialties its OWN text names include it. The texts are judged in order (the
+    result's specialty field first, then its name) and the FIRST one that names any specialty decides - a neurosurgeon is not a general
+    surgeon, a psychiatrist is not a neurologist, a psychologist is not a psychiatrist, «dentist» is not ENT, while a doctor who lists a base
+    specialty AND a subspecialty («داخلی، فوق تخصص غدد») matches both (Codex P2, PR 213). No specialty named anywhere = no evidence = False;
+    an unknown label has no vocabulary to judge by, so it never filters (True)."""
+    try:
+        if (canonical or "") not in _BY_NAME:
+            return True
+        for text in texts:
+            names = named_specialties(_PUNCT.sub(" ", str(text or "")))  # «گوش، حلق و بینی» == «گوش حلق و بینی»
+            if names:
+                return canonical in names
+        return False
+    except Exception:  # noqa: BLE001
+        return True
 
 
 def governed_stem(name: Optional[str]) -> Optional[str]:

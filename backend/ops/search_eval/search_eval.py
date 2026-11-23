@@ -75,28 +75,11 @@ def _norm(text: Any) -> str:
     return "".join(ch for ch in str(text or "").lower() if ch.isalnum())
 
 
-# specialty -> the stems that make a result THAT specialty (a universal 4-letter prefix would call a psychologist a psychiatrist)
-_ALIASES = {
-    "روانپزشکی": ("روانپزشک", "psychiatr"),
-    "گوش و حلق و بینی": ("گوشوحلق", "گوشحلق", "حلقوبینی", "otolaryng", "otorhino"),  # never the bare «ent»: it sits inside «dentist»
-    "مغز و اعصاب": ("مغزواعصاب", "نورولوژ", "neurolog"),
-    "داخلی": ("داخلی", "internal"),
-    "قلب": ("قلب", "cardio"),
-    "اورولوژی": ("اورولوژ", "urolog", "کلیهومجاریادراری"),
-    "ارتوپدی": ("ارتوپد", "orthop"),
-    "گوارش": ("گوارش", "gastro"),
-    "پوست": ("پوست", "derma"),
-    "زنان": ("زنان", "gynec", "obstet"),
-    "چشم": ("چشم", "ophthal"),
-    "غدد": ("غدد", "endocrin"),
-}
-
-
 def suitable(row: dict[str, Any], specialty: str) -> bool:
-    """The result is that specialty: its specialty field (or name) carries one of the specialty's own stems."""
-    stems = tuple(_norm(x) for x in _ALIASES.get(specialty, (specialty[:4],)) if _norm(x))
-    hay = _norm(row.get("specialty")) + "|" + _norm(row.get("name"))
-    return bool(stems) and any(stem in hay for stem in stems)
+    """The result is that specialty - judged by the ONE definition the chat uses (``specialty_lexicon.result_matches_specialty``)."""
+    from backend.app.services.i5 import specialty_lexicon as lexicon
+
+    return lexicon.result_matches_specialty(specialty, row.get("specialty"), row.get("name"))
 
 
 def _host(url: str) -> str:

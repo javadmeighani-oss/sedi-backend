@@ -73,7 +73,7 @@ def test_the_online_query_carries_the_specialty_the_area_and_the_qualifiers():
     assert q == "داروخانه شبانه‌روزی پاسداران, تهران".replace(", ", ", ") or "داروخانه" in q and "شبانه‌روزی" in q and "پاسداران" in q
     q2 = wl.build_query("SPECIALIST", "زنان", "تهران", None, "IR", area="سعادت‌آباد", qualifiers=("high_rating",))
     assert "زنان" in q2 and "امتیاز بالا" in q2 and "سعادت" in q2
-    assert wl.build_query("SPECIALIST", "قلب", "تهران", None, "IR") == "قلب پزشک تهران"  # unchanged when no qualifiers
+    assert wl.build_query("SPECIALIST", "قلب", "تهران", None, "IR") == "متخصص قلب در تهران"  # unchanged when no qualifiers
 
 
 def test_pharmacy_no_result_message_offers_a_map_search_not_booking_sites():

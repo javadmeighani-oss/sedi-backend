@@ -55,8 +55,8 @@ def test_neighbourhood_counts_as_a_real_location_for_the_detector():
 
 
 def test_query_carries_the_neighbourhood():
-    assert wl.build_query("SPECIALIST", "قلب", "تهران", None, area=TEHRANPARS) == "قلب پزشک " + TEHRANPARS + ", تهران"
-    assert wl.build_query("SPECIALIST", "قلب", "شیراز", "فارس") == "قلب پزشک شیراز, فارس"  # unchanged without area
+    assert wl.build_query("SPECIALIST", "قلب", "تهران", None, area=TEHRANPARS) == "متخصص قلب در " + TEHRANPARS + ", تهران"
+    assert wl.build_query("SPECIALIST", "قلب", "شیراز", "فارس") == "متخصص قلب در شیراز, فارس"  # unchanged without area
 
 
 @pytest.mark.parametrize(
@@ -91,7 +91,7 @@ def test_web_search_sends_the_neighbourhood_and_tries_booking_sites_last(monkeyp
     monkeypatch.setattr(wl, "_call_web_search", fake)
     wl.search_web_providers(entity="SPECIALIST", specialty="قلب", city="تهران", province=None, area=TEHRANPARS)
     assert calls and all(TEHRANPARS in q for q in calls)
-    assert "پذیرش۲۴" in calls[-1]
+    assert "پذیرش۲۴" in calls[1]  # R-114: the booking sites come second for a doctor
 
 
 def _no_web(monkeypatch):

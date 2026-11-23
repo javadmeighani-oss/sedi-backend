@@ -38,7 +38,7 @@ def test_query_is_structured_only_and_needs_city():
     assert wl.build_query("LABORATORY", None, "اصفهان", None) == "آزمایشگاه اصفهان"  # Persian entity word for Iran
     assert wl.build_query("SPECIALIST", "heart", "London", None, country="GB") == "heart doctor in London"
     assert wl.build_query("SPECIALIST", "قلب", None, None) is None
-    assert wl.build_query("SPECIALIST", "قلب", "شیراز", "فارس") == "قلب پزشک شیراز, فارس"
+    assert wl.build_query("SPECIALIST", "قلب", "شیراز", "فارس") == "متخصص قلب در شیراز, فارس"
 
 
 def test_any_real_site_is_accepted_but_trust_is_marked_and_ranked():
@@ -77,7 +77,7 @@ def test_outbound_input_never_contains_user_text_and_results_are_cached(monkeypa
     first = wl.search_web_providers(entity="SPECIALIST", specialty="قلب", city="شیراز", province=None, client=c)
     again = wl.search_web_providers(entity="SPECIALIST", specialty="قلب", city="شیراز", province=None, client=c)
     assert first == again and len(first) == 1 and len(c.calls) == 1
-    assert c.calls[0]["input"] == "قلب پزشک شیراز" and c.calls[0]["tools"] == [{"type": "web_search"}]
+    assert c.calls[0]["input"] == "متخصص قلب در شیراز" and c.calls[0]["tools"] == [{"type": "web_search"}]
 
 
 def test_errors_never_raise_and_daily_cap(monkeypatch):
@@ -161,7 +161,7 @@ def test_empty_first_search_is_retried_once_with_address_wording(monkeypatch):
 
     monkeypatch.setattr(wl, "_call_web_search", fake)
     out = wl.search_web_providers(entity="SPECIALIST", specialty="قلب", city="شیراز", province=None)
-    assert len(out) == 1 and calls[0] == "قلب پزشک شیراز" and calls[1].endswith("آدرس و تلفن")
+    assert len(out) == 1 and calls[0] == "متخصص قلب در شیراز" and "پذیرش۲۴" in calls[1]
 
 
 def test_concatenated_phone_numbers_are_cut_or_rejected():

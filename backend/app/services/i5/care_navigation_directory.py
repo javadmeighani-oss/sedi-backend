@@ -12,6 +12,8 @@ Chat MUST NOT import that module directly.
 """
 from __future__ import annotations
 
+import dataclasses
+import logging
 import re
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -25,6 +27,8 @@ from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFE
 from backend.app.services.i5 import directory_web_lookup as _web_lookup
 from backend.app.services.i5 import iran_places as _places
 from backend.app.services.i5 import specialty_lexicon as _spec
+
+logger = logging.getLogger(__name__)
 
 PACKAGE_ID = "I5-DIRECTORY-CHAT-FAILSAFE-01"
 CANONICAL_AUTHORITY = "I5_GOVERNED_CARE_DIRECTORY"
@@ -823,38 +827,58 @@ def resolve_care_navigation(
         target_health_subject_id=target_health_subject_id,
         target_subject_kind=target_subject_kind,
     )
-    result = query_governed_directory(db, req)
-    return _nearest_area_result(db, req, result)
+    with _web_lookup.request_budget() as budget:  # R-114 am.1: the area search and the nearest-area rings share one budget
+        result = query_governed_directory(db, req)
+        result = _nearest_area_result(db, req, result)
+    logger.info("[R-114] provider search status=%s web_queries=%s dropped_wrong_specialty=%s", result.status, budget["queries"], budget["dropped"])
+    return dataclasses.replace(
+        result, identity_notes=tuple(result.identity_notes) + (f"WEB_QUERIES_{budget['queries']}", f"SPEC_DROPPED_{budget['dropped']}")
+    )
 
 
 def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResult) -> CareNavResult:
-    """R-106 (Javad 2026-11-20): nothing verified in the confirmed place -> look in the NEAREST areas (up to three, nearest first) and
-    say that the options are from the nearest area; the plain «not found» answer remains only when even those have nothing."""
+    """R-106 / R-114 am.1 (Javad): nothing suitable in the user's place -> the NEAREST places as a RING CHAIN (Boumehen -> Pardis -> the
+    nearest part of Tehran ...): ring 1 = the three nearest, ring 2 = the next three, ring 3 = the next three, nearest first within each,
+    until a place has a suitable (right specialty, page-checked) result. The answer says what was not found where and where it was found;
+    the plain «not found» answer remains only when no ring has anything. Bounded by the per-request web budget."""
     try:
         if result.status != STATUS_NO_VERIFIED or not (req.city or req.area):
             return result
-        import dataclasses
-
         from backend.app import sedi_copy
         from backend.app.services.i5 import nearby_places as _nearby
 
         origin = " ".join(x for x in (req.area, req.city) if x)
         lang = (req.language or "en").lower()
         k = _lk(lang)
-        for name in _nearby.nearby_places(origin):
-            place = _places.find_place(name)
-            # the name itself is a KNOWN CITY (not a neighbourhood whose city the gazetteer merely infers as Tehran)
-            is_city = bool(place.city and not place.area and not place.city_inferred)
-            if req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
-                # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
-                where = dataclasses.replace(req, area=name, city=req.city)
-            else:
-                # a DIFFERENT city: the original province no longer applies (Codex P2, PR 197)
-                where = dataclasses.replace(req, area=None, city=place.city if is_city else name, province=None)
-            alt = query_governed_directory(db, where)
-            if alt.status == STATUS_VERIFIED and alt.identities:
-                prefix = sedi_copy.t("care_nav.nearest_found", k, where=origin, found=name)
-                return dataclasses.replace(alt, user_message=prefix + "\n\n" + alt.user_message)
+        tried: list[str] = [origin]
+        for ring_no, ring in enumerate(_nearby.nearby_rings(origin), start=1):
+            for name in ring:
+                if not _web_lookup.budget_left():
+                    return result  # the request's search budget is spent: the honest ordinary answer
+                place = _places.find_place(name)
+                # the name itself is a KNOWN CITY (not a neighbourhood whose city the gazetteer merely infers as Tehran)
+                is_city = bool(place.city and not place.area and not place.city_inferred)
+                cand_city = _nearby.city_of(origin, name)  # the city the geography says this place belongs to (None when unknown)
+                if cand_city and _places.normalize(cand_city) != _places.normalize(name):
+                    # a NEIGHBOURHOOD of that city (a town's nearest part of Tehran: «تهرانپارس» of «تهران»; Mashhad's «نارمک» of «مشهد»): keep BOTH so
+                    # results listed under its real city are accepted and a same-named area of another city is never swapped in (Codex P2, PR 213)
+                    same_city = _places.normalize(cand_city) == _places.normalize(req.city or "")
+                    where = dataclasses.replace(req, area=name, city=cand_city, province=req.province if same_city else None)
+                elif req.area and not (is_city and _places.normalize(place.city) != _places.normalize(req.city or "")):
+                    # the origin is a neighbourhood: its nearest are neighbourhoods of the SAME confirmed city (Codex P2, PR 197)
+                    where = dataclasses.replace(req, area=name, city=req.city)
+                else:
+                    # a DIFFERENT city: the original province no longer applies (Codex P2, PR 197)
+                    where = dataclasses.replace(req, area=None, city=place.city if is_city else name, province=None)
+                alt = query_governed_directory(db, where)
+                if alt.status == STATUS_VERIFIED and alt.identities:
+                    if len(tried) == 1:
+                        prefix = sedi_copy.t("care_nav.nearest_found", k, where=origin, found=name)
+                    else:
+                        prefix = sedi_copy.t("care_nav.nearest_chain", k, tried="، ".join(tried), found=name)
+                    return dataclasses.replace(alt, user_message=prefix + "\n\n" + alt.user_message,
+                                               identity_notes=tuple(alt.identity_notes) + (f"RING_{ring_no}",))
+                tried.append(name)
         return result
     except Exception:  # noqa: BLE001 - the ordinary answer stays
         return result

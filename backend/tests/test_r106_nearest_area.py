@@ -81,7 +81,7 @@ def _stub(monkeypatch, places, verified_at):
         return _result(cn.STATUS_NO_VERIFIED)
 
     monkeypatch.setattr(cn, "query_governed_directory", query)
-    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: list(places))
+    monkeypatch.setattr(nb, "nearby_rings", lambda origin, **k: [list(places)])
     return tried
 
 
@@ -89,7 +89,8 @@ def test_nothing_in_the_place_is_found_in_the_nearest_area_and_said_so(monkeypat
     tried = _stub(monkeypatch, ["بومهن", "رودهن"], "رودهن")
     out = cn._nearest_area_result(None, _req(), _result(cn.STATUS_NO_VERIFIED))
     assert out.status == cn.STATUS_VERIFIED and out.user_message.endswith("LIST")
-    assert out.user_message.startswith(sedi_copy.t("care_nav.nearest_found", "fa", where="پردیس", found="رودهن"))
+    # R-114: «بومهن» was tried first and had nothing: the answer says what was not found where and where it was found
+    assert out.user_message.startswith(sedi_copy.t("care_nav.nearest_chain", "fa", tried="پردیس، بومهن", found="رودهن"))
     assert "پیدا نشد" not in out.user_message  # not «not found»
     assert tried == ["بومهن", "رودهن"]  # nearest first, stops at the first area with results
 
@@ -110,7 +111,7 @@ def test_a_verified_result_or_a_request_without_a_place_is_untouched(monkeypatch
 
 
 def test_an_error_keeps_the_ordinary_answer(monkeypatch):
-    monkeypatch.setattr(nb, "nearby_places", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(nb, "nearby_rings", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     original = _result(cn.STATUS_NO_VERIFIED, "NOT-FOUND")
     assert cn._nearest_area_result(None, _req(), original) is original
 
@@ -118,7 +119,7 @@ def test_an_error_keeps_the_ordinary_answer(monkeypatch):
 def _searched(monkeypatch, origin_req, names):
     seen = []
     monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city)) or _result(cn.STATUS_NO_VERIFIED))
-    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: list(names))
+    monkeypatch.setattr(nb, "nearby_rings", lambda origin, **k: [list(names)])
     cn._nearest_area_result(None, origin_req, _result(cn.STATUS_NO_VERIFIED))
     return [(a.replace(chr(0x200c), "") if a else a, c) for a, c in seen]
 
@@ -155,7 +156,7 @@ def test_resolve_care_navigation_returns_the_nearest_area_answer(monkeypatch):
 def test_p2_a_neighbouring_city_drops_the_original_province_but_a_neighbourhood_keeps_it(monkeypatch):
     seen = []
     monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: seen.append((r.area, r.city, r.province)) or _result(cn.STATUS_NO_VERIFIED))
-    monkeypatch.setattr(nb, "nearby_places", lambda origin, **k: ["کرج", "نارمک"])
+    monkeypatch.setattr(nb, "nearby_rings", lambda origin, **k: [["کرج", "نارمک"]])
     cn._nearest_area_result(None, _req(area="تهران‌پارس", city="تهران", province="تهران"), _result(cn.STATUS_NO_VERIFIED))
     assert seen[0] == (None, "کرج", None)            # another city: no Tehran-province filter
     assert seen[1][0].replace(chr(0x200c), "") == "نارمک" and seen[1][2] == "تهران"  # same city: the province still applies
