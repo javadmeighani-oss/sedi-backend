@@ -184,6 +184,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
     for site in sites:
         original_call = web_module._call_web_search
         getattr(web_module, "_cache", {}).clear()  # the lookup caches per QUERY text: another site must not be answered from the previous site's results
+        getattr(web_module, "_usage", {}).clear()  # the process-local daily provider quota is per SITE here: an exhausted quota must not make later sites look empty
 
         def restricted_call(query: str, country: str, client: Any = None, _site=site, _inner=original_call) -> list:
             """The SAME provider call, but the web_search tool is restricted to ONE domain (the tool's own ``allowed_domains`` filter) - naming a
