@@ -345,7 +345,7 @@ def test_readers_probe_reports_counts_per_combination_without_any_name(ev):
     agg = ev.readers_probe(Mod, ["گوارش"], ["تهران", "ناشناخته"], out=lines.append)
     assert [ln.split("|")[1] for ln in lines] == ["readers", "readers", "readers_aggregate"]
     assert "SECRET-NAME" not in " ".join(lines) and "ZZ-ADDR-VALUE" not in " ".join(lines)                       # counts only
-    assert agg["combos"] == 2 and agg["combos_with_urls"] == 1 and agg["pct_with_5"] == 100.0
+    assert agg["combos"] == 2 and agg["combos_with_urls"] == 1 and agg["pct_with_5"] == 100.0 and agg["site_reads_ok"] == 2
     assert agg["pct_top_with_reviews"] == 100.0 and agg["pct_top_with_link"] == 100.0 and agg["pct_top_with_coords"] == 100.0
 
 
@@ -366,3 +366,11 @@ def test_a_doctor_listing_a_specialty_and_a_subspecialty_is_suitable_for_both(ev
     row = {"name": "دکتر الف", "specialty": "متخصص داخلی، فوق تخصص غدد"}
     assert ev.suitable(row, "داخلی") and ev.suitable(row, "غدد")
     assert not ev.suitable({"name": "دکتر ب", "specialty": "متخصص کودکان"}, "غدد")
+
+
+def test_a_requested_site_with_www_still_matches_its_results_and_is_restricted_without_it(ev):
+    assert ev._from_site({"source_url": "https://www.drdr.ir/dr/a"}, "www.drdr.ir") and ev._from_site({"source_url": "https://drdr.ir/dr/a"}, "drdr.ir")
+    web = _FakeWeb()
+    client = _Client({})
+    ev.run_sites(["WWW.drdr.ir"], 1, lambda **k: web._call_web_search("q", "IR", client) and [], web, out=lambda s: None)
+    assert client.kwargs[0]["tools"][0]["filters"]["allowed_domains"] == ["drdr.ir"]

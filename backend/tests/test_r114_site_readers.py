@@ -188,3 +188,11 @@ def test_the_reader_uses_the_safe_fetcher_by_default():
     import inspect
 
     assert "safe_fetch.fetch_page" in inspect.getsource(sr.read_sites)                                           # public https only, robots honoured, size/time capped
+
+
+def test_an_empty_page_is_not_cached_so_the_next_read_retries():
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    fetch = _fetcher({urls["paziresh24.com"]: _p24_page([])})                                                    # 200 but no listing: challenge/temporary page
+    sr.read_sites("پوست", "شیراز", fetch=fetch)
+    sr.read_sites("پوست", "شیراز", fetch=fetch)
+    assert len(fetch.calls) == 2 and not sr._cache

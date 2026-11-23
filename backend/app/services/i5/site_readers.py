@@ -281,10 +281,11 @@ def _read_one(site: str, url: str, fetch: Callable[[str], Any]) -> tuple:
             items, nearby = parse_doctoreto(fr.body)
         else:
             items, nearby = parse_paziresh24(fr.body), []
-        with _lock:
-            if len(_cache) > 128:
-                _cache.pop(next(iter(_cache)))
-            _cache[url] = (time.time(), items, nearby)
+        if items or nearby:  # an empty page may be a temporary/challenge page: never cache it, so the next read retries (Codex P2, PR 218)
+            with _lock:
+                if len(_cache) > 128:
+                    _cache.pop(next(iter(_cache)))
+                _cache[url] = (time.time(), items, nearby)
         return site, items, nearby, {"ok": True, "reason": "", "count": len(items), "seconds": round(time.time() - started, 2)}
     except Exception as exc:  # noqa: BLE001 - one site down never breaks the answer
         logger.info("site_reader_failed site=%s reason=%s", site, type(exc).__name__)

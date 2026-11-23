@@ -174,6 +174,7 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
 
 def _from_site(row: dict[str, Any], site: str) -> bool:
     host = _host(str(row.get("source_url") or ""))
+    site = str(site).lower().removeprefix("www.")  # result hosts are www-stripped: the requested site must be too (Codex P2, PR 217)
     return host == site or host.endswith("." + site)
 
 
@@ -183,7 +184,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
     RESTRICTED to that domain (``allowed_domains``, in this process only; the first wording only) and the result counts how many results truly came from that site, how many are the
     requested specialty, and how many had phone / address confirmed by the result's own page. Read-only, like the rest of the eval."""
     summary = []
-    for site in sites:
+    for site in [str(x).strip().lower().removeprefix("www.") for x in sites]:
         original_call = web_module._call_web_search
         getattr(web_module, "_cache", {}).clear()  # the lookup caches per QUERY text: another site must not be answered from the previous site's results
         getattr(web_module, "_usage", {}).clear()  # the process-local daily provider quota is per SITE here: an exhausted quota must not make later sites look empty
@@ -338,6 +339,7 @@ def readers_probe(mod: Any, specialties: Sequence = READER_SPECIALTIES, cities: 
         "pct_top_with_address": round(100 * sum(r["top_with_address"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
         "pct_top_with_coords": round(100 * sum(r["top_with_coords"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
         "site_failures": sum(1 for r in rows for v in r["sites"].values() if not v["ok"]),
+        "site_reads_ok": sum(1 for r in rows for v in r["sites"].values() if v["ok"]),
         "seconds_p50": round(statistics.median([r["seconds"] for r in combos] or [0]), 2), "seconds_max": max([r["seconds"] for r in rows] or [0]),
     }
     out("EVAL|readers_aggregate|" + json.dumps(agg, ensure_ascii=False))
@@ -368,7 +370,8 @@ def main() -> int:
     readers_src = os.getenv("SEDI_EVAL_READERS_SRC_B64", "")
     if readers_src:  # readers mode: the site readers on specialty x city, from the server (no model)
         agg = readers_probe(_load_readers(readers_src), delay=float(os.getenv("SEDI_EVAL_READERS_DELAY", "3") or 3))
-        print("EVAL|phase_search_eval|" + ("PASS" if agg["combos_with_urls"] else "FAIL"))
+        # URLs that could be built say nothing if EVERY read failed
+        print("EVAL|phase_search_eval|" + ("PASS" if agg["combos_with_urls"] and agg["site_reads_ok"] else "FAIL"))
         return 0
     fetch_urls = [x.strip() for x in (os.getenv("SEDI_EVAL_FETCH_URLS", "") or "").split(",") if x.strip().startswith("https://")]
     if fetch_urls:  # fetch mode: can the server's own page reader read these pages? (no search, no model)
