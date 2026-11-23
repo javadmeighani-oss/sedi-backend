@@ -273,6 +273,19 @@ def fetch_probe(urls: list, fetch_fn: Callable[[str], Any], *, out: Callable[[st
                             row["physician_fields"] = sorted(k for k, v in item.items() if v not in (None, "", [], {}))[:24]
             row["jsonld_types"] = types[:6]
             row["next_data"] = "__NEXT_DATA__" in html
+            try:  # a listing page's embedded result summary (counts only): helps tell «no doctors» from «the page came back without data»
+                m = re.search(r"<script id=.__NEXT_DATA__.[^>]*>", html)
+                queries = json.loads(html[m.end():][: html[m.end():].index("</script>")])["props"]["pageProps"]["dehydratedState"]["queries"] if m else []
+                found = []
+                for q in queries:
+                    data = (q.get("state") or {}).get("data")
+                    if isinstance(data, dict) and isinstance(data.get("search"), dict):
+                        srch = data["search"]
+                        found.append({"degraded": srch.get("degraded"), "total": srch.get("total"), "result_len": len(srch.get("result") or [])})
+                if found:
+                    row["search_summary"] = found[:3]
+            except Exception:  # noqa: BLE001
+                pass
             row["tel_like"] = bool(re.search(r"0[0-9]{2,3}[- ]?[0-9]{7,8}", html))
             row["visible_chars"] = len(re.sub(r"<[^>]+>", " ", html))
         rows.append(row)
