@@ -183,38 +183,58 @@ def test_p2_short_latin_stems_do_not_match_inside_other_words(ev):
 
 # --- site mode (Javad: «these sites must be examined») ------------------------------------------------------------------------------------------------
 class _FakeWeb:
-    """What the eval patches in site mode: the wording function of the web lookup module."""
+    """What the eval patches in site mode: the provider call of the web lookup module."""
+
+    MODEL_ENV = "SEDI_X_MODEL"
+    DEFAULT_MODEL = "m"
+    _SCHEMA = {"type": "object"}
 
     def __init__(self):
-        self.seen = []
+        self.calls = []
 
-    def _query_variants(self, query, entity, country):
-        return [query, query + " x", query + " y"]
+    @staticmethod
+    def _instructions(country):
+        return "instr"
+
+    def _call_web_search(self, query, country, client=None):
+        return []
 
 
-def test_site_mode_counts_what_each_site_really_returned_and_restores_the_wording(ev):
+class _Client:
+    def __init__(self, per_domain):
+        self.per_domain = per_domain
+        self.kwargs = []
+        self.responses = type("R", (), {"create": self._create})()
+
+    def _create(self, **kw):
+        self.kwargs.append(kw)
+        domain = kw["tools"][0]["filters"]["allowed_domains"][0]
+        import json
+
+        return type("O", (), {"output_text": json.dumps({"results": self.per_domain.get(domain, [])}, ensure_ascii=False)})()
+
+
+def test_site_mode_restricts_the_search_tool_to_one_domain_and_restores_the_call(ev, monkeypatch):
     web = _FakeWeb()
-    original = web._query_variants
-    used = []
+    original = web._call_web_search
+    client = _Client({"drsaina.com": [{"name": "a", "specialty": "گوارش", "source_url": "https://www.drsaina.com/dr/a"}],
+                      "doctor-yab.ir": [{"name": "b", "specialty": "کودکان", "source_url": "https://doctor-yab.ir/dr/b"}]})
+    seen_sites = []
 
-    def search(**k):
-        used.append(web._query_variants("q", "SPECIALIST", "IR"))
-        return [_row("a", k["specialty"], source_url="https://www.drsaina.com/dr/a", trusted=False),
-                _row("b", "کودکان", source_url="https://doctor-yab.ir/dr/b", trusted=False, phone_status="unchecked", address_verified=False)]
+    def search(**k):  # what the production wrapper does around the provider call
+        rows = web._call_web_search("q", "IR", client)
+        seen_sites.append(client.kwargs[-1]["tools"][0]["filters"]["allowed_domains"])
+        return [dict(r, specialty=(k["specialty"] if "saina" in r["source_url"] else r["specialty"]), trusted=False, page_read=True, phone_status="verified", address_verified=True) for r in rows]
 
-    lines = []
-    out = ev.run_sites(["drsaina.com", "doctor-yab.ir"], 3, search, web, out=lines.append)
-    assert web._query_variants == original                                                  # patched only while measuring
-    assert all(v == ["q drsaina.com"] for v in used[:3]) and all(v == ["q doctor-yab.ir"] for v in used[3:])  # only that site's wording was used
-    saina, yab = out_by_site(out)
+    out = ev.run_sites(["drsaina.com", "doctor-yab.ir"], 3, search, web, out=lambda s: None)
+    assert web._call_web_search == original                                                       # patched only while measuring
+    assert seen_sites == [["drsaina.com"]] * 3 + [["doctor-yab.ir"]] * 3                           # ONE domain per call
+    saina, yab = out
     assert saina["site"] == "drsaina.com" and saina["queries"] == 3 and saina["results_from_site"] == 3 and saina["suitable_from_site"] == 3
-    assert saina["phone_verified_from_site"] == 3 and saina["other_domains"] == ["doctor-yab.ir"]
-    assert yab["results_from_site"] == 3 and yab["suitable_from_site"] == 0 and yab["phone_verified_from_site"] == 0     # a pediatrician is not suitable
-    assert [ln.split("|")[1] for ln in lines] == ["site", "site"]
-
-
-def out_by_site(entries):
-    return entries[0], entries[1]
+    assert saina["phone_verified_from_site"] == 3 and saina["errors"] == 0
+    assert yab["results_from_site"] == 3 and yab["suitable_from_site"] == 0                          # a pediatrician is not suitable
+    kw = client.kwargs[0]
+    assert kw["tools"][0]["type"] == "web_search" and kw["instructions"] == "instr" and kw["model"] == "m"
 
 
 def test_a_failing_provider_in_site_mode_is_counted_not_fatal(ev):
@@ -224,7 +244,7 @@ def test_a_failing_provider_in_site_mode_is_counted_not_fatal(ev):
         raise RuntimeError("x")
 
     entry = ev.run_sites(["drdr.ir"], 2, boom, web, out=lambda s: None)[0]
-    assert entry["errors"] == 2 and entry["results"] == 0 and web._query_variants("q", "S", "IR")[0] == "q"
+    assert entry["errors"] == 2 and entry["results"] == 0 and web._call_web_search.__name__ == "_call_web_search"
 
 
 def test_the_workflow_validates_the_sites_input():

@@ -175,13 +175,33 @@ def _from_site(row: dict[str, Any], site: str) -> bool:
 
 def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_module: Any, *, out: Callable[[str], None] = print,
               probe: Optional[FailureProbe] = None) -> list:
-    """R-114 am.1 (Javad: «these sites must be examined»): for EACH booking site the golden set is searched with the site's name added to the
-    query (only that wording is used, in this process only) and the result counts how many results truly came from that site, how many are the
+    """R-114 am.1 (Javad: «these sites must be examined»): for EACH booking site the golden set is searched with the provider web_search tool
+    RESTRICTED to that domain (``allowed_domains``, in this process only; the first wording only) and the result counts how many results truly came from that site, how many are the
     requested specialty, and how many had phone / address confirmed by the result's own page. Read-only, like the rest of the eval."""
     summary = []
     for site in sites:
-        original = web_module._query_variants
-        web_module._query_variants = lambda query, entity, country, _site=site: [f"{query} {_site}"]
+        original_call = web_module._call_web_search
+
+        def restricted_call(query: str, country: str, client: Any = None, _site=site, _inner=original_call) -> list:
+            """The SAME provider call, but the web_search tool is restricted to ONE domain (the tool's own ``allowed_domains`` filter) - naming a
+            site in the query text did not work (every site returned nothing)."""
+            import json as _json
+
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI()
+            resp = client.responses.create(
+                model=os.getenv(web_module.MODEL_ENV, web_module.DEFAULT_MODEL),
+                tools=[{"type": "web_search", "filters": {"allowed_domains": [_site]}}],
+                instructions=web_module._instructions(country),
+                input=query,
+                text={"format": {"type": "json_schema", "name": "providers", "schema": web_module._SCHEMA, "strict": True}},
+            )
+            data = _json.loads(getattr(resp, "output_text", "") or "{}")
+            return [r for r in (data.get("results") or []) if isinstance(r, dict)]
+
+        web_module._call_web_search = probe.wrap(restricted_call) if probe is not None else restricted_call
         rows, errors = [], 0
         try:
             for item in golden_set(per_site):
@@ -196,7 +216,7 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
                     errors += 1
                 rows.append((item, results))
         finally:
-            web_module._query_variants = original
+            web_module._call_web_search = original_call
         total = sum(len(r) for _, r in rows)
         mine = [(i, r) for i, res in rows for r in res if _from_site(r, site)]
         entry = {
