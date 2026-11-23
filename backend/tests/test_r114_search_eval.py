@@ -179,3 +179,127 @@ def test_p2_short_latin_stems_do_not_match_inside_other_words(ev):
     for wrong in ("Dentist", "Gastroenterologist", "Pediatrician", "dentistry"):
         assert ev.suitable({"specialty": wrong, "name": "Dr X"}, "گوش و حلق و بینی") is False, wrong
     assert ev.suitable({"specialty": "Otolaryngologist (ENT)", "name": "Dr X"}, "گوش و حلق و بینی") is True
+
+
+# --- site mode (Javad: «these sites must be examined») ------------------------------------------------------------------------------------------------
+class _FakeWeb:
+    """What the eval patches in site mode: the provider call of the web lookup module."""
+
+    MODEL_ENV = "SEDI_X_MODEL"
+    DEFAULT_MODEL = "m"
+    _SCHEMA = {"type": "object"}
+
+    def __init__(self):
+        self.calls = []
+        self._cache = {"stale": (0, [])}
+
+    @staticmethod
+    def _instructions(country):
+        return "instr"
+
+    def _call_web_search(self, query, country, client=None):
+        return []
+
+
+class _Client:
+    def __init__(self, per_domain):
+        self.per_domain = per_domain
+        self.kwargs = []
+        self.responses = type("R", (), {"create": self._create})()
+
+    def _create(self, **kw):
+        self.kwargs.append(kw)
+        domain = kw["tools"][0]["filters"]["allowed_domains"][0]
+        import json
+
+        return type("O", (), {"output_text": json.dumps({"results": self.per_domain.get(domain, [])}, ensure_ascii=False)})()
+
+
+def test_site_mode_restricts_the_search_tool_to_one_domain_and_restores_the_call(ev, monkeypatch):
+    web = _FakeWeb()
+    original = web._call_web_search
+    client = _Client({"drsaina.com": [{"name": "a", "specialty": "گوارش", "source_url": "https://www.drsaina.com/dr/a"}],
+                      "doctor-yab.ir": [{"name": "b", "specialty": "کودکان", "source_url": "https://doctor-yab.ir/dr/b"}]})
+    seen_sites = []
+
+    def search(**k):  # what the production wrapper does around the provider call
+        rows = web._call_web_search("q", "IR", client)
+        seen_sites.append(client.kwargs[-1]["tools"][0]["filters"]["allowed_domains"])
+        return [dict(r, specialty=(k["specialty"] if "saina" in r["source_url"] else r["specialty"]), trusted=False, page_read=True, phone_status="verified", address_verified=True) for r in rows]
+
+    out = ev.run_sites(["drsaina.com", "doctor-yab.ir"], 3, search, web, out=lambda s: None)
+    assert web._call_web_search == original                                                       # patched only while measuring
+    assert web._cache == {}                                                                        # each site starts with an empty query cache
+    assert seen_sites == [["drsaina.com"]] * 3 + [["doctor-yab.ir"]] * 3                           # ONE domain per call
+    saina, yab = out
+    assert saina["site"] == "drsaina.com" and saina["queries"] == 3 and saina["results_from_site"] == 3 and saina["suitable_from_site"] == 3
+    assert saina["phone_verified_from_site"] == 3 and saina["errors"] == 0
+    assert yab["results_from_site"] == 3 and yab["suitable_from_site"] == 0                          # a pediatrician is not suitable
+    kw = client.kwargs[0]
+    assert kw["tools"][0]["type"] == "web_search" and kw["instructions"] == "instr" and kw["model"] == "m"
+
+
+def test_a_failing_provider_in_site_mode_is_counted_not_fatal(ev):
+    web = _FakeWeb()
+
+    def boom(**k):
+        raise RuntimeError("x")
+
+    entry = ev.run_sites(["drdr.ir"], 2, boom, web, out=lambda s: None)[0]
+    assert entry["errors"] == 2 and entry["results"] == 0 and web._call_web_search.__name__ == "_call_web_search"
+
+
+def test_the_workflow_validates_the_sites_input():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "sites:" in text and "SEDI_EVAL_SITES" in text and "SITES}" in text
+    import re
+    import yaml
+
+    pattern = re.search(r"grep -Eq '(\^\(\[a-z0-9[^']*)'", text).group(1)
+    ok = re.compile(pattern)
+    assert ok.match("") and ok.match("doctoreto.com,drdr.ir,drsaina.com,doctor-yab.ir")
+    for bad in ("evil.com;rm -rf", "a.com b.com", "x", "a.com,", "https://a.com"):
+        assert not ok.match(bad), bad
+    assert yaml.safe_load(text)["jobs"]["eval"]["steps"]
+
+
+# --- fetch mode: can the server's own page reader read a site? -----------------------------------------------------------------------------------------
+class _Fr:
+    def __init__(self, ok, url="", status=200, body=b"", reason=""):
+        self.ok, self.url, self.status, self.body, self.reason = ok, url, status, body, reason
+
+
+def test_fetch_probe_reports_reasons_and_structured_fields_without_page_content(ev):
+    physician = '<script type="application/ld+json">{"@type":"Physician","name":"Dr X","telephone":"021-12345678","address":{"streetAddress":"S"},"aggregateRating":{"ratingValue":"4.5"},"image":""}</script>'
+    html = ("<html>" + physician + '<script id="__NEXT_DATA__" type="application/json">{}</script><p>0215551234</p></html>').encode()
+    pages = {
+        "https://a.ir/dr/1": _Fr(True, "https://a.ir/dr/1", 200, html),
+        "https://b.ir/": _Fr(False, "https://b.ir/", 0, b"", "SSLError"),
+        "https://c.ir/x": _Fr(False, "https://c.ir/x", 403, b"", "http_403"),
+    }
+    lines = []
+    rows = ev.fetch_probe(list(pages), lambda u: pages[u], out=lines.append)
+    ok, ssl, blocked = rows
+    assert ok["ok"] and ok["jsonld_types"] == ["Physician"] and ok["physician_fields"] == ["@type", "address", "aggregateRating", "name", "telephone"]
+    assert ok["next_data"] and ok["tel_like"] and ok["final_host"] == "a.ir" and "Dr X" not in " ".join(lines)          # field names only, never content
+    assert ssl["reason"] == "SSLError" and not ssl["ok"] and blocked["reason"] == "http_403" and blocked["status"] == 403
+    assert all(ln.startswith("EVAL|fetch|") for ln in lines)
+
+
+def test_fetch_probe_survives_a_raising_fetcher(ev):
+    def boom(u):
+        raise RuntimeError("x")
+
+    assert ev.fetch_probe(["https://a.ir/"], boom, out=lambda s: None)[0] == {"url": "https://a.ir/", "ok": False, "reason": "RuntimeError"}
+
+
+def test_the_workflow_validates_fetch_urls_and_disables_globbing():
+    import re
+
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "fetch_urls:" in text and "SEDI_EVAL_FETCH_URLS" in text and "set -f" in text
+    pattern = re.findall(r"grep -Eq '(\^\(https[^']*)'", text)[0]
+    ok = re.compile(pattern)
+    assert ok.match("") and ok.match("https://www.paziresh24.com/dr/x/,https://doctor-yab.ir/Search/1/")
+    for bad in ("http://a.ir/", "https://a.ir/ x", "https://a.ir/;rm", "https://a.ir/$(x)", "ftp://a.ir", "https://a.ir/*"):
+        assert not ok.match(bad), bad

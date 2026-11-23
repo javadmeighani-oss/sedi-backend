@@ -59,6 +59,7 @@ class FailureProbe:
 
     def __init__(self) -> None:
         self.errors: list[str] = []
+        self.messages: list[str] = []
 
     def wrap(self, fn: Callable[..., Any]) -> Callable[..., Any]:
         def inner(*args: Any, **kwargs: Any) -> Any:
@@ -66,6 +67,7 @@ class FailureProbe:
                 return fn(*args, **kwargs)
             except Exception as exc:  # noqa: BLE001
                 self.errors.append(type(exc).__name__)
+                self.messages.append(" ".join(str(exc).split())[:160])
                 raise
 
         return inner
@@ -76,10 +78,17 @@ def _norm(text: Any) -> str:
 
 
 def suitable(row: dict[str, Any], specialty: str) -> bool:
-    """The result is that specialty - judged by the ONE definition the chat uses (``specialty_lexicon.result_matches_specialty``)."""
+    """The result is that specialty: the FIRST text (the result's specialty field, then its name) that names a specialty decides, by the
+    lexicon's longest-match ``find_specialty``. Deliberately only ``find_specialty`` (present in EVERY image): the same yardstick measures the
+    image BEFORE and AFTER the search polish (the chat's own filter, ``result_matches_specialty``, exists only after PR #213 - using it made the
+    baseline on the older image crash)."""
     from backend.app.services.i5 import specialty_lexicon as lexicon
 
-    return lexicon.result_matches_specialty(specialty, row.get("specialty"), row.get("name"))
+    for text in (row.get("specialty"), row.get("name")):
+        found = lexicon.find_specialty(" ".join("".join(ch if ch.isalnum() or ch.isspace() else " " for ch in str(text or "")).split()))
+        if found:
+            return found == specialty
+    return False
 
 
 def _host(url: str) -> str:
@@ -161,6 +170,116 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
     return agg
 
 
+def _from_site(row: dict[str, Any], site: str) -> bool:
+    host = _host(str(row.get("source_url") or ""))
+    return host == site or host.endswith("." + site)
+
+
+def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_module: Any, *, out: Callable[[str], None] = print,
+              probe: Optional[FailureProbe] = None) -> list:
+    """R-114 am.1 (Javad: «these sites must be examined»): for EACH booking site the golden set is searched with the provider web_search tool
+    RESTRICTED to that domain (``allowed_domains``, in this process only; the first wording only) and the result counts how many results truly came from that site, how many are the
+    requested specialty, and how many had phone / address confirmed by the result's own page. Read-only, like the rest of the eval."""
+    summary = []
+    for site in sites:
+        original_call = web_module._call_web_search
+        getattr(web_module, "_cache", {}).clear()  # the lookup caches per QUERY text: another site must not be answered from the previous site's results
+
+        def restricted_call(query: str, country: str, client: Any = None, _site=site, _inner=original_call) -> list:
+            """The SAME provider call, but the web_search tool is restricted to ONE domain (the tool's own ``allowed_domains`` filter) - naming a
+            site in the query text did not work (every site returned nothing)."""
+            import json as _json
+
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI()
+            resp = client.responses.create(
+                model=os.getenv(web_module.MODEL_ENV, web_module.DEFAULT_MODEL),
+                tools=[{"type": "web_search", "filters": {"allowed_domains": [_site]}}],
+                instructions=web_module._instructions(country),
+                input=query,
+                text={"format": {"type": "json_schema", "name": "providers", "schema": web_module._SCHEMA, "strict": True}},
+            )
+            data = _json.loads(getattr(resp, "output_text", "") or "{}")
+            return [r for r in (data.get("results") or []) if isinstance(r, dict)]
+
+        web_module._call_web_search = probe.wrap(restricted_call) if probe is not None else restricted_call
+        rows, errors, first_error = [], 0, ""
+        try:
+            for item in golden_set(per_site):
+                seen = len(probe.errors) if probe is not None else 0
+                try:
+                    results = [r for r in search_fn(entity="SPECIALIST", specialty=item["specialty"], city=item["city"], province=item["province"],
+                                                    area=item["area"], qualifiers=()) if isinstance(r, dict)]
+                except Exception as exc:  # noqa: BLE001
+                    results = []
+                    errors += 1
+                    first_error = first_error or (type(exc).__name__ + ": " + " ".join(str(exc).split())[:160])
+                if probe is not None and len(probe.errors) > seen:
+                    errors += 1
+                    first_error = first_error or (probe.errors[-1] + ": " + probe.messages[-1])
+                rows.append((item, results))
+        finally:
+            web_module._call_web_search = original_call
+        total = sum(len(r) for _, r in rows)
+        mine = [(i, r) for i, res in rows for r in res if _from_site(r, site)]
+        entry = {
+            "site": site, "queries": len(rows), "errors": errors, "first_error": first_error, "results": total,
+            "results_from_site": len(mine),
+            "queries_with_site_result": len({id(i) for i, _ in mine}),
+            "suitable_from_site": sum(1 for i, r in mine if suitable(r, i["specialty"])),
+            "page_read_from_site": sum(1 for _, r in mine if r.get("page_read")),
+            "phone_verified_from_site": sum(1 for _, r in mine if r.get("phone_status") == "verified"),
+            "address_verified_from_site": sum(1 for _, r in mine if r.get("address_verified")),
+            "with_rating_from_site": sum(1 for _, r in mine if r.get("rating_avg")),
+            "trusted_flag": sum(1 for _, r in mine if r.get("trusted")),
+            "other_domains": sorted({_host(str(r.get("source_url") or "")) for _, res in rows for r in res if not _from_site(r, site)})[:8],
+        }
+        summary.append(entry)
+        out("EVAL|site|" + json.dumps(entry, ensure_ascii=False))
+    return summary
+
+
+def fetch_probe(urls: list, fetch_fn: Callable[[str], Any], *, out: Callable[[str], None] = print) -> list:
+    """R-114 am.1: can Sedi's OWN page reader (``safe_fetch.fetch_page``: public https only, robots honoured, size/time capped) read these
+    pages FROM THE SERVER, and what structured data do they expose? Reports per URL: ok / reason / status / bytes, JSON-LD types, the
+    embedded Next.js data, and which useful fields exist - never the page content itself (counts and field names only)."""
+    import re
+
+    rows = []
+    for url in urls:
+        try:
+            fr = fetch_fn(url)
+        except Exception as exc:  # noqa: BLE001
+            rows.append({"url": url, "ok": False, "reason": type(exc).__name__})
+            out("EVAL|fetch|" + json.dumps(rows[-1], ensure_ascii=False))
+            continue
+        row: dict[str, Any] = {"url": url, "ok": bool(fr.ok), "reason": getattr(fr, "reason", ""), "status": getattr(fr, "status", 0),
+                               "final_host": _host(getattr(fr, "url", "") or ""), "bytes": len(getattr(fr, "body", b"") or b"")}
+        if fr.ok:
+            html = fr.body.decode("utf-8", "replace")
+            types: list = []
+            for block in re.findall(r"<script[^>]*application/ld[+]json[^>]*>(.*?)</script>", html, re.S):
+                try:
+                    data = json.loads(block)
+                except ValueError:
+                    types.append("badjson")
+                    continue
+                for item in data if isinstance(data, list) else [data]:
+                    if isinstance(item, dict):
+                        types.append(item.get("@type"))
+                        if item.get("@type") == "Physician":
+                            row["physician_fields"] = sorted(k for k, v in item.items() if v not in (None, "", [], {}))[:24]
+            row["jsonld_types"] = types[:6]
+            row["next_data"] = "__NEXT_DATA__" in html
+            row["tel_like"] = bool(re.search(r"0[0-9]{2,3}[- ]?[0-9]{7,8}", html))
+            row["visible_chars"] = len(re.sub(r"<[^>]+>", " ", html))
+        rows.append(row)
+        out("EVAL|fetch|" + json.dumps(row, ensure_ascii=False))
+    return rows
+
+
 def main() -> int:
     from backend.app.services.i5 import directory_web_lookup as web
     from backend.app.services.i5 import nearby_places as nearby
@@ -171,6 +290,18 @@ def main() -> int:
     limit = int(os.getenv("SEDI_EVAL_MAX_QUERIES", "24") or 24)
     probe = FailureProbe()
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
+    fetch_urls = [x.strip() for x in (os.getenv("SEDI_EVAL_FETCH_URLS", "") or "").split(",") if x.strip().startswith("https://")]
+    if fetch_urls:  # fetch mode: can the server's own page reader read these pages? (no search, no model)
+        from backend.app.services.i5 import safe_fetch
+
+        fetch_probe(fetch_urls[:12], safe_fetch.fetch_page)
+        print("EVAL|phase_search_eval|PASS")
+        return 0
+    sites = [x.strip().lower() for x in (os.getenv("SEDI_EVAL_SITES", "") or "").split(",") if x.strip()]
+    if sites:  # site mode: examine each named site on a small golden subset instead of the general run
+        entries = run_sites(sites, limit, web.search_web_providers, web, probe=probe)
+        print("EVAL|phase_search_eval|" + ("FAIL" if entries and all(e["errors"] >= e["queries"] for e in entries) else "PASS"))
+        return 0
     agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
               label=os.getenv("SEDI_EVAL_SET", "baseline"), model=os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL), probe=probe)
     return 0 if agg["errors"] < agg["queries"] else 4
