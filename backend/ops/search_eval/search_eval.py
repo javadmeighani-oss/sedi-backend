@@ -76,10 +76,17 @@ def _norm(text: Any) -> str:
 
 
 def suitable(row: dict[str, Any], specialty: str) -> bool:
-    """The result is that specialty - judged by the ONE definition the chat uses (``specialty_lexicon.result_matches_specialty``)."""
+    """The result is that specialty: the FIRST text (the result's specialty field, then its name) that names a specialty decides, by the
+    lexicon's longest-match ``find_specialty``. Deliberately only ``find_specialty`` (present in EVERY image): the same yardstick measures the
+    image BEFORE and AFTER the search polish (the chat's own filter, ``result_matches_specialty``, exists only after PR #213 - using it made the
+    baseline on the older image crash)."""
     from backend.app.services.i5 import specialty_lexicon as lexicon
 
-    return lexicon.result_matches_specialty(specialty, row.get("specialty"), row.get("name"))
+    for text in (row.get("specialty"), row.get("name")):
+        found = lexicon.find_specialty(" ".join("".join(ch if ch.isalnum() or ch.isspace() else " " for ch in str(text or "")).split()))
+        if found:
+            return found == specialty
+    return False
 
 
 def _host(url: str) -> str:
