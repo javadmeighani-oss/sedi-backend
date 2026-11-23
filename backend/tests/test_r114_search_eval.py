@@ -360,3 +360,9 @@ def test_the_readers_module_is_loadable_from_its_source_text(ev):
 def test_the_workflow_sends_the_readers_source_only_in_readers_mode():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "readers:" in text and "SEDI_EVAL_READERS_SRC_B64" in text and '[ "${READERS}" = "1" ]' in text and "'^(1)?$'" in text
+
+
+def test_a_doctor_listing_a_specialty_and_a_subspecialty_is_suitable_for_both(ev):
+    row = {"name": "دکتر الف", "specialty": "متخصص داخلی، فوق تخصص غدد"}
+    assert ev.suitable(row, "داخلی") and ev.suitable(row, "غدد")
+    assert not ev.suitable({"name": "دکتر ب", "specialty": "متخصص کودکان"}, "غدد")

@@ -79,11 +79,13 @@ def _norm(text: Any) -> str:
 
 def suitable(row: dict[str, Any], specialty: str) -> bool:
     """The result is that specialty: the FIRST text (the result's specialty field, then its name) that names a specialty decides, by the
-    lexicon's longest-match ``find_specialty``. Deliberately only ``find_specialty`` (present in EVERY image): the same yardstick measures the
-    image BEFORE and AFTER the search polish (the chat's own filter, ``result_matches_specialty``, exists only after PR #213 - using it made the
-    baseline on the older image crash)."""
+    lexicon's longest-match ``find_specialty``. Where the image has the chat's own filter (``result_matches_specialty``, PR #213) it is used, so the eval agrees with production; an older image
+    falls back to ``find_specialty`` (present in EVERY image) so the BEFORE baseline does not crash."""
     from backend.app.services.i5 import specialty_lexicon as lexicon
 
+    matcher = getattr(lexicon, "result_matches_specialty", None)
+    if matcher is not None:  # newer images: the chat's own filter - a base specialty AND a subspecialty both count (Codex P2, PR 218)
+        return bool(matcher(specialty, row.get("specialty"), row.get("name")))
     for text in (row.get("specialty"), row.get("name")):
         found = lexicon.find_specialty(" ".join("".join(ch if ch.isalnum() or ch.isspace() else " " for ch in str(text or "")).split()))
         if found:
