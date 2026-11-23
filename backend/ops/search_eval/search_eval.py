@@ -241,6 +241,45 @@ def run_sites(sites: list, per_site: int, search_fn: Callable[..., list], web_mo
     return summary
 
 
+def fetch_probe(urls: list, fetch_fn: Callable[[str], Any], *, out: Callable[[str], None] = print) -> list:
+    """R-114 am.1: can Sedi's OWN page reader (``safe_fetch.fetch_page``: public https only, robots honoured, size/time capped) read these
+    pages FROM THE SERVER, and what structured data do they expose? Reports per URL: ok / reason / status / bytes, JSON-LD types, the
+    embedded Next.js data, and which useful fields exist - never the page content itself (counts and field names only)."""
+    import re
+
+    rows = []
+    for url in urls:
+        try:
+            fr = fetch_fn(url)
+        except Exception as exc:  # noqa: BLE001
+            rows.append({"url": url, "ok": False, "reason": type(exc).__name__})
+            out("EVAL|fetch|" + json.dumps(rows[-1], ensure_ascii=False))
+            continue
+        row: dict[str, Any] = {"url": url, "ok": bool(fr.ok), "reason": getattr(fr, "reason", ""), "status": getattr(fr, "status", 0),
+                               "final_host": _host(getattr(fr, "url", "") or ""), "bytes": len(getattr(fr, "body", b"") or b"")}
+        if fr.ok:
+            html = fr.body.decode("utf-8", "replace")
+            types: list = []
+            for block in re.findall(r"<script[^>]*application/ld[+]json[^>]*>(.*?)</script>", html, re.S):
+                try:
+                    data = json.loads(block)
+                except ValueError:
+                    types.append("badjson")
+                    continue
+                for item in data if isinstance(data, list) else [data]:
+                    if isinstance(item, dict):
+                        types.append(item.get("@type"))
+                        if item.get("@type") == "Physician":
+                            row["physician_fields"] = sorted(k for k, v in item.items() if v not in (None, "", [], {}))[:24]
+            row["jsonld_types"] = types[:6]
+            row["next_data"] = "__NEXT_DATA__" in html
+            row["tel_like"] = bool(re.search(r"0[0-9]{2,3}[- ]?[0-9]{7,8}", html))
+            row["visible_chars"] = len(re.sub(r"<[^>]+>", " ", html))
+        rows.append(row)
+        out("EVAL|fetch|" + json.dumps(row, ensure_ascii=False))
+    return rows
+
+
 def main() -> int:
     from backend.app.services.i5 import directory_web_lookup as web
     from backend.app.services.i5 import nearby_places as nearby
@@ -251,6 +290,13 @@ def main() -> int:
     limit = int(os.getenv("SEDI_EVAL_MAX_QUERIES", "24") or 24)
     probe = FailureProbe()
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
+    fetch_urls = [x.strip() for x in (os.getenv("SEDI_EVAL_FETCH_URLS", "") or "").split(",") if x.strip().startswith("https://")]
+    if fetch_urls:  # fetch mode: can the server's own page reader read these pages? (no search, no model)
+        from backend.app.services.i5 import safe_fetch
+
+        fetch_probe(fetch_urls[:12], safe_fetch.fetch_page)
+        print("EVAL|phase_search_eval|PASS")
+        return 0
     sites = [x.strip().lower() for x in (os.getenv("SEDI_EVAL_SITES", "") or "").split(",") if x.strip()]
     if sites:  # site mode: examine each named site on a small golden subset instead of the general run
         entries = run_sites(sites, limit, web.search_web_providers, web, probe=probe)

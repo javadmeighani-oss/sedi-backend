@@ -261,3 +261,45 @@ def test_the_workflow_validates_the_sites_input():
     for bad in ("evil.com;rm -rf", "a.com b.com", "x", "a.com,", "https://a.com"):
         assert not ok.match(bad), bad
     assert yaml.safe_load(text)["jobs"]["eval"]["steps"]
+
+
+# --- fetch mode: can the server's own page reader read a site? -----------------------------------------------------------------------------------------
+class _Fr:
+    def __init__(self, ok, url="", status=200, body=b"", reason=""):
+        self.ok, self.url, self.status, self.body, self.reason = ok, url, status, body, reason
+
+
+def test_fetch_probe_reports_reasons_and_structured_fields_without_page_content(ev):
+    physician = '<script type="application/ld+json">{"@type":"Physician","name":"Dr X","telephone":"021-12345678","address":{"streetAddress":"S"},"aggregateRating":{"ratingValue":"4.5"},"image":""}</script>'
+    html = ("<html>" + physician + '<script id="__NEXT_DATA__" type="application/json">{}</script><p>0215551234</p></html>').encode()
+    pages = {
+        "https://a.ir/dr/1": _Fr(True, "https://a.ir/dr/1", 200, html),
+        "https://b.ir/": _Fr(False, "https://b.ir/", 0, b"", "SSLError"),
+        "https://c.ir/x": _Fr(False, "https://c.ir/x", 403, b"", "http_403"),
+    }
+    lines = []
+    rows = ev.fetch_probe(list(pages), lambda u: pages[u], out=lines.append)
+    ok, ssl, blocked = rows
+    assert ok["ok"] and ok["jsonld_types"] == ["Physician"] and ok["physician_fields"] == ["@type", "address", "aggregateRating", "name", "telephone"]
+    assert ok["next_data"] and ok["tel_like"] and ok["final_host"] == "a.ir" and "Dr X" not in " ".join(lines)          # field names only, never content
+    assert ssl["reason"] == "SSLError" and not ssl["ok"] and blocked["reason"] == "http_403" and blocked["status"] == 403
+    assert all(ln.startswith("EVAL|fetch|") for ln in lines)
+
+
+def test_fetch_probe_survives_a_raising_fetcher(ev):
+    def boom(u):
+        raise RuntimeError("x")
+
+    assert ev.fetch_probe(["https://a.ir/"], boom, out=lambda s: None)[0] == {"url": "https://a.ir/", "ok": False, "reason": "RuntimeError"}
+
+
+def test_the_workflow_validates_fetch_urls_and_disables_globbing():
+    import re
+
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "fetch_urls:" in text and "SEDI_EVAL_FETCH_URLS" in text and "set -f" in text
+    pattern = re.findall(r"grep -Eq '(\^\(https[^']*)'", text)[0]
+    ok = re.compile(pattern)
+    assert ok.match("") and ok.match("https://www.paziresh24.com/dr/x/,https://doctor-yab.ir/Search/1/")
+    for bad in ("http://a.ir/", "https://a.ir/ x", "https://a.ir/;rm", "https://a.ir/$(x)", "ftp://a.ir", "https://a.ir/*"):
+        assert not ok.match(bad), bad
