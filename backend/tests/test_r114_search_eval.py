@@ -303,3 +303,46 @@ def test_the_workflow_validates_fetch_urls_and_disables_globbing():
     assert ok.match("") and ok.match("https://www.paziresh24.com/dr/x/,https://doctor-yab.ir/Search/1/")
     for bad in ("http://a.ir/", "https://a.ir/ x", "https://a.ir/;rm", "https://a.ir/$(x)", "ftp://a.ir", "https://a.ir/*"):
         assert not ok.match(bad), bad
+
+
+# --- readers mode: the site readers measured from the server ------------------------------------------------------------------------------------
+def test_readers_probe_reports_counts_per_combination_without_any_name(ev):
+    from types import SimpleNamespace as NS
+
+    class Mod:
+        @staticmethod
+        def listing_urls(spec, city):
+            return [("a", "u")] if city != "ناشناخته" else []
+
+        @staticmethod
+        def read_sites(spec, city):
+            provs = [NS(rating=4.5, rating_count=100 + i, lat=35.7, url="https://x.ir/" + str(i), address="ZZ-ADDR-VALUE", name="SECRET-NAME") for i in range(7)]
+            return NS(providers=provs if city != "ناشناخته" else [], sites={"a": {"ok": True, "reason": "", "count": 7, "seconds": 1.0}}, nearby=["n1", "n2"])
+
+        @staticmethod
+        def rank(provs):
+            return list(provs)
+
+        @staticmethod
+        def page(ranked, n):
+            return ranked[:5]
+
+    lines = []
+    agg = ev.readers_probe(Mod, ["گوارش"], ["تهران", "ناشناخته"], out=lines.append)
+    assert [ln.split("|")[1] for ln in lines] == ["readers", "readers", "readers_aggregate"]
+    assert "SECRET-NAME" not in " ".join(lines) and "ZZ-ADDR-VALUE" not in " ".join(lines)                       # counts only
+    assert agg["combos"] == 2 and agg["combos_with_urls"] == 1 and agg["pct_with_5"] == 100.0
+    assert agg["pct_top_with_reviews"] == 100.0 and agg["pct_top_with_link"] == 100.0 and agg["pct_top_with_coords"] == 100.0
+
+
+def test_the_readers_module_is_loadable_from_its_source_text(ev):
+    import base64
+
+    src = (ROOT / "backend" / "app" / "services" / "i5" / "site_readers.py").read_bytes()
+    mod = ev._load_readers(base64.b64encode(src).decode())
+    assert mod.PAGE_SIZE == 5 and mod.listing_urls("گوارش", "تهران")
+
+
+def test_the_workflow_sends_the_readers_source_only_in_readers_mode():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "readers:" in text and "SEDI_EVAL_READERS_SRC_B64" in text and '[ "${READERS}" = "1" ]' in text and "'^(1)?$'" in text

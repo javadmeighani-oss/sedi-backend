@@ -19,7 +19,7 @@ import os
 import statistics
 import sys
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 SPECIALTIES = ("گوارش", "داخلی", "پوست", "زنان", "ارتوپدی", "قلب", "گوش و حلق و بینی", "چشم", "اورولوژی", "مغز و اعصاب", "روانپزشکی", "غدد")
 # (area, city, province) - the pilot place (Boumehen), its nearest towns/areas, a big-city neighbourhood and two controls
@@ -280,6 +280,59 @@ def fetch_probe(urls: list, fetch_fn: Callable[[str], Any], *, out: Callable[[st
     return rows
 
 
+READER_SPECIALTIES = ("گوارش", "پوست", "قلب", "ارتوپدی", "زنان", "اورولوژی", "غدد", "چشم")
+READER_CITIES = ("تهران", "شیراز", "مشهد", "اصفهان", "کرج", "پردیس", "بومهن")
+
+
+def readers_probe(mod: Any, specialties: Sequence = READER_SPECIALTIES, cities: Sequence = READER_CITIES, *, out: Callable[[str], None] = print) -> dict:
+    """R-114 am.1: run the site READERS (``i5/site_readers``: Doctoreto + Paziresh24 listing pages, parsed and ranked) for specialty x city and
+    report per combination: which sites were read (ok / reason / count / seconds), how many providers, how many with reviews, the average of the
+    top-five ratings, the number of top-five providers that have coordinates + a profile link. Counts only - never a name or an address."""
+    rows = []
+    for spec in specialties:
+        for city in cities:
+            started = time.time()
+            report = mod.read_sites(spec, city)
+            ranked = mod.rank(report.providers)
+            top = mod.page(ranked, 1)
+            rated = [p for p in top if p.rating is not None]
+            row = {
+                "specialty": spec, "city": city, "urls": len(mod.listing_urls(spec, city)),
+                "sites": {k: {"ok": v["ok"], "reason": v["reason"], "count": v["count"], "seconds": v["seconds"]} for k, v in report.sites.items()},
+                "providers": len(report.providers), "ranked": len(ranked), "top": len(top), "top_with_reviews": len(rated),
+                "top_avg_rating": round(sum(p.rating for p in rated) / len(rated), 2) if rated else None,
+                "top_review_counts": [p.rating_count for p in top], "top_with_coords": sum(1 for p in top if p.lat is not None),
+                "top_with_link": sum(1 for p in top if str(p.url).startswith("https://")),
+                "top_with_address": sum(1 for p in top if p.address), "nearby_listed": len(report.nearby), "seconds": round(time.time() - started, 2),
+            }
+            rows.append(row)
+            out("EVAL|readers|" + json.dumps(row, ensure_ascii=False))
+    combos = [r for r in rows if r["urls"]]
+    agg = {
+        "combos": len(rows), "combos_with_urls": len(combos),
+        "pct_with_5": round(100 * sum(1 for r in combos if r["top"] >= 5) / (len(combos) or 1), 1),
+        "pct_with_any": round(100 * sum(1 for r in combos if r["top"] >= 1) / (len(combos) or 1), 1),
+        "pct_top_with_reviews": round(100 * sum(r["top_with_reviews"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
+        "pct_top_with_link": round(100 * sum(r["top_with_link"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
+        "pct_top_with_address": round(100 * sum(r["top_with_address"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
+        "pct_top_with_coords": round(100 * sum(r["top_with_coords"] for r in combos) / (sum(r["top"] for r in combos) or 1), 1),
+        "site_failures": sum(1 for r in rows for v in r["sites"].values() if not v["ok"]),
+        "seconds_p50": round(statistics.median([r["seconds"] for r in combos] or [0]), 2), "seconds_max": max([r["seconds"] for r in rows] or [0]),
+    }
+    out("EVAL|readers_aggregate|" + json.dumps(agg, ensure_ascii=False))
+    return agg
+
+
+def _load_readers(source_b64: str) -> Any:
+    """The readers module from its source (sent next to the script): the running image may predate it. Same code as the repo file."""
+    import base64
+    import types
+
+    mod = types.ModuleType("site_readers_eval")
+    exec(compile(base64.b64decode(source_b64).decode("utf-8"), "site_readers.py", "exec"), mod.__dict__)  # noqa: S102 - the repo's own reviewed file
+    return mod
+
+
 def main() -> int:
     from backend.app.services.i5 import directory_web_lookup as web
     from backend.app.services.i5 import nearby_places as nearby
@@ -290,6 +343,11 @@ def main() -> int:
     limit = int(os.getenv("SEDI_EVAL_MAX_QUERIES", "24") or 24)
     probe = FailureProbe()
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
+    readers_src = os.getenv("SEDI_EVAL_READERS_SRC_B64", "")
+    if readers_src:  # readers mode: the site readers on specialty x city, from the server (no model)
+        agg = readers_probe(_load_readers(readers_src))
+        print("EVAL|phase_search_eval|" + ("PASS" if agg["combos_with_urls"] else "FAIL"))
+        return 0
     fetch_urls = [x.strip() for x in (os.getenv("SEDI_EVAL_FETCH_URLS", "") or "").split(",") if x.strip().startswith("https://")]
     if fetch_urls:  # fetch mode: can the server's own page reader read these pages? (no search, no model)
         from backend.app.services.i5 import safe_fetch
