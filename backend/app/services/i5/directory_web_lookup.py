@@ -101,6 +101,14 @@ def call_options() -> dict:
     return {} if left is None else {"timeout": max(5.0, left)}
 
 
+def new_client() -> Any:
+    """OpenAI client for the provider/geography calls. Inside a request budget the SDK's own retries are OFF (a timed-out call would
+    otherwise be retried twice with the same timeout and overrun the deadline); outside a budget the SDK default is kept."""
+    from openai import OpenAI
+
+    return OpenAI() if remaining_seconds() is None else OpenAI(max_retries=0)
+
+
 _lock = threading.Lock()
 _usage: dict[str, int] = {}
 _cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
@@ -227,9 +235,7 @@ def _instructions(country: str) -> str:
 
 def _call_web_search(query: str, country: str, client: Any = None) -> list[dict[str, Any]]:
     if client is None:
-        from openai import OpenAI
-
-        client = OpenAI()
+        client = new_client()
     resp = client.responses.create(
         model=search_model(),
         tools=[{"type": "web_search"}],

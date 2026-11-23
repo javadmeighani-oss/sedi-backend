@@ -96,3 +96,15 @@ def test_the_ring_chain_stops_when_the_time_is_spent(monkeypatch):
     with web.request_budget(8, seconds=60):
         assert cn._nearest_area_result(None, req, original) is original
     assert tried == ["الف", "ب"]                                                  # two 30-second searches fit in the minute, the third does not start
+
+
+def test_inside_a_budget_the_sdk_retries_are_off_so_a_timeout_cannot_overrun_the_deadline(monkeypatch):
+    import openai
+
+    made = []
+    monkeypatch.setattr(openai, "OpenAI", lambda **kw: made.append(kw) or object())
+    web.new_client()
+    assert made[-1] == {}                                                         # no budget scope: SDK default kept
+    with web.request_budget(8, seconds=60):
+        web.new_client()
+    assert made[-1] == {"max_retries": 0}

@@ -172,9 +172,7 @@ def _ranked(place: str, client: Optional[Any]) -> tuple[list[tuple[str, Optional
     if not _web._take_quota() or not _web._take_request_budget():
         return [], False
     if client is None:
-        from openai import OpenAI
-
-        client = OpenAI()
+        client = _web.new_client()
     resp = client.responses.create(
         model=_web.search_model(),
         instructions=_INSTRUCTIONS.format(n=CANDIDATES),
