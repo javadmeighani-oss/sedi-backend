@@ -329,6 +329,7 @@ def _load_readers(source_b64: str) -> Any:
     import types
 
     mod = types.ModuleType("site_readers_eval")
+    sys.modules["site_readers_eval"] = mod  # dataclasses look their module up here
     exec(compile(base64.b64decode(source_b64).decode("utf-8"), "site_readers.py", "exec"), mod.__dict__)  # noqa: S102 - the repo's own reviewed file
     return mod
 
