@@ -297,13 +297,18 @@ READER_SPECIALTIES = ("گوارش", "پوست", "قلب", "ارتوپدی", "ز�
 READER_CITIES = ("تهران", "شیراز", "مشهد", "اصفهان", "کرج", "پردیس", "بومهن")
 
 
-def readers_probe(mod: Any, specialties: Sequence = READER_SPECIALTIES, cities: Sequence = READER_CITIES, *, out: Callable[[str], None] = print) -> dict:
+def readers_probe(mod: Any, specialties: Sequence = READER_SPECIALTIES, cities: Sequence = READER_CITIES, *, out: Callable[[str], None] = print,
+                  delay: float = 0.0) -> dict:
     """R-114 am.1: run the site READERS (``i5/site_readers``: Doctoreto + Paziresh24 listing pages, parsed and ranked) for specialty x city and
     report per combination: which sites were read (ok / reason / count / seconds), how many providers, how many with reviews, the average of the
     top-five ratings, the number of top-five providers that have coordinates + a profile link. Counts only - never a name or an address."""
     rows = []
+    first = True
     for spec in specialties:
         for city in cities:
+            if delay and not first:
+                time.sleep(delay)  # be a polite reader: a burst of requests can make a site answer with empty pages
+            first = False
             started = time.time()
             report = mod.read_sites(spec, city)
             ranked = mod.rank(report.providers)
@@ -359,7 +364,7 @@ def main() -> int:
     web._call_web_search = probe.wrap(web._call_web_search)  # in this process only; nothing is written anywhere
     readers_src = os.getenv("SEDI_EVAL_READERS_SRC_B64", "")
     if readers_src:  # readers mode: the site readers on specialty x city, from the server (no model)
-        agg = readers_probe(_load_readers(readers_src))
+        agg = readers_probe(_load_readers(readers_src), delay=float(os.getenv("SEDI_EVAL_READERS_DELAY", "3") or 3))
         print("EVAL|phase_search_eval|" + ("PASS" if agg["combos_with_urls"] else "FAIL"))
         return 0
     fetch_urls = [x.strip() for x in (os.getenv("SEDI_EVAL_FETCH_URLS", "") or "").split(",") if x.strip().startswith("https://")]
