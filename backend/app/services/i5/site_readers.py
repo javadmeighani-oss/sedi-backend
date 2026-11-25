@@ -36,7 +36,13 @@ from backend.app.services.i5 import safe_fetch
 logger = logging.getLogger(__name__)
 
 ENABLED_ENV = "SEDI_SITE_READERS_ENABLED"  # default OFF: the chat reads the booking sites only when this is switched on
-MIN_GAP_SECONDS = 1.5  # polite reading: a burst of requests can make a site answer with empty pages (D-503)
+MIN_GAP_SECONDS = 1.0  # polite reading: a burst of requests can make a site answer with empty pages (D-503)
+MAX_PAGES = 3  # listing pages read for one request (20-25 providers each) when too few qualified providers were found
+SPARE = 3  # candidates kept beyond the five, to replace any whose profile page fails the check
+READ_TOTAL_SECONDS = 24.0  # all listing pages of ONE request
+VERIFY_BUDGET_SECONDS = 10.0  # the profile-page checks of ONE request; beyond it the remaining candidates are shown unchecked (fail-open)
+VERIFY_TTL_SECONDS = 24 * 3600  # a checked profile is not fetched again for a day (Javad 2026-11-25: option C - slow only the first time)
+VERIFY_ENV = "SEDI_SITE_LINK_VERIFY_ENABLED"  # default ON; «false» turns the profile check off
 PAGE_SIZE = 5  # providers per introduction (Javad); the next five on request
 CACHE_TTL_SECONDS = 6 * 3600
 READ_TIMEOUT_SECONDS = 14.0  # the whole parallel read of one request
@@ -55,7 +61,8 @@ P24_SLUGS = {
     "مغز و اعصاب": "neurology", "عفونی": "infectious", "پزشک عمومی": "general-practitioner", "روانشناسی": "psychology", "تغذیه": "nutrition",
     "توانبخشی": "rehabilitation", "طب سنتی": "traditional-medicine", "آلرژی": "allergies", "دیابت": "diabetes",
 }
-DOCTORETO_SLUGS = {"گوارش": "gastroenterologist", "کلیه": "nephrologist", "روماتولوژی": "rheumatologist"}  # only slugs verified live so far
+DOCTORETO_SLUGS = {"گوارش": "gastroenterologist", "کلیه": "nephrologist", "روماتولوژی": "rheumatologist",
+                   "فیزیوتراپی": "physiotherapist"}  # only slugs verified live so far (physiotherapist: Tehran/Shiraz/Mashhad/Karaj/Pardis 25 each, 2026-11-25)
 _CITY_SLUGS = {
     "تهران": "tehran", "شیراز": "shiraz", "اصفهان": "isfahan", "مشهد": "mashhad", "کرج": "karaj", "تبریز": "tabriz", "اهواز": "ahvaz",
     "قم": "qom", "کرمانشاه": "kermanshah", "رشت": "rasht", "ارومیه": "urmia", "زاهدان": "zahedan", "کرمان": "kerman", "یزد": "yazd",
@@ -212,16 +219,18 @@ def city_slug(city: Optional[str]) -> Optional[str]:
     return _CITY_SLUGS.get(re.sub(r"\s+", " ", (city or "").strip()))
 
 
-def listing_urls(specialty: Optional[str], city: Optional[str]) -> list:
-    """[(site, url)] listing pages for (canonical specialty, city); only sites whose slugs are known for BOTH the specialty and the city."""
+def listing_urls(specialty: Optional[str], city: Optional[str], page: int = 1) -> list:
+    """[(site, url)] listing pages for (canonical specialty, city); only sites whose slugs are known for BOTH the specialty and the city.
+    ``page`` > 1 is the site's own ``?page=N`` (both sites paginate, checked live 2026-11-25)."""
     slug = city_slug(city)
     out: list = []
     if not slug:
         return out
+    suffix = f"?page={int(page)}" if int(page) > 1 else ""
     if specialty in P24_SLUGS:
-        out.append((SITE_P24, f"https://www.paziresh24.com/s/{slug}/{P24_SLUGS[specialty]}/"))
+        out.append((SITE_P24, f"https://www.paziresh24.com/s/{slug}/{P24_SLUGS[specialty]}/{suffix}"))
     if specialty in DOCTORETO_SLUGS:
-        out.append((SITE_DOCTORETO, f"https://doctoreto.com/doctors/speciality/{DOCTORETO_SLUGS[specialty]}/city/{slug}"))
+        out.append((SITE_DOCTORETO, f"https://doctoreto.com/doctors/speciality/{DOCTORETO_SLUGS[specialty]}/city/{slug}{suffix}"))
     return out
 
 
@@ -318,10 +327,10 @@ def _read_one(site: str, url: str, fetch: Callable[[str], Any], deadline: Option
         return site, [], [], {"ok": False, "reason": type(exc).__name__, "count": 0, "seconds": round(time.time() - started, 2)}
 
 
-def read_sites(specialty: Optional[str], city: Optional[str], *, fetch: Optional[Callable[[str], Any]] = None) -> ReadReport:
-    """Read the listing pages of every known site for (canonical specialty, city) IN PARALLEL within one time budget."""
+def read_sites(specialty: Optional[str], city: Optional[str], *, fetch: Optional[Callable[[str], Any]] = None, page: int = 1) -> ReadReport:
+    """Read the listing pages (page ``page``) of every known site for (canonical specialty, city) IN PARALLEL within one time budget."""
     report = ReadReport()
-    urls = listing_urls(specialty, city)
+    urls = listing_urls(specialty, city, page)
     if not urls:
         return report
     fetcher = fetch or safe_fetch.fetch_page
@@ -403,24 +412,144 @@ def _wrong_city(city: Optional[str], p: SiteProvider) -> bool:
     return bool(want and have and want not in have and have not in want)
 
 
+_verified: dict = {}  # (profile url, listed name components) -> (checked at, "ok" | "bad")
+
+
+def _fa_fold(text: Any) -> str:
+    """Letters comparable across sites: Arabic Yeh/Kaf folded, the «دکتر» prefix, spaces, half-spaces and punctuation removed."""
+    t = str(text or "").replace("\u064a", "\u06cc").replace("\u0643", "\u06a9").replace("\u0649", "\u06cc")
+    t = re.sub(r"[\u064b-\u0652\u0640]", "", t)
+    t = re.sub(r"^\s*(?:\u062f\u06a9\u062a\u0631|\u062f\u06a9\u062a\u0631\u0627)\s+", "", t)
+    return re.sub(r"[\s\u200c\u200e\u200f\-_.,\u060c:;()]+", "", t).lower()
+
+
+def verify_enabled() -> bool:
+    return (os.getenv(VERIFY_ENV) or "true").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _fetch_bounded(fetch: Callable[[str], Any], url: str, deadline: Optional[float]) -> Any:
+    """``fetch(url)``, but never waiting past ``deadline`` (the page reader has its own, longer timeout; two slow pages must not spend 16 s of a 10 s
+    budget - Codex P2, PR 226). None = no answer in time (the abandoned worker finishes on its own and its result is dropped)."""
+    if deadline is None:
+        return fetch(url)
+    left = deadline - time.time()
+    if left <= 0:
+        return None
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        return pool.submit(fetch, url).result(timeout=left)
+    except Exception:  # noqa: BLE001 - timeout or reader error: unknown, never fatal
+        return None
+    finally:
+        pool.shutdown(wait=False)
+
+
+_TITLE_PREFIX = re.compile(r"^\s*(?:\u062f\u06a9\u062a\u0631|\u062f\u06a9\u062a\u0631\u0627|\u062e\u0627\u0646\u0645|\u0622\u0642\u0627\u06cc|\u0627\u0633\u062a\u0627\u062f)\s+")
+
+
+def _page_owner(html: str) -> list:
+    """The text pieces of the profile page's first <h1> (the doctor's name block: Paziresh24 = the name; Doctoreto = the name + the degree + the
+    city as separate pieces). [] when the page has none (a captcha / empty shell)."""
+    m = re.search(r"<h1[^>]*>(.*?)</h1>", html or "", re.S | re.I)
+    if not m:
+        return []
+    pieces = (" ".join(re.sub(r"&[a-z#0-9]+;", " ", x).split()) for x in re.split(r"<[^>]+>", m.group(1)))
+    return [x[:120] for x in pieces if x][:12]
+
+
+def _name_tokens(name: Any) -> list:
+    t = _TITLE_PREFIX.sub("", str(name or "").replace("\u064a", "\u06cc").replace("\u0643", "\u06a9"))
+    return [x for x in (_fa_fold(w) for w in re.split(r"\s+", t.strip())) if len(x) >= 2]
+
+
+def _same_person(listed: Any, owner: Any) -> bool:
+    """The page's owner is the listed doctor: every name component of the listing is a WHOLE component of the page's name, and the page adds at most
+    one more (a middle name). «علی احمدی» is not «علیرضا احمدیان» - substrings do not count (Codex P2, PR 226)."""
+    want, have = _name_tokens(listed), _name_tokens(owner)
+    return bool(want) and set(want) <= set(have) and len(have) - len(want) <= 1
+
+
+def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None, deadline: Optional[float] = None) -> str:
+    """Does the doctor's own page open and show that doctor? ``ok`` / ``bad`` (cached 24 h) or ``unknown`` (blocked, timed out, no time left: NOT cached,
+    and the doctor is then shown unchecked - the check never makes the chat worse than not checking). ``bad`` = the page is gone (404/410) or it does
+    not carry the listed name."""
+    url = encode_url(p.url)
+    key = (url, " ".join(sorted(_name_tokens(p.name))))  # the verdict belongs to THIS listed name on THIS page (two listings can name different people)
+    now = time.time()
+    with _lock:
+        hit = _verified.get(key)
+        if hit and now - hit[0] < VERIFY_TTL_SECONDS:
+            return hit[1]
+    try:
+        if not _pace_live_fetch(deadline):
+            return "unknown"
+        fr = _fetch_bounded(fetch or safe_fetch.fetch_page, url, deadline)
+        if fr is None:
+            return "unknown"  # the page did not answer within the remaining verification time
+        if not getattr(fr, "ok", False):
+            status = "bad" if str(getattr(fr, "reason", "")) in {"http_404", "http_410"} else "unknown"
+        else:
+            body = getattr(fr, "body", b"") or b""
+            owner = _page_owner(body.decode("utf-8", "ignore") if isinstance(body, (bytes, bytearray)) else str(body))
+            if not owner:
+                return "unknown"  # a challenge / empty shell / unreadable page: NOT a verdict about the doctor, never cached (Codex P2, PR 226)
+            status = "ok" if any(_same_person(p.name, piece) for piece in owner) else "bad"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+    if status in ("ok", "bad"):
+        with _lock:
+            if len(_verified) > 512:
+                _verified.pop(next(iter(_verified)))
+            _verified[key] = (time.time(), status)
+    return status
+
+
+def _qualified(providers: Sequence[SiteProvider], specialty: Optional[str], city: Optional[str]) -> list:
+    """The specialty, city and link checks come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places."""
+    return [p for p in providers if p.name and profile_url_ok(p.url) and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
+
+
 def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Optional[str] = None, number: int = 1, exclude: Sequence[str] = (),
                   origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None) -> list:
     """Page ``number`` (FIVE) of the most credible providers for (canonical specialty, city), as the SAME row dicts the web lookup returns, so the
     chat's identities, links and wording need no second path. Every row is a page of a known listing site (``trusted``), carries the patients'
-    rating and count the site published, and is transient (nothing is stored). Fail-open: any problem = an empty list."""
+    rating and count the site published, and is transient (nothing is stored). Up to ``MAX_PAGES`` listing pages are read while fewer than five
+    (plus spares) qualify; each shown doctor's PROFILE PAGE is checked (opens, carries the listed name; result kept 24 h). Fail-open: any problem
+    = an empty list."""
     try:
         if not listing_urls(specialty, city):
             return []
-        report = read_sites(specialty, city, fetch=fetch)
+        started = time.time()
+        providers: list = []
+        ranked: list = []
+        for pg in range(1, MAX_PAGES + 1):
+            if pg > 1 and time.time() - started > READ_TOTAL_SECONDS:
+                break
+            report = read_sites(specialty, city, fetch=fetch, page=pg)
+            if not any(v.get("ok") and v.get("count") for v in report.sites.values()):
+                break  # nothing (more) to read on this page
+            providers.extend(report.providers)
+            ranked = _area_first(rank(_qualified(providers, specialty, city), origin=origin, exclude=exclude), area)
+            if len(ranked) >= (max(1, number) - 1) * PAGE_SIZE + PAGE_SIZE + SPARE:
+                break
         today = date.today().isoformat()
+        chosen: list = []
+        checking = verify_enabled()
+        deadline = time.time() + VERIFY_BUDGET_SECONDS
+        for p in ranked[(max(1, number) - 1) * PAGE_SIZE:]:
+            if len(chosen) >= PAGE_SIZE:
+                break
+            # ALWAYS asked when checking is on: a profile already known to be bad (404 / another person) stays out even when time has run out;
+            # ``verify_profile`` answers from its cache first and makes no live request past the deadline (Codex P2, PR 226)
+            status = verify_profile(p, fetch, deadline) if checking else "unknown"
+            if status != "bad":
+                chosen.append((p, status))
         rows = []
-        # the specialty, city and link checks come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places
-        usable = [p for p in report.providers if p.name and profile_url_ok(p.url) and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
-        for p in page(_area_first(rank(usable, origin=origin, exclude=exclude), area), number):
+        for p, status in chosen:
             rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
                          "source_url": encode_url(p.url), "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
                          "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
-                         "page_read": True, "why": (), "_key": p.key})
+                         "page_read": True, "why": (), "_key": p.key, "link_checked": status == "ok"})
         return rows
     except Exception:  # noqa: BLE001 - the chat must never break because a site could not be read
         logger.info("site_reader_rows_failed")

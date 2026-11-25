@@ -723,7 +723,8 @@ def _center_names_service(identity: "VerifiedDirectoryIdentity", service: str) -
 
 def _reader_rows(request: "CareNavRequest") -> list:
     """The reader rows (see ``_reader_identities``), minus the doctors already introduced (``request.exclude_keys`` - the «next five» flow)."""
-    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled() or request.name_hint:
+    physio = request.entity is CareNavEntity.SPECIALTY_CENTER and (request.specialty_or_service or "") == "فیزیوتراپی"  # R-119: Doctoreto lists physiotherapists
+    if (request.entity is not CareNavEntity.SPECIALIST and not physio) or not _site_readers.readers_enabled() or request.name_hint:
         return []  # a request for a doctor BY NAME is answered by the name search, never by the top-five of a specialty
     try:
         text = request.specialty_or_service or ""
@@ -745,7 +746,7 @@ def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIden
 
 
 def _identities_from_rows(results: Sequence[Mapping[str, Any]], request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
-    kind = "DOCTOR" if request.entity is CareNavEntity.SPECIALIST else (
+    kind = "DOCTOR" if (request.entity is CareNavEntity.SPECIALIST or any(r.get("_key") for r in results)) else (
         "LABORATORY" if request.entity is CareNavEntity.LABORATORY else (
             "PHARMACY" if request.entity is CareNavEntity.PHARMACY else "HOSPITAL"
         )

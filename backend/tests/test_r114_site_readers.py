@@ -135,8 +135,11 @@ def test_pages_of_five_and_the_next_five_exclude_what_was_shown():
 def _fresh_cache(monkeypatch):
     sr._cache.clear()
     monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 0.0)  # no real waiting in tests (the pacing test sets its own gap)
+    monkeypatch.setenv(sr.VERIFY_ENV, "false")  # the profile-page check has its own tests (test_r116_link_verify_pages_physio.py)
+    sr._verified.clear()
     yield
     sr._cache.clear()
+    sr._verified.clear()
 
 
 def _fetcher(pages):

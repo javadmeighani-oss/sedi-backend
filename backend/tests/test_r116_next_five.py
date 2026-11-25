@@ -34,6 +34,8 @@ def _readers(monkeypatch):
     sr._cache.clear()
     monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 0.0)
     monkeypatch.setenv(sr.ENABLED_ENV, "1")
+    monkeypatch.setenv(sr.VERIFY_ENV, "false")  # the profile-page check has its own tests
+    sr._verified.clear()
     urls = dict(sr.listing_urls("پوست", "شیراز"))
     page = _page([_item(i) for i in range(1, 9)])                                                               # eight dermatologists in Shiraz
     monkeypatch.setattr(sr.safe_fetch, "fetch_page", lambda url: SimpleNamespace(ok=url == urls["paziresh24.com"], reason="", body=page))
