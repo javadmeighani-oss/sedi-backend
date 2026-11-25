@@ -1540,6 +1540,16 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'وضعتُ رابط صفحة كل نتيجة تحت هذه الرسالة؛ بلمسه يُفتح الموقع الأصلي.',
         'en': 'I put the link to each result below this message; tap it to open the original site.',
     },
+    'care_nav.next.intro': {
+        'fa': 'این‌ها پزشکان بعدی هستند و هیچ‌کدام در فهرست قبلی نبودند.',
+        'ar': 'هؤلاء هم الأطباء التاليون، ولم يكن أي منهم في القائمة السابقة.',
+        'en': 'These are the next doctors, none of them from the previous list.',
+    },
+    'care_nav.next.none': {
+        'fa': 'در همان فهرست‌ها پزشک دیگری با این مشخصات نمانده است. نام شهر یا محلهٔ نزدیک را بگو تا همان‌جا بگردم.',
+        'ar': 'لم يبقَ في هذه القوائم طبيب آخر بهذه المواصفات. اذكر اسم مدينة أو حي قريب وسأبحث هناك.',
+        'en': 'No other doctor with these details is left in those lists. Tell me a nearby city or neighbourhood and I will search there.',
+    },
     'care_nav.links.search_on': {
         'fa': 'جست‌وجو در {site}',
         'ar': 'البحث في {site}',
