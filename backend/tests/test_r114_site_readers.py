@@ -202,7 +202,7 @@ def test_an_empty_page_is_not_cached_so_the_next_read_retries():
 # --- wiring into the chat (R-114 / R-116: five per introduction, flag-gated, fail-open, paced) ----------------------------------------------------
 def _shiraz_fetch(count=8, bad=False):
     urls = dict(sr.listing_urls("پوست", "شیراز"))
-    items = [_p24_item(f"{i:02d}", 50 + i, 4.0 + i / 20, 80, address=("خیابان معالی‌آباد" if i == 7 else "خیابان زند"), city="شیراز") for i in range(count)]
+    items = [_p24_item(f"{i:02d}", 50 + i, 4.0 + i / 20, 80, expertise="متخصص پوست", address=("خیابان معالی‌آباد" if i == 7 else "خیابان زند"), city="شیراز") for i in range(count)]
     return _fetcher({urls["paziresh24.com"]: (RuntimeError("down") if bad else _p24_page(items))})
 
 
@@ -262,3 +262,17 @@ def test_the_flag_off_or_a_down_site_leaves_the_older_answer_untouched(monkeypat
     assert off.status == cn.STATUS_NO_VERIFIED and "SITE_READERS" not in off.identity_notes
     cn, down = _nav(monkeypatch, _shiraz_fetch(bad=True))
     assert down.status == cn.STATUS_NO_VERIFIED
+
+
+def test_a_doctor_of_another_specialty_never_takes_one_of_the_five_places(monkeypatch):
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    items = [_p24_item("الف", 500, 4.9, 90, expertise="متخصص گوارش", city="شیراز"), _p24_item("ب", 400, 4.8, 90, expertise="متخصص پوست", city="شیراز"),
+             _p24_item("ج", 300, 4.7, 90, expertise="دکترای حرفه‌ای پزشکی", city="شیراز")]                          # a gastroenterologist, a dermatologist, a degree only
+    rows = sr.provider_rows("پوست", "شیراز", fetch=_fetcher({urls["paziresh24.com"]: _p24_page(items)}))
+    assert [r["name"] for r in rows] == ["دکتر ب", "دکتر ج"]                                                       # the gastro doctor is out; the degree-only entry stays
+
+
+def test_when_every_listed_doctor_is_another_specialty_the_chat_falls_back_to_the_older_path(monkeypatch):
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    items = [_p24_item(f"{i:02d}", 50 + i, 4.5, 80, expertise="متخصص گوارش", city="شیراز") for i in range(6)]
+    assert sr.provider_rows("پوست", "شیراز", fetch=_fetcher({urls["paziresh24.com"]: _p24_page(items)})) == []

@@ -349,6 +349,22 @@ def _area_first(ranked: Sequence[SiteProvider], area: Optional[str]) -> list:
     return near + [p for p in ranked if p not in near]
 
 
+def _wrong_specialty(specialty: Optional[str], p: SiteProvider) -> bool:
+    """True when the provider's OWN text explicitly names other specialties and not the requested one (a listing can carry a neighbouring
+    specialty). The first text that names any specialty decides, like ``specialty_lexicon.result_matches_specialty``; a provider whose text names
+    none (only a degree) is kept - the listing page itself is for that specialty. Never raises."""
+    try:
+        from backend.app.services.i5 import specialty_lexicon as lexicon
+
+        for text in (p.specialty, p.name):
+            names = lexicon.named_specialties(re.sub(r"[،,.;:/|()\-–]+", " ", str(text or "")))
+            if names:
+                return specialty not in names
+        return False
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Optional[str] = None, number: int = 1, exclude: Sequence[str] = (),
                   origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None) -> list:
     """Page ``number`` (FIVE) of the most credible providers for (canonical specialty, city), as the SAME row dicts the web lookup returns, so the
@@ -360,9 +376,9 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         report = read_sites(specialty, city, fetch=fetch)
         today = date.today().isoformat()
         rows = []
-        for p in page(_area_first(rank(report.providers, origin=origin, exclude=exclude), area), number):
-            if not p.url.startswith("https://") or not p.name:
-                continue
+        # the specialty check and the link check come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places
+        usable = [p for p in report.providers if p.name and p.url.startswith("https://") and not _wrong_specialty(specialty, p)]
+        for p in page(_area_first(rank(usable, origin=origin, exclude=exclude), area), number):
             rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
                          "source_url": p.url, "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
                          "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
