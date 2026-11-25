@@ -276,3 +276,23 @@ def test_when_every_listed_doctor_is_another_specialty_the_chat_falls_back_to_th
     urls = dict(sr.listing_urls("پوست", "شیراز"))
     items = [_p24_item(f"{i:02d}", 50 + i, 4.5, 80, expertise="متخصص گوارش", city="شیراز") for i in range(6)]
     assert sr.provider_rows("پوست", "شیراز", fetch=_fetcher({urls["paziresh24.com"]: _p24_page(items)})) == []
+
+
+def test_a_doctor_whose_clinic_is_in_another_city_never_takes_one_of_the_five_places():
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    items = [_p24_item("الف", 500, 4.9, 90, expertise="متخصص پوست", city="تهران"), _p24_item("ب", 400, 4.8, 90, expertise="متخصص پوست", city="شیراز"),
+             _p24_item("ج", 300, 4.7, 90, expertise="متخصص پوست", city="")]                                         # another city, the asked city, no city text
+    rows = sr.provider_rows("پوست", "شیراز", fetch=_fetcher({urls["paziresh24.com"]: _p24_page(items)}))
+    assert [r["name"] for r in rows] == ["دکتر ب", "دکتر ج"]
+    only_other = _fetcher({urls["paziresh24.com"]: _p24_page(items[:1])})
+    sr._cache.clear()
+    assert sr.provider_rows("پوست", "شیراز", fetch=only_other) == []                                              # nothing left: the older path answers
+
+
+def test_a_request_for_a_doctor_by_name_does_not_use_the_top_five(monkeypatch):
+    from backend.app.services.i5 import care_navigation_directory as cn
+
+    monkeypatch.setenv(sr.ENABLED_ENV, "1")
+    monkeypatch.setattr(sr.safe_fetch, "fetch_page", _shiraz_fetch())
+    request = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa", name_hint="احمدی")
+    assert cn._reader_identities(request) == ()

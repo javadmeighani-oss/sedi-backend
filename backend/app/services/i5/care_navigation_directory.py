@@ -698,8 +698,8 @@ def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIden
     """R-114/R-116: the FIVE most credible doctors read from the booking sites' own listing pages (Paziresh24 / Doctoreto) for the specialty in
     the city - real ratings, address and profile link. Flag ``SEDI_SITE_READERS_ENABLED`` (default OFF); doctors only; fail-open (an unreadable
     site or an unmapped specialty/city = nothing, and the older paths answer)."""
-    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled():
-        return ()
+    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled() or request.name_hint:
+        return ()  # a request for a doctor BY NAME is answered by the name search, never by the top-five of a specialty
     try:
         text = request.specialty_or_service or ""
         canonical = _spec.find_specialty(text) or text

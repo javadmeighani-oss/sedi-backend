@@ -365,6 +365,13 @@ def _wrong_specialty(specialty: Optional[str], p: SiteProvider) -> bool:
         return False
 
 
+def _wrong_city(city: Optional[str], p: SiteProvider) -> bool:
+    """True when the provider's selected clinic names ANOTHER city than the one asked (the parsers take the provider's first clinic; a doctor with
+    clinics in two cities can come up on a listing of the other). A provider with no city text is kept - the listing page is for that city."""
+    want, have = _squash(city), _squash(p.city)
+    return bool(want and have and want not in have and have not in want)
+
+
 def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Optional[str] = None, number: int = 1, exclude: Sequence[str] = (),
                   origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None) -> list:
     """Page ``number`` (FIVE) of the most credible providers for (canonical specialty, city), as the SAME row dicts the web lookup returns, so the
@@ -376,8 +383,8 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         report = read_sites(specialty, city, fetch=fetch)
         today = date.today().isoformat()
         rows = []
-        # the specialty check and the link check come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places
-        usable = [p for p in report.providers if p.name and p.url.startswith("https://") and not _wrong_specialty(specialty, p)]
+        # the specialty, city and link checks come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places
+        usable = [p for p in report.providers if p.name and p.url.startswith("https://") and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
         for p in page(_area_first(rank(usable, origin=origin, exclude=exclude), area), number):
             rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
                          "source_url": p.url, "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
