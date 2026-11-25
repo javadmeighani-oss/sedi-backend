@@ -444,6 +444,31 @@ def _fetch_bounded(fetch: Callable[[str], Any], url: str, deadline: Optional[flo
         pool.shutdown(wait=False)
 
 
+_TITLE_PREFIX = re.compile(r"^\s*(?:\u062f\u06a9\u062a\u0631|\u062f\u06a9\u062a\u0631\u0627|\u062e\u0627\u0646\u0645|\u0622\u0642\u0627\u06cc|\u0627\u0633\u062a\u0627\u062f)\s+")
+
+
+def _page_owner(html: str) -> list:
+    """The text pieces of the profile page's first <h1> (the doctor's name block: Paziresh24 = the name; Doctoreto = the name + the degree + the
+    city as separate pieces). [] when the page has none (a captcha / empty shell)."""
+    m = re.search(r"<h1[^>]*>(.*?)</h1>", html or "", re.S | re.I)
+    if not m:
+        return []
+    pieces = (" ".join(re.sub(r"&[a-z#0-9]+;", " ", x).split()) for x in re.split(r"<[^>]+>", m.group(1)))
+    return [x[:120] for x in pieces if x][:12]
+
+
+def _name_tokens(name: Any) -> list:
+    t = _TITLE_PREFIX.sub("", str(name or "").replace("\u064a", "\u06cc").replace("\u0643", "\u06a9"))
+    return [x for x in (_fa_fold(w) for w in re.split(r"\s+", t.strip())) if len(x) >= 2]
+
+
+def _same_person(listed: Any, owner: Any) -> bool:
+    """The page's owner is the listed doctor: every name component of the listing is a WHOLE component of the page's name, and the page adds at most
+    one more (a middle name). «علی احمدی» is not «علیرضا احمدیان» - substrings do not count (Codex P2, PR 226)."""
+    want, have = _name_tokens(listed), _name_tokens(owner)
+    return bool(want) and set(want) <= set(have) and len(have) - len(want) <= 1
+
+
 def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None, deadline: Optional[float] = None) -> str:
     """Does the doctor's own page open and show that doctor? ``ok`` / ``bad`` (cached 24 h) or ``unknown`` (blocked, timed out, no time left: NOT cached,
     and the doctor is then shown unchecked - the check never makes the chat worse than not checking). ``bad`` = the page is gone (404/410) or it does
@@ -464,9 +489,10 @@ def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None
             status = "bad" if str(getattr(fr, "reason", "")) in {"http_404", "http_410"} else "unknown"
         else:
             body = getattr(fr, "body", b"") or b""
-            page_text = _fa_fold(body.decode("utf-8", "ignore") if isinstance(body, (bytes, bytearray)) else str(body))
-            tokens = [t for t in (_fa_fold(w) for w in re.split(r"\s+", str(p.name or "").strip())) if len(t) >= 2 and t != _fa_fold("\u062f\u06a9\u062a\u0631")]
-            status = "ok" if tokens and all(t in page_text for t in tokens) else "bad"
+            owner = _page_owner(body.decode("utf-8", "ignore") if isinstance(body, (bytes, bytearray)) else str(body))
+            if not owner:
+                return "unknown"  # a challenge / empty shell / unreadable page: NOT a verdict about the doctor, never cached (Codex P2, PR 226)
+            status = "ok" if any(_same_person(p.name, piece) for piece in owner) else "bad"
     except Exception:  # noqa: BLE001
         return "unknown"
     if status in ("ok", "bad"):

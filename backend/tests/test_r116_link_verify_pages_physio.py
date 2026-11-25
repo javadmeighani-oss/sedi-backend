@@ -232,3 +232,56 @@ def test_p2_a_slow_page_cannot_extend_the_request_beyond_the_verification_budget
     release.set()
     assert len(rows) == 5 and not any(r["link_checked"] for r in rows)                                          # shown unchecked, nothing dropped
     assert elapsed < 1.5                                                                                       # bounded by the budget, not by 5 x the reader's timeout
+
+
+# --- Codex round 2 on PR 226 ----------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("listed,owner,same", [
+    ("دکتر علی احمدی", "علی احمدی", True), ("علی احمدی", "دکتر علی احمدی", True), ("علی احمدی", "علی رضا احمدی", True),            # a prefix / one more component
+    ("علی احمدی", "علیرضا احمدیان", False),                                                                         # substrings are not the same person
+    ("علی احمدی", "احمدی", False), ("علی احمدی", "رضا احمدی", False), ("دکتر نسرین عطایی هاشم پور", "نسرین عطایی هاشم پور", True),
+    ("محمدحسین فرودی جهرمی", "محمد‌حسین فرودی‌ جهرمی", True),                                                     # half-spaces do not matter
+    ("", "علی", False),
+])
+def test_p2_the_page_owner_must_be_the_listed_person_component_by_component(listed, owner, same):
+    assert sr._same_person(listed, owner) is same
+
+
+def test_p2_a_challenge_or_empty_shell_is_unknown_not_bad_and_never_cached():
+    urls = dict(sr.listing_urls("زنان", "کرج"))
+    items = [_item(i) for i in range(1, 8)]
+
+    class Shell(_Site):
+        def __call__(self, url):
+            if "/dr/doc-" in url:
+                self.calls.append(url)
+                return SimpleNamespace(ok=True, reason="", body=b"<html><body>Just a moment... verify you are human</body></html>")
+            return super().__call__(url)
+
+    rows = sr.provider_rows("زنان", "کرج", fetch=Shell({urls["paziresh24.com"]: _p24(items)}))
+    assert len(rows) == 5 and not any(r["link_checked"] for r in rows) and not sr._verified                    # shown, unchecked, nothing cached
+
+
+def test_p2_a_page_naming_a_similar_but_different_person_is_rejected():
+    urls = dict(sr.listing_urls("زنان", "کرج"))
+    items = [_item(i, name="علی احمدی") if i == 7 else _item(i) for i in range(1, 8)]
+
+    class Similar(_Site):
+        def __call__(self, url):
+            if "/dr/doc-" in url:
+                self.calls.append(url)
+                n = int(url.rstrip("/").rsplit("-", 1)[-1])
+                owner = "دکتر علیرضا احمدیان" if n == 7 else f"دکتر پزشک {n:02d}"
+                return SimpleNamespace(ok=True, reason="", body=("<html><title>x</title><h1>" + owner + "</h1><p>علی احمدی در لیست دیگر</p></html>").encode("utf-8"))
+            return super().__call__(url)
+
+    rows = sr.provider_rows("زنان", "کرج", fetch=Similar({urls["paziresh24.com"]: _p24(items)}))
+    assert "https://www.paziresh24.com/dr/doc-007/" not in [r["source_url"] for r in rows]
+
+
+def test_the_doctoreto_name_block_is_read_piece_by_piece():
+    html = ('<html><h1><span>نوبت اینترنتی </span><div><div>امین میرزابیگی</div></div><div>کارشناسی فیزیوتراپی</div>'
+            '<svg><path d="M2.5"></path></svg><span>تهران</span></h1></html>')
+    pieces = sr._page_owner(html)
+    assert "امین میرزابیگی" in pieces and any(sr._same_person("دکتر امین میرزابیگی", x) for x in pieces)
+    assert not any(sr._same_person("امین میرزایی", x) for x in pieces)                                          # a different person is not matched by a piece
+    assert sr._page_owner("<html>no heading</html>") == []
