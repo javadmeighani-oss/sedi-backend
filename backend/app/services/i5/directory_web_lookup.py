@@ -48,7 +48,10 @@ TRUSTED_DOMAINS: dict[str, tuple[str, ...]] = {
 }
 # R-118 (Javad 2026-11-25): Iranian laboratory / clinic / doctor LISTING sites that the lab and clinic eval (D-515) found most results on. They are
 # trusted because Sedi introduces, the user tells how it went, and an unhappy user is noticed from the conversation (not by a hand list).
-TRUSTED_LISTING_SITES_IR: tuple[str, ...] = ("darmankade.com", "tabibyab.com", "e-teb.com", "iranclinics.org")
+TRUSTED_LISTING_SITES_IR: tuple[str, ...] = (
+    "darmankade.com", "tabibyab.com", "e-teb.com", "iranclinics.org",
+    "clinicnekoo.ir", "behtarino.com", "irangaah.ir", "clinicroza.ir", "darooha.com",  # named by Javad 2026-11-25 (R-118 am.1)
+)
 TRUSTED_SUFFIXES: tuple[str, ...] = (".gov.ir", ".ac.ir", ".gov", ".edu", ".nhs.uk")
 # Never a provider listing: search engines, maps share links, generic social posts without a profile.
 _BLOCKED_HOSTS = ("google.", "bing.com", "duckduckgo.com", "wikipedia.org", "facebook.com", "twitter.com", "x.com")
@@ -180,8 +183,11 @@ def build_query(entity: str, specialty: Optional[str], city: Optional[str], prov
     ir = country.upper() == "IR"
     word = fa if ir else en
     doctor_by_specialty = entity == "SPECIALIST" and bool(specialty) and ir
+    center_by_service = entity == "SPECIALTY_CENTER" and bool(specialty) and ir  # R-119: «کلینیک فیزیوتراپی در پردیس» is how such places are named
     if doctor_by_specialty:
         what = f"متخصص {specialty}"
+    elif center_by_service:
+        what = f"کلینیک {specialty}"
     else:
         what = f"{specialty} {word}" if specialty else word
     if "24h" in qualifiers:
@@ -189,7 +195,7 @@ def build_query(entity: str, specialty: Optional[str], city: Optional[str], prov
     if "high_rating" in qualifiers:
         what += " با امتیاز بالا" if ir else " highly rated"
     where = ", ".join(x for x in (area, city, province) if x)
-    if doctor_by_specialty:
+    if doctor_by_specialty or center_by_service:
         return f"{what} در {where}"
     return f"{what} {where}" if ir else f"{what} in {where}"
 
@@ -373,6 +379,8 @@ def _query_variants(query: str, entity: str, country: str) -> list[str]:
     out = [query, query + (" آدرس و تلفن" if ir else " address phone")]
     if ir and entity == "LABORATORY":
         out.append(query.replace("آزمایشگاه", "آزمایشگاه تشخیص طبی", 1) + " آدرس")
+    if ir and entity == "SPECIALTY_CENTER" and "کلینیک فیزیوتراپی" in query:  # R-119: the other common name of the same place
+        out.append(query.replace("کلینیک فیزیوتراپی", "مرکز فیزیوتراپی", 1))
     if ir:  # R-089: last try aimed at the Iranian booking / listing sites
         site = query + " نوبت‌دهی پذیرش۲۴ دکترتو دکتر دکتر"
         if entity == "SPECIALIST":  # R-114 am.1: for a doctor the booking sites are what find the doctor pages - they come SECOND

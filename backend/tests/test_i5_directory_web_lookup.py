@@ -196,4 +196,4 @@ def test_r118_the_iranian_listing_sites_from_the_lab_and_clinic_eval_are_trusted
         assert wl.is_trusted_url(url, "IR"), url
     assert not wl.is_trusted_url("https://darmankade.com/lab/1", "US")                       # the Iranian list is for Iran only
     assert not wl.is_trusted_url("https://e-teb.com.evil.example/", "IR")                    # a look-alike host is not the site
-    assert not wl.is_trusted_url("https://clinicnekoo.ir/x", "IR")                           # other domains stay unlisted until Javad names them
+    assert not wl.is_trusted_url("https://fekrazadeh.ir/x", "IR")                            # other domains stay unlisted until Javad names them

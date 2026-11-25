@@ -140,6 +140,8 @@ _CENTER_PAT = re.compile(
     re.I,
 )
 _LAB_PAT = re.compile(r"\b(laboratory|lab\b|آزمایشگاه|مختبر)\b", re.I)
+# R-119 (Javad 2026-11-25): physiotherapy is found like any clinic - the word alone (فیزیوتراپی / فیزیوتراپ / physio / العلاج الطبيعي) names the kind of place
+_PHYSIO_PAT = re.compile(r"فیزیو\s*تراپ|طب\s*فیزیکی|physio|physical\s*therap|العلاج\s*الطبيعي|علاج\s*طبيعي|معالج\s*طبيعي", re.I)
 _PHARMACY_PAT = re.compile(r"\b(pharmacy|pharmacies|داروخانه|دارو\s*خانه|صيدلية|صيدليه|صيدلية)\b|داروخانه", re.I)
 _CARE_NAV_VERB = re.compile(
     r"\b("
@@ -272,6 +274,7 @@ def is_care_navigation_query(message: str) -> bool:
         or _HOSPITAL_PAT.search(text)
         or _CENTER_PAT.search(text)
         or _LAB_PAT.search(text)
+        or _PHYSIO_PAT.search(text)
     )
     if not entity_hit:
         return False
@@ -328,7 +331,7 @@ def detect_care_nav_entity(message: str) -> CareNavEntity:
         return CareNavEntity.PHARMACY
     if _LAB_PAT.search(text):
         return CareNavEntity.LABORATORY
-    if _CENTER_PAT.search(text) and not _HOSPITAL_PAT.search(text):
+    if (_CENTER_PAT.search(text) or _PHYSIO_PAT.search(text)) and not _HOSPITAL_PAT.search(text):
         return CareNavEntity.SPECIALTY_CENTER
     if _HOSPITAL_PAT.search(text):
         return CareNavEntity.HOSPITAL
@@ -361,6 +364,8 @@ def parse_care_nav_request(
     if m_prov:
         province = m_prov.group(2).strip()
     specialty = _spec.find_specialty(text) if entity in (CareNavEntity.SPECIALIST, CareNavEntity.SPECIALTY_CENTER) else None
+    if specialty is None and entity is CareNavEntity.SPECIALTY_CENTER and _PHYSIO_PAT.search(text):
+        specialty = "فیزیوتراپی"  # «فیزیوتراپ» / «physio» alone still names the service (R-119)
     m_spec = _SPECIALTY_HINT.search(text) if specialty is None and entity is not CareNavEntity.PHARMACY else None
     if m_spec:
         raw_spec = re.sub(r"\s+", "", m_spec.group(1).strip()) if "دندان" in m_spec.group(1) else m_spec.group(1).strip()
