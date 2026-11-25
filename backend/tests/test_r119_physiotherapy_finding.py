@@ -102,3 +102,25 @@ def test_an_unrelated_medical_centre_is_not_a_physiotherapy_result_and_does_not_
     assert web_calls == [1]                                                                              # one match is below MIN_LOCAL_HITS: the web search still runs
     plain = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service=None, city="پردیس", province="تهران", language="fa")
     assert len(cn.query_governed_directory(None, plain).identities) == 3                                 # no service asked: every centre counts, as before
+
+
+def test_a_matching_centre_after_many_unrelated_ones_is_still_found(monkeypatch):
+    seen = {}
+    names = [f"مرکز درمانی {i:02d}" for i in range(8)] + ["کلینیک فیزیوتراپی نور"]                       # the matching one sorts LAST by name
+
+    def search_hospitals(db, **k):
+        seen["limit"] = k["limit"]
+        return [_center_row(n) for n in names][: k["limit"]]
+
+    monkeypatch.setattr(cn._governed_directory, "search_hospitals", search_hospitals)
+    monkeypatch.setattr(cn, "_map_backend_row", lambda item: cn.VerifiedDirectoryIdentity(
+        directory_record_id=1, entity_type="MEDICAL_CENTER", canonical_name=item["canonical_name"], canonical_directory_key=item["id"],
+        specialty_or_service=None, city="پردیس", province="تهران", source_system_label="GOVERNED", record_state="ACTIVE",
+        last_verified_at=None, endorsement_disclaimer=""))
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    req = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service="فیزیوتراپی", city="پردیس", province="تهران", language="fa")
+    out = cn.query_governed_directory(None, req)
+    assert seen["limit"] >= 9 and [i.canonical_name for i in out.identities] == ["کلینیک فیزیوتراپی نور"]
+    plain = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service=None, city="پردیس", province="تهران", language="fa")
+    cn.query_governed_directory(None, plain)
+    assert seen["limit"] == plain.limit                                                                   # no service: the limit is untouched

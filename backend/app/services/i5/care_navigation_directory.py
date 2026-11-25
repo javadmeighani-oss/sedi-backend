@@ -669,7 +669,8 @@ def _dispatch_governed_search(
                 province=request.province,
                 facility_type="MEDICAL_CENTER",
                 include_inactive=False,
-                limit=request.limit,
+                # a service is filtered AFTER the search: fetch widely so the first few centres by name cannot hide a matching one (Codex P2, PR 223)
+                limit=max(request.limit, CENTER_SERVICE_CANDIDATES) if request.specialty_or_service else request.limit,
             )
         if entity is CareNavEntity.LABORATORY:
             return _governed_directory.search_laboratories(
@@ -697,6 +698,9 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
         qualifiers=request.qualifiers,
     )
     return _identities_from_rows(results, request)
+
+
+CENTER_SERVICE_CANDIDATES = 200  # governed centres examined for a service request before the service filter
 
 
 def _center_names_service(identity: "VerifiedDirectoryIdentity", service: str) -> bool:
@@ -811,7 +815,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     if entity is CareNavEntity.SPECIALTY_CENTER and request.specialty_or_service:
         # the governed centre search has no service filter: a centre counts for «فیزیوتراپی» / «پوست» only when its own text names that service
         # (an unrelated centre must neither be shown nor stop the web search - Codex P2, PR 223)
-        identities = tuple(i for i in identities if _center_names_service(i, request.specialty_or_service))
+        identities = tuple(i for i in identities if _center_names_service(i, request.specialty_or_service))[: max(request.limit, 5)]
 
     # The booking sites' own listings come FIRST (real ratings, five per introduction); the governed hits follow.
     readers = _reader_identities(request)
