@@ -194,3 +194,41 @@ def test_the_chat_answers_a_physiotherapy_request_from_the_readers_with_people_n
     assert "SITE_READERS" in out.identity_notes and len(out.identities) == 5
     assert all(i.entity_type == "DOCTOR" and i.source_url.startswith("https://doctoreto.com/doctor/") for i in out.identities)
     assert out.intro_state and out.intro_state["entity"] == "SPECIALTY_CENTER" and len(out.intro_state["keys"]) == 5                       # the next five works for it too
+
+
+# --- Codex round 1 on PR 226 ----------------------------------------------------------------------------------------------------------------------
+def test_p2_a_profile_known_to_be_bad_stays_out_even_when_the_budget_is_spent(monkeypatch):
+    urls = dict(sr.listing_urls("زنان", "کرج"))
+    items = [_item(i) for i in range(1, 10)]
+    dead = "https://www.paziresh24.com/dr/doc-009/"
+    site = _Site({urls["paziresh24.com"]: _p24(items)}, profiles={dead: "404"})
+    first = sr.provider_rows("زنان", "کرج", fetch=site)
+    assert dead not in [r["source_url"] for r in first]
+    sr._cache.clear()
+    monkeypatch.setattr(sr, "VERIFY_BUDGET_SECONDS", -1.0)                                                      # no time left: only the cache can answer
+    second = sr.provider_rows("زنان", "کرج", fetch=site)
+    assert dead not in [r["source_url"] for r in second] and len(second) == 5                                   # the cached «bad» still removes it
+
+
+def test_p2_a_slow_page_cannot_extend_the_request_beyond_the_verification_budget(monkeypatch):
+    import threading
+    import time as _time
+
+    urls = dict(sr.listing_urls("زنان", "کرج"))
+    items = [_item(i) for i in range(1, 10)]
+    release = threading.Event()
+
+    class Slow(_Site):
+        def __call__(self, url):
+            if "/dr/doc-" in url:
+                release.wait(3.0)                                                                              # the page reader hangs (its own timeout is 8 s)
+                return SimpleNamespace(ok=True, reason="", body=_profile_page("x"))
+            return super().__call__(url)
+
+    monkeypatch.setattr(sr, "VERIFY_BUDGET_SECONDS", 0.4)
+    started = _time.time()
+    rows = sr.provider_rows("زنان", "کرج", fetch=Slow({urls["paziresh24.com"]: _p24(items)}))
+    elapsed = _time.time() - started
+    release.set()
+    assert len(rows) == 5 and not any(r["link_checked"] for r in rows)                                          # shown unchecked, nothing dropped
+    assert elapsed < 1.5                                                                                       # bounded by the budget, not by 5 x the reader's timeout

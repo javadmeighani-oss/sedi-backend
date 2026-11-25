@@ -427,6 +427,23 @@ def verify_enabled() -> bool:
     return (os.getenv(VERIFY_ENV) or "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
+def _fetch_bounded(fetch: Callable[[str], Any], url: str, deadline: Optional[float]) -> Any:
+    """``fetch(url)``, but never waiting past ``deadline`` (the page reader has its own, longer timeout; two slow pages must not spend 16 s of a 10 s
+    budget - Codex P2, PR 226). None = no answer in time (the abandoned worker finishes on its own and its result is dropped)."""
+    if deadline is None:
+        return fetch(url)
+    left = deadline - time.time()
+    if left <= 0:
+        return None
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        return pool.submit(fetch, url).result(timeout=left)
+    except Exception:  # noqa: BLE001 - timeout or reader error: unknown, never fatal
+        return None
+    finally:
+        pool.shutdown(wait=False)
+
+
 def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None, deadline: Optional[float] = None) -> str:
     """Does the doctor's own page open and show that doctor? ``ok`` / ``bad`` (cached 24 h) or ``unknown`` (blocked, timed out, no time left: NOT cached,
     and the doctor is then shown unchecked - the check never makes the chat worse than not checking). ``bad`` = the page is gone (404/410) or it does
@@ -440,7 +457,9 @@ def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None
     try:
         if not _pace_live_fetch(deadline):
             return "unknown"
-        fr = (fetch or safe_fetch.fetch_page)(url)
+        fr = _fetch_bounded(fetch or safe_fetch.fetch_page, url, deadline)
+        if fr is None:
+            return "unknown"  # the page did not answer within the remaining verification time
         if not getattr(fr, "ok", False):
             status = "bad" if str(getattr(fr, "reason", "")) in {"http_404", "http_410"} else "unknown"
         else:
@@ -493,7 +512,9 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         for p in ranked[(max(1, number) - 1) * PAGE_SIZE:]:
             if len(chosen) >= PAGE_SIZE:
                 break
-            status = verify_profile(p, fetch, deadline) if checking and time.time() < deadline else "unknown"
+            # ALWAYS asked when checking is on: a profile already known to be bad (404 / another person) stays out even when time has run out;
+            # ``verify_profile`` answers from its cache first and makes no live request past the deadline (Codex P2, PR 226)
+            status = verify_profile(p, fetch, deadline) if checking else "unknown"
             if status != "bad":
                 chosen.append((p, status))
         rows = []
