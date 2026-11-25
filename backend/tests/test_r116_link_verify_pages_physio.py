@@ -285,3 +285,22 @@ def test_the_doctoreto_name_block_is_read_piece_by_piece():
     assert "امین میرزابیگی" in pieces and any(sr._same_person("دکتر امین میرزابیگی", x) for x in pieces)
     assert not any(sr._same_person("امین میرزایی", x) for x in pieces)                                          # a different person is not matched by a piece
     assert sr._page_owner("<html>no heading</html>") == []
+
+
+# --- Codex round 3 on PR 226 ----------------------------------------------------------------------------------------------------------------------
+def test_p2_the_verdict_belongs_to_the_listed_name_not_only_to_the_url():
+    urls = dict(sr.listing_urls("زنان", "کرج"))
+    one, two = _item(1, name="علی احمدی"), _item(2, name="رضا حسینی")
+    one["url"] = two["url"] = "/dr/shared-page/"                                                               # two listings point at the SAME page
+    one["star"], one["rates_count"], two["star"], two["rates_count"] = 5.0, 900, 4.99, 899                         # both rank at the top
+
+    class Shared(_Site):
+        def __call__(self, url):
+            if url.endswith("/dr/shared-page/"):
+                self.calls.append(url)
+                return SimpleNamespace(ok=True, reason="", body=_profile_page("دکتر علی احمدی"))
+            return super().__call__(url)
+
+    rows = sr.provider_rows("زنان", "کرج", fetch=Shared({urls["paziresh24.com"]: _p24([one, two] + [_item(i) for i in range(3, 9)])}))
+    names = [r["name"] for r in rows]
+    assert "دکتر علی احمدی" in names and "دکتر رضا حسینی" not in names                                                      # the page shows ONE person; the other listing is not verified by it

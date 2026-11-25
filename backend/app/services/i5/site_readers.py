@@ -412,7 +412,7 @@ def _wrong_city(city: Optional[str], p: SiteProvider) -> bool:
     return bool(want and have and want not in have and have not in want)
 
 
-_verified: dict = {}  # profile url -> (checked at, "ok" | "bad")
+_verified: dict = {}  # (profile url, listed name components) -> (checked at, "ok" | "bad")
 
 
 def _fa_fold(text: Any) -> str:
@@ -474,9 +474,10 @@ def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None
     and the doctor is then shown unchecked - the check never makes the chat worse than not checking). ``bad`` = the page is gone (404/410) or it does
     not carry the listed name."""
     url = encode_url(p.url)
+    key = (url, " ".join(sorted(_name_tokens(p.name))))  # the verdict belongs to THIS listed name on THIS page (two listings can name different people)
     now = time.time()
     with _lock:
-        hit = _verified.get(url)
+        hit = _verified.get(key)
         if hit and now - hit[0] < VERIFY_TTL_SECONDS:
             return hit[1]
     try:
@@ -499,7 +500,7 @@ def verify_profile(p: SiteProvider, fetch: Optional[Callable[[str], Any]] = None
         with _lock:
             if len(_verified) > 512:
                 _verified.pop(next(iter(_verified)))
-            _verified[url] = (time.time(), status)
+            _verified[key] = (time.time(), status)
     return status
 
 
