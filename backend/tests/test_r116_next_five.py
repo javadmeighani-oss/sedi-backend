@@ -225,3 +225,9 @@ def test_p2_the_qualifiers_of_the_first_search_survive_into_the_next_five(db, us
     assert state["qualifiers"] == ["high_rating", "urgent"]
     again = pn.request_from_state({**state, "v": 1}, "fa", user.id)
     assert again.qualifiers == ("high_rating", "urgent") and again.exclude_names == ("دکتر الف",)
+
+
+@pytest.mark.parametrize("message", ["I don't need another doctor", "دکتر دیگه نمی‌خوام", "no more doctors, thanks, I don't want another doctor"])
+def test_p2_a_refusal_is_not_a_continuation(db, user, orch, message):
+    _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
+    assert pn.next_request(db, user.id, message, "fa") is None

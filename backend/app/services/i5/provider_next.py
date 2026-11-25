@@ -38,10 +38,18 @@ _NEXT = re.compile(
 )
 
 
+_REFUSAL = re.compile(
+    r"نمی\W*(?:خوام|خواهم|خواهیم)|نیاز\s*ندارم|لازم\s*ندارم|دیگه\s*کافیه|"
+    r"لا\s*(?:أريد|اريد|أحتاج|احتاج)|"
+    r"\b(?:don.?t|do not|no)\s+(?:need|want)\b|\bno\s+more\b|\benough\b",
+    re.I,
+)
+
+
 def wants_next(message: Optional[str]) -> bool:
     """The message asks for the next doctors / says the last ones did not suit - and is short enough to be only that."""
     text = (message or "").strip()
-    return bool(text) and len(text) <= MAX_MESSAGE_CHARS and bool(_NEXT.search(text))
+    return bool(text) and len(text) <= MAX_MESSAGE_CHARS and bool(_NEXT.search(text)) and not _REFUSAL.search(text)  # «I don't want another doctor» is a refusal
 
 
 def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None) -> Optional[dict]:
@@ -109,6 +117,8 @@ def next_request(db: Any, user_id: Optional[int], message: Optional[str], langua
 
         if cn._has_real_location(message or ""):
             return None  # «another doctor in Shiraz» is a NEW request with its own place
+        if cn._declined_provider(message or "") or cn._NOT_A_FIND_REQUEST.search(message or ""):
+            return None  # «I don't need another doctor» is a refusal, never a continuation (Codex P2, PR 225)
         state = latest_state(db, user_id)
         if not state or _names_another_search(message or "", state):
             return None
