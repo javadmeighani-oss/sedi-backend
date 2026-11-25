@@ -142,3 +142,32 @@ def test_the_link_label_has_name_specialty_and_site_without_repeating_the_specia
 ])
 def test_only_the_page_of_one_doctor_on_its_own_site_is_a_link(url, ok):
     assert sr.profile_url_ok(url) is ok
+
+
+# --- accuracy (found on the LIVE pages 2026-11-25) ------------------------------------------------------------------------------------------------
+def test_a_profile_link_with_a_persian_slug_is_percent_encoded_so_every_client_opens_it():
+    raw = "https://www.paziresh24.com/dr/دکتر-حسن-چراغی/"
+    enc = sr.encode_url(raw)
+    assert enc == "https://www.paziresh24.com/dr/%D8%AF%DA%A9%D8%AA%D8%B1-%D8%AD%D8%B3%D9%86-%DA%86%D8%B1%D8%A7%D8%BA%DB%8C/"
+    assert sr.encode_url(enc) == enc                                                                           # idempotent
+    assert sr.profile_url_ok(raw) and sr.profile_url_ok(enc) and pl.safe_url(enc) == enc
+
+
+def test_the_rows_carry_the_encoded_link_and_the_doctors_own_specialty_text(monkeypatch):
+    urls = dict(sr.listing_urls("پوست", "شیراز"))
+    item = _item(1)
+    item["url"] = "/dr/دکتر-الف-ب/"
+    monkeypatch.setattr(sr.safe_fetch, "fetch_page", lambda url: SimpleNamespace(ok=url == urls["paziresh24.com"], reason="", body=_page([item])))
+    sr._cache.clear()
+    rows = sr.provider_rows("پوست", "شیراز")
+    assert rows[0]["source_url"].startswith("https://www.paziresh24.com/dr/%D8%AF") and rows[0]["specialty"] == "متخصص پوست"
+
+
+def test_midwives_fellowships_and_other_specialties_are_never_introduced_as_the_requested_specialist(monkeypatch):
+    urls = dict(sr.listing_urls("زنان", "شیراز"))
+    items = [_item(1, expertise="کارشناس مامایی"), _item(2, expertise="فلوشیپ پیوند کبد"),
+             _item(3, expertise="متخصص زنان و زایمان"), _item(4, expertise="فوق تخصص روماتولوژی"), _item(5, expertise="متخصص زنان")]
+    monkeypatch.setattr(sr.safe_fetch, "fetch_page", lambda url: SimpleNamespace(ok=url == urls["paziresh24.com"], reason="", body=_page(items)))
+    sr._cache.clear()
+    names = [r["name"] for r in sr.provider_rows("زنان", "شیراز")]
+    assert sorted(names) == ["دکتر 03", "دکتر 05"]                                                          # only those whose own text names the specialty

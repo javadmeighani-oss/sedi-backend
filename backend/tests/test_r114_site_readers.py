@@ -269,7 +269,7 @@ def test_a_doctor_of_another_specialty_never_takes_one_of_the_five_places(monkey
     items = [_p24_item("الف", 500, 4.9, 90, expertise="متخصص گوارش", city="شیراز"), _p24_item("ب", 400, 4.8, 90, expertise="متخصص پوست", city="شیراز"),
              _p24_item("ج", 300, 4.7, 90, expertise="دکترای حرفه‌ای پزشکی", city="شیراز")]                          # a gastroenterologist, a dermatologist, a degree only
     rows = sr.provider_rows("پوست", "شیراز", fetch=_fetcher({urls["paziresh24.com"]: _p24_page(items)}))
-    assert [r["name"] for r in rows] == ["دکتر ب", "دکتر ج"]                                                       # the gastro doctor is out; the degree-only entry stays
+    assert [r["name"] for r in rows] == ["دکتر ب"]                                                                  # the gastro doctor AND the degree-only entry are out (accuracy)
 
 
 def test_when_every_listed_doctor_is_another_specialty_the_chat_falls_back_to_the_older_path(monkeypatch):
