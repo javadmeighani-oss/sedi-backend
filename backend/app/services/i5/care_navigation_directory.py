@@ -140,6 +140,8 @@ _CENTER_PAT = re.compile(
     re.I,
 )
 _LAB_PAT = re.compile(r"\b(laboratory|lab\b|آزمایشگاه|مختبر)\b", re.I)
+# R-119 (Javad 2026-11-25): physiotherapy is found like any clinic - the word alone (فیزیوتراپی / فیزیوتراپ / physio / العلاج الطبيعي) names the kind of place
+_PHYSIO_PAT = re.compile(r"فیزیو\s*تراپ|طب\s*فیزیکی|physiotherap|\bphysio\b|physical\s*therap|العلاج\s*الطبيعي|علاج\s*طبيعي|معالج\s*طبيعي", re.I)
 _PHARMACY_PAT = re.compile(r"\b(pharmacy|pharmacies|داروخانه|دارو\s*خانه|صيدلية|صيدليه|صيدلية)\b|داروخانه", re.I)
 _CARE_NAV_VERB = re.compile(
     r"\b("
@@ -272,6 +274,7 @@ def is_care_navigation_query(message: str) -> bool:
         or _HOSPITAL_PAT.search(text)
         or _CENTER_PAT.search(text)
         or _LAB_PAT.search(text)
+        or _PHYSIO_PAT.search(text)
     )
     if not entity_hit:
         return False
@@ -328,7 +331,7 @@ def detect_care_nav_entity(message: str) -> CareNavEntity:
         return CareNavEntity.PHARMACY
     if _LAB_PAT.search(text):
         return CareNavEntity.LABORATORY
-    if _CENTER_PAT.search(text) and not _HOSPITAL_PAT.search(text):
+    if (_CENTER_PAT.search(text) or _PHYSIO_PAT.search(text)) and not _HOSPITAL_PAT.search(text):
         return CareNavEntity.SPECIALTY_CENTER
     if _HOSPITAL_PAT.search(text):
         return CareNavEntity.HOSPITAL
@@ -361,6 +364,8 @@ def parse_care_nav_request(
     if m_prov:
         province = m_prov.group(2).strip()
     specialty = _spec.find_specialty(text) if entity in (CareNavEntity.SPECIALIST, CareNavEntity.SPECIALTY_CENTER) else None
+    if specialty is None and entity is CareNavEntity.SPECIALTY_CENTER and _PHYSIO_PAT.search(text):
+        specialty = "فیزیوتراپی"  # «فیزیوتراپ» / «physio» alone still names the service (R-119)
     m_spec = _SPECIALTY_HINT.search(text) if specialty is None and entity is not CareNavEntity.PHARMACY else None
     if m_spec:
         raw_spec = re.sub(r"\s+", "", m_spec.group(1).strip()) if "دندان" in m_spec.group(1) else m_spec.group(1).strip()
@@ -664,7 +669,8 @@ def _dispatch_governed_search(
                 province=request.province,
                 facility_type="MEDICAL_CENTER",
                 include_inactive=False,
-                limit=request.limit,
+                # a service is filtered AFTER the search: fetch widely so the first few centres by name cannot hide a matching one (Codex P2, PR 223)
+                limit=max(request.limit, CENTER_SERVICE_CANDIDATES) if request.specialty_or_service else request.limit,
             )
         if entity is CareNavEntity.LABORATORY:
             return _governed_directory.search_laboratories(
@@ -692,6 +698,18 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
         qualifiers=request.qualifiers,
     )
     return _identities_from_rows(results, request)
+
+
+CENTER_SERVICE_CANDIDATES = 200  # governed centres examined for a service request before the service filter
+
+
+def _center_names_service(identity: "VerifiedDirectoryIdentity", service: str) -> bool:
+    text = f"{identity.canonical_name or ''} {identity.specialty_or_service or ''}"
+    squash = lambda t: re.sub(r"[\s‌\-]+", "", str(t or "")).lower()  # noqa: E731
+    if squash(service) and squash(service) in squash(text):
+        return True
+    canonical = _spec.find_specialty(service) or service
+    return canonical in _spec.named_specialties(text)
 
 
 def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
@@ -794,6 +812,10 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         if str(item.get("record_state") or "").upper() == "ACTIVE"
         and not _web_lookup.is_stale_web_row(item.get("source_system_label"), item.get("last_verified_at"))
     )
+    if entity is CareNavEntity.SPECIALTY_CENTER and request.specialty_or_service:
+        # the governed centre search has no service filter: a centre counts for «فیزیوتراپی» / «پوست» only when its own text names that service
+        # (an unrelated centre must neither be shown nor stop the web search - Codex P2, PR 223)
+        identities = tuple(i for i in identities if _center_names_service(i, request.specialty_or_service))[: max(request.limit, 5)]
 
     # The booking sites' own listings come FIRST (real ratings, five per introduction); the governed hits follow.
     readers = _reader_identities(request)

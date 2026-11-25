@@ -165,6 +165,11 @@ def named_specialties(text: object) -> set:
     return names
 
 
+def is_known(canonical: Optional[str]) -> bool:
+    """True when ``canonical`` is one of the lexicon's canonical specialty / service names."""
+    return (canonical or "") in _BY_NAME
+
+
 def result_matches_specialty(canonical: Optional[str], *texts: object) -> bool:
     """R-114 am.1: a search RESULT is that specialty when the specialties its OWN text names include it. The texts are judged in order (the
     result's specialty field first, then its name) and the FIRST one that names any specialty decides - a neurosurgeon is not a general
