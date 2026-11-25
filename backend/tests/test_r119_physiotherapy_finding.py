@@ -124,3 +124,30 @@ def test_a_matching_centre_after_many_unrelated_ones_is_still_found(monkeypatch)
     plain = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service=None, city="پردیس", province="تهران", language="fa")
     cn.query_governed_directory(None, plain)
     assert seen["limit"] == plain.limit                                                                   # no service: the limit is untouched
+
+
+def test_web_results_for_a_physiotherapy_request_must_name_the_service(monkeypatch):
+    rows = [{"name": "کلینیک قلب نور", "specialty": "قلب و عروق"}, {"name": "مرکز فیزیوتراپی و توانبخشی شفا", "specialty": None},
+            {"name": "کلینیک تخصصی البرز", "specialty": "فیزیوتراپی و طب فیزیکی"}, {"name": "کلینیک دندانپزشکی ماه", "specialty": "دندانپزشکی"}]
+    kept = web._only_the_specialty(rows, "SPECIALTY_CENTER", "فیزیوتراپی")
+    assert [r["name"] for r in kept] == ["مرکز فیزیوتراپی و توانبخشی شفا", "کلینیک تخصصی البرز"]
+    assert web._only_the_specialty(rows, "SPECIALTY_CENTER", None) == rows                                 # no service asked: nothing filtered
+    assert web._only_the_specialty(rows, "SPECIALTY_CENTER", "برچسب ناشناخته") == rows                    # an unknown label never filters
+    assert web._only_the_specialty(rows, "LABORATORY", "فیزیوتراپی") == rows                                # other kinds untouched
+    monkeypatch.setenv(web.SPEC_FILTER_DISABLED_ENV, "1")
+    assert web._only_the_specialty(rows, "SPECIALTY_CENTER", "فیزیوتراپی") == rows                          # the existing kill switch covers it
+
+
+def test_the_search_retries_when_the_first_answer_is_an_unrelated_clinic(monkeypatch):
+    calls = []
+    answers = [[{"name": "کلینیک قلب نور", "specialty": "قلب", "city": "پردیس", "address": "پردیس، خیابان ۱", "phone": "021-33445566",
+                 "source_url": "https://darmankade.com/a"}],
+               [{"name": "مرکز فیزیوتراپی شفا", "specialty": "فیزیوتراپی", "city": "پردیس", "address": "پردیس، خیابان ۲", "phone": "021-33445577",
+                 "source_url": "https://darmankade.com/b"}]]
+    monkeypatch.setenv(web.FLAG, "1")
+    monkeypatch.setattr(web, "_take_quota", lambda: True)
+    web._cache.clear()
+    monkeypatch.setattr(web, "_call_web_search", lambda q, c, client=None: calls.append(q) or (answers.pop(0) if answers else []))
+    monkeypatch.setattr(web, "verify_and_rank", lambda results, **k: results)
+    out = web.search_web_providers(entity="SPECIALTY_CENTER", specialty="فیزیوتراپی", city="پردیس", province="تهران")
+    assert [r["name"] for r in out] == ["مرکز فیزیوتراپی شفا"] and len(calls) == 2                       # the cardiology clinic did not end the search

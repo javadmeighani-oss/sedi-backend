@@ -436,14 +436,29 @@ def search_web_providers(*, entity: str, specialty: Optional[str], city: Optiona
     return results
 
 
+def _clinic_names_service(service: str, r: dict[str, Any]) -> bool:
+    from backend.app.services.i5 import specialty_lexicon as _lex
+
+    text = f"{r.get('name') or ''} {r.get('specialty') or ''}"
+    squash = lambda t: re.sub(r"[\s‌\-]+", "", str(t or "")).lower()  # noqa: E731
+    return squash(service) in squash(text) or service in _lex.named_specialties(text)
+
+
 def _only_the_specialty(results: list[dict[str, Any]], entity: str, specialty: Optional[str]) -> list[dict[str, Any]]:
     """R-114 am.1 (Javad E2): a doctor result must BE the requested specialty (its own specialty text or name says so); a pediatrician for a
     gastro request is dropped, not merely ranked lower. Entities other than doctors and unknown specialty labels are never filtered."""
-    if entity != "SPECIALIST" or not specialty or os.getenv(SPEC_FILTER_DISABLED_ENV, "").strip().lower() in {"1", "true", "yes", "on"}:
+    if entity not in ("SPECIALIST", "SPECIALTY_CENTER") or not specialty or os.getenv(SPEC_FILTER_DISABLED_ENV, "").strip().lower() in {"1", "true", "yes", "on"}:
         return results
     from backend.app.services.i5 import specialty_lexicon as _lex
 
-    kept = [r for r in results if _lex.result_matches_specialty(specialty, r.get("specialty"), r.get("name"))]
+    if entity == "SPECIALTY_CENTER":
+        # R-119 (Codex P2, PR 223): a clinic asked for BY SERVICE («فیزیوتراپی», «پوست») must name that service in its own name/specialty text -
+        # a cardiology clinic is not a physiotherapy result. A label the lexicon does not know never filters.
+        if not _lex.is_known(specialty):
+            return results
+        kept = [r for r in results if _clinic_names_service(specialty, r)]
+    else:
+        kept = [r for r in results if _lex.result_matches_specialty(specialty, r.get("specialty"), r.get("name"))]
     state = _BUDGET.get()
     if state is not None:
         state["dropped"] += len(results) - len(kept)
