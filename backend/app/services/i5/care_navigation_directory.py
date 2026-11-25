@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from backend.app.services.i5 import iran_directory_service as _governed_directory
 from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFEST
 from backend.app.services.i5 import directory_web_lookup as _web_lookup
+from backend.app.services.i5 import site_readers as _site_readers
 from backend.app.services.i5 import iran_places as _places
 from backend.app.services.i5 import specialty_lexicon as _spec
 
@@ -690,6 +691,26 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
         area=request.area,
         qualifiers=request.qualifiers,
     )
+    return _identities_from_rows(results, request)
+
+
+def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
+    """R-114/R-116: the FIVE most credible doctors read from the booking sites' own listing pages (Paziresh24 / Doctoreto) for the specialty in
+    the city - real ratings, address and profile link. Flag ``SEDI_SITE_READERS_ENABLED`` (default OFF); doctors only; fail-open (an unreadable
+    site or an unmapped specialty/city = nothing, and the older paths answer)."""
+    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled() or request.name_hint:
+        return ()  # a request for a doctor BY NAME is answered by the name search, never by the top-five of a specialty
+    try:
+        text = request.specialty_or_service or ""
+        canonical = _spec.find_specialty(text) or text
+        rows = _site_readers.provider_rows(canonical, request.city, area=request.area)
+        return _identities_from_rows(rows, request) if rows else ()
+    except Exception:  # noqa: BLE001
+        logger.info("care_nav_site_readers_failed")
+        return ()
+
+
+def _identities_from_rows(results: Sequence[Mapping[str, Any]], request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
     kind = "DOCTOR" if request.entity is CareNavEntity.SPECIALIST else (
         "LABORATORY" if request.entity is CareNavEntity.LABORATORY else (
             "PHARMACY" if request.entity is CareNavEntity.PHARMACY else "HOSPITAL"
@@ -773,6 +794,13 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         if str(item.get("record_state") or "").upper() == "ACTIVE"
         and not _web_lookup.is_stale_web_row(item.get("source_system_label"), item.get("last_verified_at"))
     )
+
+    # The booking sites' own listings come FIRST (real ratings, five per introduction); the governed hits follow.
+    readers = _reader_identities(request)
+    if readers:
+        known = {i.canonical_name for i in readers}
+        identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE)]
+        notes.append("SITE_READERS")
 
     # Too few governed hits → search the web for what the user asked (transient, linked, unverified unless on a
     # known listing/official domain). Nothing from the web enters the governed store.
