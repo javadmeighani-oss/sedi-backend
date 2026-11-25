@@ -189,3 +189,11 @@ def _no_network_for_page_checks(monkeypatch):
     """Unit tests never read real pages: the page check sees an unreadable page (claims stay «unchecked»)."""
     from backend.app.services.i5 import safe_fetch
     monkeypatch.setattr(safe_fetch, "fetch_page", lambda url, **k: safe_fetch.FetchResult(False, url, reason="test"))
+
+
+def test_r118_the_iranian_listing_sites_from_the_lab_and_clinic_eval_are_trusted():
+    for url in ("https://darmankade.com/lab/1", "https://www.tabibyab.com/x", "https://lab.e-teb.com/y", "https://iranclinics.org/clinic/z"):
+        assert wl.is_trusted_url(url, "IR"), url
+    assert not wl.is_trusted_url("https://darmankade.com/lab/1", "US")                       # the Iranian list is for Iran only
+    assert not wl.is_trusted_url("https://e-teb.com.evil.example/", "IR")                    # a look-alike host is not the site
+    assert not wl.is_trusted_url("https://clinicnekoo.ir/x", "IR")                           # other domains stay unlisted until Javad names them

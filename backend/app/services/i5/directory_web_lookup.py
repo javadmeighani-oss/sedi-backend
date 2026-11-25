@@ -46,6 +46,9 @@ TRUSTED_DOMAINS: dict[str, tuple[str, ...]] = {
     "IR": ("paziresh24.com", "drdr.ir", "doctoreto.com", "nobat.ir", "irimc.org", "behdasht.gov.ir"),
     "*": ("nhs.uk", "who.int"),
 }
+# R-118 (Javad 2026-11-25): Iranian laboratory / clinic / doctor LISTING sites that the lab and clinic eval (D-515) found most results on. They are
+# trusted because Sedi introduces, the user tells how it went, and an unhappy user is noticed from the conversation (not by a hand list).
+TRUSTED_LISTING_SITES_IR: tuple[str, ...] = ("darmankade.com", "tabibyab.com", "e-teb.com", "iranclinics.org")
 TRUSTED_SUFFIXES: tuple[str, ...] = (".gov.ir", ".ac.ir", ".gov", ".edu", ".nhs.uk")
 # Never a provider listing: search engines, maps share links, generic social posts without a profile.
 _BLOCKED_HOSTS = ("google.", "bing.com", "duckduckgo.com", "wikipedia.org", "facebook.com", "twitter.com", "x.com")
@@ -145,7 +148,8 @@ def is_trusted_url(url: str, country: str = "IR") -> bool:
     if not host:
         return False
     extra = tuple(d.strip().lower() for d in os.getenv(EXTRA_DOMAINS_ENV, "").split(",") if d.strip())
-    domains = TRUSTED_DOMAINS.get(country.upper(), ()) + TRUSTED_DOMAINS["*"] + extra
+    listing = TRUSTED_LISTING_SITES_IR if country.upper() == "IR" else ()
+    domains = TRUSTED_DOMAINS.get(country.upper(), ()) + TRUSTED_DOMAINS["*"] + listing + extra
     if any(host == d or host.endswith("." + d) for d in domains):
         return True
     return any(host.endswith(s) for s in TRUSTED_SUFFIXES)
