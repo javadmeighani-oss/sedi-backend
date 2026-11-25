@@ -33,6 +33,20 @@ PLACES = (
 )
 NEARBY_ORIGINS = ("بومهن", "پردیس", "تهرانپارس")
 
+# R-114/R-116 (Javad: «what is ready for labs and clinics?»): the same measurement for the NON-doctor entities. The service is the
+# specialty/service word the chat passes (None = a plain laboratory / hospital request).
+ENTITY_SERVICES = {
+    "LABORATORY": (None, "تشخیص طبی", "پاتولوژی"),
+    "SPECIALTY_CENTER": ("فیزیوتراپی", "دندانپزشکی", "زنان", "پوست", "چشم", "روانشناسی"),
+    "HOSPITAL": (None,),
+}
+# what a result of that kind calls itself (name or specialty text): the yardstick of «this is a laboratory / clinic / hospital»
+KIND_WORDS = {
+    "LABORATORY": ("آزمایشگاه", "ازمایشگاه", "لابراتوار", "پاتولوژی", "laborator"),
+    "SPECIALTY_CENTER": ("کلینیک", "درمانگاه", "مرکز", "بیمارستان", "مطب", "clinic", "center", "centre"),
+    "HOSPITAL": ("بیمارستان", "hospital"),
+}
+
 
 def golden_set(limit: int) -> list[dict[str, Any]]:
     """Deterministic spread, INTERLEAVED by place so any prefix (the default 24) still covers every place including the controls;
@@ -51,6 +65,28 @@ def golden_set(limit: int) -> list[dict[str, Any]]:
             if rank < len(items):
                 rows.append(items[rank])
     return rows[: max(1, limit)]
+
+
+def golden_set_entity(entity: str, limit: int) -> list[dict[str, Any]]:
+    """Laboratory / clinic / hospital golden set: service x place, interleaved by place like the doctor set so any prefix covers every place."""
+    services = ENTITY_SERVICES.get(entity, (None,))
+    per_place = [[{"specialty": svc, "area": area, "city": city, "province": province} for svc in services] for (area, city, province) in PLACES]
+    rows: list[dict[str, Any]] = []
+    for rank in range(max(len(x) for x in per_place)):
+        for items in per_place:
+            if rank < len(items):
+                rows.append(items[rank])
+    return rows[: max(1, limit)]
+
+
+def kind_match(row: dict[str, Any], entity: str) -> bool:
+    """The result calls itself that kind of place (laboratory / clinic or centre / hospital) in its name or specialty text."""
+    text = _norm(f"{row.get('name') or ''} {row.get('specialty') or ''}")
+    return any(_norm(w) in text for w in KIND_WORDS.get(entity, ()))
+
+
+def service_match(row: dict[str, Any], service: Optional[str]) -> bool:
+    return bool(service) and _norm(service) in _norm(f"{row.get('name') or ''} {row.get('specialty') or ''}")
 
 
 class FailureProbe:
@@ -99,11 +135,12 @@ def _host(url: str) -> str:
     return (urlparse(url or "").hostname or "").lower().removeprefix("www.")
 
 
-def measure(item: dict[str, Any], search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]], probe: Optional[FailureProbe] = None) -> dict[str, Any]:
+def measure(item: dict[str, Any], search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]], probe: Optional[FailureProbe] = None,
+            entity: str = "SPECIALIST") -> dict[str, Any]:
     started = time.time()
     seen = len(probe.errors) if probe is not None else 0
     try:
-        results = search_fn(entity="SPECIALIST", specialty=item["specialty"], city=item["city"], province=item["province"], area=item["area"], qualifiers=())
+        results = search_fn(entity=entity, specialty=item["specialty"], city=item["city"], province=item["province"], area=item["area"], qualifiers=())
         error = None
     except Exception as exc:  # noqa: BLE001 - a failing query is a data point, not a crash
         results, error = [], type(exc).__name__
@@ -112,10 +149,11 @@ def measure(item: dict[str, Any], search_fn: Callable[..., list], build_query_fn
     elapsed = round(time.time() - started, 2)
     rows = [r for r in results if isinstance(r, dict)]
     return {
-        "specialty": item["specialty"], "place": " ".join(x for x in (item["area"], item["city"]) if x),
-        "query": build_query_fn("SPECIALIST", item["specialty"], item["city"], item["province"], area=item["area"]),
+        "entity": entity, "specialty": item["specialty"], "place": " ".join(x for x in (item["area"], item["city"]) if x),
+        "query": build_query_fn(entity, item["specialty"], item["city"], item["province"], area=item["area"]),
         "results": len(rows),
-        "suitable": sum(1 for r in rows if suitable(r, item["specialty"])),
+        "suitable": sum(1 for r in rows if (suitable(r, item["specialty"]) if entity == "SPECIALIST" else kind_match(r, entity))),
+        "service_match": sum(1 for r in rows if service_match(r, item["specialty"])) if entity != "SPECIALIST" else 0,
         "trusted": sum(1 for r in rows if r.get("trusted")),
         "page_read": sum(1 for r in rows if r.get("page_read")),
         "phone_verified": sum(1 for r in rows if r.get("phone_status") == "verified"),
@@ -143,17 +181,21 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "pct_results_phone_verified": round(100 * sum(r["phone_verified"] for r in rows) / max(1, sum(r["results"] for r in rows)), 1),
         "pct_results_address_verified": round(100 * sum(r["address_verified"] for r in rows) / max(1, sum(r["results"] for r in rows)), 1),
         "errors": sum(1 for r in rows if r["error"]),
+        "results_service_match": sum(r.get("service_match", 0) for r in rows),
         "seconds_p50": round(statistics.median(secs), 2), "seconds_max": max(secs),
         "domains": dict(sorted(domains.items(), key=lambda kv: -kv[1])[:15]),
     }
 
 
 def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[str]], nearby_fn: Optional[Callable[[str], list]],
-        *, limit: int = 24, label: str = "baseline", model: str = "", out: Callable[[str], None] = print, probe: Optional[FailureProbe] = None) -> dict[str, Any]:
-    items = golden_set(limit)
+        *, limit: int = 24, label: str = "baseline", model: str = "", out: Callable[[str], None] = print, probe: Optional[FailureProbe] = None,
+        entity: str = "SPECIALIST") -> dict[str, Any]:
+    items = golden_set(limit) if entity == "SPECIALIST" else golden_set_entity(entity, limit)
+    if entity != "SPECIALIST":
+        nearby_fn = None  # the nearby-places helper is about neighbourhoods, not about the kind of provider
     rows = []
     for item in items:
-        row = measure(item, search_fn, build_query_fn, probe)
+        row = measure(item, search_fn, build_query_fn, probe, entity)
         rows.append(row)
         out("EVAL|query|" + json.dumps(row, ensure_ascii=False))
     nearby: dict[str, Any] = {}
@@ -165,7 +207,7 @@ def run(search_fn: Callable[..., list], build_query_fn: Callable[..., Optional[s
                 nearby[origin] = "ERR:" + type(exc).__name__
         out("EVAL|nearby|" + json.dumps(nearby, ensure_ascii=False))
     agg = aggregate(rows)
-    agg.update(set=label, model=model or "default")
+    agg.update(set=label, model=model or "default", entity=entity)
     out("EVAL|aggregate|" + json.dumps(agg, ensure_ascii=False))
     # an eval where EVERY query failed at the provider says nothing about search quality: fail it instead of reporting a false baseline
     out("EVAL|phase_search_eval|" + ("FAIL" if rows and agg["errors"] == len(rows) else "PASS"))
@@ -385,7 +427,10 @@ def main() -> int:
         entries = run_sites(sites, limit, web.search_web_providers, web, probe=probe)
         print("EVAL|phase_search_eval|" + ("FAIL" if entries and all(e["errors"] >= e["queries"] for e in entries) else "PASS"))
         return 0
-    agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit,
+    entity = (os.getenv("SEDI_EVAL_ENTITY") or "SPECIALIST").strip().upper()
+    if entity not in ("SPECIALIST", *ENTITY_SERVICES):
+        entity = "SPECIALIST"
+    agg = run(web.search_web_providers, web.build_query, nearby.nearby_places, limit=limit, entity=entity,
               label=os.getenv("SEDI_EVAL_SET", "baseline"), model=(web.search_model() if hasattr(web, "search_model") else os.getenv(web.MODEL_ENV, web.DEFAULT_MODEL)), probe=probe)
     return 0 if agg["errors"] < agg["queries"] else 4
 

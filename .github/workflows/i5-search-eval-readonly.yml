@@ -33,6 +33,10 @@ on:
         description: "Optional fetch mode: comma-separated https URLs the server's page reader tries to read (max 12; counts and field names only are printed)"
         required: false
         default: ""
+      entity:
+        description: "Optional provider kind for the general run: LABORATORY | SPECIALTY_CENTER | HOSPITAL (empty = doctors, the default golden set)"
+        required: false
+        default: ""
       sites:
         description: "Optional site mode: comma-separated domains to examine one by one (e.g. doctoreto.com,drdr.ir); empty = the general run"
         required: false
@@ -62,8 +66,10 @@ jobs:
           SITES: ${{ github.event.inputs.sites }}
           FETCH: ${{ github.event.inputs.fetch_urls }}
           READERS: ${{ github.event.inputs.readers }}
+          ENTITY: ${{ github.event.inputs.entity }}
         run: |
           set -Eeuo pipefail
+          echo "${ENTITY}" | grep -Eq '^(LABORATORY|SPECIALTY_CENTER|HOSPITAL)?$'
           echo "${READERS}" | grep -Eq '^(1)?$'
           echo "${FETCH}" | grep -Eq '^(https://[A-Za-z0-9._~:/?&=%-]{4,300}(,https://[A-Za-z0-9._~:/?&=%-]{4,300}){0,11})?$'
           echo "${SITES}" | grep -Eq '^([a-z0-9.-]+\.[a-z]{2,}(,[a-z0-9.-]+\.[a-z]{2,}){0,5})?$'
@@ -81,6 +87,7 @@ jobs:
           SITES: ${{ github.event.inputs.sites }}
           FETCH: ${{ github.event.inputs.fetch_urls }}
           READERS: ${{ github.event.inputs.readers }}
+          ENTITY: ${{ github.event.inputs.entity }}
         run: |
           set -Eeuo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -92,7 +99,7 @@ jobs:
           if [ "${READERS}" = "1" ]; then READERS_B64="$(base64 -w0 backend/app/services/i5/site_readers.py)"; fi
           ssh -i ~/.ssh/sedi_deploy_key -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "IMAGE_SHA=$(printf '%q' "${SHA}") EVAL_SET=$(printf '%q' "${LABEL:-baseline}") EVAL_MODEL=$(printf '%q' "${MODEL}") EVAL_MAXQ=$(printf '%q' "${MAXQ:-24}") EVAL_SITES=$(printf '%q' "${SITES}") EVAL_FETCH=$(printf '%q' "${FETCH}") READERS_B64=${READERS_B64} SCRIPT_B64=${SCRIPT_B64} bash -s" \
+            "IMAGE_SHA=$(printf '%q' "${SHA}") EVAL_SET=$(printf '%q' "${LABEL:-baseline}") EVAL_MODEL=$(printf '%q' "${MODEL}") EVAL_MAXQ=$(printf '%q' "${MAXQ:-24}") EVAL_SITES=$(printf '%q' "${SITES}") EVAL_FETCH=$(printf '%q' "${FETCH}") EVAL_ENTITY=$(printf '%q' "${ENTITY}") READERS_B64=${READERS_B64} SCRIPT_B64=${SCRIPT_B64} bash -s" \
             2>&1 <<'REMOTE' | tee /tmp/search_eval.log
           set -Eeuo pipefail
           set -f  # no globbing of the unquoted env words below
@@ -107,6 +114,7 @@ jobs:
           ENVARGS="-e SEDI_EVAL_SET=${EVAL_SET} -e SEDI_EVAL_MAX_QUERIES=${EVAL_MAXQ}"
           if [ -n "${READERS_B64}" ]; then ENVARGS="${ENVARGS} -e SEDI_EVAL_READERS_SRC_B64=${READERS_B64}"; fi
           if [ -n "${EVAL_FETCH}" ]; then ENVARGS="${ENVARGS} -e SEDI_EVAL_FETCH_URLS=${EVAL_FETCH}"; fi
+          if [ -n "${EVAL_ENTITY}" ]; then ENVARGS="${ENVARGS} -e SEDI_EVAL_ENTITY=${EVAL_ENTITY}"; fi
           if [ -n "${EVAL_SITES}" ]; then ENVARGS="${ENVARGS} -e SEDI_EVAL_SITES=${EVAL_SITES}"; fi
           if [ -n "${EVAL_MODEL}" ]; then ENVARGS="${ENVARGS} -e SEDI_DIRECTORY_WEB_LOOKUP_MODEL=${EVAL_MODEL}"; fi
           echo "${SCRIPT_B64}" | base64 -d | docker exec -i ${ENVARGS} sedi-backend python -

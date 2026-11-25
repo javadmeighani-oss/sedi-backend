@@ -374,3 +374,45 @@ def test_a_requested_site_with_www_still_matches_its_results_and_is_restricted_w
     client = _Client({})
     ev.run_sites(["WWW.drdr.ir"], 1, lambda **k: web._call_web_search("q", "IR", client) and [], web, out=lambda s: None)
     assert client.kwargs[0]["tools"][0]["filters"]["allowed_domains"] == ["drdr.ir"]
+
+
+# --- laboratories / clinics / hospitals (Javad: what is ready for labs and clinics?) -------------------------------------------------------------------
+def test_the_entity_golden_sets_cover_every_place_and_service(ev):
+    labs = ev.golden_set_entity("LABORATORY", 48)
+    assert len(labs) == 18 and {x["specialty"] for x in labs} == {None, "تشخیص طبی", "پاتولوژی"}
+    assert {x["city"] for x in labs} >= {"بومهن", "پردیس", "تهران", "شیراز"}                                       # the pilot place, a big city, the controls
+    clinics = ev.golden_set_entity("SPECIALTY_CENTER", 12)
+    assert len({(x["area"], x["city"]) for x in clinics}) == 6                                                      # a short prefix still spreads over every place
+    assert ev.golden_set_entity("LABORATORY", 5) == ev.golden_set_entity("LABORATORY", 5)                          # deterministic
+
+
+def test_kind_match_recognises_a_laboratory_a_clinic_and_a_hospital_by_their_own_words(ev):
+    assert ev.kind_match({"name": "آزمایشگاه دکتر الف"}, "LABORATORY") and ev.kind_match({"name": "x", "specialty": "Medical Laboratory"}, "LABORATORY")
+    assert not ev.kind_match({"name": "دکتر الف", "specialty": "متخصص گوارش"}, "LABORATORY")
+    assert ev.kind_match({"name": "کلینیک تخصصی پارس"}, "SPECIALTY_CENTER") and ev.kind_match({"name": "درمانگاه شبانه‌روزی"}, "SPECIALTY_CENTER")
+    assert ev.kind_match({"name": "بیمارستان امام"}, "HOSPITAL") and not ev.kind_match({"name": "کلینیک پارس"}, "HOSPITAL")
+    assert ev.service_match({"name": "کلینیک فیزیوتراپی نور"}, "فیزیوتراپی") and not ev.service_match({"name": "کلینیک نور"}, None)
+
+
+def test_entity_mode_measures_the_kind_not_the_doctor_specialty(ev):
+    seen = []
+
+    def search(**k):
+        seen.append((k["entity"], k["specialty"]))
+        return [_row("آزمایشگاه پاستور", None), _row("دکتر الف", "گوارش")]
+
+    out = ev.measure({"specialty": "پاتولوژی", "area": None, "city": "پردیس", "province": "تهران"}, search, lambda e, *a, **k: e, None, "LABORATORY")
+    assert seen == [("LABORATORY", "پاتولوژی")] and out["entity"] == "LABORATORY" and out["query"] == "LABORATORY"
+    assert out["results"] == 2 and out["suitable"] == 1 and out["service_match"] == 0
+
+
+def test_run_in_entity_mode_labels_the_aggregate_and_skips_the_nearby_helper(ev):
+    lines = []
+    agg = ev.run(lambda **k: [_row("آزمایشگاه الف", None)], lambda *a, **k: "q", lambda origin: ["x"], limit=4, label="labs", out=lines.append, entity="LABORATORY")
+    assert agg["entity"] == "LABORATORY" and agg["queries"] == 4 and agg["pct_with_suitable_result"] == 100.0
+    assert "nearby" not in [ln.split("|")[1] for ln in lines]
+
+
+def test_the_workflow_validates_and_passes_the_entity(ev):
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "LABORATORY|SPECIALTY_CENTER|HOSPITAL" in text and "SEDI_EVAL_ENTITY=${EVAL_ENTITY}" in text and "EVAL_ENTITY=$(printf" in text
