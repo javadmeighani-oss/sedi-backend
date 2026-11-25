@@ -71,6 +71,8 @@ class CareNavRequest:
     limit: int = 5
     wants_sources: bool = False
     qualifiers: tuple = ()  # J3-a: («24h», «high_rating») read from the user's words; used in the online search and ranking
+    exclude_keys: tuple = ()  # R-116 «next five»: site-reader keys of the doctors already introduced
+    exclude_names: tuple = ()  # ... and the names of EVERY doctor already introduced (any source), never shown again
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,7 @@ class CareNavResult:
     lab_population_authorized: bool = LAB_POPULATION_AUTHORIZED
     identity_notes: tuple[str, ...] = ()
     links: tuple = ()  # R-107 am.3: [{label, url, kind, host}] shown OUTSIDE the bubble (built only from verified results / the directory's own search pages)
+    intro_state: Optional[dict] = None  # R-116 «next five»: what was introduced (request + keys + names), kept with the stored turn
 
 
 # --- Intent detection (application-side; not prompt-only) ---
@@ -712,20 +715,27 @@ def _center_names_service(identity: "VerifiedDirectoryIdentity", service: str) -
     return canonical in _spec.named_specialties(text)
 
 
+def _reader_rows(request: "CareNavRequest") -> list:
+    """The reader rows (see ``_reader_identities``), minus the doctors already introduced (``request.exclude_keys`` - the «next five» flow)."""
+    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled() or request.name_hint:
+        return []  # a request for a doctor BY NAME is answered by the name search, never by the top-five of a specialty
+    try:
+        text = request.specialty_or_service or ""
+        canonical = _spec.find_specialty(text) or text
+        rows = _site_readers.provider_rows(canonical, request.city, area=request.area, exclude=tuple(request.exclude_keys or ()))
+        shown = {str(n) for n in (request.exclude_names or ())}
+        return [r for r in rows if r.get("name") not in shown]
+    except Exception:  # noqa: BLE001
+        logger.info("care_nav_site_readers_failed")
+        return []
+
+
 def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
     """R-114/R-116: the FIVE most credible doctors read from the booking sites' own listing pages (Paziresh24 / Doctoreto) for the specialty in
     the city - real ratings, address and profile link. Flag ``SEDI_SITE_READERS_ENABLED`` (default OFF); doctors only; fail-open (an unreadable
     site or an unmapped specialty/city = nothing, and the older paths answer)."""
-    if request.entity is not CareNavEntity.SPECIALIST or not _site_readers.readers_enabled() or request.name_hint:
-        return ()  # a request for a doctor BY NAME is answered by the name search, never by the top-five of a specialty
-    try:
-        text = request.specialty_or_service or ""
-        canonical = _spec.find_specialty(text) or text
-        rows = _site_readers.provider_rows(canonical, request.city, area=request.area)
-        return _identities_from_rows(rows, request) if rows else ()
-    except Exception:  # noqa: BLE001
-        logger.info("care_nav_site_readers_failed")
-        return ()
+    rows = _reader_rows(request)
+    return _identities_from_rows(rows, request) if rows else ()
 
 
 def _identities_from_rows(results: Sequence[Mapping[str, Any]], request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
@@ -818,7 +828,11 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         identities = tuple(i for i in identities if _center_names_service(i, request.specialty_or_service))[: max(request.limit, 5)]
 
     # The booking sites' own listings come FIRST (real ratings, five per introduction); the governed hits follow.
-    readers = _reader_identities(request)
+    reader_rows = _reader_rows(request)
+    reader_keys = [str(r["_key"]) for r in reader_rows if r.get("_key")]
+    readers = _identities_from_rows(reader_rows, request) if reader_rows else ()
+    shown_names = {str(n) for n in (request.exclude_names or ())}
+    identities = tuple(i for i in identities if i.canonical_name not in shown_names)  # «next five»: never the same doctor twice
     if readers:
         known = {i.canonical_name for i in readers}
         identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE)]
@@ -827,7 +841,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     # Too few governed hits → search the web for what the user asked (transient, linked, unverified unless on a
     # known listing/official domain). Nothing from the web enters the governed store.
     if len(identities) < _web_lookup.MIN_LOCAL_HITS and _web_lookup.web_lookup_enabled():
-        web = _web_identities(request)
+        web = tuple(w for w in _web_identities(request) if w.canonical_name not in shown_names)
         if web:
             known = {i.canonical_name for i in identities}
             identities = (identities + tuple(w for w in web if w.canonical_name not in known))[: max(request.limit, 5)]
@@ -849,7 +863,19 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         reason_code=STATUS_VERIFIED,
         user_message=_urgent(request, _serialize_hits_message(identities, request.language, request.wants_sources)),
         identity_notes=tuple(notes),
+        intro_state=_intro_state(request, identities, reader_keys),
     )
+
+
+def _intro_state(request: "CareNavRequest", identities: Sequence[VerifiedDirectoryIdentity], reader_keys: Sequence[str]) -> Optional[dict]:
+    """R-116 «next five»: what this introduction covered, stored with the turn - the request (what / where) plus the keys and names of everyone
+    introduced so far (this and earlier introductions), so «the next five» never repeats a doctor. None for kinds that are not paged."""
+    if request.entity not in (CareNavEntity.SPECIALIST, CareNavEntity.SPECIALTY_CENTER) or not identities:
+        return None
+    names = list(dict.fromkeys([*map(str, request.exclude_names or ()), *[i.canonical_name for i in identities if i.canonical_name]]))[-80:]
+    keys = list(dict.fromkeys([*map(str, request.exclude_keys or ()), *map(str, reader_keys)]))[-80:]
+    return {"v": 1, "entity": request.entity.value, "specialty": request.specialty_or_service, "city": request.city, "province": request.province,
+            "area": request.area, "keys": keys, "names": names}
 
 
 def resolve_care_navigation(
@@ -878,6 +904,11 @@ def resolve_care_navigation(
         target_health_subject_id=target_health_subject_id,
         target_subject_kind=target_subject_kind,
     )
+    return resolve_care_navigation_for_request(db, req)
+
+
+def resolve_care_navigation_for_request(db: Session, req: "CareNavRequest") -> CareNavResult:
+    """The provider search for an explicit request (also the «next five» flow): area search + nearest-area rings under ONE budget, then links."""
     with _web_lookup.request_budget() as budget:  # R-114 am.1: the area search and the nearest-area rings share one budget
         result = query_governed_directory(db, req)
         result = _nearest_area_result(db, req, result)
@@ -895,7 +926,7 @@ def _links_of(result: CareNavResult, req: "CareNavRequest") -> list:
         from backend.app.services.i5 import provider_links
 
         if result.identities:
-            return provider_links.links_for_identities(result.identities, req.language)
+            return provider_links.links_for_identities(result.identities, req.language, specialty=req.specialty_or_service)
         if result.status == STATUS_NO_VERIFIED and (req.city or req.area):
             return provider_links.links_for_search(directory_search_links(req), req.language)
     except Exception:  # noqa: BLE001 - links are an enrichment: the text answer never breaks

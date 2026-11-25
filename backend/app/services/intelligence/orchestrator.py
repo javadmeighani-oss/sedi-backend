@@ -1459,6 +1459,7 @@ class IntelligenceOrchestrator:
         # REMINDER/event (I3) owns schedule phrasing — do not let care-nav steal it.
         directory_message: Optional[str] = None
         directory_links: tuple = ()  # R-107 am.3
+        directory_intro_state: Optional[dict] = None  # R-116: what this doctor introduction covered (the «next five» continues from it)
         care_nav_handled = False
         _reminder_owned = (
             intent_meta is not None
@@ -1481,14 +1482,32 @@ class IntelligenceOrchestrator:
 
             from backend.app.services.i5.care_nav_interview import first_question as reason_question
 
-            _reason_q = reason_question(message, lang) if not is_directory_source_question(message) else None
+            from backend.app.services.i5 import provider_next as _pn
+
+            _next_req = _pn.next_request(self._db, authenticated_user_id, message, lang)  # R-116: «the next five» / «these do not suit»
+            _reason_q = None if _next_req is not None else (reason_question(message, lang) if not is_directory_source_question(message) else None)
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
-            _intake_q = None if _reason_q else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id))
+            _intake_q = None if (_reason_q or _next_req is not None) else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id))
             if _memory_req is not None and not _reason_q and self._db is not None:
                 from backend.app.services.care_journey import journey as _cj
 
                 _cj.track(self._db, authenticated_user_id, _memory_req.tier_text or message, lang)  # the follow-up starts even though no interview is asked (urgency from the ORIGINAL complaint)
-            if _reason_q:
+            if _next_req is not None:
+                care_nav_handled = True
+                try:
+                    from backend.app.services.i5.care_navigation_directory import resolve_care_navigation_for_request
+
+                    _next_res = resolve_care_navigation_for_request(self._db, _next_req)
+                    directory_message = _pn.compose(_next_res, lang)
+                    directory_links = tuple(getattr(_next_res, "links", ()) or ())
+                    directory_intro_state = getattr(_next_res, "intro_state", None)
+                    extra_reason_codes.append("R116_NEXT_FIVE" if _next_res.status == STATUS_VERIFIED else "R116_NEXT_FIVE_NONE_LEFT")
+                except Exception:
+                    directory_message = fail_safe_user_message(CareNavEntity.SPECIALIST, lang)
+                    extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
+                skip_generator = True
+                clarification_message = None
+            elif _reason_q:
                 # J3-c: no specialty named -> ask WHY / WHICH doctor first (one question), never a list of random doctors.
                 care_nav_handled = True
                 directory_message = _reason_q
@@ -1522,6 +1541,7 @@ class IntelligenceOrchestrator:
                     else:
                         directory_message = care_nav.user_message
                         directory_links = tuple(getattr(care_nav, "links", ()) or ())
+                        directory_intro_state = getattr(care_nav, "intro_state", None)
                         extra_reason_codes.append(
                             "CARE_NAVIGATION_VERIFIED"
                             if care_nav.status == STATUS_VERIFIED
@@ -2332,6 +2352,10 @@ class IntelligenceOrchestrator:
                     from backend.app.services.i7.governed_raw import attach_reply_links
 
                     attach_reply_links(self._db, user_id=authenticated_user_id, sedi_response=out_message.strip(), links=list(directory_links))
+                if saved_turn is not None and care_nav_handled and directory_intro_state:
+                    from backend.app.services.i7.governed_raw import attach_provider_intro
+
+                    attach_provider_intro(self._db, user_id=authenticated_user_id, sedi_response=out_message.strip(), state=directory_intro_state)
             except Exception:
                 try:
                     self._db.rollback()

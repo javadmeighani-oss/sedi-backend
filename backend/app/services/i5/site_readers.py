@@ -29,7 +29,7 @@ from datetime import date
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from backend.app.services.i5 import safe_fetch
 
@@ -355,6 +355,20 @@ def _area_first(ranked: Sequence[SiteProvider], area: Optional[str]) -> list:
     return near + [p for p in ranked if p not in near]
 
 
+_PROFILE_PATHS = {SITE_P24: re.compile(r"^/(?:dr|doctor)/[^/?#]+/?"), SITE_DOCTORETO: re.compile(r"^/doctor/[^/?#]+")}
+
+
+def profile_url_ok(url: str) -> bool:
+    """The link is the PAGE OF ONE DOCTOR on its own site (not a listing, not another host): https, the site's host, and the site's profile path."""
+    try:
+        parsed = urlparse(url or "")
+        host = (parsed.hostname or "").lower().removeprefix("www.")
+        rx = _PROFILE_PATHS.get(host)
+        return parsed.scheme == "https" and bool(rx) and bool(rx.match(parsed.path or "")) and not parsed.username
+    except ValueError:
+        return False
+
+
 def _wrong_specialty(specialty: Optional[str], p: SiteProvider) -> bool:
     """True when the provider's OWN text explicitly names other specialties and not the requested one (a listing can carry a neighbouring
     specialty). The first text that names any specialty decides, like ``specialty_lexicon.result_matches_specialty``; a provider whose text names
@@ -390,12 +404,12 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         today = date.today().isoformat()
         rows = []
         # the specialty, city and link checks come BEFORE ranking and paging, so a wrong or unusable entry never takes one of the five places
-        usable = [p for p in report.providers if p.name and p.url.startswith("https://") and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
+        usable = [p for p in report.providers if p.name and profile_url_ok(p.url) and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
         for p in page(_area_first(rank(usable, origin=origin, exclude=exclude), area), number):
             rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
                          "source_url": p.url, "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
                          "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
-                         "page_read": True, "why": ()})
+                         "page_read": True, "why": (), "_key": p.key})
         return rows
     except Exception:  # noqa: BLE001 - the chat must never break because a site could not be read
         logger.info("site_reader_rows_failed")

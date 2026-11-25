@@ -76,7 +76,7 @@ def attach_reply_links(db: Session, *, user_id: int, sedi_response: str, links: 
     user with exactly this reply gets the links. Additive, fail-open: chat never breaks, False = nothing attached."""
     try:
         items = [
-            {"label": str(i.get("label") or "")[:80], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider")}
+            {"label": str(i.get("label") or "")[:120], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider")}
             for i in (links or [])
             if isinstance(i, dict) and i.get("url") and i.get("label")
         ][:5]
@@ -426,3 +426,46 @@ def finalize_durable_raw_response(
             db.rollback()
         return GovernedRawResult(False, None, "FINALIZE_UNEXPECTED_ERROR")
     return GovernedRawResult(True, row, "FINALIZED")
+
+
+def attach_provider_intro(db: Session, *, user_id: int, sedi_response: str, state: Any) -> bool:
+    """R-116 «next five»: what a provider introduction covered (request + keys + names, ``provenance_json["provider_intro"]``) is kept with its
+    stored turn, so «the next five» continues from it and never repeats a doctor. Additive, fail-open: False = nothing attached."""
+    try:
+        if not isinstance(state, dict) or not (sedi_response or "").strip():
+            return False
+        clean = {
+            "v": 1, "entity": str(state.get("entity") or "SPECIALIST")[:32], "specialty": state.get("specialty"), "city": state.get("city"),
+            "province": state.get("province"), "area": state.get("area"),
+            "keys": [str(k)[:160] for k in (state.get("keys") or [])][-80:], "names": [str(n)[:160] for n in (state.get("names") or [])][-80:],
+        }
+        row = (
+            db.query(models.Memory)
+            .filter(models.Memory.user_id == int(user_id), models.Memory.sedi_response == sedi_response)
+            .order_by(models.Memory.id.desc())
+            .first()
+        )
+        if row is None:
+            return False
+        prov = _load_provenance(row)
+        prov["provider_intro"] = clean
+        row.provenance_json = json.dumps(prov, sort_keys=True)
+        db.commit()
+        return True
+    except Exception:  # noqa: BLE001
+        logger.info("i7_raw_attach_provider_intro_failed user_id=%s", user_id)
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return False
+
+
+def provider_intro_of_turn(row: Any) -> Optional[dict]:
+    """The provider-introduction state stored with a turn, None when none / unreadable."""
+    try:
+        loaded = json.loads(row.provenance_json) if getattr(row, "provenance_json", None) else {}
+        state = loaded.get("provider_intro") if isinstance(loaded, dict) else None
+        return dict(state) if isinstance(state, dict) and state.get("v") == 1 else None
+    except (TypeError, ValueError):
+        return None

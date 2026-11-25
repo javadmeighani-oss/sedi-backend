@@ -17,6 +17,7 @@ from typing import Any, Iterable, Optional, Sequence
 from urllib.parse import urlparse
 
 MAX_LINKS = 5
+LABEL_MAX = 120  # «دکتر الف — متخصص پوست — پذیرش۲۴»: name + specialty + site
 KIND_PROVIDER = "provider"  # the page of one doctor / clinic / lab on the original site
 KIND_SEARCH = "search"  # a search page on a booking site (nothing verified was found)
 
@@ -64,19 +65,31 @@ def _lang(language: Optional[str]) -> str:
 
 def link(label: str, url: str, kind: str) -> Optional[dict]:
     ok = safe_url(url)
-    label = " ".join(str(label or "").split())[:80]
+    label = " ".join(str(label or "").split())[:LABEL_MAX]
     return {"label": label, "url": ok, "kind": kind, "host": _host(ok)} if ok and label else None
 
 
-def links_for_identities(identities: Iterable[Any], language: Optional[str]) -> list[dict]:
-    """One provider link per verified result that carries its own page («دکتر الف — پذیرش۲۴»)."""
+def provider_label(name: str, specialty: Optional[str], site: str) -> str:
+    """«دکتر الف — متخصص پوست — پذیرش۲۴»: the doctor's NAME and SPECIALTY are in the link itself (Javad 2026-11-25), the site last."""
+    name = " ".join(str(name or "").split())
+    spec = " ".join(str(specialty or "").split())
+    parts = [name]
+    if spec and spec.replace(" ", "") not in name.replace(" ", ""):
+        parts.append(spec)
+    parts.append(site)
+    return " — ".join(p for p in parts if p)
+
+
+def links_for_identities(identities: Iterable[Any], language: Optional[str], specialty: Optional[str] = None) -> list[dict]:
+    """One provider link per verified result that carries its own page («دکتر الف — متخصص پوست — پذیرش۲۴»)."""
     lang = _lang(language)
     out: list[dict] = []
     seen: set = set()
     for ident in identities or ():
         url = getattr(ident, "source_url", None)
         name = getattr(ident, "canonical_name", None)
-        item = link(f"{name} — {site_name(url, lang)}", url, KIND_PROVIDER) if url and name else None
+        spec = getattr(ident, "specialty_or_service", None) or specialty
+        item = link(provider_label(name, spec, site_name(url, lang)), url, KIND_PROVIDER) if url and name else None
         if item and item["url"] not in seen:
             seen.add(item["url"])
             out.append(item)

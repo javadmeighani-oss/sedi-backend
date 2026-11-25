@@ -114,7 +114,7 @@ def test_a_verified_result_carries_the_link_of_its_page(monkeypatch):
     monkeypatch.setattr(cn, "query_governed_directory", lambda db, r: cn.CareNavResult(
         status=cn.STATUS_VERIFIED, entity=cn.CareNavEntity.SPECIALIST, identities=(ident,), user_message="LIST"))
     out = cn.resolve_care_navigation(None, "یه دکتر گوارش در شهر پردیس معرفی کن", language="fa")
-    assert [l["label"] for l in out.links] == ["دکتر الف — پذیرش۲۴"] and out.links[0]["url"] == "https://www.paziresh24.com/dr/alef/"
+    assert [l["label"] for l in out.links] == ["دکتر الف — گوارش — پذیرش۲۴"] and out.links[0]["url"] == "https://www.paziresh24.com/dr/alef/"
 
 
 def test_a_not_found_answer_carries_the_search_page_links(monkeypatch):
