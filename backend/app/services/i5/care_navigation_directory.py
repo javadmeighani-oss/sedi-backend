@@ -141,7 +141,7 @@ _CENTER_PAT = re.compile(
 )
 _LAB_PAT = re.compile(r"\b(laboratory|lab\b|آزمایشگاه|مختبر)\b", re.I)
 # R-119 (Javad 2026-11-25): physiotherapy is found like any clinic - the word alone (فیزیوتراپی / فیزیوتراپ / physio / العلاج الطبيعي) names the kind of place
-_PHYSIO_PAT = re.compile(r"فیزیو\s*تراپ|طب\s*فیزیکی|physio|physical\s*therap|العلاج\s*الطبيعي|علاج\s*طبيعي|معالج\s*طبيعي", re.I)
+_PHYSIO_PAT = re.compile(r"فیزیو\s*تراپ|طب\s*فیزیکی|physiotherap|\bphysio\b|physical\s*therap|العلاج\s*الطبيعي|علاج\s*طبيعي|معالج\s*طبيعي", re.I)
 _PHARMACY_PAT = re.compile(r"\b(pharmacy|pharmacies|داروخانه|دارو\s*خانه|صيدلية|صيدليه|صيدلية)\b|داروخانه", re.I)
 _CARE_NAV_VERB = re.compile(
     r"\b("
@@ -699,6 +699,15 @@ def _web_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentit
     return _identities_from_rows(results, request)
 
 
+def _center_names_service(identity: "VerifiedDirectoryIdentity", service: str) -> bool:
+    text = f"{identity.canonical_name or ''} {identity.specialty_or_service or ''}"
+    squash = lambda t: re.sub(r"[\s‌\-]+", "", str(t or "")).lower()  # noqa: E731
+    if squash(service) and squash(service) in squash(text):
+        return True
+    canonical = _spec.find_specialty(service) or service
+    return canonical in _spec.named_specialties(text)
+
+
 def _reader_identities(request: "CareNavRequest") -> tuple[VerifiedDirectoryIdentity, ...]:
     """R-114/R-116: the FIVE most credible doctors read from the booking sites' own listing pages (Paziresh24 / Doctoreto) for the specialty in
     the city - real ratings, address and profile link. Flag ``SEDI_SITE_READERS_ENABLED`` (default OFF); doctors only; fail-open (an unreadable
@@ -799,6 +808,10 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
         if str(item.get("record_state") or "").upper() == "ACTIVE"
         and not _web_lookup.is_stale_web_row(item.get("source_system_label"), item.get("last_verified_at"))
     )
+    if entity is CareNavEntity.SPECIALTY_CENTER and request.specialty_or_service:
+        # the governed centre search has no service filter: a centre counts for «فیزیوتراپی» / «پوست» only when its own text names that service
+        # (an unrelated centre must neither be shown nor stop the web search - Codex P2, PR 223)
+        identities = tuple(i for i in identities if _center_names_service(i, request.specialty_or_service))
 
     # The booking sites' own listings come FIRST (real ratings, five per introduction); the governed hits follow.
     readers = _reader_identities(request)

@@ -73,3 +73,32 @@ def test_the_nine_listing_sites_javad_named_are_trusted_and_look_alikes_are_not(
         assert web.is_trusted_url(f"https://{host}/x", "IR"), host
     assert not web.is_trusted_url("https://clinicnekoo.ir.evil.example/x", "IR")
     assert not web.is_trusted_url("https://fekrazadeh.ir/x", "IR")                                                # unlisted until Javad names it
+
+
+@pytest.mark.parametrize("message", ["Explain physiology in pregnancy", "find a doctor specializing in electrophysiology in Tehran", "what is neurophysiology?"])
+def test_physiology_words_are_not_physiotherapy(message):
+    assert not cn._PHYSIO_PAT.search(message), message
+    assert cn.detect_care_nav_entity(message) is not cn.CareNavEntity.SPECIALTY_CENTER
+
+
+def _center_row(name, specialty=None):
+    return {"canonical_directory_key": name, "id": name, "record_state": "ACTIVE", "canonical_name": name, "entity_type": "MEDICAL_CENTER",
+            "specialty_or_service": specialty, "city": "پردیس", "province": "تهران", "source_system_label": "GOVERNED", "last_verified_at": None}
+
+
+def test_an_unrelated_medical_centre_is_not_a_physiotherapy_result_and_does_not_stop_the_web_search(monkeypatch):
+    rows = [_center_row("مرکز درمانی الف"), _center_row("مرکز درمانی ب"), _center_row("کلینیک فیزیوتراپی نور")]
+    monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, request: rows)
+    monkeypatch.setattr(cn, "_map_backend_row", lambda item: cn.VerifiedDirectoryIdentity(
+        directory_record_id=1, entity_type="MEDICAL_CENTER", canonical_name=item["canonical_name"], canonical_directory_key=item["id"],
+        specialty_or_service=item["specialty_or_service"], city="پردیس", province="تهران", source_system_label="GOVERNED", record_state="ACTIVE",
+        last_verified_at=None, endorsement_disclaimer=""))
+    web_calls = []
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: True)
+    monkeypatch.setattr(cn, "_web_identities", lambda request: web_calls.append(1) or ())
+    req = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service="فیزیوتراپی", city="پردیس", province="تهران", language="fa")
+    out = cn.query_governed_directory(None, req)
+    assert [i.canonical_name for i in out.identities] == ["کلینیک فیزیوتراپی نور"]                       # only the centre that names the service
+    assert web_calls == [1]                                                                              # one match is below MIN_LOCAL_HITS: the web search still runs
+    plain = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALTY_CENTER, specialty_or_service=None, city="پردیس", province="تهران", language="fa")
+    assert len(cn.query_governed_directory(None, plain).identities) == 3                                 # no service asked: every centre counts, as before
