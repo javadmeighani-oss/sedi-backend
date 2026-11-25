@@ -24,7 +24,7 @@ MAX_MESSAGE_CHARS = 90  # a next-five request is short; a long message is a new 
 _NEXT = re.compile(
     r"(?:پنج|۵|5)\s*تا(?:ی)?\s*(?:بعدی|دیگه|دیگر)|(?:پنج|۵|5)\s*(?:نفر|پزشک|دکتر)\s*(?:بعدی|دیگه|دیگر)|"
     r"^\W*(?:لطفا\s*)?(?:بعدی|بعدیا|بعدی\s*ها|بعدی‌ها)(?:\s*(?:رو|را|بده|نشون\s*بده|لطفا))*\W*$|"
-    r"(?:یه|یک|چند)\s*(?:تا\s*)?(?:دکتر|پزشک)?\s*(?:دیگه|دیگر)\b|(?:دکتر|پزشک)(?:ان|ها)?(?:ی)?\s*(?:دیگه|دیگر|بیشتر)\b|"
+    r"(?:یه|یک|چند)\s*(?:تا\s*)?(?:دکتر|پزشک)?\s*(?:\S+\s+)?(?:دیگه|دیگر)\b|(?:دکتر|پزشک)(?:ان|ها)?(?:ی)?\s*(?:دیگه|دیگر|بیشتر)\b|"
     r"بقیه(?:‌ی)?\s*(?:ش(?:ون)?\s*)?(?:رو|را)?\s*(?:نشون|نشان|بگو|بده|معرفی|ببینم)|بیشتر\s*(?:نشون|نشان|معرفی)\s*(?:بده|بدهید|کن)|"
     r"(?:اینها|اینا|این‌ها|اینارو|این)\s*(?:مناسب|خوب|جور)\s*(?:نیست|نبود|نیستن|نیستند)|مناسب\s*(?:نیست|نبود)|"
     r"(?:نتونستم|نتوانستم|نشد)\s*(?:که\s*)?(?:ازشون\s*|از\s*اینها\s*|از\s*اینا\s*)?(?:نوبت|وقت)|"
@@ -49,16 +49,11 @@ def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None
     if db is None or user_id is None:
         return None
     try:
-        from backend.app import models
+        from backend.app.core.conversation.memory import ConversationMemory
         from backend.app.services.i7 import governed_raw
 
-        rows = (
-            db.query(models.Memory)
-            .filter(models.Memory.user_id == int(user_id))
-            .order_by(models.Memory.id.desc())
-            .limit(MAX_TURNS_BACK)
-            .all()
-        )
+        # the GOVERNED reader: current memory.read consent + retention eligibility (a revoked consent leaves no «previous five» to continue from)
+        rows = sorted(ConversationMemory(db).get_recent_messages(int(user_id), limit=MAX_TURNS_BACK), key=lambda r: getattr(r, "id", 0), reverse=True)
         moment = (now or datetime.utcnow())
         for row in rows:
             state = governed_raw.provider_intro_of_turn(row)
@@ -90,6 +85,20 @@ def request_from_state(state: dict, language: str, user_id: Optional[int] = None
     )
 
 
+def _names_another_search(message: str, state: dict) -> bool:
+    """«another doctor, a cardiologist please» names a DIFFERENT specialty (or another kind of place) than the stored search: that is a new request
+    for the ordinary flow, not the next five of the old one (Codex P2, PR 225)."""
+    from backend.app.services.i5 import care_navigation_directory as cn
+    from backend.app.services.i5 import specialty_lexicon as sl
+
+    named = sl.find_specialty(message)
+    stored = state.get("specialty")
+    if named and named != (sl.find_specialty(str(stored or "")) or stored):
+        return True
+    detected = cn.detect_care_nav_entity(message)
+    return detected is not cn.CareNavEntity.SPECIALIST and detected.value != state.get("entity")
+
+
 def next_request(db: Any, user_id: Optional[int], message: Optional[str], language: str) -> Optional[Any]:
     """The request for «the next five», or None when the message is not such a request (or there is nothing to continue from)."""
     try:
@@ -100,7 +109,9 @@ def next_request(db: Any, user_id: Optional[int], message: Optional[str], langua
         if cn._has_real_location(message or ""):
             return None  # «another doctor in Shiraz» is a NEW request with its own place
         state = latest_state(db, user_id)
-        return request_from_state(state, language, user_id) if state else None
+        if not state or _names_another_search(message or "", state):
+            return None
+        return request_from_state(state, language, user_id)
     except Exception:  # noqa: BLE001
         logger.info("provider_next_request_failed")
         return None

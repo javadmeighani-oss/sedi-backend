@@ -171,3 +171,47 @@ def test_midwives_fellowships_and_other_specialties_are_never_introduced_as_the_
     sr._cache.clear()
     names = [r["name"] for r in sr.provider_rows("زنان", "شیراز")]
     assert sorted(names) == ["دکتر 03", "دکتر 05"]                                                          # only those whose own text names the specialty
+
+
+# --- Codex round 1 on PR 225 ----------------------------------------------------------------------------------------------------------------------
+def test_p1_a_revoked_memory_consent_leaves_no_previous_five_to_continue_from(db, user, orch):
+    from backend.app.services.i6 import consent_service as consent
+
+    _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
+    assert pn.next_request(db, user.id, "پنج تای بعدی", "fa") is not None
+    consent.revoke_memory_consent(db, user.id)
+    assert pn.latest_state(db, user.id) is None and pn.next_request(db, user.id, "پنج تای بعدی", "fa") is None
+
+
+def test_p2_naming_another_specialty_or_kind_is_a_new_request_not_the_next_five(db, user, orch):
+    _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
+    assert pn.next_request(db, user.id, "another doctor, a cardiologist please", "en") is None
+    assert pn.next_request(db, user.id, "یه دکتر دیگه، قلب", "fa") is None
+    assert pn.next_request(db, user.id, "یه آزمایشگاه دیگه", "fa") is None
+    assert pn.next_request(db, user.id, "یه دکتر پوست دیگه", "fa") is not None                                 # the SAME specialty named again still continues
+
+
+def test_p2_the_governed_directory_is_fetched_wide_enough_for_the_second_batch(monkeypatch):
+    monkeypatch.setenv(sr.ENABLED_ENV, "0")
+    seen = []
+    rows = [{"canonical_directory_key": f"k{i}", "id": i, "record_state": "ACTIVE", "canonical_name": f"دکتر {i:02d}", "entity_type": "DOCTOR"} for i in range(12)]
+
+    def search_doctors(db_, **k):
+        seen.append(k["limit"])
+        return rows[: k["limit"]]
+
+    monkeypatch.undo()                                                                                         # keep the module fixtures' stubs out of this unit
+    monkeypatch.setattr(cn._governed_directory, "search_doctors", search_doctors)
+    monkeypatch.setattr(cn, "_map_backend_row", lambda item: cn.VerifiedDirectoryIdentity(
+        directory_record_id=item["id"], entity_type="DOCTOR", canonical_name=item["canonical_name"], canonical_directory_key=item["canonical_directory_key"],
+        specialty_or_service="پوست", city="شیراز", province="فارس", source_system_label="GOVERNED", record_state="ACTIVE", last_verified_at=None,
+        endorsement_disclaimer=""))
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    first = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa")
+    one = cn.query_governed_directory(None, first)
+    shown = [i.canonical_name for i in one.identities]
+    second = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa",
+                               exclude_names=tuple(one.intro_state["names"]))
+    two = cn.query_governed_directory(None, second)
+    assert len(shown) == 5 and seen[-1] >= 10
+    assert len(two.identities) == 5 and not {i.canonical_name for i in two.identities} & set(shown)         # a real second batch, never a repeat

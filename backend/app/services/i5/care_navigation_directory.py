@@ -628,6 +628,12 @@ def _map_backend_row(item: Mapping[str, Any]) -> VerifiedDirectoryIdentity:
     )
 
 
+def _governed_limit(request: "CareNavRequest", floor: int = 0) -> int:
+    """How many governed rows to fetch: the request's limit PLUS everyone already introduced (the «next five» exclusion happens after the fetch,
+    so fetching only five would return the same five again - Codex P2, PR 225)."""
+    return max(request.limit, floor) + len(request.exclude_names or ())
+
+
 def _dispatch_governed_search(
     db: Session, request: CareNavRequest
 ) -> list[dict[str, Any]]:
@@ -645,15 +651,15 @@ def _dispatch_governed_search(
                     province=request.province,
                     specialty=term,
                     include_inactive=False,
-                    limit=request.limit,
+                    limit=_governed_limit(request),
                 ):
                     key = str(item.get("canonical_directory_key") or item.get("id") or item)
                     if key not in seen:
                         seen.add(key)
                         merged.append(item)
-                if len(merged) >= request.limit:
+                if len(merged) >= _governed_limit(request):
                     break
-            return merged[: request.limit]
+            return merged[: _governed_limit(request)]
         if entity is CareNavEntity.HOSPITAL:
             return _governed_directory.search_hospitals(
                 db,
@@ -662,7 +668,7 @@ def _dispatch_governed_search(
                 province=request.province,
                 facility_type="HOSPITAL",
                 include_inactive=False,
-                limit=request.limit,
+                limit=_governed_limit(request),
             )
         if entity is CareNavEntity.SPECIALTY_CENTER:
             return _governed_directory.search_hospitals(
@@ -673,7 +679,7 @@ def _dispatch_governed_search(
                 facility_type="MEDICAL_CENTER",
                 include_inactive=False,
                 # a service is filtered AFTER the search: fetch widely so the first few centres by name cannot hide a matching one (Codex P2, PR 223)
-                limit=max(request.limit, CENTER_SERVICE_CANDIDATES) if request.specialty_or_service else request.limit,
+                limit=_governed_limit(request, CENTER_SERVICE_CANDIDATES if request.specialty_or_service else 0),
             )
         if entity is CareNavEntity.LABORATORY:
             return _governed_directory.search_laboratories(
@@ -683,7 +689,7 @@ def _dispatch_governed_search(
                 province=request.province,
                 service=request.specialty_or_service,
                 include_inactive=False,
-                limit=request.limit,
+                limit=_governed_limit(request),
             )
     except _governed_directory.IranDirectoryServiceError:
         return []
@@ -832,7 +838,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     reader_keys = [str(r["_key"]) for r in reader_rows if r.get("_key")]
     readers = _identities_from_rows(reader_rows, request) if reader_rows else ()
     shown_names = {str(n) for n in (request.exclude_names or ())}
-    identities = tuple(i for i in identities if i.canonical_name not in shown_names)  # «next five»: never the same doctor twice
+    identities = tuple(i for i in identities if i.canonical_name not in shown_names)[: max(request.limit, _site_readers.PAGE_SIZE)]  # «next five»: never the same doctor twice
     if readers:
         known = {i.canonical_name for i in readers}
         identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE)]
