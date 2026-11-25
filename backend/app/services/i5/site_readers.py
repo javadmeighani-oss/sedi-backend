@@ -277,23 +277,29 @@ def readers_enabled() -> bool:
     return (os.getenv(ENABLED_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _pace_live_fetch() -> None:
-    """At least ``MIN_GAP_SECONDS`` between two LIVE page requests of this process (cache hits never wait)."""
+def _pace_live_fetch(deadline: Optional[float] = None) -> bool:
+    """At least ``MIN_GAP_SECONDS`` between two LIVE page requests of this process (cache hits never wait). False = the caller's deadline would
+    pass before this request could start: it is skipped, so work whose caller already gave up never uses a pacing slot (Codex P2, PR 220)."""
     with _pace_lock:
-        wait = _last_live_fetch[0] + MIN_GAP_SECONDS - time.time()
+        now = time.time()
+        wait = _last_live_fetch[0] + MIN_GAP_SECONDS - now
+        if deadline is not None and now + max(wait, 0.0) >= deadline:
+            return False
         if wait > 0:
             time.sleep(wait)
         _last_live_fetch[0] = time.time()
+        return True
 
 
-def _read_one(site: str, url: str, fetch: Callable[[str], Any]) -> tuple:
+def _read_one(site: str, url: str, fetch: Callable[[str], Any], deadline: Optional[float] = None) -> tuple:
     started = time.time()
     with _lock:
         hit = _cache.get(url)
         if hit and time.time() - hit[0] < CACHE_TTL_SECONDS:
             return site, hit[1], hit[2], {"ok": True, "reason": "cache", "count": len(hit[1]), "seconds": 0.0}
     try:
-        _pace_live_fetch()
+        if not _pace_live_fetch(deadline):
+            return site, [], [], {"ok": False, "reason": "deadline", "count": 0, "seconds": round(time.time() - started, 2)}
         fr = fetch(url)
         if not getattr(fr, "ok", False):
             return site, [], [], {"ok": False, "reason": getattr(fr, "reason", "") or "unreadable", "count": 0, "seconds": round(time.time() - started, 2)}
@@ -321,8 +327,8 @@ def read_sites(specialty: Optional[str], city: Optional[str], *, fetch: Optional
     fetcher = fetch or safe_fetch.fetch_page
     pool = ThreadPoolExecutor(max_workers=len(urls))
     try:
-        futures = [pool.submit(_read_one, site, url, fetcher) for site, url in urls]
         deadline = time.time() + READ_TIMEOUT_SECONDS
+        futures = [pool.submit(_read_one, site, url, fetcher, deadline) for site, url in urls]
         for (site, _url), fut in zip(urls, futures):
             try:
                 _s, items, nearby, status = fut.result(timeout=max(0.1, deadline - time.time()))

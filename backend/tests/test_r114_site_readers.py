@@ -296,3 +296,14 @@ def test_a_request_for_a_doctor_by_name_does_not_use_the_top_five(monkeypatch):
     monkeypatch.setattr(sr.safe_fetch, "fetch_page", _shiraz_fetch())
     request = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa", name_hint="احمدی")
     assert cn._reader_identities(request) == ()
+
+
+def test_work_whose_caller_gave_up_never_starts_a_live_request(monkeypatch):
+    monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 1.5)
+    sr._last_live_fetch[0] = sr.time.time()                                                                      # a live request just happened
+    fetch = _shiraz_fetch()
+    out = sr._read_one("paziresh24.com", "https://www.paziresh24.com/s/shiraz/dermatology/", fetch, deadline=sr.time.time() + 0.5)
+    assert out[3]["ok"] is False and out[3]["reason"] == "deadline" and fetch.calls == []                      # waiting 1.5 s would pass the 0.5 s deadline
+    monkeypatch.setattr(sr, "MIN_GAP_SECONDS", 0.0)
+    out = sr._read_one("paziresh24.com", "https://www.paziresh24.com/s/shiraz/dermatology/", fetch, deadline=sr.time.time() + 5)
+    assert out[3]["ok"] is True and len(fetch.calls) == 1                                                       # with time left it reads as before
