@@ -881,7 +881,7 @@ def _intro_state(request: "CareNavRequest", identities: Sequence[VerifiedDirecto
     names = list(dict.fromkeys([*map(str, request.exclude_names or ()), *[i.canonical_name for i in identities if i.canonical_name]]))[-80:]
     keys = list(dict.fromkeys([*map(str, request.exclude_keys or ()), *map(str, reader_keys)]))[-80:]
     return {"v": 1, "entity": request.entity.value, "specialty": request.specialty_or_service, "city": request.city, "province": request.province,
-            "area": request.area, "keys": keys, "names": names}
+            "area": request.area, "qualifiers": [str(q) for q in (request.qualifiers or ())][:6], "keys": keys, "names": names}
 
 
 def resolve_care_navigation(

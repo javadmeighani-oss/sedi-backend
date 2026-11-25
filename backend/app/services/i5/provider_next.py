@@ -80,6 +80,7 @@ def request_from_state(state: dict, language: str, user_id: Optional[int] = None
         area=state.get("area"),
         language=language,
         authenticated_user_id=user_id,
+        qualifiers=tuple(str(q) for q in (state.get("qualifiers") or ())),  # 24h / high_rating / urgent stay part of the search
         exclude_keys=tuple(str(k) for k in (state.get("keys") or ())),
         exclude_names=tuple(str(n) for n in (state.get("names") or ())),
     )

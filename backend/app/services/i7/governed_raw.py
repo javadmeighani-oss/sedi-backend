@@ -437,6 +437,7 @@ def attach_provider_intro(db: Session, *, user_id: int, sedi_response: str, stat
         clean = {
             "v": 1, "entity": str(state.get("entity") or "SPECIALIST")[:32], "specialty": state.get("specialty"), "city": state.get("city"),
             "province": state.get("province"), "area": state.get("area"),
+            "qualifiers": [str(q)[:24] for q in (state.get("qualifiers") or [])][:6],
             "keys": [str(k)[:160] for k in (state.get("keys") or [])][-80:], "names": [str(n)[:160] for n in (state.get("names") or [])][-80:],
         }
         row = (

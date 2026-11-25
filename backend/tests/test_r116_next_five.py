@@ -215,3 +215,13 @@ def test_p2_the_governed_directory_is_fetched_wide_enough_for_the_second_batch(m
     two = cn.query_governed_directory(None, second)
     assert len(shown) == 5 and seen[-1] >= 10
     assert len(two.identities) == 5 and not {i.canonical_name for i in two.identities} & set(shown)         # a real second batch, never a repeat
+
+
+def test_p2_the_qualifiers_of_the_first_search_survive_into_the_next_five(db, user, orch):
+    req = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="پوست", city="شیراز", province="فارس", language="fa",
+                            qualifiers=("high_rating", "urgent"))
+    ident = SimpleNamespace(canonical_name="دکتر الف")
+    state = cn._intro_state(req, [ident], ["k1"])
+    assert state["qualifiers"] == ["high_rating", "urgent"]
+    again = pn.request_from_state({**state, "v": 1}, "fa", user.id)
+    assert again.qualifiers == ("high_rating", "urgent") and again.exclude_names == ("دکتر الف",)
