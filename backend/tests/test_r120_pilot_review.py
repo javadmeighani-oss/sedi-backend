@@ -194,3 +194,17 @@ def test_replay_the_tehranpars_chat_place_once_open_reason_followups_then_the_se
     assert j.is_followup_reply(follow.message) and not searched
     say("خوابم خوب نیست و کمی نگرانم")
     assert searched and searched[-1]["city"] == "تهران"                                                          # never a nationwide list
+
+
+# --- Codex round 1 on PR 227 ---------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("other", ["How do I change my password?", "رمز عبورم را چطور عوض کنم؟", "امروز هوا چطوره؟", "كيف أغير كلمة المرور؟"])
+def test_p2_another_subject_after_the_interview_is_not_turned_into_the_doctor_search(other):
+    assert ci.request_for_answer(PILOT + " در تهران‌پارس تهران", sedi_copy.t("journey.interview.chest", "fa"), other, "fa") is None
+
+
+def test_p2_an_earlier_yes_counts_only_for_the_same_city():
+    asked = ci.first_question(PILOT, "fa")
+    earlier_yes = [SimpleNamespace(user_message="اره", sedi_response="لیست"), SimpleNamespace(user_message=PILOT, sedi_response=asked)]
+    pardis_q = ci.first_question("یه دکتر قلب در پردیس پیدا کن", "fa")
+    if pardis_q:  # Pardis is confirmed with the user (no verified directory slug) - Tehranpars' «yes» must not answer it
+        assert ci.place_already_known("یه دکتر قلب در پردیس پیدا کن", earlier_yes) is None
