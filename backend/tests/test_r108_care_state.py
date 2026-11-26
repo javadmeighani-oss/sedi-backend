@@ -133,6 +133,7 @@ APPROVED_READERS = {
     "backend/app/services/i10/event_care.py",
     "backend/app/services/interview/guide.py",
     "backend/app/services/status_report/builder.py",
+    "backend/app/services/intelligence/orchestrator.py",  # R-120: the stored residence answers the place question (never asked twice)
 }
 
 

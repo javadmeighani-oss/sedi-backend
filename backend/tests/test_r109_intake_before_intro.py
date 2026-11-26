@@ -105,6 +105,7 @@ def _orch(monkeypatch, rows=()):
     from backend.app.services.i5 import care_navigation_directory as cn
 
     searched = []
+    monkeypatch.setenv("SEDI_CARE_FOLLOWUP_MODEL_DISABLED", "1")  # R-120 second step: the deterministic catalog question in tests
     monkeypatch.setattr(consent, "has_permission", lambda *a, **k: True)
     monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: list(rows))
     monkeypatch.setattr(cn._governed_directory, "search_doctors", lambda db_, **k: searched.append(k) or [])
@@ -125,7 +126,13 @@ def test_the_answer_triggers_the_search_and_the_introduction_carries_care_and_st
     _owners(monkeypatch, open_count=1)
     asked = SimpleNamespace(user_message=REQUEST, sedi_response=_interview_reply(), created_at=datetime.utcnow())
     orch, searched = _orch(monkeypatch, rows=[asked])
-    out = orch.process(authenticated_user_id=42, message="از دو روز پیش شروع شده و قبلاً نداشتم", language="fa")
+    explained = "از دو روز پیش شروع شده و قبلاً نداشتم"
+    follow = orch.process(authenticated_user_id=42, message=explained, language="fa")
+    # R-120: the explanation first gets questions built FROM it (second interview step), still no search
+    assert follow.message.startswith(sedi_copy.t("journey.followup.lead", "fa")) and j.is_followup_reply(follow.message) and searched == []
+    second = SimpleNamespace(user_message=explained, sedi_response=follow.message, created_at=datetime.utcnow())
+    orch, searched = _orch(monkeypatch, rows=[second, asked])
+    out = orch.process(authenticated_user_id=42, message="خوابم کم شده و کمی نگرانم", language="fa")
     assert searched, "the search runs after the interview is answered"
     assert "R109_CARE_JOURNEY_INTAKE" not in out.reason_codes and "R109_CARE_JOURNEY" in out.reason_codes
     assert "الان وضعیتت چطور است" in out.message and not j.is_interview_reply(out.message)  # no second interview
@@ -203,7 +210,12 @@ def test_p2_the_reason_flow_does_not_ask_the_intake_twice(monkeypatch):
         SimpleNamespace(user_message="یه دکتر خوب در شهر پردیس معرفی کن", sedi_response=cni.reason_question("یه دکتر خوب در شهر پردیس معرفی کن", "fa"), created_at=datetime.utcnow()),
     ]
     orch, searched = _orch(monkeypatch, rows=rows)
-    out = orch.process(authenticated_user_id=42, message="از دو روز پیش شروع شده و قبلاً نداشتم", language="fa")
+    explained = "از دو روز پیش شروع شده و قبلاً نداشتم"
+    follow = orch.process(authenticated_user_id=42, message=explained, language="fa")
+    assert j.is_followup_reply(follow.message) and not searched                                                  # R-120: questions built from the explanation
+    rows = [SimpleNamespace(user_message=explained, sedi_response=follow.message, created_at=datetime.utcnow())] + rows
+    orch, searched = _orch(monkeypatch, rows=rows)
+    out = orch.process(authenticated_user_id=42, message="شب‌ها بدتر است", language="fa")
     assert "R109_CARE_JOURNEY_INTAKE" not in out.reason_codes and searched
 
 

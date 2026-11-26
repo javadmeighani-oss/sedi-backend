@@ -34,6 +34,10 @@ _CATEGORIES = (
     ("sleep", ("خواب", "بی‌خوابی", "بیخوابی", "sleep", "insomnia", "نوم", "أرق")),
     ("work", ("سر کار", "محل کار", "شغل", "رئیس", "همکار", "my job", "at work", "my boss", "العمل", "مديري")),
     ("family", ("مادرم", "پدرم", "همسرم", "فرزندم", "خانواده", "my mother", "my father", "my wife", "my husband", "my family", "أمي", "أبي", "زوجي", "عائلتي")),
+    # R-120: a doctor search, a medicine and a body complaint are topics of their own (they used to fall through to an OLDER turn)
+    ("doctor", ("دکتر", "پزشک", "متخصص", "کلینیک", "آزمایشگاه", "فیزیوتراپ", "doctor", "specialist", "clinic", "طبيب", "دكتور", "عيادة")),
+    ("medication", ("قرص", "دارو", "کپسول", "medicine", "medication", "pill", "دواء", "حبوب")),
+    ("symptoms", ("درد", "سردرد", "تب", "سرفه", "حالت تهوع", "سرگیجه", "pain", "fever", "cough", "dizzy", "ألم", "حمى", "سعال")),
     # D-103: the newest chats are often about Sedi herself; name that instead of falling back to a stale memory.
     ("reminders", ("یادآور", "یاداور", "یادم بنداز", "نوتیف", "اعلان", "remind", "notification", "تذكير", "اشعار", "إشعار")),
     ("tone", ("لحن", "tone", "نحوه صحبت", "طرز حرف", "لهجة")),
@@ -232,7 +236,9 @@ def recap_topic(db: Session, user_id: int, language: Optional[str] = "fa", *, pr
             return _disease_phrase(text, label, lang)
         key = classify_turn(text)
         if key is None:
-            continue
+            # R-120 (Javad 2026-11-26): the NEWEST meaningful turn is the last topic. An unnamed one means warm generic copy, never an
+            # OLDER turn that happens to name a category (that is how «یادآورها و اعلان‌هات» kept coming back)
+            return None
         if privacy == "lock_screen":
             block = _PHRASE_LOCK.get(key)
             if block is None:

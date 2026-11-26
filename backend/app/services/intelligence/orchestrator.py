@@ -589,7 +589,33 @@ class IntelligenceOrchestrator:
         except Exception:  # noqa: BLE001
             return None
 
-    def _journey_intake(self, message: str, lang: str, user_id: int) -> Optional[str]:
+    def _known_place(self, message: str, user_id: int) -> Optional[str]:
+        """R-120: the confirmed place for a doctor request whose place the user ALREADY gave (stored residence, an earlier «yes», or the
+        place named with its city before) - so the place question is never asked twice. Consent-gated readers only; fail-open (None)."""
+        try:
+            if self._db is None or not message:
+                return None
+            from backend.app.services.i5 import care_navigation_directory as _cn
+            from backend.app.services.i5.care_nav_interview import place_already_known
+
+            if not _cn.is_care_navigation_query(message):
+                return None
+            from backend.app.core.conversation.memory import ConversationMemory
+
+            rows = sorted(ConversationMemory(self._db).get_recent_messages(int(user_id), limit=60), key=lambda r: getattr(r, "id", 0), reverse=True)
+            home = None
+            try:
+                from backend.app.services import care_state as _cs
+
+                st = _cs.get_care_state(self._db, user_id)
+                home = (st.home_area, st.home_city) if getattr(st, "home_city", None) else None
+            except Exception:  # noqa: BLE001
+                home = None
+            return place_already_known(message, rows, home)
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _journey_intake(self, message: str, lang: str, user_id: int, said: Optional[str] = None) -> Optional[str]:
         """R-109: the interview that must come BEFORE a doctor/centre/lab introduction (None = introduce now). It needs the consent-gated
         conversation to keep its state, so without it nothing is asked."""
         try:
@@ -634,6 +660,15 @@ class IntelligenceOrchestrator:
                         or (now_kind[1] is not None and any(a[1] is not None for a in asked) and now_kind[1] not in {a[1] for a in asked})
                     )
                     done = not conflict
+                    # R-120 (Javad 2026-11-26): the first interview asked the REASON openly; the user's explanation now gets 1-3 questions
+                    # built FROM it (physical / emotional situation) before the introduction. The second step is asked once.
+                    if done and i == 0 and said and not _journey.is_followup_reply(getattr(r, "sedi_response", None)):
+                        from backend.app.services.i5.care_nav_interview import _SKIP_INTAKE
+
+                        if not _SKIP_INTAKE.search(said):
+                            from backend.app.services.care_journey.followup_questions import followup_message
+
+                            return followup_message(said, lang, _sl.find_specialty(message))
                     break
             return _journey.intake_message(self._db, user_id, message, lang, intake_done=done)
         except Exception:  # noqa: BLE001
@@ -1485,9 +1520,15 @@ class IntelligenceOrchestrator:
             from backend.app.services.i5 import provider_next as _pn
 
             _next_req = _pn.next_request(self._db, authenticated_user_id, message, lang)  # R-116: «the next five» / «these do not suit»
+            _known = self._known_place(message, authenticated_user_id) if _next_req is None else None
+            if _known:  # R-120: a place the user already gave is not asked again
+                from backend.app.services.i5.care_nav_interview import _swap_place
+
+                message = _swap_place(message, _known, lang)
+                extra_reason_codes.append("R120_PLACE_ALREADY_KNOWN")
             _reason_q = None if _next_req is not None else (reason_question(message, lang) if not is_directory_source_question(message) else None)
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
-            _intake_q = None if (_reason_q or _next_req is not None) else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id))
+            _intake_q = None if (_reason_q or _next_req is not None) else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id, said=original_user_message))
             if _memory_req is not None and not _reason_q and self._db is not None:
                 from backend.app.services.care_journey import journey as _cj
 

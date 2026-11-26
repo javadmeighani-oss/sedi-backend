@@ -572,8 +572,9 @@ def test_fa_reply_is_conversational_and_hides_sources_by_default():
     msg = _serialize_hits_message([_identity()], "fa")
     assert "دکتر الف" in msg and "02188052167" in msg and "خیابان ولیعصر" in msg
     for banned in ("[id:", "[source", "http", "پذیرش۲۴", "رضایت", "paziresh24"):
-        assert banned not in msg.split("این‌ها فقط")[0]
-    assert "بپرس" in msg  # invites the user to ask for sources
+        assert banned not in msg
+    # R-120 (Javad 2026-11-26): no «only information, not advice» line; the close asks to coordinate the visit and report back
+    assert "فقط اطلاعات" not in msg and "رتبه‌بندی" not in msg and "هماهنگ کن" in msg and "بررسی کنم" in msg
 
 
 def test_sources_and_satisfaction_only_when_asked():

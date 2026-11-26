@@ -171,7 +171,7 @@ def test_the_orchestrator_result_carries_the_links_of_a_doctor_turn_and_only_of_
         return SimpleNamespace(user_message="• دکتر الف؛ منبع: https://www.paziresh24.com/dr/alef/", status=cn.STATUS_VERIFIED, links=tuple(LINKS))
 
     monkeypatch.setattr(cn, "resolve_care_navigation", fake_resolve)
-    monkeypatch.setattr(IntelligenceOrchestrator, "_journey_intake", lambda self, message, lang, user_id: None)  # the care interview is not what this test is about
+    monkeypatch.setattr(IntelligenceOrchestrator, "_journey_intake", lambda self, message, lang, user_id, said=None: None)  # the care interview is not what this test is about
     orch = IntelligenceOrchestrator(db=db, legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
     doctor = orch.process(authenticated_user_id=user.id, message="یه دکتر پوست در شیراز پیدا کن", language="fa")
     assert doctor.links == tuple(LINKS) and doctor.public_brain_dict()["links"] == LINKS and "paziresh24.com/dr/alef" in doctor.message
@@ -196,7 +196,7 @@ def test_p2_the_links_are_stored_with_the_turn_and_returned_by_the_history(db, u
 
     reply = "• دکتر الف؛ آدرس: خیابان اصلی"
     monkeypatch.setattr(cn, "resolve_care_navigation", lambda *a, **k: SimpleNamespace(user_message=reply, status=cn.STATUS_VERIFIED, links=tuple(LINKS)))
-    monkeypatch.setattr(IntelligenceOrchestrator, "_journey_intake", lambda self, message, lang, user_id: None)
+    monkeypatch.setattr(IntelligenceOrchestrator, "_journey_intake", lambda self, message, lang, user_id, said=None: None)
     orch = IntelligenceOrchestrator(db=db, legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
     orch.process(authenticated_user_id=user.id, message="یه دکتر پوست در شیراز پیدا کن", language="fa")
     from backend.app.core.conversation.memory import ConversationMemory
