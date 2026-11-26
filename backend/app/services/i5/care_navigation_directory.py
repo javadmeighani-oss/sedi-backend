@@ -107,6 +107,7 @@ class VerifiedDirectoryIdentity:
     next_turn: Optional[str] = None
     checked_on: Optional[str] = None
     why: tuple = ()
+    note: Optional[str] = None  # R-120 am.2: «farther away, but worth the visit» for the one clearly better doctor outside the neighbourhood
 
 
 @dataclass(frozen=True)
@@ -722,7 +723,8 @@ def _reader_rows(request: "CareNavRequest") -> list:
     try:
         text = request.specialty_or_service or ""
         canonical = _spec.find_specialty(text) or text
-        rows = _site_readers.provider_rows(canonical, request.city, area=request.area, exclude=tuple(request.exclude_keys or ()))
+        rows = _site_readers.provider_rows(canonical, request.city, area=request.area, exclude=tuple(request.exclude_keys or ()),
+                                           only_area="only_area" in (request.qualifiers or ()))
         shown = {str(n) for n in (request.exclude_names or ())}
         return [r for r in rows if r.get("name") not in shown]
     except Exception:  # noqa: BLE001
@@ -768,6 +770,8 @@ def _identities_from_rows(results: Sequence[Mapping[str, Any]], request: "CareNa
             next_turn=r.get("next_turn"),
             checked_on=r.get("checked_on"),
             why=tuple(r.get("why") or ()),
+            note=(sedi_copy.t("care_nav.worth_far", _lk((request.language or "en").lower()), rating=f"{float(r['rating_avg']):g}",
+                              count=r.get("rating_count") or 0) if r.get("worth_far") and r.get("rating_avg") else None),
         )
         for r in results
     )
@@ -844,7 +848,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     identities = tuple(i for i in identities if i.canonical_name not in shown_names)[: max(request.limit, _site_readers.PAGE_SIZE)]  # «next five»: never the same doctor twice
     if readers:
         known = {i.canonical_name for i in readers}
-        identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE)]
+        identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE) + sum(1 for i in readers if i.note)]
         notes.append("SITE_READERS")
 
     # Too few governed hits → search the web for what the user asked (transient, linked, unverified unless on a
@@ -855,6 +859,13 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             known = {i.canonical_name for i in identities}
             identities = (identities + tuple(w for w in web if w.canonical_name not in known))[: max(request.limit, 5)]
             notes.append("WEB_SEARCH_ENRICHED")
+
+    if "only_area" in (request.qualifiers or ()) and request.area and _site_readers.is_tehran(request.city):
+        # R-120 am.2: «only my neighbourhood» holds for the WHOLE answer - directory / web fill-ins elsewhere in Tehran are left out (Codex P2,
+        # PR 228); the reader's neighbourhood pages already are the neighbourhood
+        own = {i.canonical_name for i in readers}
+        key = _site_readers._squash(request.area)
+        identities = tuple(i for i in identities if i.canonical_name in own or key in _site_readers._squash(i.address or ""))
 
     if not identities:
         return CareNavResult(
@@ -949,8 +960,8 @@ def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResu
     until a place has a suitable (right specialty, page-checked) result. The answer says what was not found where and where it was found;
     the plain «not found» answer remains only when no ring has anything. Bounded by the per-request web budget."""
     try:
-        if result.status != STATUS_NO_VERIFIED or not (req.city or req.area):
-            return result
+        if result.status != STATUS_NO_VERIFIED or not (req.city or req.area) or "only_area" in (req.qualifiers or ()):
+            return result  # «only my neighbourhood»: never widened to the nearest places (R-120 am.2)
         from backend.app import sedi_copy
         from backend.app.services.i5 import nearby_places as _nearby
 

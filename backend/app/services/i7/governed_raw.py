@@ -76,10 +76,11 @@ def attach_reply_links(db: Session, *, user_id: int, sedi_response: str, links: 
     user with exactly this reply gets the links. Additive, fail-open: chat never breaks, False = nothing attached."""
     try:
         items = [
-            {"label": str(i.get("label") or "")[:120], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider")}
+            {"label": str(i.get("label") or "")[:120], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider"),
+             **{k: str(i.get(k))[:200] for k in ("title", "location", "note", "link_text") if i.get(k)}}  # R-120 am.2: the bubble is rebuilt from history too
             for i in (links or [])
             if isinstance(i, dict) and i.get("url") and i.get("label")
-        ][:5]
+        ][:6]
         if not items or not (sedi_response or "").strip():
             return False
         row = (
