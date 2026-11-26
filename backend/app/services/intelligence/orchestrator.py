@@ -634,7 +634,7 @@ class IntelligenceOrchestrator:
                 return None
             if not (has_permission(self._db, user_id, PERM_READ) and has_permission(self._db, user_id, PERM_WRITE)):
                 return None
-            rows = query_eligible_raw(self._db, user_id, limit=4) or []
+            rows = query_eligible_raw(self._db, user_id, limit=8) or []
             now = datetime.utcnow()
             from backend.app.services.i5 import specialty_lexicon as _sl
 
@@ -731,7 +731,7 @@ class IntelligenceOrchestrator:
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return message
-            rows = query_eligible_raw(self._db, user_id, limit=4)
+            rows = query_eligible_raw(self._db, user_id, limit=8)
             last = rows[0] if rows else None
             if last is None or last.created_at is None:
                 return message

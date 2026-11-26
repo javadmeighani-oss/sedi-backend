@@ -214,3 +214,32 @@ def test_p2_an_earlier_yes_counts_only_for_the_same_city():
 def test_p2_a_short_time_answer_still_answers_the_interview(short):
     done = ci.request_for_answer(PILOT + " در تهران‌پارس تهران", sedi_copy.t("journey.followup.lead", "fa") + " " + sedi_copy.t("journey.followup.marker", "fa") + " از کی؟", short, "fa")
     assert done and cn.parse_care_nav_request(done, language="fa").city == "تهران", short
+
+
+def test_p2_a_long_interview_chain_still_reaches_the_search_in_the_place(monkeypatch):
+    """«یه دکتر معرفی کن» -> «قلب» -> explanation -> follow-up answer -> place -> «بله»: five questions, the request survives (Codex round 3)."""
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    import backend.app.services.i6.consent_service as consent
+    import backend.app.services.i7.retention as retention
+    from backend.app.services.i10 import commitment_followup as cf
+
+    monkeypatch.setenv(fq.DISABLED_ENV, "1")
+    monkeypatch.setattr(consent, "has_permission", lambda *a, **k: True)
+    monkeypatch.setattr(cf, "open_journey_count", lambda *a, **k: 1)
+    monkeypatch.setattr(IntelligenceOrchestrator, "_known_place", lambda self, *a, **k: None)
+    monkeypatch.setattr(IntelligenceOrchestrator, "_memory_first_request", lambda self, *a, **k: None)
+    searched, rows = [], []
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, limit=None, **k: list(rows)[: (limit or 50)])
+    monkeypatch.setattr(cn._governed_directory, "search_doctors", lambda db_, **k: searched.append(k) or [])
+    orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN", "detected_name": None}, structured_mode=False)
+
+    def say(text):
+        out = orch.process(authenticated_user_id=42, message=text, language="fa")
+        rows.insert(0, SimpleNamespace(user_message=text, sedi_response=out.message, created_at=datetime.utcnow()))
+        return out
+
+    for text in ("یه دکتر معرفی کن", "قلب", "درد دارم", "دو روز", "تهرانپارس"):
+        say(text)
+        assert not searched, text
+    say("بله")
+    assert searched and searched[-1]["city"] == "تهران"
