@@ -208,3 +208,9 @@ def test_p2_an_earlier_yes_counts_only_for_the_same_city():
     pardis_q = ci.first_question("یه دکتر قلب در پردیس پیدا کن", "fa")
     if pardis_q:  # Pardis is confirmed with the user (no verified directory slug) - Tehranpars' «yes» must not answer it
         assert ci.place_already_known("یه دکتر قلب در پردیس پیدا کن", earlier_yes) is None
+
+
+@pytest.mark.parametrize("short", ["Yesterday", "دو ساعت", "دیروز", "از صبح", "سه روز پیش"])
+def test_p2_a_short_time_answer_still_answers_the_interview(short):
+    done = ci.request_for_answer(PILOT + " در تهران‌پارس تهران", sedi_copy.t("journey.followup.lead", "fa") + " " + sedi_copy.t("journey.followup.marker", "fa") + " از کی؟", short, "fa")
+    assert done and cn.parse_care_nav_request(done, language="fa").city == "تهران", short
