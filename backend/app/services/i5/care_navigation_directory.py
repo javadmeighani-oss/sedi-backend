@@ -860,6 +860,13 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             identities = (identities + tuple(w for w in web if w.canonical_name not in known))[: max(request.limit, 5)]
             notes.append("WEB_SEARCH_ENRICHED")
 
+    if "only_area" in (request.qualifiers or ()) and request.area and _site_readers.is_tehran(request.city):
+        # R-120 am.2: «only my neighbourhood» holds for the WHOLE answer - directory / web fill-ins elsewhere in Tehran are left out (Codex P2,
+        # PR 228); the reader's neighbourhood pages already are the neighbourhood
+        own = {i.canonical_name for i in readers}
+        key = _site_readers._squash(request.area)
+        identities = tuple(i for i in identities if i.canonical_name in own or key in _site_readers._squash(i.address or ""))
+
     if not identities:
         return CareNavResult(
             status=STATUS_NO_VERIFIED,
@@ -953,8 +960,8 @@ def _nearest_area_result(db: Session, req: "CareNavRequest", result: CareNavResu
     until a place has a suitable (right specialty, page-checked) result. The answer says what was not found where and where it was found;
     the plain «not found» answer remains only when no ring has anything. Bounded by the per-request web budget."""
     try:
-        if result.status != STATUS_NO_VERIFIED or not (req.city or req.area):
-            return result
+        if result.status != STATUS_NO_VERIFIED or not (req.city or req.area) or "only_area" in (req.qualifiers or ()):
+            return result  # «only my neighbourhood»: never widened to the nearest places (R-120 am.2)
         from backend.app import sedi_copy
         from backend.app.services.i5 import nearby_places as _nearby
 

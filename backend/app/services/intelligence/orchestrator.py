@@ -608,7 +608,8 @@ class IntelligenceOrchestrator:
             rows = query_eligible_raw(self._db, user_id, limit=8) or []
             told: list = []
             for i, r in enumerate(rows):
-                if _journey.is_interview_reply(getattr(r, "sedi_response", None)):
+                reply = getattr(r, "sedi_response", None)
+                if _journey.is_interview_reply(reply) or _journey.is_followup_reply(reply):  # both interview steps (Codex P2, PR 228)
                     answer = said if i == 0 else getattr(rows[i - 1], "user_message", None)
                     if answer and str(answer).strip():
                         told.append(str(answer))

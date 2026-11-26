@@ -234,3 +234,39 @@ def test_replay_a_second_request_without_a_place_uses_tehranpars_and_asks_nothin
     again = say("یه دکتر قلب خوب به من معرفی کن")
     assert len(searched) > first and searched[-1]["city"] == "تهران"                                              # no place question this time
     assert not ci.is_place_question(again.message) and "تهران" in again.message and "R120_LAST_PLACE_USED" in again.reason_codes
+
+
+# --- Codex round 1 on PR 228 ------------------------------------------------------------------------------------------------------------------
+def test_p2_only_my_neighbourhood_holds_for_the_whole_answer(monkeypatch):
+    monkeypatch.setenv(sr.ENABLED_ENV, "1")
+    monkeypatch.setattr(sr.safe_fetch, "fetch_page", _tehran_site())
+    monkeypatch.setattr(cn._web_lookup, "web_lookup_enabled", lambda: False)
+    governed = [{"canonical_directory_key": "g1", "id": 1, "record_state": "ACTIVE", "canonical_name": "دکتر ونک", "address": "ونک"}]
+    monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, r: governed)
+    monkeypatch.setattr(cn, "_map_backend_row", lambda item: cn.VerifiedDirectoryIdentity(
+        directory_record_id=1, entity_type="DOCTOR", canonical_name=item["canonical_name"], canonical_directory_key=item["id"],
+        specialty_or_service="قلب", city="تهران", province="تهران", source_system_label="GOVERNED", record_state="ACTIVE",
+        last_verified_at=None, endorsement_disclaimer="", address=item["address"]))
+    req = cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="قلب", city="تهران", area="تهرانپارس", language="fa",
+                            qualifiers=("only_area",))
+    out = cn.query_governed_directory(None, req)
+    assert out.identities and "دکتر ونک" not in [i.canonical_name for i in out.identities]
+    nearest = cn._nearest_area_result(None, req, cn.CareNavResult(status=cn.STATUS_NO_VERIFIED, entity=req.entity, user_message="x"))
+    assert nearest.user_message == "x"                                                                           # never widened to other places
+
+
+def test_p2_the_answers_to_both_interview_steps_reach_the_personal_care(monkeypatch):
+    from datetime import datetime
+
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    import backend.app.services.i6.consent_service as consent
+    import backend.app.services.i7.retention as retention
+
+    first_q = sedi_copy.t("journey.intake.lead", "fa") + "\n\n" + sedi_copy.t("journey.interview.chest", "fa")
+    follow_q = fq.followup_message("x", "fa")
+    rows = [SimpleNamespace(user_message="موقع پله درد دارم", sedi_response=follow_q, created_at=datetime.utcnow()),
+            SimpleNamespace(user_message="اره", sedi_response=first_q, created_at=datetime.utcnow())]
+    monkeypatch.setattr(consent, "has_permission", lambda *a, **k: True)
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: rows)
+    orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN"}, structured_mode=False)
+    assert orch._interview_explanations(42, "شب‌ها بدتر است") == ["موقع پله درد دارم", "شب‌ها بدتر است"]
