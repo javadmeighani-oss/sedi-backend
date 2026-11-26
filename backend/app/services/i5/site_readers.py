@@ -277,6 +277,7 @@ def page(ranked: Sequence[SiteProvider], number: int = 1) -> list:
 
 # --- reading ------------------------------------------------------------------------------------------------------------------------------------
 _cache: dict = {}
+_areas: dict = {}  # R-120 am.2: listing url -> (read at, {area title: href}) - Paziresh24's own «محله و خیابان» filter
 _lock = threading.Lock()
 _pace_lock = threading.Lock()
 _last_live_fetch = [0.0]
@@ -300,6 +301,38 @@ def _pace_live_fetch(deadline: Optional[float] = None) -> bool:
         return True
 
 
+def parse_p24_areas(raw: bytes) -> dict:
+    """{area title: href} of a Paziresh24 listing's own neighbourhood filter (``filters[name=area]``), {} when the page has none."""
+    data = _next_data(raw)
+
+    def walk(node: Any) -> Optional[list]:
+        if isinstance(node, dict):
+            if isinstance(node.get("filters"), list):
+                return node["filters"]
+            for value in node.values():
+                got = walk(value)
+                if got:
+                    return got
+        elif isinstance(node, list):
+            for value in node:
+                got = walk(value)
+                if got:
+                    return got
+        return None
+
+    out: dict = {}
+    try:
+        for flt in walk(data) or []:
+            if isinstance(flt, dict) and flt.get("name") == "area":
+                for item in flt.get("items") or []:
+                    title, href = _clean(item.get("title"), 80), str(item.get("href") or "")
+                    if title and href.startswith("/s/"):
+                        out[title] = href
+    except Exception:  # noqa: BLE001
+        return {}
+    return out
+
+
 def _read_one(site: str, url: str, fetch: Callable[[str], Any], deadline: Optional[float] = None) -> tuple:
     started = time.time()
     with _lock:
@@ -316,6 +349,12 @@ def _read_one(site: str, url: str, fetch: Callable[[str], Any], deadline: Option
             items, nearby = parse_doctoreto(fr.body)
         else:
             items, nearby = parse_paziresh24(fr.body), []
+            found_areas = parse_p24_areas(fr.body)
+            if found_areas:
+                with _lock:
+                    if len(_areas) > 128:
+                        _areas.pop(next(iter(_areas)))
+                    _areas[url] = (time.time(), found_areas)
         if items or nearby:  # an empty page may be a temporary/challenge page: never cache it, so the next read retries (Codex P2, PR 218)
             with _lock:
                 if len(_cache) > 128:
@@ -509,8 +548,53 @@ def _qualified(providers: Sequence[SiteProvider], specialty: Optional[str], city
     return [p for p in providers if p.name and profile_url_ok(p.url) and not _wrong_specialty(specialty, p) and not _wrong_city(city, p)]
 
 
+TEHRAN = "تهران"
+WORTH_MARGIN = 0.2  # a farther doctor is added only when his shrunk rating beats the best near one by this much
+WORTH_MIN_REVIEWS = 100
+NEAR_KM = 4.0  # «near»: within this distance of the neighbourhood's centre
+
+
+def is_tehran(city: Optional[str]) -> bool:
+    return _squash(city) == _squash(TEHRAN)
+
+
+def _mentions_area(p: SiteProvider, area: Optional[str]) -> bool:
+    key = _squash(area)
+    return bool(key) and key in _squash(p.address)
+
+
+def _centre(providers: Sequence[SiteProvider]) -> Optional[tuple]:
+    pts = [(p.lat, p.lon) for p in providers if p.lat is not None and p.lon is not None]
+    if not pts:
+        return None
+    return (sum(x for x, _ in pts) / len(pts), sum(y for _, y in pts) / len(pts))
+
+
+def _area_providers(specialty: Optional[str], city: Optional[str], area: str, fetch: Optional[Callable[[str], Any]], deadline: float) -> list:
+    """The doctors OF the neighbourhood (Tehran): Paziresh24's own neighbourhood page(s) («تهرانپارس غربی» …) + its text search for the
+    neighbourhood, keeping only addresses that name it. Fail-open: []."""
+    try:
+        slug = city_slug(city)
+        if not slug or specialty not in P24_SLUGS:
+            return []
+        base = f"https://www.paziresh24.com/s/{slug}/{P24_SLUGS[specialty]}/"
+        key = _squash(area)
+        with _lock:
+            known = dict((_areas.get(base) or (0, {}))[1])
+        urls = [("https://www.paziresh24.com" + href, False) for title, href in known.items() if key and (key in _squash(title) or _squash(title) in key)][:2]
+        urls.append((base + "?text=" + quote(area), True))
+        fetcher = fetch or safe_fetch.fetch_page
+        out: list = []
+        for url, only_named in urls:
+            _site, items, _nearby, _status = _read_one(SITE_P24, url, fetcher, deadline)
+            out.extend(p for p in items if not only_named or _mentions_area(p, area))
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Optional[str] = None, number: int = 1, exclude: Sequence[str] = (),
-                  origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None) -> list:
+                  origin: Optional[tuple] = None, fetch: Optional[Callable[[str], Any]] = None, only_area: bool = False) -> list:
     """Page ``number`` (FIVE) of the most credible providers for (canonical specialty, city), as the SAME row dicts the web lookup returns, so the
     chat's identities, links and wording need no second path. Every row is a page of a known listing site (``trusted``), carries the patients'
     rating and count the site published, and is transient (nothing is stored). Up to ``MAX_PAGES`` listing pages are read while fewer than five
@@ -529,9 +613,35 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
             if not any(v.get("ok") and v.get("count") for v in report.sites.values()):
                 break  # nothing (more) to read on this page
             providers.extend(report.providers)
-            ranked = _area_first(rank(_qualified(providers, specialty, city), origin=origin, exclude=exclude), area)
+            ranked = rank(_qualified(providers, specialty, city), origin=origin, exclude=exclude)
             if len(ranked) >= (max(1, number) - 1) * PAGE_SIZE + PAGE_SIZE + SPARE:
                 break
+        worth: Optional[SiteProvider] = None
+        if is_tehran(city) and area:
+            # R-120 am.2 (Javad 2026-11-26): in TEHRAN the neighbourhood decides - its own doctors first, then the nearest; one clearly better
+            # doctor farther away may be added with why he is worth the trip; «only my neighbourhood» = only there. Other cities: city-wide.
+            near = rank(_qualified(_area_providers(specialty, city, area, fetch, time.time() + READ_TIMEOUT_SECONDS), specialty, city), exclude=exclude)
+            near_keys = {p.key for p in near}
+            city_rest = [p for p in ranked if p.key not in near_keys]
+            centre = _centre(near) or _centre([p for p in ranked if _mentions_area(p, area)])
+            if only_area:
+                ranked = near
+            else:
+                if centre:
+                    by_distance = sorted((p for p in city_rest if p.lat is not None and p.lon is not None), key=lambda p: haversine_km(centre, (p.lat, p.lon)))
+                    close = [p for p in by_distance if haversine_km(centre, (p.lat, p.lon)) <= NEAR_KM]
+                    ranked = near + close + [p for p in by_distance if p not in close]
+                else:
+                    ranked = near + city_rest
+                # «clearly better» is measured against the neighbourhood's OWN best (the nearest fill-ins are not the neighbourhood)
+                best_near = max((trust_score(p) for p in (near or ranked[:PAGE_SIZE])), default=0.0)
+                shown = {p.key for p in ranked[:PAGE_SIZE]}
+                for p in sorted(city_rest, key=lambda x: -trust_score(x)):
+                    if p.key in shown:
+                        continue
+                    if p.rating_count >= WORTH_MIN_REVIEWS and trust_score(p) >= best_near + WORTH_MARGIN:
+                        worth = p  # the best doctor not already shown, and clearly better than the near ones
+                    break
         today = date.today().isoformat()
         chosen: list = []
         checking = verify_enabled()
@@ -544,12 +654,17 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
             status = verify_profile(p, fetch, deadline) if checking else "unknown"
             if status != "bad":
                 chosen.append((p, status))
+        if worth is not None and all(worth.key != p.key for p, _ in chosen):
+            status = verify_profile(worth, fetch, deadline) if checking else "unknown"
+            if status != "bad":
+                chosen.append((worth, status))
         rows = []
         for p, status in chosen:
             rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
                          "source_url": encode_url(p.url), "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
                          "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
-                         "page_read": True, "why": (), "_key": p.key, "link_checked": status == "ok"})
+                         "page_read": True, "why": (), "_key": p.key, "link_checked": status == "ok",
+                         "worth_far": bool(worth is not None and p.key == worth.key)})
         return rows
     except Exception:  # noqa: BLE001 - the chat must never break because a site could not be read
         logger.info("site_reader_rows_failed")

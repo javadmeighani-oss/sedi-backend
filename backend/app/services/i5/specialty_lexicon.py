@@ -213,6 +213,14 @@ _HIGH_RATING = re.compile(fold(
 _URGENT = re.compile(fold(r"فوری|هر ?چه زودتر|زودتر ممکن|urgent|as soon as possible|asap|عاجل|بأسرع وقت|باسرع وقت"))
 
 
+# R-120 am.2: «فقط همین محله / فقط نزدیک خانه» - only the user's own neighbourhood, no farther doctor
+_ONLY_AREA = re.compile(
+    r"فقط\s*(?:در|تو|توی)?\s*(?:همین\s*|خود\s*)?(?:محله|محل|منطقه|نزدیک|اطراف)|(?:همین|خود)\s*محله\s*(?:م|ام|خودم)?\s*(?:باشه|باشد)|"
+    r"\bonly\s+(?:in\s+)?(?:my\s+)?(?:own\s+)?(?:area|neighbou?rhood)\b|\bonly\s+near\s+(?:my\s+)?home\b|فقط\s*(?:في|ضمن)\s*(?:حيي|منطقتي)",
+    re.I,
+)
+
+
 def qualifiers(text: str) -> tuple[str, ...]:
     """Request qualifiers read from the text: ``24h`` and/or ``high_rating``."""
     t = fold(text)
@@ -223,6 +231,8 @@ def qualifiers(text: str) -> tuple[str, ...]:
         out.append("high_rating")
     if _URGENT.search(t):
         out.append("urgent")
+    if _ONLY_AREA.search(t) or _ONLY_AREA.search(text or ""):
+        out.append("only_area")
     return tuple(out)
 
 

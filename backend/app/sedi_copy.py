@@ -1565,6 +1565,31 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'لم يبقَ في هذه القوائم طبيب آخر بهذه المواصفات. اذكر اسم مدينة أو حي قريب وسأبحث هناك.',
         'en': 'No other doctor with these details is left in those lists. Tell me a nearby city or neighbourhood and I will search there.',
     },
+    'care_nav.worth_far': {
+        'fa': 'از محله‌ات دورتر است، ولی با امتیاز {rating} از {count} نظر بیماران، ارزش ویزیت دارد.',
+        'ar': 'أبعد عن حيّك، لكنه يستحق الزيارة بتقييم {rating} من {count} رأياً للمرضى.',
+        'en': 'Farther from your neighbourhood, but worth the visit: rated {rating} by {count} patients.',
+    },
+    'care_nav.links.open_on': {
+        'fa': 'صفحه‌ی پزشک در {site}',
+        'ar': 'صفحة الطبيب في {site}',
+        'en': 'Doctor page on {site}',
+    },
+    'journey.care.personal.lead': {
+        'fa': 'تا رسیدن به پزشک، با توجه به چیزهایی که برایم گفتی:',
+        'ar': 'حتى موعد الطبيب، وبحسب ما أخبرتني به:',
+        'en': 'Until you see the doctor, based on what you told me:',
+    },
+    'journey.care.emergency.chest': {
+        'fa': 'اگر درد شدید شد یا تنگی نفس، عرق سرد یا درد به دست و فک آمد، فوراً به اورژانس برو یا ۱۱۵ را بگیر.',
+        'ar': 'إذا اشتد الألم أو ظهر ضيق نفس أو عرق بارد أو امتد الألم إلى الذراع والفك، اذهب فوراً إلى الطوارئ أو اتصل بالإسعاف.',
+        'en': 'If the pain gets severe, or you get short of breath, a cold sweat or pain spreading to the arm or jaw, go to the emergency room at once or call emergency services.',
+    },
+    'journey.care.emergency.generic': {
+        'fa': 'اگر حالت ناگهان بدتر شد، فوراً به اورژانس برو یا ۱۱۵ را بگیر.',
+        'ar': 'إذا ساءت حالتك فجأة، اذهب فوراً إلى الطوارئ أو اتصل بالإسعاف.',
+        'en': 'If you suddenly feel worse, go to the emergency room at once or call emergency services.',
+    },
     'care_nav.links.search_on': {
         'fa': 'جست‌وجو در {site}',
         'ar': 'البحث في {site}',
@@ -1601,9 +1626,9 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'After checking credible booking sites, I found these verified doctors for you based on the reviews of their users:',
     },
     'care_nav.intro.close': {
-        'fa': 'تماس بگیر و وقت ویزیتت را با من هماهنگ کن. بعد از ویزیت هم مرا در جریان صحبت‌های پزشک و داروها یا آزمایش‌هایی که برایت می‌نویسد بگذار تا من هم بررسی کنم.',
-        'ar': 'اتصل من فضلك ونسّق موعد زيارتك معي. وبعد الزيارة أخبرني بما قاله الطبيب وبالأدوية أو التحاليل التي يطلبها لأراجعها أنا أيضاً.',
-        'en': 'Please call, and coordinate your visit time with me. After the visit, tell me what the doctor said and the medicines or tests prescribed, so I can review them too.',
+        'fa': 'تماس بگیر و وقت ویزیتت را با من هماهنگ کن و مرا در جریان قرار بده. بعد از ویزیت هم صحبت‌های پزشک و داروها یا آزمایش‌هایی را که برایت می‌نویسد به من بگو تا من هم بررسی کنم.',
+        'ar': 'اتصل ونسّق موعد زيارتك معي وأبقني على اطلاع. وبعد الزيارة أخبرني بما قاله الطبيب وبالأدوية أو التحاليل التي يطلبها لأراجعها أنا أيضاً.',
+        'en': 'Call, coordinate your visit time with me and keep me informed. After the visit, tell me what the doctor said and the medicines or tests prescribed, so I can review them too.',
     },
     'care_nav.ask_place_city': {
         'fa': '«{area}» در کدام شهر است؟',

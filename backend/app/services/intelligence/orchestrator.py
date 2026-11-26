@@ -553,7 +553,7 @@ class IntelligenceOrchestrator:
         except Exception:
             return message
 
-    def _with_care_journey(self, directory_message: Optional[str], request_text: str, lang: str, user_id: int) -> tuple[Optional[str], bool]:
+    def _with_care_journey(self, directory_message: Optional[str], request_text: str, lang: str, user_id: int, said: Optional[str] = None) -> tuple[Optional[str], bool]:
         """R-109 step 1b-2: append the care-journey block (stabilising care + up to three interview questions, or just «how are you
         now?» while a journey is open) to a doctor/lab answer and track the follow-up. Specialist / hospital / centre / lab requests
         only (a pharmacy lookup is not a care journey). Fail-open: the plain answer is returned unchanged."""
@@ -565,10 +565,14 @@ class IntelligenceOrchestrator:
 
             if _cn.is_directory_source_question(request_text):
                 return directory_message, False
+            from backend.app.services.i5.care_nav_interview import is_place_question
+
+            if is_place_question(directory_message):
+                return directory_message, False  # R-120 am.1: a place question stands ALONE (no care block, no second question)
             entity = _cn.parse_care_nav_request(request_text, language=lang).entity
             if entity is _cn.CareNavEntity.PHARMACY:
                 return directory_message, False
-            block = _journey.results_block(self._db, user_id, request_text, lang)
+            block = _journey.results_block(self._db, user_id, request_text, lang, explanations=self._interview_explanations(user_id, said))
             if not block:
                 return directory_message, False
             return directory_message.rstrip() + "\n\n" + block, True
@@ -586,6 +590,57 @@ class IntelligenceOrchestrator:
 
             rows = (query_eligible_raw(self._db, user_id, limit=4) or []) if has_permission_readonly(self._db, user_id, PERM_READ) else []
             return care_nav_memory.complete_request(self._db, user_id, message, lang, rows=list(rows))
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _interview_explanations(self, user_id: int, said: Optional[str]) -> list:
+        """R-120 am.2: what the user told Sedi in this doctor interview (answers to her interview questions, newest last), read through the
+        consent-gated, retention-filtered reader. [] = nothing to build personal care from (fail-open)."""
+        try:
+            if self._db is None:
+                return []
+            from backend.app.services.care_journey import journey as _journey
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
+
+            if not has_permission(self._db, user_id, PERM_READ):
+                return []
+            rows = query_eligible_raw(self._db, user_id, limit=8) or []
+            told: list = []
+            for i, r in enumerate(rows):
+                if _journey.is_interview_reply(getattr(r, "sedi_response", None)):
+                    answer = said if i == 0 else getattr(rows[i - 1], "user_message", None)
+                    if answer and str(answer).strip():
+                        told.append(str(answer))
+            return list(reversed(told))
+        except Exception:  # noqa: BLE001
+            return []
+
+    def _last_place(self, message: str, user_id: int) -> Optional[str]:
+        """R-120 am.2: the place for a doctor request that names none - the newest place the user gave (or his stored residence)."""
+        try:
+            if self._db is None or not message:
+                return None
+            from backend.app.services.i5 import care_navigation_directory as _cn
+            from backend.app.services.i5.care_nav_interview import last_known_place, place_status
+
+            if not _cn.is_care_navigation_query(message) or place_status(message)[0] != "none":
+                return None
+            req = _cn.parse_care_nav_request(message, language="fa")
+            if req.name_hint or req.entity not in (_cn.CareNavEntity.SPECIALIST, _cn.CareNavEntity.SPECIALTY_CENTER):
+                return None
+            from backend.app.core.conversation.memory import ConversationMemory
+
+            rows = sorted(ConversationMemory(self._db).get_recent_messages(int(user_id), limit=60), key=lambda r: getattr(r, "id", 0), reverse=True)
+            home = None
+            try:
+                from backend.app.services import care_state as _cs
+
+                st = _cs.get_care_state(self._db, user_id)
+                home = (st.home_area, st.home_city) if getattr(st, "home_city", None) else None
+            except Exception:  # noqa: BLE001
+                home = None
+            return last_known_place(rows, home)
         except Exception:  # noqa: BLE001
             return None
 
@@ -1526,6 +1581,14 @@ class IntelligenceOrchestrator:
 
                 message = _swap_place(message, _known, lang)
                 extra_reason_codes.append("R120_PLACE_ALREADY_KNOWN")
+            elif _next_req is None:
+                _last = self._last_place(message, authenticated_user_id)
+                if _last:  # R-120 am.2: a request without a place uses the place he already gave (named briefly, so he can correct it)
+                    message = f"{message.strip()} در {_last}" if lang == "fa" else f"{message.strip()} in {_last}"
+                    from backend.app import sedi_copy as _copy
+
+                    _memory_notes = tuple(_memory_notes) + (_copy.t("care_nav.memory.place_used", lang, place=_last.replace("شهر ", "")),)
+                    extra_reason_codes.append("R120_LAST_PLACE_USED")
             _reason_q = None if _next_req is not None else (reason_question(message, lang) if not is_directory_source_question(message) else None)
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
             _intake_q = None if (_reason_q or _next_req is not None) else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id, said=original_user_message))
@@ -1598,7 +1661,8 @@ class IntelligenceOrchestrator:
                     extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
                 # R-109 step 1b-2: a doctor/lab request is the start of a CARE JOURNEY (follow-up, interview, stabilising care)
                 directory_message, _journey_started = self._with_care_journey(
-                    directory_message, (_memory_req.tier_text if _memory_req is not None and _memory_req.tier_text else message), lang, authenticated_user_id
+                    directory_message, (_memory_req.tier_text if _memory_req is not None and _memory_req.tier_text else message), lang, authenticated_user_id,
+                    said=original_user_message,
                 )
                 if _journey_started:
                     extra_reason_codes.append("R109_CARE_JOURNEY")

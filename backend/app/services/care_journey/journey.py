@@ -130,12 +130,20 @@ def track(db: Any, user_id: int, request_text: str, language: str) -> bool:
         return False
 
 
-def results_block(db: Any, user_id: int, request_text: str, language: str) -> Optional[str]:
-    """After the introduction: the stabilising care + «how are you now?» of an OPEN journey (the interview was asked before)."""
+def results_block(db: Any, user_id: int, request_text: str, language: str, explanations: Optional[list] = None) -> Optional[str]:
+    """After the introduction: care until the visit of an OPEN journey (the interview was asked before). R-120 am.2: built from what the user
+    explained (no fixed block, no generic «how are you now?»); the catalog block + status question only when nothing personal can be made."""
     try:
         if not enabled() or db is None or tier_for(request_text, language) is None or not _journey_open(db, user_id):
             return None
         lang = language if language in ("fa", "ar", "en") else "en"
+        if explanations:
+            from backend.app.services.care_journey.personal_care import personal_care_block
+            from backend.app.services.i5 import specialty_lexicon as _sl
+
+            personal = personal_care_block(explanations, lang, area_of(request_text), _sl.find_specialty(request_text))
+            if personal:
+                return personal
         return sedi_copy.t(f"journey.care.{area_of(request_text)}", lang) + "\n\n" + sedi_copy.t("journey.status_only", lang)
     except Exception:  # noqa: BLE001
         return None
@@ -394,7 +402,10 @@ def record_answer(
             return False
         from backend.app.services.knowledge.llm_memory_extractor_v2 import _about_relative
 
-        if not _answers_the_interview(answer, language):  # thanks / refusal / topic change / a new request is not an episode (Codex P2, PR 196)
+        from backend.app.services.i5.care_nav_interview import _HEALTH_NARRATIVE
+
+        # thanks / refusal / topic change / a new request is not an episode (Codex P2, PR 196); R-120: an open explanation is
+        if not (_answers_the_interview(answer, language) or (_HEALTH_NARRATIVE.search(answer) and not _NOT_AN_ANSWER.search(answer))):
             return False
         if _about_relative(answer):  # «my mother has chest pain»: not the user's episode (Codex P2, PR 196)
             return False

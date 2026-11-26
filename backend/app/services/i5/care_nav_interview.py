@@ -149,6 +149,32 @@ def place_already_known(message: str, rows: list, home: Optional[tuple] = None) 
         return None
 
 
+def last_known_place(rows: list, home: Optional[tuple] = None) -> Optional[str]:
+    """R-120 am.2: the place for a doctor request that names NONE - the newest place the user gave in a doctor conversation (named with its
+    city, answered to Sedi's place question, or confirmed with «yes»), else the stored residence. ``rows`` = NEWEST FIRST. None = ask."""
+    try:
+        rows = list(rows or [])
+        for i, r in enumerate(rows):
+            said = str(getattr(r, "user_message", "") or "")
+            got = cn._places.find_place(said)
+            prev_q = getattr(rows[i + 1], "sedi_response", None) if i + 1 < len(rows) else None
+            if (got.area or got.city) and (cn.is_care_navigation_query(said) or is_place_question(prev_q)):
+                if got.area and got.city:
+                    return f"{got.area} {got.city}"
+                if got.city:
+                    return f"شهر {got.city}"
+            reply = getattr(r, "sedi_response", None)
+            if is_place_question(reply) and i > 0 and _AFFIRM.match(str(getattr(rows[i - 1], "user_message", "") or "").strip()):
+                asked = cn._places.find_place(str(reply))
+                if asked.area and asked.city:
+                    return f"{asked.area} {asked.city}"
+        if home and home[1]:
+            return f"{home[0]} {home[1]}" if home[0] else f"شهر {home[1]}"
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def is_place_question(sedi_reply: Optional[str]) -> bool:
     return _contains_any(sedi_reply, "care_nav.markers.place") or _contains_any(sedi_reply, "care_nav.markers.place_city")
 

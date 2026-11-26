@@ -16,7 +16,7 @@ import re
 from typing import Any, Iterable, Optional, Sequence
 from urllib.parse import urlparse
 
-MAX_LINKS = 5
+MAX_LINKS = 6  # five near doctors + at most one «worth the trip» (R-120 am.2)
 LABEL_MAX = 120  # «دکتر الف — متخصص پوست — پذیرش۲۴»: name + specialty + site
 KIND_PROVIDER = "provider"  # the page of one doctor / clinic / lab on the original site
 KIND_SEARCH = "search"  # a search page on a booking site (nothing verified was found)
@@ -90,6 +90,18 @@ def links_for_identities(identities: Iterable[Any], language: Optional[str], spe
         name = getattr(ident, "canonical_name", None)
         spec = getattr(ident, "specialty_or_service", None) or specialty
         item = link(provider_label(name, spec, site_name(url, lang)), url, KIND_PROVIDER) if url and name else None
+        if item:
+            # R-120 am.2 (Javad 2026-11-26): ONE bubble - each doctor's name + specialty + place, and RIGHT UNDER it the link to his page
+            from backend.app import sedi_copy
+
+            spec_text = " ".join(str(spec or "").split())
+            item["title"] = " — ".join(x for x in (" ".join(str(name).split()), spec_text) if x)[:LABEL_MAX]
+            place = " ".join(str(getattr(ident, "address", None) or getattr(ident, "city", None) or "").split())
+            item["location"] = place[:LABEL_MAX] if place else ""
+            note = getattr(ident, "note", None)
+            if note:
+                item["note"] = str(note)[:200]
+            item["link_text"] = sedi_copy.t("care_nav.links.open_on", lang, site=site_name(url, lang))
         if item and item["url"] not in seen:
             seen.add(item["url"])
             out.append(item)
