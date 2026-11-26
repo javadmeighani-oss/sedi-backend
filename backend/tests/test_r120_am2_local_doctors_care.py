@@ -298,3 +298,13 @@ def test_p2_only_area_keeps_the_city_listing_doctors_who_are_in_the_neighbourhoo
     fetch = lambda url: SimpleNamespace(ok=url in pages, reason="" if url in pages else "http_404", body=pages.get(url, b""))  # noqa: E731
     rows = sr.provider_rows("قلب", "تهران", area="تهرانپارس", fetch=fetch, only_area=True)
     assert [r["name"] for r in rows] == ["دکتر قلب 01"]
+
+
+# --- Codex round 3 on PR 228 ------------------------------------------------------------------------------------------------------------------
+def test_p2_doctors_without_map_data_still_fill_the_list():
+    base = "https://www.paziresh24.com/s/tehran/cardiovascular/"
+    city = [_doc(1, "تهرانپارس، خیابان ۲۰۰", *TP, star=4.6, count=80)] + [_doc(i, "ونک", None, None, star=4.5, count=50) for i in range(2, 9)]
+    pages = {base: _p24(city)}
+    fetch = lambda url: SimpleNamespace(ok=url in pages, reason="" if url in pages else "http_404", body=pages.get(url, b""))  # noqa: E731
+    rows = sr.provider_rows("قلب", "تهران", area="تهرانپارس", fetch=fetch)
+    assert len(rows) == 5 and rows[0]["name"] == "دکتر قلب 01"

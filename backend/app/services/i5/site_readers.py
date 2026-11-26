@@ -632,7 +632,8 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
                 if centre:
                     by_distance = sorted((p for p in city_rest if p.lat is not None and p.lon is not None), key=lambda p: haversine_km(centre, (p.lat, p.lon)))
                     close = [p for p in by_distance if haversine_km(centre, (p.lat, p.lon)) <= NEAR_KM]
-                    ranked = near + close + [p for p in by_distance if p not in close]
+                    unlocated = [p for p in city_rest if p.lat is None or p.lon is None]  # no map data: still usable, after the located ones
+                    ranked = near + close + [p for p in by_distance if p not in close] + unlocated
                 else:
                     ranked = near + city_rest
                 # «clearly better» is measured against the neighbourhood's OWN best (the nearest fill-ins are not the neighbourhood)
