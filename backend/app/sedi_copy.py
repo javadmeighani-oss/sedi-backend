@@ -713,6 +713,21 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'تذكيراتك وإشعاراتك',
         'en': 'your reminders and notifications',
     },
+    'recap.phrase_in_app.doctor': {
+        'fa': 'پیدا کردن پزشک مناسب برایت',
+        'ar': 'إيجاد الطبيب المناسب لك',
+        'en': 'finding the right doctor for you',
+    },
+    'recap.phrase_in_app.medication': {
+        'fa': 'داروهایت',
+        'ar': 'أدويتك',
+        'en': 'your medicines',
+    },
+    'recap.phrase_in_app.symptoms': {
+        'fa': 'حال جسمی‌ات',
+        'ar': 'حالتك الجسدية',
+        'en': 'how you have been feeling physically',
+    },
     'recap.phrase_in_app.tone': {
         'fa': 'لحن و سبک حرف زدنمون',
         'ar': 'أسلوب حديثنا',
@@ -1561,14 +1576,34 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'I found no suitable doctor in {tried}; near “{found}” I found these options:',
     },
     'care_nav.ask_place': {
-        'fa': 'منظورت {place} است یا جای دیگری؟ اگر جای دیگری است، نام محله و شهرش را بگو.',
-        'ar': 'هل تقصد {place} أم مكاناً آخر؟ وإن كان مكاناً آخر فاذكر الحي والمدينة.',
-        'en': 'Do you mean {place}, or somewhere else? If somewhere else, tell me the neighbourhood and the city.',
+        'fa': '{place} را می‌گویی؟',
+        'ar': 'هل تقصد {place}؟',
+        'en': 'Do you mean {place}?',
     },
     'care_nav.markers.place': {
-        'fa': ('یا جای دیگری',),
-        'ar': ('أم مكاناً آخر',),
-        'en': ('or somewhere else',),
+        'fa': ('یا جای دیگری', 'را می‌گویی', 'در کدام شهر و محله'),
+        'ar': ('أم مكاناً آخر', 'هل تقصد', 'في أي مدينة وحي'),
+        'en': ('or somewhere else', 'do you mean', 'which city and neighbourhood'),
+    },
+    'care_nav.ask_place_missing': {
+        'fa': 'در کدام شهر و محله دنبال پزشک هستی؟',
+        'ar': 'في أي مدينة وحي تبحث عن الطبيب؟',
+        'en': 'Which city and neighbourhood should I search in?',
+    },
+    'care_nav.intro.head': {
+        'fa': 'این پزشکان را برایت پیدا کردم:',
+        'ar': 'وجدتُ لك هؤلاء الأطباء:',
+        'en': 'I found these doctors for you:',
+    },
+    'care_nav.intro.head_verified': {
+        'fa': 'با بررسی سایت‌های معتبر، این پزشکان تأییدشده را بر اساس نظر کاربران همان سایت‌ها برایت پیدا کردم:',
+        'ar': 'بعد مراجعة مواقع موثوقة، وجدتُ لك هؤلاء الأطباء الموثّقين بحسب آراء مستخدمي تلك المواقع:',
+        'en': 'After checking credible booking sites, I found these verified doctors for you based on the reviews of their users:',
+    },
+    'care_nav.intro.close': {
+        'fa': 'تماس بگیر و وقت ویزیتت را با من هماهنگ کن. بعد از ویزیت هم مرا در جریان صحبت‌های پزشک و داروها یا آزمایش‌هایی که برایت می‌نویسد بگذار تا من هم بررسی کنم.',
+        'ar': 'اتصل من فضلك ونسّق موعد زيارتك معي. وبعد الزيارة أخبرني بما قاله الطبيب وبالأدوية أو التحاليل التي يطلبها لأراجعها أنا أيضاً.',
+        'en': 'Please call, and coordinate your visit time with me. After the visit, tell me what the doctor said and the medicines or tests prescribed, so I can review them too.',
     },
     'care_nav.ask_place_city': {
         'fa': '«{area}» در کدام شهر است؟',
@@ -2076,14 +2111,34 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'en': 'Until you see the doctor: note your symptoms with their time and strength and get your medicine list ready. If it suddenly gets worse, go to the emergency room now.',
     },
     'journey.interview.chest': {
-        'fa': 'برای اینکه دقیق‌تر کمکت کنم: الان درد یا فشار قفسه‌ی سینه داری و همراهش تنگی نفس یا عرق سرد هست؟ از کی شروع شد و قبلاً هم داشتی؟ فکر می‌کنی چه چیزی پیش از آن تغییر کرد؟',
-        'ar': 'لأساعدك بدقة أكبر: هل لديك الآن ألم أو ضغط في الصدر ومعه ضيق نفس أو عرق بارد؟ متى بدأ وهل حدث من قبل؟ وما الذي تظن أنه تغيّر قبله؟',
-        'en': 'So I can help you more precisely: do you have chest pain or pressure right now, with shortness of breath or a cold sweat? When did it start, and did it happen before? What do you think changed before it began?',
+        'fa': 'برای اینکه دقیق‌تر کمکت کنم: برایم تعریف کن چه شده و چه چیزی باعث شد بخواهی متخصص قلب را ببینی؟',
+        'ar': 'لأساعدك بدقة أكبر: احكِ لي ما الذي حدث وما الذي جعلك تريد زيارة طبيب القلب؟',
+        'en': 'So I can help you more precisely: tell me what happened and what made you want to see a heart specialist?',
     },
     'journey.interview.generic': {
-        'fa': 'برای اینکه دقیق‌تر کمکت کنم: چه اتفاقی افتاده و الان وضعیتت چطور است؟ تازه شروع شده یا از قبل بوده؟ فکر می‌کنی چرا پیش آمده؟',
-        'ar': 'لأساعدك بدقة أكبر: ماذا حدث وكيف حالك الآن؟ هل بدأ حديثاً أم كان من قبل؟ ولماذا تظن أنه حدث؟',
-        'en': 'So I can help you more precisely: what happened and how are you right now? Did it just start or was it there before? Why do you think it happened?',
+        'fa': 'برای اینکه دقیق‌تر کمکت کنم: برایم تعریف کن چه شده و چرا می‌خواهی به این پزشک مراجعه کنی؟',
+        'ar': 'لأساعدك بدقة أكبر: احكِ لي ما الذي حدث ولماذا تريد مراجعة هذا الطبيب؟',
+        'en': 'So I can help you more precisely: tell me what happened and why you want to see this doctor?',
+    },
+    'journey.followup.lead': {
+        'fa': 'ممنون که برایم توضیح دادی.',
+        'ar': 'شكراً لأنك شرحت لي.',
+        'en': 'Thank you for explaining.',
+    },
+    'journey.followup.marker': {
+        'fa': 'برای اینکه دقیق‌تر کمکت کنم،',
+        'ar': 'لأساعدك بدقة أكبر،',
+        'en': 'So I can help you more precisely,',
+    },
+    'journey.followup.fallback': {
+        'fa': 'از کی این حالت را داری و روی خواب، کار و حال روحی‌ات چه اثری گذاشته است؟',
+        'ar': 'منذ متى تعاني من ذلك، وكيف أثّر على نومك وعملك ومزاجك؟',
+        'en': 'how long has this been going on, and how has it affected your sleep, work and mood?',
+    },
+    'journey.markers.followup': {
+        'fa': ('ممنون که برایم توضیح دادی',),
+        'ar': ('شكراً لأنك شرحت لي',),
+        'en': ('thank you for explaining',),
     },
     'journey.markers.interview': {
         'fa': ('برای اینکه دقیق‌تر کمکت کنم',),

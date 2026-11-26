@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 # Private governed backend — Chat/orchestrator import THIS facade only.
 from backend.app.services.i5 import iran_directory_service as _governed_directory
 from backend.app.services.i5.iran_directory_source_manifest import SOURCE_MANIFEST
+from backend.app import sedi_copy
 from backend.app.services.i5 import directory_web_lookup as _web_lookup
 from backend.app.services.i5 import site_readers as _site_readers
 from backend.app.services.i5 import iran_places as _places
@@ -494,19 +495,19 @@ def source_info_message(language: str) -> str:
             "این اطلاعات رو از منابع معتبر پیدا می‌کنم؛ مثل سایت نظام پزشکی، سایت دانشگاه‌ها و بیمارستان‌ها و "
             "سامانه‌هایی مثل پذیرش۲۴، و وقتی لازم باشه همون لحظه در وب جست‌وجو می‌کنم. امتیاز یا درصد رضایتِ بیماران هم دقیقاً همونیه که خودِ "
             "پذیرش۲۴ نشون می‌ده و برای همه‌ی پزشک‌ها وجود نداره. اگه اسم پزشک یا تخصص و شهر رو بگی، "
-            "برات می‌گم نظر بیمارها دربارش چیه. این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی."
+            "برات می‌گم نظر بیمارها دربارش چیه."
         )
     if k == "ar":
         return (
             "جمعتُ هذه المعلومات من قوائم عامة مثل Paziresh24 ونقابة الأطباء ومواقع الجامعات الطبية، وأحدّثها باستمرار. "
             "أما التقييم أو نسبة رضا المرضى فهي كما يعرضها Paziresh24 نفسه وليست متاحة للجميع. "
-            "أخبرني باسم الطبيب أو التخصص والمدينة وسأذكر لك رأي المرضى. هذه معلومات فقط وليست توصية."
+            "أخبرني باسم الطبيب أو التخصص والمدينة وسأذكر لك رأي المرضى."
         )
     return (
         "I gathered this from public listings such as Paziresh24, the Medical Council site and university "
         "hospital pages, and I keep them updated. Patient ratings or satisfaction are exactly what Paziresh24 "
         "shows and aren't available for every doctor. Tell me a doctor, specialty and city and I'll share what "
-        "patients say. This is information only, not a recommendation or ranking."
+        "patients say."
     )
 
 
@@ -548,11 +549,9 @@ def _serialize_hits_message(
 
     lang = (language or "en").lower()
     k = _lk(lang)
-    lines = [{
-        "fa": "چند مورد از اطلاعاتی که دارم رو برات پیدا کردم:",
-        "ar": "هذه بعض النتائج من المعلومات التي لديّ:",
-        "en": "Here are a few options from the information I have:",
-    }[k]]
+    # R-120 (Javad 2026-11-26): doctors read from the credible booking sites are introduced as found BY THEIR USERS' REVIEWS on those sites
+    verified = bool(hits) and all(h.source_url and h.web_trusted for h in hits)
+    lines = [sedi_copy.t("care_nav.intro.head_verified" if verified else "care_nav.intro.head", k)]
     for h in hits:
         head = h.canonical_name + (f" — {h.specialty_or_service}" if h.specialty_or_service else "")
         loc = ("، " if k != "en" else ", ").join(x for x in (h.city, h.province) if x)
@@ -588,14 +587,8 @@ def _serialize_hits_message(
             "ar": "وجدتُ بعض هذه النتائج عبر البحث في الويب وهي غير مؤكدة؛ يرجى الاتصال والتأكد قبل الذهاب.",
             "en": "I found some of these through a web search and they are not verified; please call to confirm before going.",
         }[k])
-    lines.append({
-        "fa": "این‌ها فقط اطلاعاتن، نه توصیه یا رتبه‌بندی؛ قبل از رفتن بهتره با خود مرکز هماهنگ کنی. "
-              "بپرس تا بگم این اطلاعات از کجاست و بیمارها چه نظری دارن.",
-        "ar": "هذه معلومات فقط وليست توصية أو ترتيباً؛ يُفضّل الاتصال بالمركز قبل الذهاب. "
-              "إن أردت أخبرتك بمصدر المعلومات ورأي المرضى.",
-        "en": "This is information only, not a recommendation or ranking; please confirm with the provider "
-              "before going. Ask me and I'll tell you where it comes from and what patients say.",
-    }[k])
+    lines.append("")
+    lines.append(sedi_copy.t("care_nav.intro.close", k))  # R-120: call, coordinate the visit with Sedi, tell her the visit / medicines / tests
     return "\n".join(lines)
 
 
@@ -818,6 +811,15 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
             user_message=_urgent(request, no_result_message_for(request)),
             lab_population_authorized=False,
             identity_notes=tuple(notes + ["LAB_FAIL_SAFE"]),
+        )
+
+    if entity in (CareNavEntity.SPECIALIST, CareNavEntity.SPECIALTY_CENTER) and not (request.city or request.area) and not request.name_hint:
+        return CareNavResult(
+            status=STATUS_NO_VERIFIED,
+            entity=entity,
+            reason_code="PLACE_MISSING",
+            user_message=_urgent(request, sedi_copy.t("care_nav.ask_place_missing", _lk((request.language or "en").lower()))),
+            identity_notes=tuple(notes + ["PLACE_MISSING"]),
         )
 
     hits_raw = _dispatch_governed_search(db, request)

@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 DISABLED_ENV = "SEDI_CARE_JOURNEY_DISABLED"
 MARKER_KEY = "journey.markers.interview"
+FOLLOWUP_MARKER_KEY = "journey.markers.followup"  # R-120: the questions built FROM the user's explanation (the interview's second step)
 # body areas whose complaints deserve same-day check-ins (skin / dental / eye / ENT / endocrine / women stay on the routine ladder)
 _SYMPTOM_AREAS = frozenset({"head", "stomach", "back_joint", "urinary", "lung", "mind", "chest", "heart_rhythm"})
 _HEART = re.compile(r"قلب|قفسه|سینه|heart|cardio|chest|قلبي|صدر", re.I)
@@ -194,6 +195,14 @@ def _answers_the_interview(answer: str, language: str = "fa") -> bool:
         return "symptom" in detect_topics(answer or "", language)
     except Exception:  # noqa: BLE001
         return False
+
+
+def is_followup_reply(sedi_reply: Optional[str]) -> bool:
+    """Sedi's last reply was the interview's SECOND step (questions built from the user's explanation, R-120)."""
+    text = re.sub(r"[\W_]+", "", (sedi_reply or "").lower())
+    return bool(text) and any(
+        re.sub(r"[\W_]+", "", marker.lower()) in text for lang in ("fa", "ar", "en") for marker in sedi_copy.variants(FOLLOWUP_MARKER_KEY, lang)
+    )
 
 
 def is_interview_reply(sedi_reply: Optional[str]) -> bool:

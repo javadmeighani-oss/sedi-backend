@@ -40,6 +40,18 @@ _SKIP_INTAKE = re.compile(
 
 
 # a reminder / alarm request is its own flow, never an answer about the health episode (Codex P2, PR 198)
+# R-120: what an answer to the open interview talks about - the body, the mind, a visit, a check-up, why / since when. An unrelated request
+# («how do I change my password?») names none of it and is NOT bound to the pending doctor search (Codex P2, PR 227).
+_HEALTH_NARRATIVE = re.compile(
+    r"درد|حال|احساس|نگران|استرس|اضطراب|خواب|خستگی|خسته|بیمار|مریض|علائم|علامت|نشانه|چکاپ|چک\s*آپ|معاینه|آزمایش|فشار|قند|قلب|سینه|"
+    r"تپش|نفس|سرفه|تب|سر\s*گیجه|سرگیجه|تهوع|معده|کمر|زانو|پوست|چشم|گوش|دکتر|پزشک|ویزیت|نوبت|دارو|قرص|عمل|جراحی|سابقه|ارثی|"
+    r"از\s*(?:دیروز|صبح|ظهر|عصر|دیشب|هفته|ماه|سال|کی)|ساعت|دقیقه|(?:روز|هفته|ماه|سال)\s*(?:پیش|قبل)|بدتر|بهتر|بیشتر|کمتر|وقتی|موقع|شب‌ها|شبها|چند\s*(?:روز|هفته|ماه|سال)|قبلا|قبلاً|نمی\s*دونم|نمی\s*دانم|نمیدونم|"
+    r"\b(?:pain|ache|hurt|feel|feeling|worr|stress|anxi|sleep|tired|sick|ill|symptom|check\s*-?\s*up|exam|test|pressure|sugar|heart|chest|"
+    r"breath|cough|fever|dizz|nause|stomach|back|knee|skin|doctor|visit|appointment|medic|pill|surgery|since|days?|weeks?|months?|years?|"
+    r"don.?t know)\b|"
+    r"ألم|أشعر|قلق|نوم|تعب|مريض|أعراض|فحص|تحليل|ضغط|سكر|قلب|صدر|تنفس|سعال|حمى|دوخة|طبيب|موعد|دواء|منذ|لا\s*أعرف",
+    re.I,
+)
 _OTHER_REQUEST = re.compile(r"یاد(?:م|ما|مان)?\s*(?:بنداز|بده|بنداز)|یادآور|یاد\s*آور|\bremind(?:er)?\b|\balarm\b|ذكرني|تذكير|منبه", re.I)
 
 
@@ -74,7 +86,7 @@ def _place_phrase(place, lang: str) -> str:
     area, city = place.area, place.city
     if area and city:
         if lang == "fa":
-            return f"«{area}» در شهر {city}" if area.startswith("منطقه") else f"منطقه‌ی «{area}» در شهر {city}"
+            return f"«{area}» در شهر {city}" if area.startswith("منطقه") else f"محلهٔ «{area}» در شهر {city}"
         if lang == "ar":
             return f"«{area}» في مدينة {city}"
         return f"“{area}” in {city}"
@@ -104,6 +116,37 @@ def _contains_any(reply: Optional[str], key: str) -> bool:
             if _key(marker) and _key(marker) in got:
                 return True
     return False
+
+
+def place_already_known(message: str, rows: list, home: Optional[tuple] = None) -> Optional[str]:
+    """R-120 (Javad 2026-11-26): a place the user ALREADY gave is never asked again. The place of ``message`` (an area whose city was only
+    inferred, or a city without a directory slug) counts as known when (a) it is the user's stored residence (``home`` = (area, city) from
+    the consent-gated CareState), (b) an earlier place question about it was answered «yes», or (c) the user himself named it WITH its city
+    earlier. ``rows`` = recent turns, NEWEST FIRST, from the governed reader. Returns the confirmed place text for the request, else None."""
+    try:
+        status, place = place_status(message)
+        if status != "confirm":
+            return None
+        area, city = place.area, place.city
+        norm = lambda t: re.sub(r"[\s\u200c\-]+", "", str(t or ""))  # noqa: E731
+        full = f"{area} {city}" if area else f"شهر {city}"
+        if home and city and norm(home[1]) == norm(city) and (not area or norm(home[0]) == norm(area)):
+            return full
+        rows = list(rows or [])
+        for i, r in enumerate(rows):
+            said = str(getattr(r, "user_message", "") or "")
+            got = cn._places.find_place(said)
+            if area and got.area and norm(got.area) == norm(area) and got.city and norm(got.city) == norm(city) and not got.city_inferred:
+                return full  # (c) he named it with its city himself
+            reply = getattr(r, "sedi_response", None)
+            # the earlier question must be about THIS place: its area AND its city (Codex P2, PR 227: Tehranpars is not Pardis)
+            if is_place_question(reply) and (not area or norm(area) in norm(reply)) and norm(city) in norm(reply) and i > 0:
+                answer = str(getattr(rows[i - 1], "user_message", "") or "")
+                if _AFFIRM.match(answer.strip()):
+                    return full  # (b) he confirmed it before
+        return None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def is_place_question(sedi_reply: Optional[str]) -> bool:
@@ -261,8 +304,13 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             from backend.app.services.care_journey.journey import _answers_the_interview
 
             # only a message that ANSWERS the health interview (or says «just introduce») binds; a reminder or another request stays as it is
-            if _OTHER_REQUEST.search(text) or cn.is_care_navigation_query(text) or not (_answers_the_interview(text, language) or _SKIP_INTAKE.search(text)):
+            # R-120: the interview now asks the REASON openly, so ANY answer binds (the pilot lost its city when «نه، فقط چکاپ» did not
+            # match the old checklist patterns and the doctor search ran without a place); only another request stays as it is
+            if _OTHER_REQUEST.search(text) or cn.is_care_navigation_query(text):
                 return None
+            is_question = text.rstrip().endswith(("?", "؟"))  # «امروز هوا چطوره؟» is a new subject, «دیروز» / «Yesterday» answers the interview
+            if not (_HEALTH_NARRATIVE.search(text) or _SKIP_INTAKE.search(text) or (_answers_the_interview(text, language) and not is_question)):
+                return None  # another subject altogether: the message stays as it is (the doctor request waits)
             quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
             return _with_qualifiers(prior_request.strip(), quals, language)
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
