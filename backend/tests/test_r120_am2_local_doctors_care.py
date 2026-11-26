@@ -270,3 +270,31 @@ def test_p2_the_answers_to_both_interview_steps_reach_the_personal_care(monkeypa
     monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: rows)
     orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN"}, structured_mode=False)
     assert orch._interview_explanations(42, "شب‌ها بدتر است") == ["موقع پله درد دارم", "شب‌ها بدتر است"]
+
+
+# --- Codex round 2 on PR 228 ------------------------------------------------------------------------------------------------------------------
+def test_p2_an_earlier_interview_about_another_complaint_never_feeds_this_care(monkeypatch):
+    from datetime import datetime
+
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    import backend.app.services.i6.consent_service as consent
+    import backend.app.services.i7.retention as retention
+
+    first_q = sedi_copy.t("journey.intake.lead", "fa") + "\n\n" + sedi_copy.t("journey.interview.generic", "fa")
+    now = datetime.utcnow()
+    rows = [SimpleNamespace(user_message="یه دکتر پوست در شیراز معرفی کن", sedi_response=first_q, created_at=now),  # the current (skin) interview
+            SimpleNamespace(user_message="شب‌ها بدتر است", sedi_response="LIST OF HEART DOCTORS", created_at=now),     # the end of the heart chain
+            SimpleNamespace(user_message="درد قفسه سینه دارم", sedi_response=first_q, created_at=now)]
+    monkeypatch.setattr(consent, "has_permission", lambda *a, **k: True)
+    monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: rows)
+    orch = IntelligenceOrchestrator(db=MagicMock(), legacy_generator=lambda *a, **k: {"message": "GEN"}, structured_mode=False)
+    assert orch._interview_explanations(42, "پوستم خارش دارد") == ["پوستم خارش دارد"]
+
+
+def test_p2_only_area_keeps_the_city_listing_doctors_who_are_in_the_neighbourhood():
+    base = "https://www.paziresh24.com/s/tehran/cardiovascular/"
+    city = [_doc(1, "تهرانپارس، خیابان ۲۰۰", *TP, star=4.6, count=80), _doc(2, "ونک", 35.76, 51.41, star=4.9, count=300)]
+    pages = {base: _p24(city)}  # no neighbourhood page, the text search fails
+    fetch = lambda url: SimpleNamespace(ok=url in pages, reason="" if url in pages else "http_404", body=pages.get(url, b""))  # noqa: E731
+    rows = sr.provider_rows("قلب", "تهران", area="تهرانپارس", fetch=fetch, only_area=True)
+    assert [r["name"] for r in rows] == ["دکتر قلب 01"]

@@ -605,11 +605,24 @@ class IntelligenceOrchestrator:
 
             if not has_permission(self._db, user_id, PERM_READ):
                 return []
+            from datetime import datetime, timedelta
+
+            from backend.app.services.i5.care_nav_interview import is_place_question, is_reason_question
+
             rows = query_eligible_raw(self._db, user_id, limit=8) or []
             told: list = []
+            now = datetime.utcnow()
+            # only THIS request's interview: the unbroken run of newest turns in which Sedi was asking (reason / place / interview / follow-up),
+            # within 30 minutes - an earlier interview about another complaint never feeds this visit's care (Codex P2, PR 228)
             for i, r in enumerate(rows):
                 reply = getattr(r, "sedi_response", None)
-                if _journey.is_interview_reply(reply) or _journey.is_followup_reply(reply):  # both interview steps (Codex P2, PR 228)
+                created = getattr(r, "created_at", None)
+                if created is not None and now - created.replace(tzinfo=None) > timedelta(minutes=30):
+                    break
+                interview = _journey.is_interview_reply(reply) or _journey.is_followup_reply(reply)  # both interview steps
+                if not (interview or is_place_question(reply) or is_reason_question(reply)):
+                    break
+                if interview:
                     answer = said if i == 0 else getattr(rows[i - 1], "user_message", None)
                     if answer and str(answer).strip():
                         told.append(str(answer))

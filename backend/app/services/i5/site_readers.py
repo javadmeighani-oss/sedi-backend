@@ -620,7 +620,9 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         if is_tehran(city) and area:
             # R-120 am.2 (Javad 2026-11-26): in TEHRAN the neighbourhood decides - its own doctors first, then the nearest; one clearly better
             # doctor farther away may be added with why he is worth the trip; «only my neighbourhood» = only there. Other cities: city-wide.
-            near = rank(_qualified(_area_providers(specialty, city, area, fetch, time.time() + READ_TIMEOUT_SECONDS), specialty, city), exclude=exclude)
+            # the neighbourhood's own pages PLUS every city-listing doctor whose address names it (Doctoreto included - Codex P2, PR 228)
+            local = _area_providers(specialty, city, area, fetch, time.time() + READ_TIMEOUT_SECONDS) + [p for p in providers if _mentions_area(p, area)]
+            near = rank(_qualified(local, specialty, city), exclude=exclude)
             near_keys = {p.key for p in near}
             city_rest = [p for p in ranked if p.key not in near_keys]
             centre = _centre(near) or _centre([p for p in ranked if _mentions_area(p, area)])
