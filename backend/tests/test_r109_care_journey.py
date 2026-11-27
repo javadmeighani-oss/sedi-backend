@@ -246,7 +246,7 @@ def test_orchestrator_appends_the_journey_to_a_doctor_answer(monkeypatch):
     monkeypatch.setattr(retention, "query_eligible_raw", lambda *a, **k: [last])
     out = orch.process(authenticated_user_id=42, message="یه دکتر قلب در شهر پردیس معرفی کن", language="fa")
     assert "R109_CARE_JOURNEY" in out.reason_codes
-    assert "فعالیت سنگین نکن" in out.message and "الان وضعیتت چطور است" in out.message
+    assert "فعالیت سنگین نکن" in out.message and "الان وضعیتت چطور است" not in out.message  # R-120 am.3: no generic status question after the list
 
 
 def test_orchestrator_adds_no_journey_to_a_pharmacy_lookup(monkeypatch):

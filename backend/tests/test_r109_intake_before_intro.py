@@ -70,7 +70,7 @@ def test_the_kill_switch_removes_the_intake(monkeypatch):
 def test_the_results_block_is_care_plus_the_status_question_only_while_a_journey_is_open(monkeypatch):
     _owners(monkeypatch, open_count=1)
     block = j.results_block(MagicMock(), 1, REQUEST, "fa")
-    assert "فعالیت سنگین نکن" in block and "الان وضعیتت چطور است" in block and not j.is_interview_reply(block)
+    assert "فعالیت سنگین نکن" in block and "الان وضعیتت چطور است" not in block and not j.is_interview_reply(block)  # R-120 am.3
     _owners(monkeypatch, open_count=0)
     assert j.results_block(MagicMock(), 1, REQUEST, "fa") is None
 
@@ -135,7 +135,7 @@ def test_the_answer_triggers_the_search_and_the_introduction_carries_care_and_st
     out = orch.process(authenticated_user_id=42, message="خوابم کم شده و کمی نگرانم", language="fa")
     assert searched, "the search runs after the interview is answered"
     assert "R109_CARE_JOURNEY_INTAKE" not in out.reason_codes and "R109_CARE_JOURNEY" in out.reason_codes
-    assert "الان وضعیتت چطور است" in out.message and not j.is_interview_reply(out.message)  # no second interview
+    assert "الان وضعیتت چطور است" not in out.message and not j.is_interview_reply(out.message)  # no second interview, no generic status (R-120 am.3)
 
 
 def test_the_interview_is_not_repeated_when_the_request_comes_again(monkeypatch):

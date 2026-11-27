@@ -85,6 +85,7 @@ class SiteProvider:
     url: str = ""
     next_free: str = ""
     waiting_time: str = ""
+    phone: str = ""  # R-120 am.3: the number the site itself publishes for the doctor's clinic
     visits: Optional[int] = None
 
     @property
@@ -171,7 +172,8 @@ def parse_paziresh24(raw: bytes) -> list:
             site=SITE_P24, name=name, specialty=_clean(it.get("display_expertise"), 80),
             address=_clean(center.get("address") or it.get("display_address")), city=_clean(center.get("city_name"), 40), lat=lat, lon=lon,
             rating=rating if count else None, rating_count=count, satisfaction_percent=sat if count else None, url=url,
-            waiting_time=_clean(it.get("waiting_time"), 40), visits=_int(it.get("number_of_visits")) or None))
+            waiting_time=_clean(it.get("waiting_time"), 40), visits=_int(it.get("number_of_visits")) or None,
+            phone=_clean(center.get("display_number"), 40)))
     return out
 
 
@@ -661,9 +663,12 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
             status = verify_profile(worth, fetch, deadline) if checking else "unknown"
             if status != "bad":
                 chosen.append((worth, status))
+        from backend.app.services.i5 import page_facts as _page_facts
+
         rows = []
         for p, status in chosen:
-            rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None, "phone": None,
+            rows.append({"name": p.name, "specialty": p.specialty or specialty, "city": p.city or city, "address": p.address or None,
+                         "phone": _page_facts.published_phone(p.phone) if p.phone else None,
                          "source_url": encode_url(p.url), "trusted": True, "visit_days": [], "next_turn": p.next_free or None,
                          "rating_avg": p.rating, "rating_count": p.rating_count or None, "phone_status": None, "checked_on": today,
                          "page_read": True, "why": (), "_key": p.key, "link_checked": status == "ok",
