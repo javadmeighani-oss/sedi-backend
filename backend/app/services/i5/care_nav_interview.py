@@ -55,7 +55,7 @@ _HEALTH_NARRATIVE = re.compile(
 # R-120 am.3: a question or a command about something else («how do I change my password», «ترجمه کن», «رمزم را چطور عوض کنم»), with or without
 # a question mark - never read as the answer to the doctor interview
 _OTHER_SUBJECT = re.compile(
-    r"^\s*(?:how|what|why|where|when|who|which|can\s+you|could\s+you|please|translate|write|tell\s+me|explain|show\s+me)\b|"
+    r"^\s*(?:how|why|can\s+you|could\s+you|please|translate|write|tell\s+me|explain|show\s+me)\b|"
     r"\b(?:how\s+do\s+i|how\s+can\s+i|translate|password|weather)\b|"
     r"چطور|چگونه|چه\s*جوری|چه\s*طوری|چرا|کجاست|آیا|ترجمه|بنویس|توضیح\s*بده|رمز|پسورد|هوا\s*چطور|"
     r"كيف|لماذا|أين|متى|ترجم|اكتب|كلمة\s*المرور",
@@ -346,7 +346,8 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             # R-120 am.3 (pilot «چیز مهمی نیست فقط میخوام چک اپ بشم» fell out of the chain and the free model invented a hotline and an
             # insurance): ANY answer to the open interview binds - only a QUESTION about something else («امروز هوا چطوره؟», «رمزم را چطور عوض
             # کنم؟») is left as a new subject
-            is_question = text.rstrip().endswith(("?", "؟")) or bool(_OTHER_SUBJECT.search(text))  # with or without punctuation (Codex P2, PR 229)
+            # with or without punctuation (Codex P2, PR 229); an episode answer («When I exercise», «دو ساعت») is never a new subject (round 2)
+            is_question = text.rstrip().endswith(("?", "؟")) or (bool(_OTHER_SUBJECT.search(text)) and not _answers_the_interview(text, language))
             if is_question and not (_HEALTH_NARRATIVE.search(text) or _SKIP_INTAKE.search(text)):
                 return None
             quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())

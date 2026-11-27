@@ -22,7 +22,8 @@ ASK = sedi_copy.t("journey.intake.lead", "fa") + "\n\n" + sedi_copy.t("journey.i
 
 
 @pytest.mark.parametrize("answer", ["چیز مهمی نیست فقط میخوام چک اپ بشم", "چک آپ", "چکاپ سالانه", "هیچی خاصی نیست", "فقط می‌خواهم توانایی‌هایت را ببینم",
-                                    "دکترم گفت برو", "nothing special, just a check-up", "از دیروز درد دارم؟"])
+                                    "دکترم گفت برو", "nothing special, just a check-up", "از دیروز درد دارم؟",
+                                    "When I exercise", "When walking upstairs", "where it hurts is my chest", "دو ساعت"])
 def test_any_answer_to_the_open_interview_stays_in_the_doctor_chain(answer):
     done = ci.request_for_answer(REQ, ASK, answer, "fa")
     assert done and cn.parse_care_nav_request(done, language="fa").specialty_or_service == "قلب", answer
