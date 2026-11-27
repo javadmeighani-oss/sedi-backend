@@ -102,6 +102,10 @@ def links_for_identities(identities: Iterable[Any], language: Optional[str], spe
             if note:
                 item["note"] = str(note)[:200]
             item["link_text"] = sedi_copy.t("care_nav.links.open_on", lang, site=site_name(url, lang))
+            item["index"] = len(out) + 1  # R-120 am.3: doctors are numbered 1..5 (+ the one «worth the trip»)
+            phone = " ".join(str(getattr(ident, "phone", None) or "").split())
+            if phone:
+                item["phone"] = phone[:40]
         if item and item["url"] not in seen:
             seen.add(item["url"])
             out.append(item)

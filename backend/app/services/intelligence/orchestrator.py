@@ -9,6 +9,7 @@ I4 safety precheck runs in both modes (never skipped for compatibility).
 from __future__ import annotations
 
 import inspect
+import re
 import time
 from typing import Any, Callable, Dict, Mapping, Optional, Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -657,6 +658,50 @@ class IntelligenceOrchestrator:
             return last_known_place(rows, home)
         except Exception:  # noqa: BLE001
             return None
+
+    def _answering_open_interview(self, user_id: int) -> bool:
+        """R-120 am.3: Sedi's last reply (within 30 minutes) was the OPEN interview question - the follow-up step is due even when memory
+        completed the request (it used to skip the questions built from the user's explanation)."""
+        try:
+            from datetime import datetime, timedelta
+
+            from backend.app.services.care_journey import journey as _journey
+            from backend.app.services.i6.consent_service import PERM_READ, has_permission
+            from backend.app.services.i7.retention import query_eligible_raw
+
+            if self._db is None or not has_permission(self._db, user_id, PERM_READ):
+                return False
+            rows = query_eligible_raw(self._db, user_id, limit=1) or []
+            if not rows or rows[0].created_at is None or datetime.utcnow() - rows[0].created_at.replace(tzinfo=None) > timedelta(minutes=30):
+                return False
+            reply = getattr(rows[0], "sedi_response", None)
+            return _journey.is_interview_reply(reply) and not _journey.is_followup_reply(reply)
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _place_said_now(self, place: str, user_id: int, said: Optional[str]) -> bool:
+        """R-120 am.3: the place came from THIS conversation (the current message or the last 30 minutes) - then no «as you said before» note."""
+        try:
+            from datetime import datetime, timedelta
+
+            from backend.app.services.i5 import care_navigation_directory as _cn
+            from backend.app.services.i7.retention import query_eligible_raw
+
+            key = re.sub(r"[\s\u200c]+", "", place.replace("شهر ", "").split()[0] if place.strip() else "")
+            texts = [said or ""]
+            for r in (query_eligible_raw(self._db, user_id, limit=8) or []) if self._db is not None else []:
+                created = getattr(r, "created_at", None)
+                if created is not None and datetime.utcnow() - created.replace(tzinfo=None) > timedelta(minutes=30):
+                    break
+                texts.append(getattr(r, "user_message", "") or "")
+            for text in texts:
+                got = _cn._places.find_place(text)
+                for part in (got.area, got.city):
+                    if part and key and key in re.sub(r"[\s\u200c]+", "", part):
+                        return True
+            return False
+        except Exception:  # noqa: BLE001
+            return False
 
     def _known_place(self, message: str, user_id: int) -> Optional[str]:
         """R-120: the confirmed place for a doctor request whose place the user ALREADY gave (stored residence, an earlier «yes», or the
@@ -1599,13 +1644,14 @@ class IntelligenceOrchestrator:
                 _last = self._last_place(message, authenticated_user_id)
                 if _last:  # R-120 am.2: a request without a place uses the place he already gave (named briefly, so he can correct it)
                     message = f"{message.strip()} در {_last}" if lang == "fa" else f"{message.strip()} in {_last}"
-                    from backend.app import sedi_copy as _copy
+                    if not self._place_said_now(_last, authenticated_user_id, original_user_message):
+                        from backend.app import sedi_copy as _copy
 
-                    _memory_notes = tuple(_memory_notes) + (_copy.t("care_nav.memory.place_used", lang, place=_last.replace("شهر ", "")),)
+                        _memory_notes = tuple(_memory_notes) + (_copy.t("care_nav.memory.place_used", lang, place=_last.replace("شهر ", "")),)
                     extra_reason_codes.append("R120_LAST_PLACE_USED")
             _reason_q = None if _next_req is not None else (reason_question(message, lang) if not is_directory_source_question(message) else None)
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
-            _intake_q = None if (_reason_q or _next_req is not None) else (None if _memory_req is not None else self._journey_intake(message, lang, authenticated_user_id, said=original_user_message))
+            _intake_q = None if (_reason_q or _next_req is not None) else (self._journey_intake(message, lang, authenticated_user_id, said=original_user_message) if (_memory_req is None or self._answering_open_interview(authenticated_user_id)) else None)
             if _memory_req is not None and not _reason_q and self._db is not None:
                 from backend.app.services.care_journey import journey as _cj
 

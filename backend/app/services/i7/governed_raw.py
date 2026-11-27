@@ -77,7 +77,7 @@ def attach_reply_links(db: Session, *, user_id: int, sedi_response: str, links: 
     try:
         items = [
             {"label": str(i.get("label") or "")[:120], "url": str(i.get("url") or ""), "kind": str(i.get("kind") or "provider"),
-             **{k: str(i.get(k))[:200] for k in ("title", "location", "note", "link_text") if i.get(k)}}  # R-120 am.2: the bubble is rebuilt from history too
+             **{k: str(i.get(k))[:200] for k in ("title", "location", "note", "link_text", "phone", "index") if i.get(k)}}  # R-120 am.2: the bubble is rebuilt from history too
             for i in (links or [])
             if isinstance(i, dict) and i.get("url") and i.get("label")
         ][:6]

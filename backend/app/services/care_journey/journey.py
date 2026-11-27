@@ -144,7 +144,7 @@ def results_block(db: Any, user_id: int, request_text: str, language: str, expla
             personal = personal_care_block(explanations, lang, area_of(request_text), _sl.find_specialty(request_text))
             if personal:
                 return personal
-        return sedi_copy.t(f"journey.care.{area_of(request_text)}", lang) + "\n\n" + sedi_copy.t("journey.status_only", lang)
+        return sedi_copy.t(f"journey.care.{area_of(request_text)}", lang)  # R-120 am.3: no generic «how are you now?» after the list
     except Exception:  # noqa: BLE001
         return None
 

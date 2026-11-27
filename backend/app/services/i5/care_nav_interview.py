@@ -43,7 +43,7 @@ _SKIP_INTAKE = re.compile(
 # R-120: what an answer to the open interview talks about - the body, the mind, a visit, a check-up, why / since when. An unrelated request
 # («how do I change my password?») names none of it and is NOT bound to the pending doctor search (Codex P2, PR 227).
 _HEALTH_NARRATIVE = re.compile(
-    r"درد|حال|احساس|نگران|استرس|اضطراب|خواب|خستگی|خسته|بیمار|مریض|علائم|علامت|نشانه|چکاپ|چک\s*آپ|معاینه|آزمایش|فشار|قند|قلب|سینه|"
+    r"درد|حال|احساس|نگران|استرس|اضطراب|خواب|خستگی|خسته|بیمار|مریض|علائم|علامت|نشانه|چکاپ|چک\s*[آا]پ|چک\s*اب|معاینه|آزمایش|فشار|قند|قلب|سینه|"
     r"تپش|نفس|سرفه|تب|سر\s*گیجه|سرگیجه|تهوع|معده|کمر|زانو|پوست|چشم|گوش|دکتر|پزشک|ویزیت|نوبت|دارو|قرص|عمل|جراحی|سابقه|ارثی|"
     r"از\s*(?:دیروز|صبح|ظهر|عصر|دیشب|هفته|ماه|سال|کی)|ساعت|دقیقه|(?:روز|هفته|ماه|سال)\s*(?:پیش|قبل)|بدتر|بهتر|بیشتر|کمتر|وقتی|موقع|شب‌ها|شبها|چند\s*(?:روز|هفته|ماه|سال)|قبلا|قبلاً|نمی\s*دونم|نمی\s*دانم|نمیدونم|"
     r"\b(?:pain|ache|hurt|feel|feeling|worr|stress|anxi|sleep|tired|sick|ill|symptom|check\s*-?\s*up|exam|test|pressure|sugar|heart|chest|"
@@ -334,9 +334,12 @@ def request_for_answer(prior_request: Optional[str], sedi_reply: Optional[str], 
             # match the old checklist patterns and the doctor search ran without a place); only another request stays as it is
             if _OTHER_REQUEST.search(text) or cn.is_care_navigation_query(text):
                 return None
-            is_question = text.rstrip().endswith(("?", "؟"))  # «امروز هوا چطوره؟» is a new subject, «دیروز» / «Yesterday» answers the interview
-            if not (_HEALTH_NARRATIVE.search(text) or _SKIP_INTAKE.search(text) or (_answers_the_interview(text, language) and not is_question)):
-                return None  # another subject altogether: the message stays as it is (the doctor request waits)
+            # R-120 am.3 (pilot «چیز مهمی نیست فقط میخوام چک اپ بشم» fell out of the chain and the free model invented a hotline and an
+            # insurance): ANY answer to the open interview binds - only a QUESTION about something else («امروز هوا چطوره؟», «رمزم را چطور عوض
+            # کنم؟») is left as a new subject
+            is_question = text.rstrip().endswith(("?", "؟"))
+            if is_question and not (_HEALTH_NARRATIVE.search(text) or _SKIP_INTAKE.search(text)):
+                return None
             quals = set(sl.qualifiers(prior_request)) | set(sl.qualifiers(text)) | ({"urgent"} if urgent else set())
             return _with_qualifiers(prior_request.strip(), quals, language)
         if asked_place and not asked_reason:  # only the place was asked: the specialty/entity is already in the prior request
