@@ -28,7 +28,8 @@ def test_any_answer_to_the_open_interview_stays_in_the_doctor_chain(answer):
     assert done and cn.parse_care_nav_request(done, language="fa").specialty_or_service == "قلب", answer
 
 
-@pytest.mark.parametrize("other", ["امروز هوا چطوره؟", "رمزم را چطور عوض کنم؟", "How do I change my password?", "فردا ساعت ۹ یادم بنداز"])
+@pytest.mark.parametrize("other", ["امروز هوا چطوره؟", "رمزم را چطور عوض کنم؟", "How do I change my password?", "فردا ساعت ۹ یادم بنداز",
+                                   "How do I change my password", "Translate this sentence into Persian", "رمزم را چطور عوض کنم", "این جمله را ترجمه کن"])
 def test_a_question_about_something_else_or_another_request_is_its_own_turn(other):
     assert ci.request_for_answer(REQ, ASK, other, "fa") is None
 
