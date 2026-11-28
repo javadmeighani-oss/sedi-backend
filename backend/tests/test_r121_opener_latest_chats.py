@@ -76,6 +76,15 @@ def test_a_newer_subject_after_the_introduction_is_the_last_chat(db, user):
     assert out is None or "معرفی کردم" not in out
 
 
+@pytest.mark.parametrize("refusal", ["دیگه دکتر نمی‌خوام", "نیاز ندارم ممنون", "I don't need a doctor anymore", "لا أريد طبيباً"])
+def test_p2_a_refusal_after_the_introduction_closes_it(db, user, refusal):
+    """Codex P2 (PR 231): «I don't need a doctor any more» - reopening the app does not restart the declined request."""
+    _intro(db, user, NOW - timedelta(hours=2))
+    _turn(db, user, refusal, "باشه، هر وقت لازم شد بگو.", NOW - timedelta(hours=1))
+    out = lc.continuation(db, user.id, "fa", now=NOW)
+    assert out is None or "معرفی کردم" not in out
+
+
 # --- 2. a reminder set in that chat ----------------------------------------------------------------------------------------------------------------
 def test_a_reminder_set_in_the_last_chat_is_named_with_its_time(db, user):
     at = NOW - timedelta(hours=1)

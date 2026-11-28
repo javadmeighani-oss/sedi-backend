@@ -76,12 +76,19 @@ def _doctors(db: Any, user_id: int, rows: list, chain: list, now: datetime, lang
     from backend.app.services.i5 import care_nav_memory
     from backend.app.services.i7 import governed_raw
 
-    for row in chain:
+    from backend.app.services.i5 import care_navigation_directory as cn
+    from backend.app.services.i5 import provider_next
+
+    for pos, row in enumerate(chain):
         state = governed_raw.provider_intro_of_turn(row)
         if state is None:
             continue
         if not care_nav_memory.doctor_topic_open(rows, now.replace(tzinfo=None)):
             return None  # a newer subject came after the introduction
+        for later in chain[:pos]:  # «I don't need a doctor any more» after the introduction closes it (Codex P2, PR 231)
+            said = str(getattr(later, "user_message", "") or "")
+            if cn._declined_provider(said) or provider_next._REFUSAL.search(said):
+                return None
         spec = str(state.get("specialty") or "").strip()
         if not spec:
             return None
