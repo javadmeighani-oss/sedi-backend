@@ -848,7 +848,7 @@ def query_governed_directory(db: Session, request: CareNavRequest) -> CareNavRes
     identities = tuple(i for i in identities if i.canonical_name not in shown_names)[: max(request.limit, _site_readers.PAGE_SIZE)]  # «next five»: never the same doctor twice
     if readers:
         known = {i.canonical_name for i in readers}
-        identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE) + sum(1 for i in readers if i.note)]
+        identities = (readers + tuple(i for i in identities if i.canonical_name not in known))[: max(request.limit, _site_readers.PAGE_SIZE)]  # always five (R-121 / D-544: the «worth it» doctor is one of them)
         notes.append("SITE_READERS")
 
     # Too few governed hits → search the web for what the user asked (transient, linked, unverified unless on a
@@ -895,7 +895,8 @@ def _intro_state(request: "CareNavRequest", identities: Sequence[VerifiedDirecto
     names = list(dict.fromkeys([*map(str, request.exclude_names or ()), *[i.canonical_name for i in identities if i.canonical_name]]))[-80:]
     keys = list(dict.fromkeys([*map(str, request.exclude_keys or ()), *map(str, reader_keys)]))[-80:]
     return {"v": 1, "entity": request.entity.value, "specialty": request.specialty_or_service, "city": request.city, "province": request.province,
-            "area": request.area, "qualifiers": [str(q) for q in (request.qualifiers or ())][:6], "keys": keys, "names": names}
+            "area": request.area, "qualifiers": [str(q) for q in (request.qualifiers or ())][:6], "keys": keys, "names": names,
+            "shown": len(identities)}  # R-121: how many THIS introduction showed (the welcome names it)
 
 
 def resolve_care_navigation(

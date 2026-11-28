@@ -2105,6 +2105,87 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'من أين نواصل؟',
         'en': 'Where shall we continue?',
     },
+    # R-121 (Javad 2026-11-28): the welcome continues what the LAST chat did / left open (i7/last_conversation.py)
+    'opener.last.when.today': {
+        'fa': 'امروز',
+        'ar': 'اليوم',
+        'en': 'Today',
+    },
+    'opener.last.when.yesterday': {
+        'fa': 'دیروز',
+        'ar': 'أمس',
+        'en': 'Yesterday',
+    },
+    'opener.last.when.earlier': {
+        'fa': 'آخرین بار',
+        'ar': 'في آخر مرة',
+        'en': 'Last time',
+    },
+    'opener.last.kind.doctor': {
+        'fa': 'متخصص {specialty}',
+        'ar': 'أطباء {specialty}',
+        'en': '{specialty} doctors',
+    },
+    'opener.last.kind.center': {
+        'fa': 'مرکز {specialty}',
+        'ar': 'مراكز {specialty}',
+        'en': '{specialty} centres',
+    },
+    'opener.last.doctors': {
+        'fa': '{when} {count} {kind} در {place} برایت معرفی کردم. با کدام‌شان تماس گرفتی یا وقت گرفتی؟',
+        'ar': '{when} عرّفتك على {count} {kind} في {place}. بأيّهم اتصلت أو حجزت موعداً؟',
+        'en': '{when} I introduced {count} {kind} in {place} to you. Which of them did you call or book?',
+    },
+    'opener.last.doctors_noplace': {
+        'fa': '{when} {count} {kind} برایت معرفی کردم. با کدام‌شان تماس گرفتی یا وقت گرفتی؟',
+        'ar': '{when} عرّفتك على {count} {kind}. بأيّهم اتصلت أو حجزت موعداً؟',
+        'en': '{when} I introduced {count} {kind} to you. Which of them did you call or book?',
+    },
+    'opener.last.at.today': {
+        'fa': 'امروز ساعت {clock}',
+        'ar': 'اليوم الساعة {clock}',
+        'en': 'today at {clock}',
+    },
+    'opener.last.at.tomorrow': {
+        'fa': 'فردا ساعت {clock}',
+        'ar': 'غداً الساعة {clock}',
+        'en': 'tomorrow at {clock}',
+    },
+    'opener.last.at.yesterday': {
+        'fa': 'دیروز ساعت {clock}',
+        'ar': 'أمس الساعة {clock}',
+        'en': 'yesterday at {clock}',
+    },
+    'opener.last.at.clock': {
+        'fa': 'ساعت {clock}',
+        'ar': 'الساعة {clock}',
+        'en': '{clock}',
+    },
+    'opener.last.reminder_future': {
+        'fa': '{when} یادآور «{title}» را برای {at} ثبت کردم. برایش آماده‌ای؟',
+        'ar': '{when} سجّلت لك تذكير «{title}» في {at}. هل أنت مستعد له؟',
+        'en': '{when} I set the reminder “{title}” for {at}. Are you ready for it?',
+    },
+    'opener.last.reminder_past': {
+        'fa': '{when} یادآور «{title}» را برای {at} ثبت کردم. انجامش دادی؟',
+        'ar': '{when} سجّلت لك تذكير «{title}» في {at}. هل قمت به؟',
+        'en': '{when} I set the reminder “{title}” for {at}. Did you do it?',
+    },
+    'opener.last.care': {
+        'fa': '{when} درباره‌ی {topic} صحبت کردیم و قرار شد پیگیری‌اش کنم. الان حالت چطور است؟',
+        'ar': '{when} تحدثنا عن {topic} ووعدتك بمتابعته. كيف حالك الآن؟',
+        'en': '{when} we talked about {topic} and I said I would follow it up. How are you feeling now?',
+    },
+    'opener.last.care_generic': {
+        'fa': '{when} درباره‌ی حالت صحبت کردیم و قرار شد پیگیری‌اش کنم. الان حالت چطور است؟',
+        'ar': '{when} تحدثنا عن حالك ووعدتك بمتابعته. كيف حالك الآن؟',
+        'en': '{when} we talked about how you feel and I said I would follow it up. How are you feeling now?',
+    },
+    'opener.last.question': {
+        'fa': '{when} از تو پرسیده بودم: «{question}»',
+        'ar': '{when} سألتك: «{question}»',
+        'en': '{when} I asked you: “{question}”',
+    },
     'session.same_day.tail_question': {
         'fa': ' و این سؤال بی\u200cپاسخ مانده بود: «{question}»',
         'ar': ' وبقي هذا السؤال بلا جواب: «{question}»',

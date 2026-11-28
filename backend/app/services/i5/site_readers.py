@@ -169,7 +169,7 @@ def parse_paziresh24(raw: bytes) -> list:
         url = str(it.get("url") or "")
         url = ("https://www.paziresh24.com" + url) if url.startswith("/") else url
         out.append(SiteProvider(
-            site=SITE_P24, name=name, specialty=_clean(it.get("display_expertise"), 80),
+            site=SITE_P24, name=name, specialty=unique_parts(_clean(it.get("display_expertise"), 160))[:80],
             address=_clean(center.get("address") or it.get("display_address")), city=_clean(center.get("city_name"), 40), lat=lat, lon=lon,
             rating=rating if count else None, rating_count=count, satisfaction_percent=sat if count else None, url=url,
             waiting_time=_clean(it.get("waiting_time"), 40), visits=_int(it.get("number_of_visits")) or None,
@@ -219,6 +219,14 @@ def parse_doctoreto(raw: bytes) -> tuple:
 # --- URLs ---------------------------------------------------------------------------------------------------------------------------------------
 def city_slug(city: Optional[str]) -> Optional[str]:
     return _CITY_SLUGS.get(re.sub(r"\s+", " ", (city or "").strip()))
+
+
+def unique_parts(text: Optional[str]) -> str:
+    """«متخصص قلب و عروق, متخصص قلب و عروق» -> «متخصص قلب و عروق»: a site's expertise list without repeats (order kept)."""
+    import re as _re
+
+    parts = [p.strip() for p in _re.split(r"\s*[,،]\s*", text or "") if p.strip()]
+    return "، ".join(dict.fromkeys(parts)) if parts else (text or "")
 
 
 def listing_urls(specialty: Optional[str], city: Optional[str], page: int = 1) -> list:
@@ -662,7 +670,12 @@ def provider_rows(specialty: Optional[str], city: Optional[str], *, area: Option
         if worth is not None and all(worth.key != p.key for p, _ in chosen):
             status = verify_profile(worth, fetch, deadline) if checking else "unknown"
             if status != "bad":
-                chosen.append((worth, status))
+                # R-121 / D-544 (Javad: «گفته بودم 5 تا اما صدی 6 تا معرفی کرد»): always FIVE - the clearly better farther doctor takes the fifth
+                # place; the one he replaces is not «shown», so he comes with the next five
+                if len(chosen) >= PAGE_SIZE:
+                    chosen[PAGE_SIZE - 1] = (worth, status)
+                else:
+                    chosen.append((worth, status))
         from backend.app.services.i5 import page_facts as _page_facts
 
         rows = []
