@@ -146,7 +146,8 @@ _MEANT_DOCTOR = re.compile(
     re.I,
 )
 _ASK_VERB = re.compile(
-    r"معرفی\s*(?:کن|کنی|بکن|کنید|بفرمایید)|پیدا\s*(?:کن|کنی|بکن|کنید)|(?:نشون|نشان)\s*(?:بده|بدی|بدهید)|بفرست|"
+    # longer forms first and a word end, so «معرفی کنید» is removed whole (Codex P2, PR 230)
+    r"معرفی\s*(?:کنید|بفرمایید|کنی|بکن|کن)(?!\w)|پیدا\s*(?:کنید|کنی|بکن|کن)(?!\w)|(?:نشون|نشان)\s*(?:بدهید|بدی|بده)(?!\w)|بفرستید|بفرست|"
     r"(?:رشح|رشحي|اقترح|ابحث|اعرض|أرسل|ارسل)(?:\s*لي)?|"
     r"\b(?:introduce|find|show|recommend|suggest|send|give)\b",
     re.I,
@@ -160,11 +161,28 @@ _FILLER = frozenset(
 )
 
 
+# «more / another / the rest» inside a short follow-up: with an introduction to continue, that is the NEXT five (Codex P2, PR 230)
+_MORE = re.compile(r"بیشتر|دیگه|دیگر|بقیه|المزيد|آخرين|اخرين|أخرى|اخرى|غيرهم|\b(?:more|another|others?|rest)\b", re.I)
+
+
+def _pn_refusal(text: str) -> bool:
+    from backend.app.services.i5 import provider_next as pn
+
+    return bool(pn._REFUSAL.search(text))
+
+
+def asks_for_more(message: Optional[str]) -> bool:
+    """A short follow-up that asks for MORE doctors («introduce me some more», «چندتای دیگه معرفی کن»)."""
+    return asks_doctor_ellipsis(message) and bool(_MORE.search(_norm(message)))
+
+
 def asks_doctor_ellipsis(message: Optional[str]) -> bool:
     """«معرفی کن برام», «برام چندتای دیگه معرفی کن», «منظورم پزشک بود», "find me some": a short request with no subject of its own."""
     text = _norm(message)
     if not text or len(text) > 60:
         return False
+    if cn._declined_provider(text) or _pn_refusal(text):
+        return False  # «I meant a doctor, but I don't need another one» is a refusal, never the search again (Codex P2, PR 230)
     if _MEANT_DOCTOR.search(text):
         return True
     if not _ASK_VERB.search(text):

@@ -130,3 +130,32 @@ def test_replay_phone_test_every_turn_reaches_the_doctor_search_never_her_introd
         rows.insert(0, SimpleNamespace(user_message=text, sedi_response=out.message, created_at=datetime.utcnow(), provenance_json=None))
         assert out.message not in (about, "GEN") and not j.is_interview_reply(out.message), (text, out.message[:120])
         assert len(searched) > before and searched[-1]["city"] == "تهران", text
+
+
+# --- Codex round 1 (PR 230) ------------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("text", ["I meant a doctor, but I don't need another doctor", "منظورم دکتر بود ولی دیگه دکتر نمی‌خوام", "معرفی کن، ولی دکتر لازم ندارم",
+                                  "أقصد طبيب لكن لا أريد طبيباً"])
+def test_p2_a_refusal_is_never_turned_back_into_the_search(text):
+    assert not mem.asks_doctor_ellipsis(text)
+
+
+@pytest.mark.parametrize("text", ["معرفی کنید", "پیدا کنید", "لطفا معرفی کنید", "نشان بدهید", "برام پیدا کنید"])
+def test_p2_polite_full_verb_forms_are_follow_ups_too(text):
+    assert mem.asks_doctor_ellipsis(text)
+
+
+@pytest.mark.parametrize("text", ["introduce me some more", "find me some more", "recommend some more", "show me another", "چندتای دیگه معرفی کن",
+                                  "بیشتر معرفی کن", "رشح لي المزيد"])
+def test_p2_asking_for_more_goes_to_the_next_five_with_its_exclusions(text, monkeypatch):
+    import backend.app.services.care_state as care_state
+
+    assert pn.wants_next(text), text
+    monkeypatch.setattr(care_state, "get_care_state", lambda *a, **k: None)
+    monkeypatch.setattr(pn, "latest_state", lambda *a, **k: {"v": 1, "specialty": "قلب", "names": ["دکتر الف"]})
+    rows = [_row(REQ, ASK, 3)]
+    assert mem.complete_request(MagicMock(), 7, text, "fa", rows=rows) is None  # the next-five path keeps the shown names out
+
+
+@pytest.mark.parametrize("text", ["معرفی کن برام", "پیدا کنید", "I meant a doctor"])
+def test_a_follow_up_without_more_is_not_the_next_five(text):
+    assert not pn.wants_next(text)

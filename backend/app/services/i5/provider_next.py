@@ -49,7 +49,13 @@ _REFUSAL = re.compile(
 def wants_next(message: Optional[str]) -> bool:
     """The message asks for the next doctors / says the last ones did not suit - and is short enough to be only that."""
     text = (message or "").strip()
-    return bool(text) and len(text) <= MAX_MESSAGE_CHARS and bool(_NEXT.search(text)) and not _REFUSAL.search(text)  # «I don't want another doctor» is a refusal
+    if not text or len(text) > MAX_MESSAGE_CHARS or _REFUSAL.search(text):
+        return False
+    if _NEXT.search(text):
+        return True
+    from backend.app.services.i5 import care_nav_memory as _mem  # «introduce me some more» / «find me some more» (Codex P2, PR 230)
+
+    return _mem.asks_for_more(text)
 
 
 def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None) -> Optional[dict]:
