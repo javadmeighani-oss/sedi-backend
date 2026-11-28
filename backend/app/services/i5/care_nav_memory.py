@@ -154,15 +154,15 @@ _ASK_VERB = re.compile(
 )
 # words that carry no subject of their own («برام», «چندتای دیگه», «لطفا», "me a few more") - anything else makes it a different request
 _FILLER = frozenset(
-    "برام برایم بهم به من یه یک یکی چند چندتا چندتای تا تای دیگه دیگر دیگری بیشتر بقیه رو را اونا اونها آنها همون همان همین پس خب خوب باشه "
+    "برام برایم بهم به من یه یک یکی چند چندتا چندتای تا تای دیگه دیگر دیگری بیشتر بقیه جدید تازه رو را اونا اونها آنها همون همان همین پس خب خوب باشه "
     "حالا الان لطفا لطفاً لطفن دوباره هم و دکتر دکترها دکترای پزشک پزشکان پزشکها متخصص متخصصها اون آن ها "
     "لي من فضلك المزيد آخرين اخرين أخرى اخرى طبيب أطباء اطباء دكتور "
-    "me a an one some few more other others another please again now then ok okay so them the doctor doctors specialist specialists".split()
+    "me a an one some few more other others another new please again now then ok okay so them the doctor doctors specialist specialists".split()
 )
 
 
 # «more / another / the rest» inside a short follow-up: with an introduction to continue, that is the NEXT five (Codex P2, PR 230)
-_MORE = re.compile(r"بیشتر|دیگه|دیگر|بقیه|المزيد|آخرين|اخرين|أخرى|اخرى|غيرهم|\b(?:more|another|others?|rest)\b", re.I)
+_MORE = re.compile(r"بیشتر|دیگه|دیگر|بقیه|جدید|تازه|المزيد|آخرين|اخرين|أخرى|اخرى|غيرهم|جدد|جديدة|\b(?:more|another|others?|rest|new)\b", re.I)
 
 
 def _pn_refusal(text: str) -> bool:
@@ -226,7 +226,8 @@ def _next_five_pending(db: Any, user_id: int, message: str) -> bool:
     try:
         from backend.app.services.i5 import provider_next as pn
 
-        return pn.wants_next(message) and pn.latest_state(db, user_id) is not None
+        asks = pn.wants_next(message) or pn.wants_again(message) or pn.confirms_search(message)  # D-550: re-show / go-ahead too
+        return asks and pn.latest_state(db, user_id) is not None
     except Exception:  # noqa: BLE001
         return False
 
