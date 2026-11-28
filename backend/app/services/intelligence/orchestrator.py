@@ -1633,14 +1633,15 @@ class IntelligenceOrchestrator:
 
             from backend.app.services.i5 import provider_next as _pn
 
-            _next_req = _pn.next_request(self._db, authenticated_user_id, message, lang)  # R-116: «the next five» / «these do not suit»
-            _known = self._known_place(message, authenticated_user_id) if _next_req is None else None
+            _again = _pn.again_reply(self._db, authenticated_user_id, original_user_message, lang)  # D-550: «introduce them again» = the same five
+            _next_req = None if _again is not None else _pn.next_request(self._db, authenticated_user_id, message, lang)  # R-116: «the next five»
+            _known = self._known_place(message, authenticated_user_id) if (_next_req is None and _again is None) else None
             if _known:  # R-120: a place the user already gave is not asked again
                 from backend.app.services.i5.care_nav_interview import _swap_place
 
                 message = _swap_place(message, _known, lang)
                 extra_reason_codes.append("R120_PLACE_ALREADY_KNOWN")
-            elif _next_req is None:
+            elif _next_req is None and _again is None:
                 _last = self._last_place(message, authenticated_user_id)
                 if _last:  # R-120 am.2: a request without a place uses the place he already gave (named briefly, so he can correct it)
                     message = f"{message.strip()} در {_last}" if lang == "fa" else f"{message.strip()} in {_last}"
@@ -1649,14 +1650,22 @@ class IntelligenceOrchestrator:
 
                         _memory_notes = tuple(_memory_notes) + (_copy.t("care_nav.memory.place_used", lang, place=_last.replace("شهر ", "")),)
                     extra_reason_codes.append("R120_LAST_PLACE_USED")
-            _reason_q = None if _next_req is not None else (reason_question(message, lang) if not is_directory_source_question(message) else None)
+            _reason_q = None if (_next_req is not None or _again is not None) else (reason_question(message, lang) if not is_directory_source_question(message) else None)
             # R-109: reason and place are settled -> the grouped interview comes BEFORE the introduction (the best fit is chosen after)
-            _intake_q = None if (_reason_q or _next_req is not None) else (self._journey_intake(message, lang, authenticated_user_id, said=original_user_message) if (_memory_req is None or self._answering_open_interview(authenticated_user_id)) else None)
-            if _memory_req is not None and not _reason_q and self._db is not None:
+            _intake_q = None if (_reason_q or _next_req is not None or _again is not None) else (self._journey_intake(message, lang, authenticated_user_id, said=original_user_message) if (_memory_req is None or self._answering_open_interview(authenticated_user_id)) else None)
+            if _memory_req is not None and not _reason_q and _again is None and self._db is not None:
                 from backend.app.services.care_journey import journey as _cj
 
                 _cj.track(self._db, authenticated_user_id, _memory_req.tier_text or message, lang)  # the follow-up starts even though no interview is asked (urgency from the ORIGINAL complaint)
-            if _next_req is not None:
+            if _again is not None:
+                care_nav_handled = True
+                directory_message = _again.message
+                directory_links = tuple(_again.links)
+                directory_intro_state = _again.intro_state  # the same state: «the next five» still continues after the re-show
+                extra_reason_codes.append("D550_PROVIDER_AGAIN")
+                skip_generator = True
+                clarification_message = None
+            elif _next_req is not None:
                 care_nav_handled = True
                 try:
                     from backend.app.services.i5.care_navigation_directory import resolve_care_navigation_for_request

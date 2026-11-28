@@ -1560,6 +1560,21 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         'ar': 'هؤلاء هم الأطباء التاليون، ولم يكن أي منهم في القائمة السابقة.',
         'en': 'These are the next doctors, none of them from the previous list.',
     },
+    'care_nav.again.intro': {
+        'fa': 'این همان پزشکانی است که معرفی کردم:',
+        'ar': 'هؤلاء هم الأطباء أنفسهم الذين عرّفتك بهم:',
+        'en': 'These are the same doctors I introduced:',
+    },
+    'care_nav.again.close': {
+        'fa': 'با هر کدام تماس گرفتی یا وقت گرفتی، به من بگو. اگر هیچ‌کدام مناسب نبود، بگو تا پنج پزشک بعدی را بیاورم.',
+        'ar': 'إذا اتصلت بأحدهم أو حجزت موعداً فأخبرني. وإذا لم يناسبك أي منهم فقل لي لأحضر لك الأطباء الخمسة التاليين.',
+        'en': 'Tell me when you call one of them or book a visit. If none of them suits you, say so and I will bring the next five doctors.',
+    },
+    'care_nav.no_access.redirect': {
+        'fa': 'جست‌وجو را خودم در سایت‌های نوبت‌دهی انجام می‌دهم. بنویس «پنج پزشک بعدی» تا پزشکان تازه را بیاورم، یا «دوباره معرفی کن» تا همان فهرست را ببینی.',
+        'ar': 'أنا أبحث بنفسي في مواقع حجز المواعيد. اكتب «الخمسة التالية» لأحضر أطباء جدداً، أو «أعد القائمة» لترى القائمة نفسها.',
+        'en': 'I search the booking sites myself. Write «next five doctors» and I will bring new ones, or «send the list again» to see the same list.',
+    },
     'care_nav.next.none': {
         'fa': 'در همان فهرست‌ها پزشک دیگری با این مشخصات نمانده است. نام شهر یا محلهٔ نزدیک را بگو تا همان‌جا بگردم.',
         'ar': 'لم يبقَ في هذه القوائم طبيب آخر بهذه المواصفات. اذكر اسم مدينة أو حي قريب وسأبحث هناك.',

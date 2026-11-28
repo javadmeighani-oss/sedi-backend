@@ -540,6 +540,14 @@ def _feedback_phrase(h: "VerifiedDirectoryIdentity", lang: str) -> str:
             "en": f"; patients on {src}: {joined}"}[k]
 
 
+# the warning under a list that holds untrusted web results (kept when the list is replayed, D-550 / Codex P2 PR 232)
+UNVERIFIED_WEB_NOTE = {
+    "fa": "بعضی از این موارد را از جست‌وجوی وب پیدا کردم و تأیید نشده‌اند؛ قبل از مراجعه حتماً تماس بگیر و مطمئن شو.",
+    "ar": "وجدتُ بعض هذه النتائج عبر البحث في الويب وهي غير مؤكدة؛ يرجى الاتصال والتأكد قبل الذهاب.",
+    "en": "I found some of these through a web search and they are not verified; please call to confirm before going.",
+}
+
+
 def _serialize_hits_message(
     hits: Sequence[VerifiedDirectoryIdentity],
     language: str,
@@ -583,11 +591,7 @@ def _serialize_hits_message(
                 line += "\n   " + sedi_copy.t("care_nav.hit.why", k, reasons=reasons)
         lines.append(line)
     if any(h.source_url and not h.web_trusted for h in hits):
-        lines.append({
-            "fa": "بعضی از این موارد را از جست‌وجوی وب پیدا کردم و تأیید نشده‌اند؛ قبل از مراجعه حتماً تماس بگیر و مطمئن شو.",
-            "ar": "وجدتُ بعض هذه النتائج عبر البحث في الويب وهي غير مؤكدة؛ يرجى الاتصال والتأكد قبل الذهاب.",
-            "en": "I found some of these through a web search and they are not verified; please call to confirm before going.",
-        }[k])
+        lines.append(UNVERIFIED_WEB_NOTE[k])
     lines.append("")
     lines.append(sedi_copy.t("care_nav.intro.close", k))  # R-120: call, coordinate the visit with Sedi, tell her the visit / medicines / tests
     return "\n".join(lines)
