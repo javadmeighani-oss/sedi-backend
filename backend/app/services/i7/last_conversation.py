@@ -17,6 +17,7 @@ Deterministic (no model), consent-gated (memory.read), retention-gated (eligible
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -29,6 +30,23 @@ CHAIN_GAP = timedelta(hours=3)  # turns closer than this belong to the same conv
 _SCAN = 12
 _MAX_QUESTION_CHARS = 320
 _DIGITS = {"fa": "۰۱۲۳۴۵۶۷۸۹", "ar": "٠١٢٣٤٥٦٧٨٩"}
+
+
+# «وقت گرفتم», «زنگ زدم», «رفتم پیش دکتر», "I booked", «حجزت»: the user reports the booking / contact step (a negation is no report)
+_BOOKED = re.compile(
+    r"(?:وقت|نوبت)\s*(?:هم\s*)?(?:گرفتم|گرفتیم|رزرو\s*کردم)|(?:زنگ|تماس)\s*(?:زدم|گرفتم)|"
+    r"(?:رفتم|رفته\s*بودم)\s*(?:پیش\s*)?(?:دکتر|پزشک|مطب|ویزیت|کلینیک)|ویزیت\s*(?:شدم|رفتم)|(?:دکتر|پزشک)\s*(?:رو|را)?\s*(?:دیدم|رفتم)|"
+    r"\b(?:i\s+)?(?:booked|called\s+(?:him|her|them|the|one|dr)|made\s+an\s+appointment|saw\s+(?:the|a|my)\s+doctor|visited\s+(?:the|a|my)\s+doctor)\b|"
+    r"حجزت|اتصلت\s*(?:به|بها|بهم|بالطبيب)|زرت\s*الطبيب|ذهبت\s*إلى\s*الطبيب",
+    re.I,
+)
+_NOT_BOOKED = re.compile(r"\b(?:not|never|didn.?t|haven.?t|couldn.?t|can.?t)\b|نتونستم|نتوانستم|نشد|لم\s|لن\s", re.I)
+
+
+def reported_booking(text: Optional[str]) -> bool:
+    """The user says he booked / called / visited (one of the introduced doctors)."""
+    t = " ".join(str(text or "").replace(chr(0x200C), " ").split())
+    return bool(t) and bool(_BOOKED.search(t)) and not _NOT_BOOKED.search(t)
 
 
 def _lang(language: Optional[str]) -> str:
@@ -89,6 +107,8 @@ def _doctors(db: Any, user_id: int, rows: list, chain: list, now: datetime, lang
             said = str(getattr(later, "user_message", "") or "")
             if cn._declined_provider(said) or provider_next._REFUSAL.search(said):
                 return None
+            if reported_booking(said):
+                return None  # «I booked with the first one» already answered «which one did you call?» (Codex P2, PR 231 round 3)
         spec = str(state.get("specialty") or "").strip()
         if not spec:
             return None
@@ -157,19 +177,25 @@ def _care(db: Any, user_id: int, chain: list, now: datetime, lang: str) -> Optio
 
     start = _aware(chain[-1].created_at) - timedelta(minutes=2)
     end = _aware(chain[0].created_at) + timedelta(minutes=2)
-    started_here = any(
-        getattr(t, "created_at", None) is not None and start <= _aware(t.created_at) <= end for t in cf._open_journey_tasks(db, user_id)
+    started = sorted(
+        (_aware(t.created_at) for t in cf._open_journey_tasks(db, user_id) if getattr(t, "created_at", None) is not None
+         and start <= _aware(t.created_at) <= end),
+        reverse=True,
     )
-    if not started_here:
+    if not started:
         return None
     when = _when(db, user_id, chain[0].created_at, now, lang)
-    for row in chain:
+    # the subject comes from the turn that STARTED the journey (the newest turn at or before it), never from a newer subject of the same
+    # conversation - an open chest-pain journey followed by a food question is still about the chest (Codex P2, PR 231 round 3)
+    origin = [row for row in chain if _aware(row.created_at) <= started[0] + timedelta(minutes=2)]
+    for row in origin[:3]:
         said = str(getattr(row, "user_message", "") or "")
         if is_trivial_turn(said):
             continue
         topic = topic_phrase_from_text(said, lang, privacy="in_app")
         if topic:
             return sedi_copy.t("opener.last.care", lang, when=when, topic=topic)
+        break
     return sedi_copy.t("opener.last.care_generic", lang, when=when)
 
 

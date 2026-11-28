@@ -85,6 +85,36 @@ def test_p2_a_refusal_after_the_introduction_closes_it(db, user, refusal):
     assert out is None or "معرفی کردم" not in out
 
 
+@pytest.mark.parametrize("report", ["از دکتر اول وقت گرفتم", "به دومی زنگ زدم", "رفتم پیش دکتر", "I booked an appointment with the first doctor", "حجزت موعداً"])
+def test_p2_a_reported_booking_already_answered_the_question(db, user, report):
+    """Codex P2 (PR 231 round 3): after «I booked with the first one» the welcome does not ask which one he called."""
+    _intro(db, user, NOW - timedelta(hours=2))
+    _turn(db, user, report, "عالی است، روز ویزیت را به من بگو.", NOW - timedelta(hours=1))
+    out = lc.continuation(db, user.id, "fa", now=NOW)
+    assert out is None or "معرفی کردم" not in out
+
+
+@pytest.mark.parametrize("text", ["نتونستم وقت بگیرم", "I haven't booked yet", "هنوز زنگ نزدم", "لم أحجز بعد"])
+def test_a_negated_booking_is_no_report(text):
+    assert not lc.reported_booking(text)
+
+
+def test_p2_the_care_subject_comes_from_the_turn_that_started_the_journey(db, user):
+    """Codex P2 (PR 231 round 3): an open chest journey followed by a food question is still about the chest, never «food»."""
+    from backend.app.services.i10 import commitment_followup as cf
+
+    start = NOW - timedelta(hours=2)
+    _turn(db, user, "از دیروز قفسه سینه‌ام درد می‌کند", "از کی شروع شد؟", start)
+    task = cf.create_journey_followup(db, user.id, "پیگیری مراقبت", "routine", now=start.replace(tzinfo=None))
+    assert task is not None
+    task.created_at = start.replace(tzinfo=None)
+    db.commit()
+    _turn(db, user, "برای شام امشب چه غذایی بخورم که سبک باشد", "سوپ سبزیجات انتخاب خوبی است.", start + timedelta(minutes=40))
+    out = lc.continuation(db, user.id, "fa", now=NOW)
+    assert out is not None and out.endswith("الان حالت چطور است؟")
+    assert "غذا" not in out and "تغذیه" not in out and "شام" not in out
+
+
 # --- 2. a reminder set in that chat ----------------------------------------------------------------------------------------------------------------
 def test_a_reminder_set_in_the_last_chat_is_named_with_its_time(db, user):
     at = NOW - timedelta(hours=1)
