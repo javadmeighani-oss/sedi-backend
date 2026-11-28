@@ -128,3 +128,25 @@ def test_the_redirect_names_phrases_that_really_work(lang):
     quoted = re.findall(r"«([^»]+)»", sedi_copy.t("care_nav.no_access.redirect", lang))
     assert len(quoted) == 2
     assert pn.wants_next(quoted[0]) and pn.wants_again(quoted[1])
+
+
+# --- Codex round 1 (PR 232) ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("message", ["یک لیست جدید غذا بده", "لیست جدید غذاهای سالم", "give me a new list of meals", "a new list of exercises please"])
+def test_p2_a_new_list_of_something_else_is_not_the_next_doctors(db, user, orch, message):
+    _turn(orch, user, _FIRST)
+    assert pn.next_request(db, user.id, message, "fa") is None
+
+
+def test_p2_a_generic_new_list_continues_the_doctors_only_while_the_doctor_talk_is_open(db, user, orch):
+    _turn(orch, user, _FIRST)
+    assert pn.next_request(db, user.id, "لیست جدید بده", "fa") is not None
+    ConversationMemory(db).save_conversation(user.id, "برای شام یک غذای سبک و سالم پیشنهاد بده", "سوپ سبزیجات…", "fa")
+    assert pn.next_request(db, user.id, "لیست جدید بده", "fa") is None
+    assert pn.next_request(db, user.id, "۵ تا دکتر جدید معرفی کن", "fa") is not None  # an explicit doctor ask still continues
+
+
+def test_p2_the_guard_leaves_the_first_unrelated_question_alone(db, user, orch):
+    _turn(orch, user, _FIRST)
+    reply = "به اطلاعات زنده دسترسی ندارم؛ نتایج جست‌وجو را بفرست."
+    assert pn.guard_no_access(db, user.id, reply, "fa", user_message="هوای امروز تهران چطوره؟") == reply
+    assert pn.guard_no_access(db, user.id, reply, "fa", user_message="خوب انجام بده") == sedi_copy.t("care_nav.no_access.redirect", "fa")

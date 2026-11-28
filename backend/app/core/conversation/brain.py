@@ -1045,7 +1045,7 @@ class ConversationBrain:
                         # D-550 (R-089/R-114): never «I have no live access / send me the results» inside a doctor talk
                         from backend.app.services.i5.provider_next import guard_no_access
 
-                        sedi_response = guard_no_access(self.db, user_id, sedi_response, lang)
+                        sedi_response = guard_no_access(self.db, user_id, sedi_response, lang, user_message=user_message)
                         # R-066: never open by repeating the user's own words.
                         from backend.app.services.intelligence.conversation_flow import strip_echo
 

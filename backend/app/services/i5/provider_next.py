@@ -25,10 +25,10 @@ _NEXT = re.compile(
     r"(?:پنج|۵|5)\s*تا(?:ی)?\s*(?:دکتر|پزشک|متخصص)?\s*(?:بعدی|دیگه|دیگر|جدید|تازه)|(?:پنج|۵|5)\s*(?:نفر|پزشک|دکتر|متخصص)\s*(?:بعدی|دیگه|دیگر|جدید|تازه)|"
     # D-550 (pilot 2026-11-27, «۵ تا جدید معرفی کن»): new / fresh / other than these / change them = the next five
     r"(?:دکتر|پزشک|متخصص)(?:ها|های|ای|‌ها|‌های|ان)?(?:ی)?\s*(?:جدید|تازه)|(?:چند|یه|یک)\s*(?:تا(?:ی)?\s*)?(?:دکتر|پزشک|متخصص)?\s*(?:جدید|تازه)|"
-    r"(?:لیست|فهرست|اسم|اسامی)(?:‌ی|ی)?\s*(?:جدید|تازه|دیگه|دیگر)|^\W*(?:جدید|جدیدا|جدیدها|جدید‌ها|تازه‌ها)\W*(?:رو|را|بده|بفرست|معرفی\s*کن|لطفا|\s)*\W*$|"
+    r"(?:لیست|فهرست|اسم|اسامی)(?:‌ی|ی)?\s*(?:جدید|تازه|دیگه|دیگر)\s*(?:رو|را)?\s*(?:بده|بفرست|بیار|معرفی\s*کن|میخوام|می‌خوام|لطفا)?\W*$|^\W*(?:جدید|جدیدا|جدیدها|جدید‌ها|تازه‌ها)\W*(?:رو|را|بده|بفرست|معرفی\s*کن|لطفا|\s)*\W*$|"
     r"غیر\s*از\s*(?:اینا|اینها|این‌ها|اونا|اونها|آن‌ها|این\s*(?:پنج|۵|5)\s*(?:تا|نفر))|(?:عوض|تعویض)(?:شون)?\s*(?:کن|بکن)|"
-    r"(?:أطباء|اطباء|خمسة)\s*(?:جدد|جديدين|جديدة)|قائمة\s*(?:جديدة|أخرى|اخرى)|"
-    r"\bnew\s+(?:ones|doctors?|list|five|options|names)\b|\b(?:five|5)\s+new\b|\bdifferent\s+(?:doctors?|ones|options)\b|"
+    r"(?:أطباء|اطباء|خمسة)\s*(?:جدد|جديدين|جديدة)|قائمة\s*(?:جديدة|أخرى|اخرى)\W*$|"
+    r"\bnew\s+(?:ones|doctors?|five|options|names)\b|\bnew\s+list\W*$|\b(?:five|5)\s+new\b|\bdifferent\s+(?:doctors?|ones|options)\b|"
     r"^\W*(?:لطفا\s*)?(?:بعدی|بعدیا|بعدی\s*ها|بعدی‌ها)(?:\s*(?:رو|را|بده|نشون\s*بده|لطفا))*\W*$|"
     r"(?:یه|یک|چند)\s*(?:تا\s*)?(?:دکتر|پزشک)?\s*(?:\S+\s+)?(?:دیگه|دیگر)\b|(?:دکتر|پزشک)(?:ان|ها)?(?:ی)?\s*(?:دیگه|دیگر|بیشتر)\b|"
     r"بقیه(?:‌ی)?\s*(?:ش(?:ون)?\s*)?(?:رو|را)?\s*(?:نشون|نشان|بگو|بده|معرفی|ببینم)|بیشتر\s*(?:نشون|نشان|معرفی)\s*(?:بده|بدهید|کن)|"
@@ -88,6 +88,40 @@ _ONCE_MORE = re.compile(r"(?:یه|یک)\s*بار\s*(?:دیگه|دیگر)")
 def _once_more_is_again(text: str) -> str:
     """«یه بار دیگه» = «دوباره» (once more), never «another doctor» (D-550)."""
     return _ONCE_MORE.sub("دوباره", text)
+
+
+# a five-count or a doctor word makes a next-five ask explicit (it continues the doctors even after a newer subject); anything else needs the open talk
+_EXPLICIT_DOCTOR = re.compile(r"پنج|۵|5|دکتر|پزشک|متخصص|الخمسة|طبيب|أطباء|اطباء|دكتور|\b(?:five|doctors?|specialists?)\b", re.I)
+
+
+def _other_subject(message: str) -> bool:
+    """The message names its own subject (food, sleep, feelings…): «یک لیست جدید غذا» is about food, never the next doctors (Codex P2, PR 232)."""
+    if _EXPLICIT_DOCTOR.search(message or ""):
+        return False  # «یه دکتر پوست دیگه»: a doctor word makes it a doctor message, whatever body part it names
+    try:
+        from backend.app.services.i7 import conversation_recap as _recap
+
+        topic = _recap.classify_turn(message or "")
+        return topic is not None and topic != "doctor"
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def is_doctor_message(message: Optional[str]) -> bool:
+    """The CURRENT message itself belongs to a doctor talk (a request, a follow-up of one, or a doctor word)."""
+    text = (message or "").strip()
+    if not text:
+        return False
+    if wants_next(text) or wants_again(text) or confirms_search(text) or _EXPLICIT_DOCTOR.search(text):
+        return True
+    try:
+        from backend.app.services.i5 import care_nav_memory as _mem
+        from backend.app.services.i5 import care_navigation_directory as cn
+        from backend.app.services.i7 import conversation_recap as _recap
+
+        return cn.is_care_navigation_query(text) or _mem.asks_doctor_ellipsis(text) or _recap.classify_turn(text) == "doctor"
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def wants_again(message: Optional[str]) -> bool:
@@ -217,7 +251,10 @@ def next_request(db: Any, user_id: Optional[int], message: Optional[str], langua
         state = latest_state(db, user_id)
         if not state or _names_another_search(message or "", state):
             return None
-        if (confirmed or not _NEXT.search((message or "").strip())) and not _doctor_topic_still_open(db, user_id):
+        if _other_subject(message or ""):
+            return None  # «a new list of meals» names its own subject (Codex P2, PR 232)
+        explicit = bool(_NEXT.search(_once_more_is_again((message or "").strip()))) and bool(_EXPLICIT_DOCTOR.search(message or ""))
+        if (confirmed or not explicit) and not _doctor_topic_still_open(db, user_id):
             return None  # a subject-less «recommend some more» after a newer food/sleep talk is about THAT talk (Codex P2, PR 230)
         return request_from_state(state, language, user_id)
     except Exception:  # noqa: BLE001
@@ -279,7 +316,7 @@ def again_reply(db: Any, user_id: Optional[int], message: Optional[str], languag
         from backend.app.services.i5 import care_navigation_directory as cn
         from backend.app.services.i7 import governed_raw
 
-        if cn._has_real_location(message or "") or cn._declined_provider(message or ""):
+        if cn._has_real_location(message or "") or cn._declined_provider(message or "") or _other_subject(message or ""):
             return None
         found = _latest_intro(db, user_id)
         if not found:
@@ -299,11 +336,16 @@ def again_reply(db: Any, user_id: Optional[int], message: Optional[str], languag
         return None
 
 
-def guard_no_access(db: Any, user_id: Optional[int], reply: str, language: str) -> str:
+def guard_no_access(db: Any, user_id: Optional[int], reply: str, language: str, user_message: Optional[str] = None) -> str:
     """D-550 / DEBT-110 (defense in depth): a generated «I have no access / send me the results» inside an open doctor talk is replaced by the
-    concrete way forward; any other reply (or any doubt) is returned unchanged."""
+    concrete way forward; any other reply (or any doubt) is returned unchanged. The CURRENT message must itself be part of the doctor talk: the
+    first unrelated question after it («هوا چطوره؟») is never answered with the doctor redirect (Codex P2, PR 232)."""
     try:
-        if not claims_no_access(reply) or db is None or user_id is None or not _doctor_topic_still_open(db, user_id):
+        if not claims_no_access(reply) or db is None or user_id is None:
+            return reply
+        if user_message is not None and not is_doctor_message(user_message):
+            return reply
+        if not _doctor_topic_still_open(db, user_id):
             return reply
         lang = (language or "en").lower()[:2]
         lang = lang if lang in ("fa", "ar", "en") else "en"
