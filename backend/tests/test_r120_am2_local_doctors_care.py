@@ -143,10 +143,11 @@ def test_in_tehran_the_neighbourhood_doctors_come_first_then_the_nearest_then_on
     rows = sr.provider_rows("قلب", "تهران", area="تهرانپارس", fetch=_tehran_site())
     names = [r["name"] for r in rows]
     assert names[:3] == ["دکتر قلب 12", "دکتر قلب 10", "دکتر قلب 11"]                                           # the neighbourhood's own doctors
-    assert names[3:5] == ["دکتر قلب 01", "دکتر قلب 04"]                                                         # then the nearest (Pirouzi, Narmak)
+    assert names[3:4] == ["دکتر قلب 01"]                                                                        # then the nearest (Pirouzi)
     assert "دکتر قلب 13" not in names                                                                             # ?text hit outside Tehranpars is dropped
     worth = [r for r in rows if r.get("worth_far")]
-    assert [r["name"] for r in worth] == ["دکتر قلب 02"] and len(rows) == 6                                      # one clearly better doctor farther away
+    # R-121 / D-544 (Javad: always FIVE): the clearly better doctor farther away takes the fifth place («دکتر قلب 04» moves to the next five)
+    assert [r["name"] for r in worth] == ["دکتر قلب 02"] and len(rows) == 5 and names[4] == "دکتر قلب 02"
 
 
 def test_only_my_neighbourhood_means_only_there():
@@ -193,7 +194,7 @@ def test_the_worth_note_reaches_the_identity_in_the_users_language(monkeypatch):
     monkeypatch.setattr(cn, "_dispatch_governed_search", lambda db, r: [])
     out = cn.query_governed_directory(None, cn.CareNavRequest(entity=cn.CareNavEntity.SPECIALIST, specialty_or_service="قلب", city="تهران", area="تهرانپارس", language="fa"))
     noted = [i for i in out.identities if i.note]
-    assert len(out.identities) == 6 and len(noted) == 1 and "ارزش ویزیت" in noted[0].note
+    assert len(out.identities) == 5 and len(noted) == 1 and "ارزش ویزیت" in noted[0].note  # R-121 / D-544: always five
 
 
 def test_an_open_explanation_is_recorded_in_memory(monkeypatch):

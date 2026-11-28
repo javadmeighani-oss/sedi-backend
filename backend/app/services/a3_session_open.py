@@ -198,6 +198,16 @@ def _new_day_opener(db: Session, user: models.User, lang: str, name_part: str, n
     return sedi_copy.t("session.newday.goal", lang, greet=greet)
 
 
+def _last_step(db: Session, user: models.User, lang: str, now: datetime) -> Optional[str]:
+    """R-121: the continuation of the last conversation (i7.last_conversation), None = the topic openers below."""
+    try:
+        from backend.app.services.i7.last_conversation import continuation
+
+        return continuation(db, user.id, lang, now=now)
+    except Exception:
+        return None
+
+
 def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
     """Bounded opener. R-062: the FIRST opening of every local day always greets; later openings keep the cooldown."""
     if user.sedi_intro_completed_at is None:
@@ -211,20 +221,28 @@ def maybe_proactive_opener(db: Session, user: models.User) -> Optional[str]:
         last_aware = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
         if now - last_aware < _REOPEN_GUARD:
             return None
+    # R-121: the welcome continues what the LAST chat did or left open (doctors introduced, reminder set, open care, her question)
+    step = _last_step(db, user, lang, now)
+    if last_aware is not None:
         # P9: the user already talked to Sedi today and the app was opened again -> compress today and invite.
         try:
             from backend.app.services.i7.same_day_recap import build_same_day_recap, same_day_opener
 
             recap = build_same_day_recap(db, user.id, lang)
             if recap:
-                return same_day_opener(lang, _hello(lang, name_part), recap)
+                # R-121: what the last chat did / left open wins over the list of today's topics
+                return f"{_hello(lang, name_part)} {step}" if step else same_day_opener(lang, _hello(lang, name_part), recap)
         except Exception:
             pass
     # R-062: a new local day never starts with an empty chat (the old 12 h cooldown left an 8 h overnight gap silent).
     if _first_open_of_local_day(db, user.id, now):
+        if step:
+            return f"{_time_greeting(db, user.id, lang, name_part, now)} {step}"
         return _new_day_opener(db, user, lang, name_part, now)
     if last_aware is not None and now - last_aware < _OPENER_COOLDOWN:
         return None
+    if step:
+        return f"{_hello(lang, name_part)} {step}"
     topic = _resolve_topic(db, user, lang)
     if topic:
         return _continuity_opener(lang, topic, name_part)

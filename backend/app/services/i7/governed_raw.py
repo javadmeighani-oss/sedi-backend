@@ -440,6 +440,7 @@ def attach_provider_intro(db: Session, *, user_id: int, sedi_response: str, stat
             "province": state.get("province"), "area": state.get("area"),
             "qualifiers": [str(q)[:24] for q in (state.get("qualifiers") or [])][:6],
             "keys": [str(k)[:160] for k in (state.get("keys") or [])][-80:], "names": [str(n)[:160] for n in (state.get("names") or [])][-80:],
+            "shown": max(0, min(int(state.get("shown") or 0), 10)),  # R-121
         }
         row = (
             db.query(models.Memory)
