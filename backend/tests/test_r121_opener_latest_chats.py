@@ -80,7 +80,8 @@ def test_a_newer_subject_after_the_introduction_is_the_last_chat(db, user):
 def test_a_reminder_set_in_the_last_chat_is_named_with_its_time(db, user):
     at = NOW - timedelta(hours=1)
     _turn(db, user, "فردا ساعت ۹ یادم بنداز قرص ویتامین D بخورم", "ثبت شد.", at)
-    db.add(models.UserEvent(user_id=user.id, title="قرص ویتامین D", starts_at=(NOW + timedelta(days=1)).replace(hour=5, minute=30, tzinfo=None),
+    # starts_at is the event's LOCAL wall clock in its own timezone (as reminder_event_dispatch stores it)
+    db.add(models.UserEvent(user_id=user.id, title="قرص ویتامین D", starts_at=datetime(2026, 11, 29, 9, 0), timezone="Asia/Tehran",
                             source="conversation", status="scheduled", created_at=at.replace(tzinfo=None)))
     db.commit()
     out = lc.continuation(db, user.id, "fa", now=NOW)
@@ -90,10 +91,20 @@ def test_a_reminder_set_in_the_last_chat_is_named_with_its_time(db, user):
 def test_a_reminder_already_past_asks_if_it_was_done(db, user):
     at = NOW - timedelta(days=1)
     _turn(db, user, "امروز ساعت ۸ شب یادم بنداز ورزش کنم", "ثبت شد.", at)
-    db.add(models.UserEvent(user_id=user.id, title="ورزش", starts_at=(NOW - timedelta(hours=20)).replace(tzinfo=None), source="conversation",
+    db.add(models.UserEvent(user_id=user.id, title="ورزش", starts_at=datetime(2026, 11, 27, 20, 0), timezone="Asia/Tehran", source="conversation",
                             status="scheduled", created_at=at.replace(tzinfo=None)))
     db.commit()
-    assert lc.continuation(db, user.id, "fa", now=NOW).endswith("انجامش دادی؟")
+    assert lc.continuation(db, user.id, "fa", now=NOW) == "دیروز یادآور «ورزش» را برای دیروز ساعت ۲۰:۰۰ ثبت کردم. انجامش دادی؟"
+
+
+def test_p2_a_local_reminder_time_is_not_read_as_utc(db, user):
+    """Codex P2 (PR 231): 11:00 Tehran this morning has passed at 12:30 Tehran (read as UTC it would be 14:30, still ahead)."""
+    at = NOW - timedelta(hours=4)
+    _turn(db, user, "ساعت ۱۱ یادم بنداز به مادرم زنگ بزنم", "ثبت شد.", at)
+    db.add(models.UserEvent(user_id=user.id, title="زنگ به مادرم", starts_at=datetime(2026, 11, 28, 11, 0), timezone="Asia/Tehran",
+                            source="conversation", status="scheduled", created_at=at.replace(tzinfo=None)))
+    db.commit()
+    assert lc.continuation(db, user.id, "fa", now=NOW) == "امروز یادآور «زنگ به مادرم» را برای امروز ساعت ۱۱:۰۰ ثبت کردم. انجامش دادی؟"
 
 
 def test_a_reminder_from_another_conversation_is_not_this_chat(db, user):

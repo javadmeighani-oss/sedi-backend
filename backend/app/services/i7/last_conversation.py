@@ -132,9 +132,14 @@ def _reminder(db: Any, user_id: int, chain: list, now: datetime, lang: str) -> O
         created = _aware(ev.created_at)
         if created is None or not (start <= created <= end) or not (ev.title or "").strip() or ev.starts_at is None:
             continue
+        from backend.app.services.i10.event_reminder_i10_adapter import event_starts_utc
+
+        starts = _aware(event_starts_utc(ev))  # starts_at is the event's LOCAL wall clock (its own timezone), not UTC (Codex P2, PR 231)
+        if starts is None:
+            continue
         when = _when(db, user_id, ev.created_at, now, lang)
-        at = _at(db, user_id, ev.starts_at, now, lang)
-        key = "opener.last.reminder_future" if _aware(ev.starts_at) > now else "opener.last.reminder_past"
+        at = _at(db, user_id, starts, now, lang)
+        key = "opener.last.reminder_future" if starts > now else "opener.last.reminder_past"
         return sedi_copy.t(key, lang, when=when, title=" ".join(str(ev.title).split())[:80], at=at)
     return None
 
