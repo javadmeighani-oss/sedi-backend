@@ -239,7 +239,9 @@ def _names_another_search(message: str, state: dict) -> bool:
 def next_request(db: Any, user_id: Optional[int], message: Optional[str], language: str) -> Optional[Any]:
     """The request for «the next five», or None when the message is not such a request (or there is nothing to continue from)."""
     try:
-        confirmed = confirms_search(message) and _previous_ask(db, user_id) != "again"
+        # a go-ahead continues the next five ONLY when the user's previous turn asked for them: after a newer request (another specialty, a
+        # place…) it belongs to THAT request, never to an older introduction (Codex P2, PR 232 round 3)
+        confirmed = confirms_search(message) and _previous_ask(db, user_id) == "next"
         if not (wants_next(message) or confirmed):
             return None
         from backend.app.services.i5 import care_navigation_directory as cn

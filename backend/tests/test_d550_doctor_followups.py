@@ -162,3 +162,12 @@ def test_p2_a_replayed_list_keeps_its_not_verified_warning(lang):
     block = pn._bullet_block(stored)
     assert block.endswith(note) and "closing line" not in block and block.count("•") == 2
     assert pn._bullet_block("head\n• Dr A\n\nclosing line") == "• Dr A"                                    # no warning, nothing added
+
+
+# --- Codex round 3 (PR 232) ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("go", ["go ahead", "خوب انجام بده"])
+def test_p2_a_go_ahead_after_a_newer_request_never_resumes_the_old_introduction(db, user, orch, go):
+    _turn(orch, user, _FIRST)
+    ConversationMemory(db).save_conversation(user.id, "یک متخصص قلب معرفی کن", "برای چه مشکلی؟", "fa")
+    assert pn.next_request(db, user.id, go, "fa") is None
+    assert pn.again_reply(db, user.id, go, "fa") is None
