@@ -82,6 +82,18 @@ def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None
     return None
 
 
+def _doctor_topic_still_open(db: Any, user_id: Optional[int]) -> bool:
+    """The newest meaningful turns are still the doctor talk (care_nav_memory.doctor_topic_open over the same governed reader)."""
+    try:
+        from backend.app.core.conversation.memory import ConversationMemory
+        from backend.app.services.i5 import care_nav_memory as _mem
+
+        rows = sorted(ConversationMemory(db).get_recent_messages(int(user_id), limit=MAX_TURNS_BACK), key=lambda r: getattr(r, "id", 0), reverse=True)
+        return _mem.doctor_topic_open(rows, datetime.utcnow())
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def request_from_state(state: dict, language: str, user_id: Optional[int] = None) -> Any:
     """The explicit request of the previous introduction, with everyone already introduced left out."""
     from backend.app.services.i5 import care_navigation_directory as cn
@@ -128,6 +140,8 @@ def next_request(db: Any, user_id: Optional[int], message: Optional[str], langua
         state = latest_state(db, user_id)
         if not state or _names_another_search(message or "", state):
             return None
+        if not _NEXT.search((message or "").strip()) and not _doctor_topic_still_open(db, user_id):
+            return None  # a subject-less «recommend some more» after a newer food/sleep talk is about THAT talk (Codex P2, PR 230)
         return request_from_state(state, language, user_id)
     except Exception:  # noqa: BLE001
         logger.info("provider_next_request_failed")

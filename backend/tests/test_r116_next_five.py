@@ -233,3 +233,15 @@ def test_p2_the_qualifiers_of_the_first_search_survive_into_the_next_five(db, us
 def test_p2_a_refusal_is_not_a_continuation(db, user, orch, message):
     _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
     assert pn.next_request(db, user.id, message, "fa") is None
+
+
+def test_r120_am4_subjectless_more_is_the_next_five_only_while_the_doctor_talk_is_open(db, user, orch):
+    """Codex P2 (PR 230): «recommend some more» after a newer food talk is about the food, not the doctors."""
+    from backend.app.core.conversation.memory import ConversationMemory
+
+    _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
+    assert pn.next_request(db, user.id, "recommend some more", "fa") is not None
+    assert pn.next_request(db, user.id, "چندتای دیگه معرفی کن", "fa") is not None
+    ConversationMemory(db).save_conversation(user.id, "برای شام یک غذای سبک و سالم پیشنهاد بده", "سوپ سبزیجات…", "fa")
+    assert pn.next_request(db, user.id, "recommend some more", "fa") is None
+    assert pn.next_request(db, user.id, "پنج تای بعدی", "fa") is not None  # an explicit «next five» still continues the doctors
