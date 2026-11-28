@@ -150,3 +150,15 @@ def test_p2_the_guard_leaves_the_first_unrelated_question_alone(db, user, orch):
     reply = "به اطلاعات زنده دسترسی ندارم؛ نتایج جست‌وجو را بفرست."
     assert pn.guard_no_access(db, user.id, reply, "fa", user_message="هوای امروز تهران چطوره؟") == reply
     assert pn.guard_no_access(db, user.id, reply, "fa", user_message="خوب انجام بده") == sedi_copy.t("care_nav.no_access.redirect", "fa")
+
+
+# --- Codex round 2 (PR 232) ------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("lang", ["fa", "ar", "en"])
+def test_p2_a_replayed_list_keeps_its_not_verified_warning(lang):
+    from backend.app.services.i5 import care_navigation_directory as cn
+
+    note = cn.UNVERIFIED_WEB_NOTE[lang]
+    stored = "\n".join(["head", "• Dr A — cardiology; phone: 1", "• Dr B — cardiology", note, "", "closing line"])
+    block = pn._bullet_block(stored)
+    assert block.endswith(note) and "closing line" not in block and block.count("•") == 2
+    assert pn._bullet_block("head\n• Dr A\n\nclosing line") == "• Dr A"                                    # no warning, nothing added

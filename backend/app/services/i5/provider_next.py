@@ -288,7 +288,11 @@ def _previous_ask(db: Any, user_id: Optional[int]) -> Optional[str]:
 
 
 def _bullet_block(reply: str) -> str:
-    """The doctor lines of a stored introduction («• name — specialty…» and their indented continuation lines), in order."""
+    """The doctor lines of a stored introduction («• name — specialty…» and their indented continuation lines), in order - plus the
+    «some of these are not verified» warning when the list carried it (a replay never drops a qualification, Codex P2 PR 232)."""
+    from backend.app.services.i5 import care_navigation_directory as cn
+
+    warnings = {w.strip() for w in cn.UNVERIFIED_WEB_NOTE.values()}
     out: list = []
     for line in (reply or "").splitlines():
         if line.lstrip().startswith("•"):
@@ -296,6 +300,8 @@ def _bullet_block(reply: str) -> str:
         elif out and line.startswith("   ") and line.strip():
             out.append(line)
         elif out and line.strip():
+            if line.strip() in warnings:
+                out.append(line.strip())
             break  # the first ordinary line after the list ends it (closing / care text are not replayed)
     return chr(10).join(out)
 
