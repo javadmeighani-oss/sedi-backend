@@ -134,6 +134,103 @@ def _pending_question(rows: list, now: Any) -> bool:
     return asks and any(cn.is_care_navigation_query(getattr(r, "user_message", None) or "") for r in rows)
 
 
+# --- R-120 am.4 (Javad's phone test 2026-11-28): a SHORT follow-up of an open doctor conversation --------------------------------------------------
+# Sedi opened with «last time we talked about finding the right doctor for you»; «معرفی کن برام» got her own introduction, «منظورم پزشک بود» a
+# single old doctor from the free model, «برام چندتای دیگه معرفی کن» her introduction again. A message that only asks to introduce / find / show
+# (or corrects «I meant a doctor») while the newest conversation is a doctor search is THAT search, completed from memory.
+TOPIC_MAX_AGE_DAYS = 7
+_MEANT_DOCTOR = re.compile(
+    r"منظور(?:م|من)\s*(?:هم\s*)?(?:یه\s*|یک\s*)?(?:دکتر|پزشک|متخصص)|(?:دکتر|پزشک|متخصص)\s*(?:رو|را)?\s*(?:گفتم|می\s*گفتم|منظورم\s*بود)|"
+    r"(?:أقصد|اقصد|قصدت|قصدي)\s*(?:ال)?(?:طبيب|دكتور|أطباء|اطباء)|"
+    r"\bi\s+meant\s+(?:a\s+|the\s+)?(?:doctor|physician|specialist)s?\b|\bi\s+mean\s+(?:a\s+)?(?:doctor|physician|specialist)s?\b",
+    re.I,
+)
+_ASK_VERB = re.compile(
+    # longer forms first and a word end, so «معرفی کنید» is removed whole (Codex P2, PR 230)
+    r"معرفی\s*(?:کنید|بفرمایید|کنی|بکن|کن)(?!\w)|پیدا\s*(?:کنید|کنی|بکن|کن)(?!\w)|(?:نشون|نشان)\s*(?:بدهید|بدی|بده)(?!\w)|بفرستید|بفرست|"
+    r"(?:رشح|رشحي|اقترح|ابحث|اعرض|أرسل|ارسل)(?:\s*لي)?|"
+    r"\b(?:introduce|find|show|recommend|suggest|send|give)\b",
+    re.I,
+)
+# words that carry no subject of their own («برام», «چندتای دیگه», «لطفا», "me a few more") - anything else makes it a different request
+_FILLER = frozenset(
+    "برام برایم بهم به من یه یک یکی چند چندتا چندتای تا تای دیگه دیگر دیگری بیشتر بقیه رو را اونا اونها آنها همون همان همین پس خب خوب باشه "
+    "حالا الان لطفا لطفاً لطفن دوباره هم و دکتر دکترها دکترای پزشک پزشکان پزشکها متخصص متخصصها اون آن ها "
+    "لي من فضلك المزيد آخرين اخرين أخرى اخرى طبيب أطباء اطباء دكتور "
+    "me a an one some few more other others another please again now then ok okay so them the doctor doctors specialist specialists".split()
+)
+
+
+# «more / another / the rest» inside a short follow-up: with an introduction to continue, that is the NEXT five (Codex P2, PR 230)
+_MORE = re.compile(r"بیشتر|دیگه|دیگر|بقیه|المزيد|آخرين|اخرين|أخرى|اخرى|غيرهم|\b(?:more|another|others?|rest)\b", re.I)
+
+
+def _pn_refusal(text: str) -> bool:
+    from backend.app.services.i5 import provider_next as pn
+
+    return bool(pn._REFUSAL.search(text))
+
+
+def asks_for_more(message: Optional[str]) -> bool:
+    """A short follow-up that asks for MORE doctors («introduce me some more», «چندتای دیگه معرفی کن»)."""
+    return asks_doctor_ellipsis(message) and bool(_MORE.search(_norm(message)))
+
+
+def asks_doctor_ellipsis(message: Optional[str]) -> bool:
+    """«معرفی کن برام», «برام چندتای دیگه معرفی کن», «منظورم پزشک بود», "find me some": a short request with no subject of its own."""
+    text = _norm(message)
+    if not text or len(text) > 60:
+        return False
+    if cn._declined_provider(text) or _pn_refusal(text):
+        return False  # «I meant a doctor, but I don't need another one» is a refusal, never the search again (Codex P2, PR 230)
+    if _MEANT_DOCTOR.search(text):
+        return True
+    if not _ASK_VERB.search(text):
+        return False
+    rest = _ASK_VERB.sub(" ", text)
+    words = [w for w in re.findall(r"[^\W\d_]+", rest.lower()) if w]
+    return all(w in _FILLER for w in words)
+
+
+def doctor_topic_open(rows: list, now: Any) -> bool:
+    """The newest meaningful turn (within ``TOPIC_MAX_AGE_DAYS``) belongs to a doctor search - the same turn the opener speaks about."""
+    from datetime import timedelta
+
+    from backend.app.services.care_journey import journey as _journey
+    from backend.app.services.i7 import conversation_recap as _recap
+    from backend.app.services.i7 import governed_raw
+
+    for row in rows or []:
+        created = getattr(row, "created_at", None)
+        if created is not None and now - created.replace(tzinfo=None) > timedelta(days=TOPIC_MAX_AGE_DAYS):
+            return False
+        said = str(getattr(row, "user_message", "") or "")
+        reply = str(getattr(row, "sedi_response", "") or "")
+        if governed_raw.provider_intro_of_turn(row) is not None or _journey.is_interview_reply(reply) or _journey.is_followup_reply(reply):
+            return True
+        if ci.is_reason_question(reply) or ci.is_place_question(reply) or cn.is_care_navigation_query(said):
+            return True
+        if _recap.is_trivial_turn(said):
+            continue  # «باشه», «ممنون» never decide the topic
+        topic = _recap.classify_turn(said)
+        if topic == "doctor":
+            return True
+        if topic is not None:
+            return False  # a newer named subject (sleep, food, feelings…) closed the doctor talk
+        # an unnamed answer inside the doctor talk («هیچ مشکلی ندارم») neither opens nor closes it: look one turn further back
+    return False
+
+
+def _next_five_pending(db: Any, user_id: int, message: str) -> bool:
+    """«چندتای دیگه» with a previous introduction to continue: the next-five path owns it (memory would repeat the same five)."""
+    try:
+        from backend.app.services.i5 import provider_next as pn
+
+        return pn.wants_next(message) and pn.latest_state(db, user_id) is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def complete_request(db: Any, user_id: int, message: str, language: Optional[str], *, rows: Optional[list] = None) -> Optional[MemoryRequest]:
     """The memory-completed doctor request, or None (not a doctor request / nothing known / disabled / any doubt = the old flow)."""
     try:
@@ -148,8 +245,11 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
         rows = rows or []
         is_query = cn.is_care_navigation_query(message)
         proceed, any_place, refers = says_proceed(message), says_any_place(message), refers_to_known(message)
-        pending = _pending_question(rows, datetime.utcnow())
-        if not (is_query or (pending and (proceed or any_place or refers))):
+        now = datetime.utcnow()
+        pending = _pending_question(rows[:4], now)
+        # R-120 am.4: a short follow-up of the open doctor conversation (not when the next five of an introduction are asked for)
+        ellipsis = (not is_query) and asks_doctor_ellipsis(message) and doctor_topic_open(rows, now) and not _next_five_pending(db, user_id, message)
+        if not (is_query or ellipsis or (pending and (proceed or any_place or refers))):
             return None
         if symptom_triage.triage(message, lang).red_flag:
             return None  # an emergency is never completed into a routine search
@@ -215,6 +315,8 @@ def complete_request(db: Any, user_id: int, message: str, language: Optional[str
                 codes.append("CARE_NAV_DEFAULT_CITY")
         if proceed or any_place:
             codes.append("CARE_NAV_INSISTENCE_PROCEED")
+        if ellipsis:
+            codes.append("R120_DOCTOR_ELLIPSIS_BOUND")
         if spec and used_issue is not None:
             for other in issues:  # D3: a second problem gets its own specialty named, the search runs for the main one
                 if other is used_issue:

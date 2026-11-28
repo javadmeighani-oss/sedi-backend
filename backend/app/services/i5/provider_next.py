@@ -17,7 +17,7 @@ from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
-MAX_AGE = timedelta(hours=12)  # an introduction older than this is no longer «the previous five»
+MAX_AGE = timedelta(days=7)  # an introduction older than this is no longer «the previous five» (R-120 am.4: was 12 h; the doctor topic of the opener lives a week)
 MAX_TURNS_BACK = 8  # ... and must be among the user's latest turns
 MAX_MESSAGE_CHARS = 90  # a next-five request is short; a long message is a new topic
 
@@ -49,7 +49,13 @@ _REFUSAL = re.compile(
 def wants_next(message: Optional[str]) -> bool:
     """The message asks for the next doctors / says the last ones did not suit - and is short enough to be only that."""
     text = (message or "").strip()
-    return bool(text) and len(text) <= MAX_MESSAGE_CHARS and bool(_NEXT.search(text)) and not _REFUSAL.search(text)  # «I don't want another doctor» is a refusal
+    if not text or len(text) > MAX_MESSAGE_CHARS or _REFUSAL.search(text):
+        return False
+    if _NEXT.search(text):
+        return True
+    from backend.app.services.i5 import care_nav_memory as _mem  # «introduce me some more» / «find me some more» (Codex P2, PR 230)
+
+    return _mem.asks_for_more(text)
 
 
 def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None) -> Optional[dict]:
@@ -74,6 +80,18 @@ def latest_state(db: Any, user_id: Optional[int], now: Optional[datetime] = None
     except Exception:  # noqa: BLE001
         logger.info("provider_next_state_failed")
     return None
+
+
+def _doctor_topic_still_open(db: Any, user_id: Optional[int]) -> bool:
+    """The newest meaningful turns are still the doctor talk (care_nav_memory.doctor_topic_open over the same governed reader)."""
+    try:
+        from backend.app.core.conversation.memory import ConversationMemory
+        from backend.app.services.i5 import care_nav_memory as _mem
+
+        rows = sorted(ConversationMemory(db).get_recent_messages(int(user_id), limit=MAX_TURNS_BACK), key=lambda r: getattr(r, "id", 0), reverse=True)
+        return _mem.doctor_topic_open(rows, datetime.utcnow())
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def request_from_state(state: dict, language: str, user_id: Optional[int] = None) -> Any:
@@ -122,6 +140,8 @@ def next_request(db: Any, user_id: Optional[int], message: Optional[str], langua
         state = latest_state(db, user_id)
         if not state or _names_another_search(message or "", state):
             return None
+        if not _NEXT.search((message or "").strip()) and not _doctor_topic_still_open(db, user_id):
+            return None  # a subject-less «recommend some more» after a newer food/sleep talk is about THAT talk (Codex P2, PR 230)
         return request_from_state(state, language, user_id)
     except Exception:  # noqa: BLE001
         logger.info("provider_next_request_failed")
