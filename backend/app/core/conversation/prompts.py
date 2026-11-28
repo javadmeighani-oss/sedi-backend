@@ -1836,9 +1836,9 @@ SCENARIO: STABLE_RELATION
         user_lower_fa = user_message  # For Persian, check without lower() to preserve Persian characters
         
         intro_keywords = {
-            "en": ["introduce yourself", "tell me about yourself", "who are you", "what are you", "introduce", "yourself"],
-            "fa": ["خودت رو معرفی کن", "خودت رو برام معرفی کن", "بگو کی هستی", "خودت رو معرفی", "معرفی کن", "معرفی کن خودتو", "معرفی کن خودت", "خودتو معرفی کن", "خودت معرفی کن", "معرفی", "خودت"],
-            "ar": ["قدم نفسك", "أخبرني عن نفسك", "من أنت", "ما أنت", "قدم", "نفسك"]
+            "en": ["introduce yourself", "tell me about yourself", "who are you", "what are you"],  # R-120 am.4: bare «introduce»/«yourself» also caught «introduce me a doctor»
+            "fa": ["خودت رو معرفی کن", "خودت رو برام معرفی کن", "بگو کی هستی", "خودت رو معرفی", "خودت را معرفی", "معرفی کن خودتو", "معرفی کن خودت", "خودتو معرفی کن", "خودت معرفی کن"],  # R-120 am.4: no bare «معرفی کن»/«معرفی»/«خودت» (a doctor request)
+            "ar": ["قدم نفسك", "أخبرني عن نفسك", "من أنت", "ما أنت", "عرفني بنفسك", "عرف نفسك"]
         }
         
         # Check if user is asking for introduction

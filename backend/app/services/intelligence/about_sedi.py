@@ -21,10 +21,17 @@ _MAX_WORDS: Final[int] = 40
 # Up to this many words ANY about-pattern counts; between this and _MAX_WORDS only the META patterns count (Codex P2).
 _SHORT_WORDS: Final[int] = 14
 
+# «خودت را/رو/خودتو (برام) معرفی کن», «معرفی کن خودتو», «یه معرفی از خودت»: the introduction asked of HER
+_SELF_INTRO_FA = (
+    r"خودت\s*(?:را|رو|و)?\s*(?:برام\s+|برایم\s+|به\s*من\s+|بهم\s+)?(?:یه\s+|یک\s+)?معرفی|معرفی\s*(?:کن|کنی|بکن)\s+خودت|معرفی\S*\s+(?:از\s+)?خودت"
+)
+
 _ABOUT_SOURCE = (
     r"("
     # fa
-    r"تو\s+(?:دقیقا\s+|اصلا\s+)?کی\s*(?:هستی|هستی؟|ای)|تو\s+چی\s+هستی|خودت\s+رو\s+معرفی|خودتو\s+معرفی|معرفی\s+کن|"
+    # R-120 am.4 (Javad's phone test 2026-11-28): a bare «معرفی کن (برام)» / «چندتای دیگه معرفی کن» asks for DOCTORS after a doctor talk,
+    # never for her introduction - only «introduce YOURSELF» wording is about her
+    r"تو\s+(?:دقیقا\s+|اصلا\s+)?کی\s*(?:هستی|هستی؟|ای)|تو\s+چی\s+هستی|" + _SELF_INTRO_FA + r"|"
     r"چه\s+کار\S*\s+(?:می\s*[‌ ]?تونی|می\s*[‌ ]?تونید|بلدی)|"
     r"چیکار\s+می\s*[‌ ]?تونی|چی\s+کار\s+می\s*[‌ ]?تونی|چه\s+کمکی\s+(?:به\s+من\s+|بهم\s+)?(?:می\s*[‌ ]?تونی|می\s*[‌ ]?توانی|می\s*[‌ ]?کنی|بکنی|بکنید)|"
     r"(?:توانایی|توانمندی|قابلیت|امکانات)\s*(?:ها)?\s*[‌ ]?(?:ت|هات|های\s*تو|هایت)|"
@@ -49,7 +56,7 @@ _ABOUT_SOURCE = (
 _META_SOURCE = (
     r"("
     # fa: explicit talk about her identity / abilities
-    r"تو\s+(?:دقیقا\s+|اصلا\s+)?کی\s*(?:هستی|ای)|خودت\s*رو\s+معرفی|خودتو\s+معرفی|"
+    r"تو\s+(?:دقیقا\s+|اصلا\s+)?کی\s*(?:هستی|ای)|" + _SELF_INTRO_FA + r"|"
     r"(?:توانایی|توانمندی|قابلیت|امکانات)\s*(?:ها)?\s*[‌ ]?(?:ت|هات|های\s*تو|هایت)|"
     # ar
     r"من\s+أنت|ما\s+أنت|عرف\S*\s+بنفسك|ما\s+(?:هي\s+)?(?:قدراتك|إمكانياتك|مهامك|وظيفتك)|"

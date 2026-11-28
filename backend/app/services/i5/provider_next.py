@@ -17,7 +17,7 @@ from backend.app import sedi_copy
 
 logger = logging.getLogger(__name__)
 
-MAX_AGE = timedelta(hours=12)  # an introduction older than this is no longer «the previous five»
+MAX_AGE = timedelta(days=7)  # an introduction older than this is no longer «the previous five» (R-120 am.4: was 12 h; the doctor topic of the opener lives a week)
 MAX_TURNS_BACK = 8  # ... and must be among the user's latest turns
 MAX_MESSAGE_CHARS = 90  # a next-five request is short; a long message is a new topic
 

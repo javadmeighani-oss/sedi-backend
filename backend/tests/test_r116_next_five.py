@@ -122,8 +122,8 @@ def test_a_new_place_in_the_request_is_a_new_search_not_the_next_five(db, user, 
 def test_an_old_introduction_is_not_continued(db, user, orch):
     _turn(orch, user, "یک متخصص پوست در شیراز معرفی کن")
     row = db.query(models.Memory).filter(models.Memory.user_id == user.id).order_by(models.Memory.id.desc()).first()
-    assert pn.latest_state(db, user.id, now=row.created_at + timedelta(hours=13)) is None
-    assert pn.latest_state(db, user.id, now=row.created_at + timedelta(hours=1)) is not None
+    assert pn.latest_state(db, user.id, now=row.created_at + timedelta(days=8)) is None
+    assert pn.latest_state(db, user.id, now=row.created_at + timedelta(days=1)) is not None  # R-120 am.4: yesterday's introduction still continues
 
 
 # --- the link text (Javad: the doctor's name AND specialty are in the link) ------------------------------------------------------------------------

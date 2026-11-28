@@ -589,7 +589,7 @@ class IntelligenceOrchestrator:
             from backend.app.services.i6.consent_service import PERM_READ, has_permission_readonly
             from backend.app.services.i7.retention import query_eligible_raw
 
-            rows = (query_eligible_raw(self._db, user_id, limit=4) or []) if has_permission_readonly(self._db, user_id, PERM_READ) else []
+            rows = (query_eligible_raw(self._db, user_id, limit=10) or []) if has_permission_readonly(self._db, user_id, PERM_READ) else []  # R-120 am.4: far enough back to reach the request of the open doctor talk
             return care_nav_memory.complete_request(self._db, user_id, message, lang, rows=list(rows))
         except Exception:  # noqa: BLE001
             return None
